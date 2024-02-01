@@ -211,10 +211,12 @@ public:
     */
     void createLandmarkTemplate();
     void createLandmarkTemplate_Gaussian();
-    void histogramEqualization(MultidimArray<double> &data);
+    // void histogramEqualization(MultidimArray<double> &data);
     void adaptiveHistogramEqualization(MultidimArray<double> &image, size_t windowSize);
     void maxPooling(MultidimArray<double> &image, size_t windowSize);
 
+    void filterFourierDirections(MultidimArray<double> &image);
+    void directionalFilterFourier(MultidimArray<double> &image, double xdir, double ydir);
 
 };
 

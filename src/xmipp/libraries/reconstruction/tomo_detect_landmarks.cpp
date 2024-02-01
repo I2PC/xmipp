@@ -460,6 +460,7 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
 		// MAX POOLING ------------------------------------------------
 		maxPooling(tiltImage, targetFS);
+		filterFourierDirections(tiltImage);
 
 		// Save max-pooled tilt-series  
 		for(size_t i = 0; i < ySize_d; i++)
@@ -471,32 +472,32 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
         }
 
 		// OTSU THRESHOLDING ----------------------------------------------
-		std::vector<double> otsuVector;
+		// std::vector<double> otsuVector;
 
-        for(size_t i = 0; i < ySize_d; i++)
-        {
-            for(size_t j = 0; j < xSize_d; ++j)
-            {
-                double value = DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j);
+        // for(size_t i = 0; i < ySize_d; i++)
+        // {
+        //     for(size_t j = 0; j < xSize_d; ++j)
+        //     {
+        //         double value = DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j);
 
-                if (value > thresholdU)
-                {
-					otsuVector.push_back(DIRECT_A2D_ELEM(tiltImage, i, j));
-                }
-            }
-        }
+        //         if (value > thresholdU)
+        //         {
+		// 			otsuVector.push_back(DIRECT_A2D_ELEM(tiltImage, i, j));
+        //         }
+        //     }
+        // }
 
-		MultidimArray<double> otsuMultidim;
-		otsuMultidim.initZeros(otsuVector.size());
+		// MultidimArray<double> otsuMultidim;
+		// otsuMultidim.initZeros(otsuVector.size());
 
-		for (size_t i =0; i<otsuVector.size(); i++)
-		{
-			DIRECT_MULTIDIM_ELEM(otsuMultidim, i) = otsuVector[i];
-		}
+		// for (size_t i =0; i<otsuVector.size(); i++)
+		// {
+		// 	DIRECT_MULTIDIM_ELEM(otsuMultidim, i) = otsuVector[i];
+		// }
 
-		double otsuThr = OtsuSegmentation(otsuMultidim);
+		// double otsuThr = OtsuSegmentation(otsuMultidim);
 
-		std::cout << "otsu thr ---------------------------------------------------------------> " << otsuThr << std::endl;
+		// std::cout << "otsu thr ---------------------------------------------------------------> " << otsuThr << std::endl;
 
 		// LABELLING --------------------------------------------------------------------
 		binaryCoordinatesMapSlice.initZeros(ySize_d, xSize_d);
@@ -505,7 +506,7 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
         {
             for(size_t j = 0; j < xSize_d; ++j)
             {
-				if (DIRECT_A2D_ELEM(tiltImage, i, j) > otsuThr && DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j > thresholdU))
+				if (DIRECT_A2D_ELEM(tiltImage, i, j) > 1)
 				{
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
 				}
@@ -1192,7 +1193,6 @@ bool ProgTomoDetectLandmarks::filterLabeledRegions(std::vector<int> coordinatesP
 	return true;
 }
 
-
 void ProgTomoDetectLandmarks::createLandmarkTemplate()
 {
 	// Generate first reference
@@ -1482,3 +1482,221 @@ void ProgTomoDetectLandmarks::adaptiveHistogramEqualization(MultidimArray<double
 // 	}
 // }
 // // ------------------------------------------------------------------------------------------------------------------------------
+
+void ProgTomoDetectLandmarks::filterFourierDirections(MultidimArray<double> &image) 
+{
+	MultidimArray<double> imageTmp;
+	MultidimArray<double> imageOut;
+	imageOut.resizeNoCopy(image);
+	imageOut.initConstant(1);
+	
+	size_t numberOfDirections = 4;
+	double angleStep = PI / numberOfDirections;
+
+	for (size_t i = 0; i < numberOfDirections; i++)
+	{
+	 	imageTmp = image;
+		// std::cout << "xdir= " << cos(i*angleStep) << ", ydir=" << sin(i*angleStep) << std::endl;
+		directionalFilterFourier(imageTmp, cos(i*angleStep), sin(i*angleStep));
+		
+		imageOut = imageOut * imageTmp;
+	}
+
+	imageOut.statisticsAdjust(0.0, 1.0);
+	image = imageOut;
+	
+	// std::cout << "Discrete sumation mode" << std::endl;
+	// MultidimArray<double> imageDirX;
+	// imageDirX = image;
+	// MultidimArray<double> imageDirY;
+	// imageDirY = image;
+	// // MultidimArray<double> imageDirYX;
+	// // imageDirYX = image;
+
+	// directionalFilterFourier(imageDirX, 1, 0);
+	// directionalFilterFourier(imageDirY, 0, 1);
+	// // directionalFilterFourier(imageDirYX, 1.0/sqrt(2), 1.0/sqrt(2));
+
+	// image = imageDirX * imageDirY;
+	// // image = imageDirX * imageDirY * imageDirYX;
+}
+
+
+void ProgTomoDetectLandmarks::directionalFilterFourier(MultidimArray<double> &image, double xdir, double ydir) 
+{
+    MultidimArray<std::complex<double>> fftImg;
+	auto xvoldim = XSIZE(image);
+	auto yvoldim = YSIZE(image);
+	// auto xvoldim = xSize_d;
+	// auto yvoldim = ySize_d;
+
+	FourierTransformer transformer1;
+
+    transformer1.FourierTransform(image, fftImg, false);
+
+	auto YdimFT=(int)YSIZE(fftImg);
+	auto XdimFT=(int)XSIZE(fftImg);
+
+	Matrix1D<double> freq_fourier_x;
+	Matrix1D<double> freq_fourier_y;
+	MultidimArray< double > freqMap;
+
+	// Initializing the frequency vectors
+	freq_fourier_x.initZeros(XSIZE(fftImg));
+	freq_fourier_y.initZeros(YSIZE(fftImg));
+
+	// u is the frequency
+	double u;
+
+	// Defining frequency components. First element should be 0, it is set as the smallest number to avoid singularities
+	VEC_ELEM(freq_fourier_y,0) = std::numeric_limits<double>::min();
+	for(size_t k=1; k<YdimFT; ++k){
+		FFT_IDX2DIGFREQ(k,yvoldim, u);
+		VEC_ELEM(freq_fourier_y, k) = u;
+	}
+
+	VEC_ELEM(freq_fourier_x,0) = std::numeric_limits<double>::min();
+	for(size_t k=1; k<XdimFT; ++k){
+		FFT_IDX2DIGFREQ(k,xvoldim, u);
+		VEC_ELEM(freq_fourier_x, k) = u;
+	}
+
+	//Initializing map with frequencies
+	freqMap.resizeNoCopy(fftImg);
+	freqMap.initConstant(1.9);  //Nyquist is 2, we take 1.9 greater than Nyquist
+
+
+
+	// Directional frequencies along each direction
+	double uy, ux, uy2;
+	long n=0;
+	for(size_t i=0; i<YdimFT; ++i)
+	{
+		uy = VEC_ELEM(freq_fourier_y, i);
+		uy2 = uy*uy;
+
+		for(size_t j=0; j<XdimFT; ++j)
+		{
+			ux = VEC_ELEM(freq_fourier_x, j);
+			ux = sqrt(uy2 + ux*ux);
+
+			if	(ux<=0.5)
+			{
+				DIRECT_MULTIDIM_ELEM(freqMap,n) = 1/ux;
+				if ((j == 0) && (uy<0))
+				{
+					DIRECT_MULTIDIM_ELEM(freqMap,n) = 1.9;
+				}
+				if ((i == 0) && (j == 0))
+				{
+					DIRECT_MULTIDIM_ELEM(freqMap,n) = 1.9;
+				}
+					
+			}				
+			++n;
+		}
+	}
+	// Image<double> img;
+	// img() = freqMap;
+	// img.write("freqMap.mrc");
+	double cosAngle;
+	cosAngle = 1.0/sqrt(2);
+	auto aux = (4.0/((cosAngle -1)*(cosAngle -1)));
+	//cosine = expf( -((cosine -1)*(cosine -1))*aux); 
+
+	n = 0;
+	for (int i=0; i<YdimFT; i++)
+	{
+		double uy = VEC_ELEM(freq_fourier_y, i);
+		for (int j=0; j<XdimFT; j++)
+		{
+			double ux = VEC_ELEM(freq_fourier_x, j);
+
+			double iun = DIRECT_MULTIDIM_ELEM(freqMap,n);
+
+			auto ux_norm = ux*iun;
+			auto uy_norm = uy*iun;
+
+			double cosine = fabs(xdir*ux_norm + ydir*uy_norm);
+
+			if (cosine >= cosAngle)	
+			{
+				//------
+				// cosine = exp( -((cosine -1)*(cosine -1))*aux); 
+				// DIRECT_MULTIDIM_ELEM(fftImg, n) *= cosine;
+				//------
+				
+				DIRECT_MULTIDIM_ELEM(fftImg, n) = 0.0;
+			}
+			//------
+			// else{
+			// 	DIRECT_MULTIDIM_ELEM(fftImg, n) = 0.0;
+			// }
+			//------
+			n++;
+		}
+	}
+
+	transformer1.inverseFourierTransform(fftImg, image);
+	// Image<double> img;
+	// img() = image;
+	// img.write("dirMap.mrc");
+}
+
+// FILTER FOURIER DIRECTIONS: inteto con una sola FT
+// -----------------------------------------------------------------------------------------------------
+// void ProgTomoDetectLandmarks::filterFourierDirections(MultidimArray<double> &image) 
+// {
+// 	MultidimArray<std::complex<double>> fftImg;
+// 	MultidimArray<std::complex<double>> fftImgTmp;
+// 	// MultidimArray<std::complex<double>> fftImgOut;
+
+// 	MultidimArray<double> imageTmp;
+// 	imageTmp.resizeNoCopy(image);
+
+// 	MultidimArray<double> imageOut;
+// 	imageOut.resizeNoCopy(image);
+// 	imageOut.initConstant(1);
+
+// 	FourierTransformer transformer1;
+//     transformer1.FourierTransform(image, fftImg, false);
+// 	// fftImgOut.resizeNoCopy(fftImg);
+// 	// fftImgOut.initConstant(0);
+	
+// 	// size_t numberOfDirections = 2;
+// 	// double angleStep = PI / numberOfDirections;
+
+// 	// for (size_t i = 0; i < numberOfDirections; i++)
+// 	// {
+// 	// 	 fftImgTmp= fftImg;
+// 	// 	directionalFilterFourier(fftImgTmp, cos(i*angleStep), sin(i*angleStep));
+		
+// 	// 	transformer1.inverseFourierTransform(fftImgTmp, imageTmp);
+
+// 	// 	imageOut = imageOut * imageTmp;
+// 	// }
+
+// 	// image = imageOut;
+	
+// 	std::cout << "Discrete sumation mode" << std::endl;
+// 	MultidimArray<double> imageDirX;
+// 	imageDirX.resizeNoCopy(image);
+// 	MultidimArray<double> imageDirY;
+// 	imageDirY.resizeNoCopy(image);
+// 	// MultidimArray<double> imageDirYX;
+// 	// imageDirYX.resizeNoCopy(image);
+
+// 	fftImgTmp=fftImg;
+// 	directionalFilterFourier(fftImgTmp, 1, 0);
+// 	transformer1.inverseFourierTransform(fftImgTmp, imageDirX);
+
+// 	fftImgTmp=fftImg;
+// 	directionalFilterFourier(fftImgTmp, 0, 1);
+// 	transformer1.inverseFourierTransform(fftImgTmp, imageDirY);
+
+// 	// fftImgTmp=fftImg;
+// 	// directionalFilterFourier(fftImgTmp, 1.0/sqrt(2), 1.0/sqrt(2));
+// 	// transformer1.inverseFourierTransform(fftImgTmp, imageDirYX);
+
+// 	image = imageDirX * imageDirY;
+// }
