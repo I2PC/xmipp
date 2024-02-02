@@ -60,7 +60,7 @@ def modeCleanBin(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-  cleanBin(args)
+  cleanBin()
 
 def modeCleanAll(args: argparse.Namespace):
 	"""

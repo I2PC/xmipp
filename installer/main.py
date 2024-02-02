@@ -302,10 +302,10 @@ def compileAndInstall(args):
 	getSources(branch=args.branch)
 	# Compile external dependencies
 	printMessage('\n---------------------------------------\n', debug=True)
-	#compileExternalSources(jobs=args.jobs)
+	compileExternalSources(jobs=args.jobs)
 	printMessage('\n---------------------------------------\n', debug=True)
 	# Compile Xmipp
-	#compileSources(jobs=args.jobs)
+	compileSources(jobs=args.jobs)
 	printMessage('\n---------------------------------------\n', debug=True)
 	#Install
 	install(directory=args.directory)
@@ -832,7 +832,7 @@ def cloneSourceRepo(repo: str, branch: str=None) -> Tuple[bool, str]:
 			printMessage(text="The {} repository exists.".format(repo), debug=True, pathFile=currentPath)
 			os.chdir(destinyPath)
 			retcode, output = runJob(f"git pull ")
-			if retcode != 0:
+			if retcode != 0 and retcode != 1:
 					printWarning(text=output, warningCode=GIT_PULL_WARNING, pathFile=currentPath)
 					retcode = 0
 			else:
@@ -841,8 +841,8 @@ def cloneSourceRepo(repo: str, branch: str=None) -> Tuple[bool, str]:
 			retcode, output = runJob(f"git clone --branch {branch} {REPOSITORIES[repo][0]}")
 			if retcode == 0:
 					printMessage(green(text="Clonned repository {}".format(repo)), debug=True, pathFile=currentPath)
-
 	os.chdir(currentPath)
+	if retcode == 1: retcode = 0
 	return retcode, output
 
 def linkToScipion(directory:str, verbose:bool=False):
@@ -921,8 +921,9 @@ def linkToScipion(directory:str, verbose:bool=False):
 
 def cleanEmptyFolders():
 		log = []
+		currentPath = os.getcwd()
 		path = "src/xmipp/applications/programs/"
-		retCode, outputStr = runJob("find {} –type d -empty".format(path))
+		retCode, outputStr = runJob("find {} -type d -empty".format(path))
 		if retCode != 0:
 				printWarning(text=outputStr, warningCode=CLEANING_BINARIES_WARNING)
 		for folder in log:

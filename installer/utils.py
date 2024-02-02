@@ -79,7 +79,7 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	if not streaming and err and showError:
 		print(red(outputStr))
 
-	# Returing return code
+	# Returning return code
 	outputStr = outputStr[:-1] if outputStr.endswith('\n') else outputStr
 	return retCode, outputStr
 
