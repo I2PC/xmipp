@@ -301,12 +301,12 @@ def compileAndInstall(args):
 	# Get sources
 	getSources(branch=args.branch)
 	# Compile external dependencies
-	printMessage('\n---------------------------------------\n', debug=True)
+	printMessage('---------------------------------------\n', debug=True)
 	compileExternalSources(jobs=args.jobs)
-	printMessage('\n---------------------------------------\n', debug=True)
+	printMessage('---------------------------------------\n', debug=True)
 	# Compile Xmipp
 	compileSources(jobs=args.jobs)
-	printMessage('\n---------------------------------------\n', debug=True)
+	printMessage('---------------------------------------\n', debug=True)
 	#Install
 	install(directory=args.directory)
 
@@ -921,7 +921,6 @@ def linkToScipion(directory:str, verbose:bool=False):
 
 def cleanEmptyFolders():
 		log = []
-		currentPath = os.getcwd()
 		path = "src/xmipp/applications/programs/"
 		retCode, outputStr = runJob("find {} -type d -empty".format(path))
 		if retCode != 0:
@@ -934,6 +933,5 @@ def cleanEmptyFolders():
 
 def exitError(output:str='', retCode:int=0, pathFile:str=''):
 		printError(errorMsg=output, retCode=retCode, pathFile=pathFile)
-		dictPackages = readConfig()
-		exitXmipp(retCode=retCode,
-							dictPackages=dictPackages)
+		dictPackages, _ = readConfig()
+		exitXmipp(retCode=retCode, dictPackages=dictPackages)

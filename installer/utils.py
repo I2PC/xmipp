@@ -65,7 +65,7 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	else:
 
 		process = subprocess.Popen(cmd, cwd=cwd, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-		
+
 		# Defining output string
 		output, err = process.communicate()
 		retCode = process.returncode
@@ -196,7 +196,7 @@ def printWarning(text: str, warningCode: int, debug: bool=True, pathFile:str='')
 	- warningCode (int): Code of the controlled warning.
 	- debug (bool): Indicates if debug mode is active.
 	"""
-	printMessage(yellow(f'!! Warning code {warningCode}: {WARNING_CODE[warningCode][0]}\n{WARNING_CODE[warningCode][1]}\n'),
+	printMessage(yellow(f'! Warning code {warningCode}: {WARNING_CODE[warningCode][0]}\n{WARNING_CODE[warningCode][1]}\n'),
 							 debug=debug, pathFile=pathFile)
 
 def remove_color_codes(coloredText):
@@ -967,7 +967,7 @@ def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO, readerEr
 		isProcessFinished = process.poll() is not None
 		outputStr += writeReaderLine(readerOut, show=False)
 		outputStr += writeReaderLine(readerErr, show=showError, err=True)
-		
+
 		# If process has finished, exit loop
 		if isProcessFinished:
 			break
@@ -996,7 +996,15 @@ def writeReaderLine(reader: io.FileIO, show: bool=False, err: bool=False) -> str
 	if line:
 		# The line to print has to remove the last '\n'
 		printedLine = line[:-1] if line.endswith('\n') else line
-		printMessage(red(printedLine) if err else printedLine, debug=show)
+		if err:
+				if printedLine.find('warning:') != -1 \
+								or printedLine.find('Note:') != -1\
+								or printedLine.find('Warning:') != -1:
+					printMessage(yellow(f'{printedLine}'), debug=True)
+				elif printedLine.find('serial compilation of 2 LTRANS jobs') != -1:
+						pass
+				else:
+					printMessage(red(printedLine) if err else printedLine, debug=show)
 
 	# Return line
 	return red(line) if err else line
