@@ -55,7 +55,7 @@ def sendApiPost(dictPackage:Dict, retCode: int=0):
 ####################### UTILS FUNCTIONS #######################
 def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 	"""
-	### Creates a JSON string with the necessary data for the APU POST message.
+	### Creates a JSON string with the necessary data for the API POST message.
 	
 	#### Params:
 	- dictPackage (Dict): Dictionary containing all discovered or config variables.

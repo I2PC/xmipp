@@ -39,5 +39,4 @@ def exitXmipp(retCode:int=0, dictPackages:dict={}, tarPost:bool=True):
 			else:
 					printHappyEnd()
 			sendApiPost(dictPackage=dictPackages, retCode=retCode)
-	print(f'Exiting with {retCode}')
 	sys.exit(retCode)
