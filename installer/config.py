@@ -432,7 +432,10 @@ def checkMPI(dictPackages, dictInternalFlags):
                     exitError(retCode=MPI_VERSION_ERROR,
                               output='mpi {} lower than required ({})'.format(version, GPP_MINIMUM),
                               dictPackages=dictPackages)
-
+        elif dictPackages[pack] =='':
+            exitError(retCode=MPI_NOT_FOUND_ERROR,
+                      output='{} package does not exist'.format(pack),
+                      dictPackages=dictPackages)
         else:
             exitError(retCode=MPI_NOT_FOUND_ERROR,
                       output='{} package {} does not exist'.format(pack, dictPackages[pack]),

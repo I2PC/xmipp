@@ -35,7 +35,8 @@ from sysconfig import get_paths
 from .constants import (SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
 	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, SCONS_VERSION_ERROR,
-												XMIPP_VERSIONS, MODE_GET_MODELS, WARNING_CODE, XMIPPENV, urlModels, remotePath, urlTest)
+  XMIPP_VERSIONS, MODE_GET_MODELS, WARNING_CODE, XMIPPENV, urlModels, remotePath,
+  DOCUMENTATION_URL, urlTest)
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
@@ -156,7 +157,9 @@ def printError(errorMsg: str, retCode: int=1, pathFile:str=''):
 	- retCode (int): Optional. Return code to end the exection with.
 	"""
 	# Print the error message in red color
-	errorStr = f'!! ERROR {retCode}: {errorMsg}\n{ERROR_CODE[retCode][0]}\n{ERROR_CODE[retCode][1]}'
+	errorStr = (f'!! ERROR {retCode}: {errorMsg}\n{ERROR_CODE[retCode][0]}\n'
+							f'{ERROR_CODE[retCode][1]}'
+							f'\nMore details on the Xmipp documentation portal: {DOCUMENTATION_URL}')
 	printMessage(red(errorStr), debug=True, pathFile=pathFile)
 
 def printMessage(text: str, debug: bool=False, pathFile:str=''):
@@ -195,9 +198,6 @@ def printWarning(text: str, warningCode: int, debug: bool=True, pathFile:str='')
 	"""
 	printMessage(yellow(f'!! Warning code {warningCode}: {WARNING_CODE[warningCode][0]}\n{WARNING_CODE[warningCode][1]}\n'),
 							 debug=debug, pathFile=pathFile)
-
-
-
 
 def remove_color_codes(coloredText):
 		"""
@@ -645,7 +645,7 @@ def printHappyEnd():
 				branch = ''
 		else:
 				branch = 'devel'
-		strXmipp = 'Xmipp {} {} has been successfully installed, enjoy it!'.format(
+		strXmipp = 'Xmipp {}/{} has been installed, enjoy it!'.format(
 				XMIPP_VERSIONS['xmipp']['vername'], branch)
 		lenStr = len(strXmipp)
 		border = '*' * (lenStr + 4)
@@ -658,8 +658,8 @@ def printHappyEnd():
 		print(' *')
 		print('*' + spaceStr + '*')
 		print(border)
-		print('\n')
 		printMessage(text=strXmipp, debug=False)
+		printMessage('More about Xmipp here: {}'.format(DOCUMENTATION_URL), debug=True)
 
 
 def branchName():

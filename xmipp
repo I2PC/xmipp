@@ -217,9 +217,8 @@ def modeAll(args: argparse.Namespace):
 	dictConfig = config(debugP=False,tarAndPost=True)
 	printMessage('\n---------------------------------------\n', debug=True)
 	compileAndInstall(args)
-	modeCompileAndInstall(args, dictConfig=dictConfig)
 	printMessage('\n---------------------------------------\n', debug=True)
-	#downloadDeepLearningModels()
+	downloadDeepLearningModels()
 
 	exitXmipp(dictPackages=dictConfig)
 

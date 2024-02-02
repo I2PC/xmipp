@@ -302,10 +302,10 @@ def compileAndInstall(args):
 	getSources(branch=args.branch)
 	# Compile external dependencies
 	printMessage('\n---------------------------------------\n', debug=True)
-	compileExternalSources(jobs=args.jobs)
+	#compileExternalSources(jobs=args.jobs)
 	printMessage('\n---------------------------------------\n', debug=True)
 	# Compile Xmipp
-	compileSources(jobs=args.jobs)
+	#compileSources(jobs=args.jobs)
 	printMessage('\n---------------------------------------\n', debug=True)
 	#Install
 	install(directory=args.directory)

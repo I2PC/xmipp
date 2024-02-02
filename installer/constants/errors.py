@@ -106,7 +106,7 @@ ERROR_CODE = {
   CXX_NO_EXIST_ERROR: ['CXX package does not exist.', 'Please review the CXX flag on your xmipp.conf.'],
   CXX_VERSION_ERROR: ['g++ version not valid.', 'The version of g++ is lower than minimum, please review the requirements.'],
 	MPI_VERSION_ERROR: ['mpi version not valid.', 'The version of mpi is lower than minimum, please review the requirements.'],
-	MPI_NOT_FOUND_ERROR: ['mpi package does not exist.', 'Please review the MPI_RUN flag on your xmipp.conf.'],
+	MPI_NOT_FOUND_ERROR: ['mpi package does not exist or could not be found.', 'Please review the MPI flags on your xmipp.conf and the veriables on your enviroment.'],
   PYTHON_VERSION_ERROR: ['python version not valid.', 'The version of python is lower than minimum, please review the requirements.'],
   PYTHON_NOT_FOUND_ERROR: ['python not found.', 'Please install python on your system.'],
   NUMPY_NOT_FOUND_ERROR: ['numpy not found.', 'Please install numpy.'],

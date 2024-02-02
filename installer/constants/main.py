@@ -53,6 +53,8 @@ TAGS_SUBPAGE = 'archive/refs/tags/'
 # API URL
 API_URL = 'http://127.0.0.1:8000/web/attempts/' #local url
 #API_URL = 'xmipp.i2pc.margaro.eus' #temporal url
+# documentation xmipp
+DOCUMENTATION_URL = 'https://i2pc.github.io/docs/'
 
 # Other variables
 CXX_FLAGS = ' -mtune=native -march=native -flto=auto -std=c++17 '
