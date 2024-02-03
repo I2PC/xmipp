@@ -370,8 +370,6 @@ def askPath(default='', ask=True):
             print(red("No alternative found in the system."))
         return default
 
-def askShell(msg='', default=True):
-    runJob()
 
 def askYesNo(msg='', default=True, actually_ask=True):
     if not actually_ask:

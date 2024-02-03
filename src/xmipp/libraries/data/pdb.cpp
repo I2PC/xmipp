@@ -23,11 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <fstream>
-#include <string>
 #include <filesystem>
+#include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <string>
 #include "cif++.hpp"
 #include "pdb.h"
 #include "core/matrix2d.h"
@@ -582,9 +582,14 @@ void readRichPDB(const FileName &fnPDB, const callable &addAtom, std::vector<dou
 			atom.z = textToFloat(line.substr(46, 8));
 			atom.occupancy = textToFloat(line.substr(54, 6));
 			atom.bfactor = textToFloat(line.substr(60, 6));
-			atom.segment = line.substr(72, 4);
-			atom.atomType = line.substr(77, 1);
-			atom.charge = simplify(line.substr(79, 1)); // Converting into empty string if it is a space
+            if (line.length() >= 76 && simplify(line.substr(72, 4)) != "")
+			    atom.segment = line.substr(72, 4);
+            if (line.length() >= 78 && simplify(line.substr(77, 1)) != "")
+			    atom.atomType = line.substr(77, 1);
+            else
+                atom.atomType = atom.name[0];
+            if (line.length() >= 80 && simplify(line.substr(79, 1)) != "")
+			    atom.charge = simplify(line.substr(79, 1)); // Converting into empty string if it is a space
 
 			if(pseudoatoms)
 				intensities.push_back(atom.bfactor);
@@ -846,12 +851,16 @@ void writeCIF(const std::string &fnCIF, const callable &atomList, cif::datablock
     }
 
     // Updating atom list in stored data block
-    if (auto categoryIterator = std::find_if(dataBlock.begin(), dataBlock.end(), [](const cif::category& cat)
-        { return cat.name() == "atom_site"; }); categoryIterator != dataBlock.end()) {
-        auto nextIterator = std::next(categoryIterator);
-        dataBlock.erase(categoryIterator);
-        dataBlock.insert(nextIterator, atomSite);
+    auto categoryInsertPosition = std::find_if(
+        dataBlock.cbegin(), dataBlock.cend(), 
+        [](const cif::category& cat) { 
+            return cat.name() == "atom_site"; 
+        }
+    ); 
+    if (categoryInsertPosition != dataBlock.cend()) {
+        categoryInsertPosition = dataBlock.erase(categoryInsertPosition);
     }
+    dataBlock.insert(categoryInsertPosition, atomSite);
 
     // Writing datablock to file
     dataBlock.write(cifFile);
