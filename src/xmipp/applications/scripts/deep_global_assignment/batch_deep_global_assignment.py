@@ -25,6 +25,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
         self.addParamsLine('[--Nmodels <N=5>]             : Number of models')
         self.addParamsLine('[--learningRate <lr=0.0001>]  : Learning rate')
         self.addParamsLine('[--precision <s=0.5>]         : Alignment precision measured in pixels')
+        self.addParamsLine('[--Nimgs <n=1000>]            : Subset size for training')
         self.addParamsLine('[--mode <mode>]               : Mode: shift, angles')
 
     def run(self):
@@ -37,6 +38,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
         learning_rate = float(self.getParam("--learningRate"))
         precision = float(self.getParam("--precision"))
         mode = self.getParam("--mode")
+        Nimgs = int(self.getParam('--Nimgs'))
 
         from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
 
@@ -51,7 +53,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
         import xmippPyModules.deepGlobalAssignment as deepGlobal
         from xmippPyModules.xmipp_utils import XmippTrainingSequence
 
-        class DataGenerator():
+        class DataLoader():
             """Generates data for fnImgs"""
 
             def __init__(self, fnImgs, angles, shifts, batch_size, dim, mode):
@@ -70,12 +72,14 @@ class ScriptDeepGlobalAssignment(XmippScript):
                     return np.concatenate((mat[1], mat[2]))
 
                 # Read all data in memory
-                self.X = np.zeros((len(self.angles), self.dim, self.dim, 1), dtype=np.float64)
+                Nimgs=len(self.angles)
+
+                self.X = np.zeros((Nimgs, self.dim, self.dim, 1), dtype=np.float64)
                 if self.mode=="shift":
-                    self.y = np.zeros((len(self.angles), 2), dtype=np.float64)
+                    self.y = np.zeros((Nimgs, 2), dtype=np.float64)
                 else:
-                    self.y = np.zeros((len(self.angles), 6), dtype=np.float64)
-                for i in range(len(self.angles)):
+                    self.y = np.zeros((Nimgs, 6), dtype=np.float64)
+                for i in range(Nimgs):
                     I = xmippLib.Image(self.fnImgs[i]).getData()
                     I = (I - np.mean(I)) / np.std(I)
                     if self.mode == 'shift':
@@ -102,13 +106,13 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
             return Xdim, fnImg, angles, img_shift
 
-        def trainModel(model, X, y, modeprec, fnThisModel, lossFunction):
+        def trainModel(model, X, y, Nimgs, modeprec, fnThisModel, lossFunction):
             adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
             sys.stdout.flush()
             if lossFunction is not None:
                 model.compile(loss=lossFunction, optimizer=adam_opt)
 
-            generator = XmippTrainingSequence(X, y, batch_size, maxSize=None)
+            generator = XmippTrainingSequence(X, y, batch_size, maxSize=Nimgs, randomize=True)
             # generator.shuffle_data()
 
             reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(
@@ -146,7 +150,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
         SL = xmippLib.SymList()
         listSymmetryMatrices = SL.getSymmetryMatrices('c1')
         Xdim, fnImgs, angles, shifts = get_labels(fnXmd)
-        training_generator = DataGenerator(fnImgs, angles, shifts, batch_size, Xdim, mode)
+        training_generator = DataLoader(fnImgs, angles, shifts, batch_size, Xdim, mode)
 
         angularLoss = deepGlobal.AngularLoss(listSymmetryMatrices, Xdim)
 
@@ -158,14 +162,15 @@ class ScriptDeepGlobalAssignment(XmippScript):
                     print("Learning shift")
                     modelShift = deepGlobal.constructShiftModel(Xdim)
                     modelShift.summary()
-                    trainModel(modelShift, training_generator.X, training_generator.y,
+                    trainModel(modelShift, training_generator.X, training_generator.y, Nimgs,
                                precision, fnModelIndex, 'mae')
                 else:
                     # Learn angles
                     print("Learning angular assignment")
                     model = deepGlobal.constructAnglesModel(Xdim)
                     model.summary()
-                    trainModel(model, training_generator.X, training_generator.y, precision, fnModelIndex, angularLoss)
+                    trainModel(model, training_generator.X, training_generator.y, Nimgs,
+                               precision, fnModelIndex, angularLoss)
                     # testModel(model, training_generator.X, training_generator.y)
         except Exception as e:
             print(e)
