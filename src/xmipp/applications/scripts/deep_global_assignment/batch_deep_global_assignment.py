@@ -122,21 +122,16 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 min_lr=1e-8,  # Lower bound on the learning rate
             )
 
-            goOn = True
-            while goOn:
-                print("Current size =%d"%generator.maxSize)
-                epoch = 0
-                for i in range(maxEpochs):
-                    start_time = time()
-                    history = model.fit(generator, epochs=1, verbose=0, callbacks=[reduce_lr])
-                    end_time = time()
-                    goOn = not generator.isMaxSize()
-                    epoch += 1
-                    loss = history.history['loss'][-1]
-                    print("Epoch %d loss=%f trainingTime=%d" % (epoch, loss, int(end_time-start_time)), flush=True)
-                    if loss < modeprec:
-                        break
-                generator.increaseMaxSize(1.25)
+            epoch = 0
+            for i in range(maxEpochs):
+                start_time = time()
+                history = model.fit(generator, epochs=1, verbose=0, callbacks=[reduce_lr])
+                end_time = time()
+                epoch += 1
+                loss = history.history['loss'][-1]
+                print("Epoch %d loss=%f trainingTime=%d" % (epoch, loss, int(end_time-start_time)), flush=True)
+                if loss < modeprec:
+                    break
             model.save(fnThisModel, save_format="tf")
 
         def testModel(model, X, y):
