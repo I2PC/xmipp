@@ -256,7 +256,7 @@ class BnBgpu:
         
     
     
-    def create_classes(self, mmap, tMatrix, iter, nExp, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, sampling, mask, sigma):
+    def create_classes(self, mmap, tMatrix, iter, nExp, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, sampling, mask, sigma):
         
         print("----------create-classes-------------")
 
@@ -296,7 +296,7 @@ class BnBgpu:
             
         newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL]   
                          
-        clk = self.averages_increaseClas(mmap, iter, newCL, classes)
+        clk = self.averages_increaseClas(mmap, iter, newCL, classes, final_classes)
         # if iter < 12:            
         # clk = self.apply_lowpass_filter(clk, 10, sampling)
         if mask:
@@ -419,19 +419,24 @@ class BnBgpu:
         return(clk)
     
     
-    def averages_increaseClas(self, mmap, iter, newCL, classes): 
+    def averages_increaseClas(self, mmap, iter, newCL, classes, final_classes): 
         
         if iter < 10:
             newCL = sorted(newCL, key=len, reverse=True)    
         element = list(map(len, newCL))
         # print(element)
         
-        class_split = int(25/3)
+        #The classes start with half of the total number of classes and are divided into three rounds.
+        class_split = int(final_classes/(2*3))
+        if iter == 3:
+            class_split = final_classes - classes
+            
   
         clk_list = []
         for n in range(classes):
             current_length = len(newCL[n])
-            if iter < 3 and n < class_split and current_length > 2:
+            # if iter < 3 and n < class_split and current_length > 2:
+            if iter > 0 and iter < 4 and n < class_split and current_length > 2:
                 split1, split2 = torch.split(newCL[n], current_length // 2 + 1, dim=0)
                 clk_list.append(torch.mean(split1, dim=0))
                 insert = torch.mean(split2, dim=0).view(mmap.data.shape[1], mmap.data.shape[2])
@@ -539,6 +544,7 @@ class BnBgpu:
         
         return corrected_images
     
+    
     def increase_contrast_sigmoid(self, images, alpha=10, beta=0.6):
    
         normalized_images = (images + 1) / 2.0  # Escalar de (-1, 1) a (0, 1)
@@ -628,7 +634,7 @@ class BnBgpu:
         return (vectorRot, vectorshift)
    
    
-    def determine_ROTandSHIFT(self, iter, mode, dim):
+    def determine_ROTandSHIFT2(self, iter, mode, dim):
         
         maxShift = round( (dim * 15)/100 )
         maxShift = (maxShift//4)*4
@@ -666,6 +672,81 @@ class BnBgpu:
            
         vectorRot, vectorshift = self.setRotAndShift(ang, shiftMove)
         return (vectorRot, vectorshift)
+    
+    
+    
+    def determine_ROTandSHIFT3(self, iter, mode, dim):
+        
+        maxShift = round( (dim * 15)/100 )
+        maxShift = (maxShift//4)*4
+        
+        if mode == "create_classes":
+            print("---Iter %s for creating classes---"%(iter+1))
+            if iter < 5:
+                ang, shiftMove = (-180, 180, 4), (-maxShift, maxShift+4, 4)
+            elif iter < 10: 
+                ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
+            elif iter < 15: 
+                ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
+            elif iter < 20: 
+                ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
+                
+        else:
+            print("---Iter %s for align to classes---"%(iter+1))
+            if iter < 1:
+                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
+            elif iter < 2: 
+                ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
+            elif iter < 3: 
+                ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
+            elif iter < 4: 
+                ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
+           
+        vectorRot, vectorshift = self.setRotAndShift(ang, shiftMove)
+        return (vectorRot, vectorshift)
+    
+    
+    def determine_ROTandSHIFT(self, iter, mode, dim):
+        
+        maxShift = round( (dim * 15)/100 )
+        maxShift = (maxShift//4)*4
+        
+        if mode == "create_classes":
+            print("---Iter %s for creating classes---"%(iter+1))
+            # if iter < 4:
+            #     ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
+            # elif iter < 7: 
+            #     ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
+            # elif iter < 10: 
+            #     ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
+            # elif iter < 13: 
+            #     ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
+
+            if iter < 5:
+                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
+            elif iter < 8: 
+                ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
+            elif iter < 11: 
+                ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
+            elif iter < 14: 
+                ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
+                
+        else:
+            print("---Iter %s for align to classes---"%(iter+1))
+            if iter < 1:
+                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
+            elif iter < 2: 
+                ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
+            elif iter < 3: 
+                ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
+            elif iter < 4: 
+                ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
+           
+        vectorRot, vectorshift = self.setRotAndShift(ang, shiftMove)
+        return (vectorRot, vectorshift)
+    
+    
+
    
     
 

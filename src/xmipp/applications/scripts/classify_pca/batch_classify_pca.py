@@ -71,7 +71,8 @@ if __name__=="__main__":
     
     expFile = args.exp
     sampling = args.sampling
-    classes = int(args.classes)  
+    classes = int(args.classes)
+    final_classes = classes  
     refImages = args.ref
     # niter = int(args.niter)
     niter = 14
@@ -129,7 +130,7 @@ if __name__=="__main__":
         cl = torch.from_numpy(clIm).float().to(cuda)
     else:
         initStep = int(min(numFirstBatch, np.ceil(nExp/expBatchSize)))
-        cl = bnb.init_ramdon_classes(int(classes/2), mmap, initSubset)    
+        cl = bnb.init_ramdon_classes(int(final_classes/2), mmap, initSubset)    
     
     # file = output+"_0.mrcs"    
     # save_images(cl.cpu().numpy(), file)
@@ -224,7 +225,7 @@ if __name__=="__main__":
                 classes = len(cl)
         
                 if mode == "create_classes":
-                    cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, sampling, mask, sigma)
+                    cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, sampling, mask, sigma)
                 else:
                     cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(mmap.data[initBatch:endBatch], cl, tMatrix, iter, initBatch, subset, matches, vectorshift, classes, freqBn, coef, cvecs, sampling, mask, sigma)
 
@@ -279,11 +280,15 @@ if __name__=="__main__":
     counts = torch.bincount(refClas.int(), minlength=classes) 
     
         #save classes
+        
+    file = output+".mrcs"
+    save_images(cl.cpu().detach().numpy(), file)
+    
     print("Adjust contrast")
     # cl =  bnb.gamma_contrast(cl, 0.5)
     cl = bnb.increase_contrast_sigmoid(cl, 10, 0.6)
-    file = output+".mrcs"
-    save_images(cl.cpu().detach().numpy(), file)           
+    file_contrast = output+"_contrast.mrcs"
+    save_images(cl.cpu().detach().numpy(), file_contrast)           
     
     # for number, count in enumerate(counts):
     #     if count > 0:
@@ -294,6 +299,7 @@ if __name__=="__main__":
     assess = evaluation()
     assess.updateExpStar(expStar, refClas, -angles_deg, translation_vector, output)
     assess.createClassesStar(classes, file, counts, output)
+    assess.createClassesStar(classes, file_contrast, counts, output+"_contrast")
 
 
 
