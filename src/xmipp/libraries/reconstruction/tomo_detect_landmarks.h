@@ -128,6 +128,9 @@ public:
     MultidimArray<double> landmarkReference;
     MultidimArray<double> landmarkReference_Gaussian;
 
+    // Centralized Fourier transofrmer
+    FourierTransformer transformer;
+
 public:
 
     // --------------------------- INFO functions ----------------------------
@@ -217,6 +220,10 @@ public:
 
     void filterFourierDirections(MultidimArray<double> &image);
     void directionalFilterFourier(MultidimArray<double> &image, double xdir, double ydir);
+
+    // void houghTransform(MultidimArray<double> &image, int minRadius, int maxRadius);
+    void bandpassFilter(MultidimArray<double> &tiltImage);
+
 
 };
 

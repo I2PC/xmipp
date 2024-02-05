@@ -78,7 +78,76 @@ void ProgTomoDetectLandmarks::generateSideInfo()
 	#endif
 }
 
+void ProgTomoDetectLandmarks::bandpassFilter(MultidimArray<double> &tiltImage)
+{
+	MultidimArray< std::complex<double> > fftTI;
+	transformer.FourierTransform(tiltImage, fftTI, false);
 
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Applying bandpass filter to volume..." << std::endl;
+	#endif
+
+	int n=0;
+
+	double freqLow = samplingRate / (fiducialSize*1.2);
+	double freqHigh = samplingRate/(fiducialSize*0.8);
+	
+	double w= 0.05;
+	double cutoffFreqHigh = freqHigh + w;
+	double cutoffFreqLow = freqLow - w;
+	double delta = PI / w;
+
+	normDim = (xSize>ySize) ? xSize : ySize;
+
+	// 43.2 = 1440 * 0.03. This 43.2 value makes w = 0.03 (standard value) for an image whose bigger dimension is 1440 px.
+	//w = 43.2 / normDim;
+
+	#ifdef DEBUG_PREPROCESS
+	std::cout << "samplingRate " << samplingRate << std::endl;
+	std::cout << "fiducialSize " << fiducialSize << std::endl;
+	std::cout << "freqLow " << freqLow << std::endl;
+	std::cout << "freqHigh " << freqHigh << std::endl;
+	std::cout << "cutoffFreqLow " << cutoffFreqLow << std::endl;
+	std::cout << "cutoffFreqHigh " << cutoffFreqHigh << std::endl;
+	#endif
+
+	for(size_t i=0; i<YSIZE(fftTI); ++i)
+	{
+		double uy;
+		double ux;
+		double uy2;
+
+		FFT_IDX2DIGFREQ(i,ySize,uy);
+		uy2=uy*uy;
+
+		for(size_t j=0; j<XSIZE(fftTI); ++j)
+		{
+			FFT_IDX2DIGFREQ(j,xSize,ux);
+			double u=sqrt(uy2+ux*ux);
+
+			if(u > cutoffFreqHigh || u < cutoffFreqLow)
+			{
+				DIRECT_MULTIDIM_ELEM(fftTI, n) = 0;
+			} 
+			else
+			{
+				if(u >= freqHigh && u < cutoffFreqHigh)
+				{
+					DIRECT_MULTIDIM_ELEM(fftTI, n) *= 0.5*(1+cos((u-freqHigh)*delta));
+				}
+			
+				if (u <= freqLow && u > cutoffFreqLow)
+				{
+					DIRECT_MULTIDIM_ELEM(fftTI, n) *= 0.5*(1+cos((u-freqLow)*delta));
+				}
+			}
+			
+			++n;
+		}
+	}
+
+	transformer.inverseFourierTransform();
+}
 
 // --------------------------- HEAD functions ----------------------------
 void ProgTomoDetectLandmarks::downsample(MultidimArray<double> &tiltImage, MultidimArray<double> &tiltImage_ds)
@@ -506,7 +575,7 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
         {
             for(size_t j = 0; j < xSize_d; ++j)
             {
-				if (DIRECT_A2D_ELEM(tiltImage, i, j) > 1)
+				if (DIRECT_A2D_ELEM(tiltImage, i, j) > 0)
 				{
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
 				}
@@ -1015,6 +1084,7 @@ void ProgTomoDetectLandmarks::run()
 		#endif
 
 		detectInterpolationEdges(ptrImg);
+		// bandpassFilter(ptrImg);
 
 		#ifdef DEBUG_INTERPOLATION_EDGES
 		std::cout << "Interpolation edges for image " << counter << std::endl;
@@ -1436,47 +1506,47 @@ void ProgTomoDetectLandmarks::adaptiveHistogramEqualization(MultidimArray<double
 
 // // ------------------------------------------------------------------------------------------------------------------------------
 // // HOUGH TRANSFORM
-// // Define accumulator array
-// int maxRadius = targetFS; // int(std::ceil(targetFS * 1.2));
-// int minRadius = targetFS; // int(std::floor(targetFS * 0.8));
+// void ProgTomoDetectLandmarks::houghTransform(MultidimArray<double> &image, int minRadius, int maxRadius) 
+// {
+// 	// Define accumulator array
+// 	std::vector<std::vector<std::vector<int>>> accumulator(
+// 		xSize_d, 
+// 		std::vector<std::vector<int>>(
+// 			ySize_d, 
+// 			std::vector<int>(maxRadius - minRadius + 1, 0)));
 
-// std::vector<std::vector<std::vector<int>>> accumulator(
-// 	xSize, 
-// 	std::vector<std::vector<int>>(
-// 		ySize, 
-// 		std::vector<int>(maxRadius - minRadius + 1, 0)));
-
-// for (int i = 0; i < ySize; ++i) {
-// 	for (int j = 0; j < xSize; ++j) {
-		
-// 		// Check if the pixel is part of an edge (assuming 1 for foreground, 0 for background)
-// 		if (DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) > 0) {
+// 	for (int i = 0; i < ySize; ++i) {
+// 		for (int j = 0; j < xSize; ++j) {
 			
-// 			// Iterate over possible circle radii
-// 			for (int r = minRadius; r <= maxRadius; ++r) {
+// 			// Check if the pixel is part of an edge (assuming 1 for foreground, 0 for background)
+// 			if (DIRECT_A2D_ELEM(image, i, j) > 0) {
 				
-// 				// Iterate over possible circle centers
-// 				for (int theta = 0; theta < 360; ++theta) {
-// 					int cx = i + r * cos(theta * M_PI / 180.0);
-// 					int cy = j + r * sin(theta * M_PI / 180.0);
+// 				// Iterate over possible circle radii
+// 				for (int r = minRadius; r <= maxRadius; ++r) {
+					
+// 					// Iterate over possible circle centers
+// 					for (int theta = 0; theta < 360; ++theta) {
+// 						int cx = i + r * cos(theta * M_PI / 180.0);
+// 						int cy = j + r * sin(theta * M_PI / 180.0);
 
-// 					// Check if the circle center is within the image boundaries
-// 					if (cx >= 0 && cx < xSize && cy >= 0 && cy < ySize) {
-// 						// Accumulate a vote for this circle
-// 						accumulator[cx][cy][r - minRadius]++;
+// 						// Check if the circle center is within the image boundaries
+// 						if (cx >= 0 && cx < xSize && cy >= 0 && cy < ySize) {
+// 							// Accumulate a vote for this circle
+// 							accumulator[cx][cy][r - minRadius]++;
+// 						}
 // 					}
 // 				}
 // 			}
 // 		}
 // 	}
-// }
 
-// // Process accumulator to find circle parameters
-// for (int i = 0; i < ySize; ++i) {
-// 	for (int j = 0; j < xSize; ++j) {
-// 		for (int r = minRadius; r <= maxRadius; ++r) {
-// 			if (accumulator[j][i][r - minRadius] > 0) {
-// 				std::cout << "Detected circle at center (" << j << ", " << i << ") with radius " << r << std::endl;
+// 	// Process accumulator to find circle parameters
+// 	for (int i = 0; i < ySize; ++i) {
+// 		for (int j = 0; j < xSize; ++j) {
+// 			for (int r = minRadius; r <= maxRadius; ++r) {
+// 				if (accumulator[j][i][r - minRadius] > 0) {
+// 					std::cout << "Detected circle at center (" << j << ", " << i << ") with radius " << r << std::endl;
+// 				}
 // 			}
 // 		}
 // 	}
@@ -1490,19 +1560,29 @@ void ProgTomoDetectLandmarks::filterFourierDirections(MultidimArray<double> &ima
 	imageOut.resizeNoCopy(image);
 	imageOut.initConstant(1);
 	
-	size_t numberOfDirections = 4;
+	size_t numberOfDirections = 8;
 	double angleStep = PI / numberOfDirections;
 
-	for (size_t i = 0; i < numberOfDirections; i++)
+	for (size_t n = 0; n < numberOfDirections; n++)
 	{
 	 	imageTmp = image;
-		// std::cout << "xdir= " << cos(i*angleStep) << ", ydir=" << sin(i*angleStep) << std::endl;
-		directionalFilterFourier(imageTmp, cos(i*angleStep), sin(i*angleStep));
+		// std::cout << "xdir= " << cos(n*angleStep) << ", ydir=" << sin(n*angleStep) << std::endl;
+		directionalFilterFourier(imageTmp, cos(n*angleStep), sin(n*angleStep));
 		
+		imageTmp.statisticsAdjust(0.0, 1.0);
+		imageTmp.binarize(0);
+
+		// FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY1D(imageTmp)
+		// {
+		// 	if(DIRECT_A1D_ELEM(imageTmp, i) < 0)
+		// 	{
+		// 		DIRECT_A1D_ELEM(imageTmp, i)=0;
+		// 	}
+		// }
+
 		imageOut = imageOut * imageTmp;
 	}
 
-	imageOut.statisticsAdjust(0.0, 1.0);
 	image = imageOut;
 	
 	// std::cout << "Discrete sumation mode" << std::endl;
@@ -1601,7 +1681,7 @@ void ProgTomoDetectLandmarks::directionalFilterFourier(MultidimArray<double> &im
 	// img.write("freqMap.mrc");
 	double cosAngle;
 	cosAngle = 1.0/sqrt(2);
-	auto aux = (4.0/((cosAngle -1)*(cosAngle -1)));
+	auto aux = (8.0/((cosAngle -1)*(cosAngle -1)));
 	//cosine = expf( -((cosine -1)*(cosine -1))*aux); 
 
 	n = 0;
@@ -1622,16 +1702,16 @@ void ProgTomoDetectLandmarks::directionalFilterFourier(MultidimArray<double> &im
 			if (cosine >= cosAngle)	
 			{
 				//------
-				// cosine = exp( -((cosine -1)*(cosine -1))*aux); 
-				// DIRECT_MULTIDIM_ELEM(fftImg, n) *= cosine;
+				cosine = exp( -((cosine -1)*(cosine -1))*aux); 
+				DIRECT_MULTIDIM_ELEM(fftImg, n) *= cosine;
 				//------
 				
-				DIRECT_MULTIDIM_ELEM(fftImg, n) = 0.0;
+				// DIRECT_MULTIDIM_ELEM(fftImg, n) = 0.0;
 			}
 			//------
-			// else{
-			// 	DIRECT_MULTIDIM_ELEM(fftImg, n) = 0.0;
-			// }
+			else{
+				DIRECT_MULTIDIM_ELEM(fftImg, n) = 0.0;
+			}
 			//------
 			n++;
 		}
