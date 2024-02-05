@@ -51,8 +51,8 @@ ORGANIZATION_NAME = 'I2PC'
 TAGS_SUBPAGE = 'archive/refs/tags/'
 
 # API URL
-API_URL = 'http://127.0.0.1:8000/web/attempts/' #local url
-#API_URL = 'xmipp.i2pc.margaro.eus' #temporal url
+#API_URL = 'http://127.0.0.1:8000/web/attempts/' #local url
+API_URL = 'xmipp.i2pc.margaro.eus/api/attempts/' #temporal url
 # documentation xmipp
 DOCUMENTATION_URL = 'https://i2pc.github.io/docs/'
 
