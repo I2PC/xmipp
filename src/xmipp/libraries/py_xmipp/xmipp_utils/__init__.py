@@ -250,20 +250,24 @@ try:
     from keras.utils.all_utils import Sequence
 
     class XmippTrainingSequence(Sequence):
-        def __init__(self, x_set, y_set, batch_size, maxSize=64):
+        def __init__(self, x_set, y_set, batch_size, maxSize=64, randomize=False):
             self.x, self.y = x_set, y_set
             self.batch_size = batch_size
+            self.idxList = np.arange(len(self.x))
+            if randomize:
+                np.random.shuffle(self.idxList)
             self.maxSize = maxSize if maxSize is not None else len(self.x)
             self.maxSize = min(self.maxSize, len(self.x))
+            self.idxList = self.idxList[0:self.maxSize]
 
         def __len__(self):
-            return int(np.ceil(min(self.maxSize, len(self.x)) / float(self.batch_size)))
+            return int(np.ceil(len(self.idxList) / float(self.batch_size)))
 
         def __getitem__(self, idx):
             start_idx = idx * self.batch_size
             end_idx = min((idx + 1) * self.batch_size, self.maxSize)
-            batch_x = self.x[start_idx:end_idx]
-            batch_y = self.y[start_idx:end_idx]
+            batch_x = self.x[self.idxList[start_idx:end_idx]]
+            batch_y = self.y[self.idxList[start_idx:end_idx]]
 
             return batch_x, batch_y
 
