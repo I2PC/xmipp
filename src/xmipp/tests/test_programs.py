@@ -40,8 +40,7 @@ class XmippProgramTest(ProgramTest):
         cls.program = cls.getProgram()
         # cls.env = xmipp3.getEnviron()
         # cls.dataset = DataSet.getDataSet('xmipp_programs') # ----------------------------------------------
-        print(' ')
-        print(">>>>> OWNER: %s" % cls._owner)
+        print("Owner: %s" % cls._owner)
         #cls._counter = 0 # count number of cases per test
         
     def runCase(self, *args, **kwargs):

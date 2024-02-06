@@ -124,7 +124,7 @@ MODE_ARGS = {
 	MODE_CLEAN_DEPRECATED: {},
 	MODE_CLEAN_ALL: {},
 	MODE_TEST: {
-		'testName': "Run certain test (more than one is available). If combined with --show, greps the test name from the test list.",
+		'testName': "Run certain test. If combined with --show, greps the test name from the test list.",
 		'show': "Shows the tests available and how to invoke those.",
 		'allPrograms': "Run all program tests",
 	  'allFuncs': "Run all function tests"
@@ -168,8 +168,9 @@ MODE_EXAMPLES = {
 	MODE_CLEAN_BIN: [],
 	MODE_CLEAN_DEPRECATED: [],
 	MODE_CLEAN_ALL: [],
-	MODE_TEST: [f'./xmipp {MODE_TEST} testName', f'./xmipp {MODE_TEST} show',
-							f'./xmipp {MODE_TEST} testName show', f'./xmipp {MODE_TEST} allPrograms'],
+	MODE_TEST: [f'./xmipp {MODE_TEST} testName',
+							f'./xmipp {MODE_TEST} -show',
+							f'./xmipp {MODE_TEST} -allPrograms'],
 	MODE_GIT: [f'./xmipp {MODE_GIT} pull', f'./xmipp {MODE_GIT} checkout devel'],
 	MODE_ADD_MODEL: [f'./xmipp {MODE_ADD_MODEL} myuser@127.0.0.1 /home/myuser/mymodel']
 }

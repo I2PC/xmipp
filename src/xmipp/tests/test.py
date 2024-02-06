@@ -149,8 +149,8 @@ class ProgramTest(unittest.TestCase):
         else:
             
             cmd = "%s %s > %s/stdout.txt 2> %s/stderr.txt" % (cmd, args, self.outputDir, self.outputDir)
-        print("    Command: ")
-        print("       ", blue(cmd))
+        print("Command: ")
+        print(blue(cmd))
         sys.stdout.flush()
         #run the test itself
         command = Command(cmd, env=os.environ)

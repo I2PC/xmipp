@@ -63,7 +63,6 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	if streaming:
 		retCode, outputStr = runStreamingJob(cmd, cwd=cwd, showOutput=showOutput, showError=showError)
 	else:
-
 		process = subprocess.Popen(cmd, cwd=cwd, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 
 		# Defining output string
@@ -162,7 +161,7 @@ def printError(errorMsg: str, retCode: int=1, pathFile:str=''):
 							f'\nMore details on the Xmipp documentation portal: {DOCUMENTATION_URL}')
 	printMessage(red(errorStr), debug=True, pathFile=pathFile)
 
-def printMessage(text: str, debug: bool=False, pathFile:str=''):
+def printMessage(text: str, debug: bool=False, pathFile:str='', printLOG_FILE:bool=True):
 	"""
 	### This function prints the given text into the log file, and, if debug mode is active, also through terminal.
 
@@ -179,10 +178,11 @@ def printMessage(text: str, debug: bool=False, pathFile:str=''):
 				pathFile = LOG_FILE
 		else:
 				pathFile = os.path.join(pathFile, LOG_FILE)
-		with open(pathFile, mode="a") as file:
-			text = remove_color_codes(text)
-			file.write(f"{text}\n")
-			file.flush()
+		if printLOG_FILE:
+				with open(pathFile, mode="a") as file:
+					text = remove_color_codes(text)
+					file.write(f"{text}\n")
+					file.flush()
 	# If there was an error during the process, show error and exit
 	except OSError:
 		printError(f"Could not open log file to add info.\n{ERROR_CODE[IO_ERROR]}", retCode=IO_ERROR)
@@ -310,7 +310,6 @@ def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
         str2Test += ' -allPrograms'
     if allFuncs:
         str2Test += ' -allFuncs'
-
     xmippSrc = os.environ.get('XMIPP_SRC', None)
     if xmippSrc and os.path.isdir(xmippSrc):
         os.environ['PYTHONPATH'] = ':'.join([
@@ -320,7 +319,7 @@ def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
     else:
         printMessage(red('XMIPP_SRC is not in the enviroment.') +
               '\nTo run the tests you need to run: ' +
-              blue('source build/xmipp.bashrc'), debug=True)
+              blue('source build/xmipp.bashrc'), debug=True, printLOG_FILE=False)
         return
 
     dataSetPath = os.path.join(testsPath, 'data')
@@ -329,28 +328,29 @@ def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
     # downloading/updating the dataset
     dataset = 'xmipp_programs'
     if os.path.isdir(dataSetPath):
-        printMessage("\n- Updating the test files...", debug=True)
+        printMessage("\n- Updating the test files...", debug=True, printLOG_FILE=False)
         task = "update"
         showOutput=False
     else:
-        printMessage("\n- Downloading the test files...", debug=True)
+        printMessage("\n- Downloading the test files...", debug=True, printLOG_FILE=False)
         task = "download"
         showOutput=True
     args = "%s %s %s" % ("tests/data", urlTest, dataset)
     retCode, outputStr = runJob("bin/xmipp_sync_data %s %s" % (task, args),
 												cwd='src/xmipp', showOutput=showOutput)
     if retCode != 0:
-        printMessage(red('Error downloading test files.\n{}'.format(outputStr)))
+        printMessage(red('Error downloading test files.\n{}'.format(outputStr)), printLOG_FILE=False)
     else:
-        printMessage(text=green('Done'), debug=True)
+        printMessage(text=green('Done'), debug=True, printLOG_FILE=False)
 
     noCudaStr = '-noCuda' if not CUDA else ''
     if testName or allPrograms:
-        printMessage("\nTests to do: %s" % (str2Test), debug=True)
-    retCode, outputStr = runJob("(cd src/xmipp/tests; %s test.py %s %s)"
-                  % ('python3', str2Test, noCudaStr), streaming=True, showOutput=True)
+        printMessage('\n-----------------------------', debug=True, printLOG_FILE=False)
+        printMessage("Tests to do: %s" % (str2Test), debug=True, printLOG_FILE=False)
+    retCode, outputStr = runJob("%s test.py %s %s" % ('python3', str2Test, noCudaStr),
+					cwd=testsPath,  streaming=False, showError=True, showOutput=True	)
     if retCode != 0:
-        printMessage(red('Error runnig test.\n{}'.format(outputStr)))
+        printMessage(red('Error runnig test.\n{}'.format(outputStr)), printLOG_FILE=False)
 
 
 
@@ -659,7 +659,7 @@ def printHappyEnd():
 		print('*' + spaceStr + '*')
 		print(border)
 		printMessage(text=strXmipp, debug=False)
-		printMessage('More about Xmipp here: {}'.format(DOCUMENTATION_URL), debug=True)
+		printMessage('More about Xmipp: {}'.format(DOCUMENTATION_URL), debug=True)
 
 
 def branchName():
