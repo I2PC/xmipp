@@ -1011,8 +1011,7 @@ def checkScons():
     else:
         status = installScons()
         if not status:
-          exitError(retCode=SCONS_ERROR,
-                    output='Scons not found. {}'.format(status[1]))
+          exitError(retCode=SCONS_ERROR, output='Scons not found.')
 
 def checkRsync():
     rsyncV = getRsyncVersion()
@@ -1026,5 +1025,5 @@ def checkRsync():
 def exitError(output:str='', retCode:int=0, dictPackages:dict={}):
     printError(errorMsg=output, retCode=retCode)
     if not dictPackages:
-        dictPackages = readConfig()
+        dictPackages, _ = readConfig()
     exitXmipp(retCode=retCode, dictPackages=dictPackages, tarPost=tarPost)

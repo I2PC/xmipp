@@ -886,7 +886,7 @@ def get_Hdf5_name(libdirflags):
 						return "hdf5_serial"
 		return "hdf5"
 
-def installScons():
+def installScons() -> bool:
 	"""
 	### This function attempts to install Scons in the current enviroment.
 	"""
@@ -898,8 +898,12 @@ def installScons():
 
 	# If command failed, show error message and exit
 	if retCode != 0:
-		printError(f'Scons could not be installed in enviroment "{envName}". Please, install it manually.', retCode=SCONS_VERSION_ERROR)
+		instructionStr = "Please, install it manually."
+		envNameStr = f'Scons could not be installed in enviroment "{envName}".' if envName else f'Scons does not install automatically system wide by default.'
+		printError(f'{envNameStr} {instructionStr}', retCode=SCONS_VERSION_ERROR)
+
 		return False
+	
 	# If succeeded, log message
 	printMessage(f'Succesfully installed or updated Scons on {envName} enviroment.')
 	return True

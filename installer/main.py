@@ -724,7 +724,7 @@ def cleanDeprecated():
 				exitError(retCode=DEPRECATE_ERROR, output=outputStr)
 
 		if len(list2RemoveXmipp) > 0:
-				 printMessage(text=green('Deprecated programs removed'), debug=True)
+			printMessage(text=green('Deprecated programs removed'), debug=True)
 		printMessage(green('- Done'), debug=True)
 
 def cleanSources():
@@ -880,7 +880,7 @@ def linkToScipion(directory:str, verbose:bool=False):
 		currentDir = os.getcwd()
 		dirnameAbs = os.path.join(currentDir, directory)
 		if os.path.isdir(scipionLibs) and os.path.isdir(scipionBindings):
-		    printMessage('scipionSoftware: {}'.format(scipionSoftware), debug=True)
+			printMessage('scipionSoftware: {}'.format(scipionSoftware), debug=True)
 		if os.path.isdir(xmippHomeLink):
 				retCode, outputStr = runJob("rm %s" %xmippHomeLink, showCommand=verbose)
 				if retCode != 0:

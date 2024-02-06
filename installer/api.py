@@ -36,7 +36,7 @@ from .versions import getOSReleaseName, getArchitectureName, getCUDAVersion,\
 from .utils import runJob, runNetworkJob, getCurrentBranch, isBranchUpToDate, runParallelJobs
 from .constants import API_URL, LOG_FILE, TAIL_LOG
 
-def sendApiPost(dictPackage:Dict, retCode: int=0):
+def sendApiPOST(dictPackage:Dict, retCode: int=0):
 	"""
 	### Sends a POST request to Xmipp's metrics's API.
 	
@@ -45,12 +45,12 @@ def sendApiPost(dictPackage:Dict, retCode: int=0):
 	- retCode (int): Optional. Return code for the API request.
 	"""
 	if dictPackage['ANON_DATA_COLLECT'] == 'True':
-			# Getting JSON data for curl command
-			jsonStr = getJSONString(dictPackage, retCode=retCode)
+		# Getting JSON data for curl command
+		jsonStr = getJSONString(dictPackage, retCode=retCode)
 
-			# Send API POST request if there were no errors
-			if jsonStr is not None:
-				runNetworkJob(getCurlStr(API_URL, jsonStr))
+		# Send API POST request if there were no errors
+		if jsonStr is not None:
+			runNetworkJob(getCurlStr(API_URL, jsonStr))
 	
 ####################### UTILS FUNCTIONS #######################
 def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:

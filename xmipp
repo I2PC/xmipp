@@ -51,7 +51,7 @@ def modeAddModel(args: argparse.Namespace):
   #### Params:
   - args (Namespace): Command line arguments parsed by argparse library.
   """
-  addDeepLearninModel(login= args.login, modelPath=args.modelPath, update=args.update)
+  addDeepLearninModel(login=args.login, modelPath=args.modelPath, update=args.update)
 
 def modeCleanBin(args: argparse.Namespace):
   """
@@ -69,12 +69,14 @@ def modeCleanAll(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	print("WARNING: This will DELETE ALL content from src and build Notice that if you have unpushed changes, \n"
-				" hey will be deleted.\nAre you sure you want to do this? (YeS/No) -case sensitive-")
+	print("WARNING: This will DELETE ALL content from src and build. Notice that if you have unpushed changes, \n"
+		" they will be deleted.\nAre you sure you want to do this? (YeS/[No]) -case sensitive-")
 	yesno = input()
 	if yesno == "YeS":
-			cleanSources()
-			modeCleanBin(args)
+		cleanSources()
+		modeCleanBin(args)
+	else:
+		print("Clean mode aborted.")
 
 def modeCleanDeprecated(args: argparse.Namespace):
 	"""
@@ -345,7 +347,19 @@ if __name__ == "__main__":
 	# Running always under this own directory.
 	os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
+	#from installer.versions import getCmakeVersion
+	#from installer.config import readConfig
+	#from installer.api import getJSONString
+	#from installer.utils import runParallelJobs
+
+	#configFile = readConfig()
+
+	#print("TEST:", getJSONString(configFile))
+	#sys.exit(0)
+
 	# Running installer in selected mode
 	runSelectedMode(parser, args)
 
-
+#TODO: Add:
+# - cleanSources
+# - generateBinaries (-dir)

@@ -21,9 +21,12 @@
 # * All comments concerning this program package may be sent to the
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
-import sys
-import os
-from .api import sendApiPost
+
+# General imports
+import sys, os
+
+# Self imports
+from .api import sendApiPOST
 from .reportTar import createTar
 from .constants import COMPRESED_FILE
 from .utils import printHappyEnd
@@ -32,11 +35,11 @@ def exitXmipp(retCode:int=0, dictPackages:dict={}, tarPost:bool=True):
 	try:
 		os.remove(COMPRESED_FILE)
 	except FileNotFoundError:
-			pass
+		pass
 	if tarPost:
-			if retCode != 0:
-				createTar()
-			else:
-					printHappyEnd()
-			sendApiPost(dictPackage=dictPackages, retCode=retCode)
+		if retCode != 0:
+			createTar()
+		else:
+			printHappyEnd()
+		sendApiPOST(dictPackage=dictPackages, retCode=retCode)
 	sys.exit(retCode)
