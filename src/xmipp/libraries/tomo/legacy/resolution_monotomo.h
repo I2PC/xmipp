@@ -1,7 +1,6 @@
 /***************************************************************************
  *
  * Authors:    Jose Luis Vilas, 					  jlvilas@cnb.csic.es
- *             Oier Lauzirika                         olauzirika@cnb.csic.es
  * 			   Carlos Oscar S. Sorzano            coss@cnb.csic.es (2016)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
@@ -25,8 +24,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef _PROG_MONOTOMO_FAST
-#define _PROG_MONOTOMO_FAST
+#ifndef _PROG_MONOTOMO
+#define _PROG_MONOTOMO
 
 #include <iostream>
 #include <core/xmipp_program.h>
@@ -39,11 +38,13 @@
 #include <data/fourier_filter.h>
 #include <data/filters.h>
 #include <string>
-#include <data/aft.h>
-#include <memory>
 
+/**@defgroup Monogenic Resolution
+   @ingroup ReconsLibrary */
+//@{
+/** SSNR parameters. */
 
-class ProgMonoTomoFast : public XmippProgram
+class ProgMonoTomo : public XmippProgram
 {
 public:
 	 /** Filenames */
@@ -55,17 +56,12 @@ public:
 
 	/** Is the volume previously masked?*/
 	int NVoxelsOriginalMask, Nvoxels, nthrs;
-	size_t xdimFT, ydimFT, zdimFT, xdim, ydim, zdim;
 
 	/** Step in digital frequency */
 	double freq_step, trimBound, significance;
 
 	/** The search for resolutions is linear or inverse**/
 	bool noiseOnlyInHalves, automaticMode;
-
-	std::vector<std::complex<float>> fourierSignal, fourierNoise;
-	std::vector<size_t> idxMap;
-	std::vector<float> freqTomo;
 
 public:
 
@@ -98,8 +94,6 @@ public:
     								int &last_fourier_idx,
     								bool &continueIter,	bool &breakIter);
 
-    void smoothBorders(MultidimArray<float> &vol, MultidimArray<int> &pMask);
-
     void lowestResolutionbyPercentile(MultidimArray<double> &resolutionVol,
     								std::vector<double> &list,	double &cut_value, double &resolutionThreshold);
 
@@ -107,7 +101,7 @@ public:
 
 public:
     Image<int> mask;
-    MultidimArray<double> iu;//, VRiesz; // Inverse of the frequency
+    MultidimArray<double> iu, VRiesz; // Inverse of the frequency
 	MultidimArray< std::complex<double> > fftV, *fftN; // Fourier transform of the input volume
 	FourierTransformer transformer_inv;
 	MultidimArray< std::complex<double> > fftVRiesz, fftVRiesz_aux;
@@ -116,9 +110,6 @@ public:
 	Image<double> Vfiltered, VresolutionFiltered;
 	Matrix1D<double> freq_fourier_z, freq_fourier_y, freq_fourier_x;
 	Matrix2D<double> resolutionMatrix, maskMatrix;
-	std::vector<std::complex<float>> VRiesz;
-
-	std::unique_ptr<AFT<float>> forward_transformer, backward_transformer;
 };
 //@}
 #endif

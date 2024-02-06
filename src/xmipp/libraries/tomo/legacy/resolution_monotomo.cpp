@@ -24,21 +24,16 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "resolution_monotomo_fast.h"
+#include "resolution_monotomo.h"
 #include <core/bilib/kernel.h>
 #include "core/linear_system_helper.h"
-#include "data/fftwT.h"
-#include <cmath>
-
-#include <data/aft.h>
-#include <data/fft_settings.h>
-#include <cmath>
+//#define DEBUG
+//#define DEBUG_MASK
+//#define TEST_FRINGES
 
 
 
-
-
-void ProgMonoTomoFast::readParams()
+void ProgMonoTomo::readParams()
 {
 	fnVol = getParam("--vol");
 	fnVol2 = getParam("--vol2");
@@ -57,7 +52,7 @@ void ProgMonoTomoFast::readParams()
 }
 
 
-void ProgMonoTomoFast::defineParams()
+void ProgMonoTomo::defineParams()
 {
 	addUsageLine("This function determines the local resolution of a tomogram. It makes use of two reconstructions, odd and even. The difference between them"
 			"gives a noise reconstruction. Thus, by computing the local amplitude of the signal at different frequencies and establishing a comparison with"
@@ -80,7 +75,7 @@ void ProgMonoTomoFast::defineParams()
 }
 
 
-void ProgMonoTomoFast::produceSideInfo()
+void ProgMonoTomo::produceSideInfo()
 {
 	std::cout << "Starting..." << std::endl;
 	std::cout << "           " << std::endl;
@@ -89,159 +84,210 @@ void ProgMonoTomoFast::produceSideInfo()
 	std::cout << "           optimal, MonoTomo will try to compute the local resolution." << std::endl;
 	std::cout << "           " << std::endl;
 
-	Image<float> signalTomo;
-	Image<float> noiseTomo;
-	Image<float> V1, V2;
+	Image<double> V;
+	Image<double> V1, V2;
 	V1.read(fnVol);
 	V2.read(fnVol2);
+	V()=0.5*(V1()+V2());
+	V.write(fnMeanVol);
 
+	V().setXmippOrigin();
 
-	signalTomo()=0.5*(V1()+V2());
-	signalTomo.write(fnMeanVol);
-	signalTomo().setXmippOrigin();
+	transformer_inv.setThreadsNumber(nthrs);
 
-	noiseTomo()=0.5*(V1()-V2());
-	noiseTomo().setXmippOrigin();
+	FourierTransformer transformer;
+	MultidimArray<double> &inputVol = V();
+	VRiesz.resizeNoCopy(inputVol);
 
-	auto &tomo = signalTomo();
-	auto &noise = noiseTomo();
+	#ifdef TEST_FRINGES
 
-	xdim = XSIZE(tomo);
-	ydim = YSIZE(tomo);
-	zdim = ZSIZE(tomo);
+	double modulus, xx, yy, zz;
 
-	float normConst = xdim * ydim * zdim;
-
-	std::cout  << xdim << " " << ydim << " " << zdim << std::endl;
-	const FFTSettings<float> fftSettingForward(xdim, ydim, zdim);
-	const auto fftSettingBackward = fftSettingForward.createInverse();
-
-	auto hw = CPU(nthrs);
-	forward_transformer = std::make_unique<FFTwT<float>>();
-	backward_transformer = std::make_unique<FFTwT<float>>();
-	forward_transformer->init(hw, fftSettingForward);
-	backward_transformer->init(hw, fftSettingBackward);
-
-	const auto &fdim = fftSettingForward.fDim();
-	fourierSignal.resize(fdim.size());
-	fourierNoise.resize(fdim.size());
-	forward_transformer->fft(MULTIDIM_ARRAY(tomo), fourierSignal.data());
-	forward_transformer->fft(MULTIDIM_ARRAY(tomo), fourierNoise.data());
-
-	xdimFT = fdim.x();
-	ydimFT = fdim.y();
-	zdimFT = fdim.z();
-
-	float uz, uy, ux, uz2, u, uz2y2;
-	size_t n=0;
-	for (size_t k=0; k<zdimFT; ++k)
+	long nnn=0;
+	for(size_t k=0; k<ZSIZE(inputVol); ++k)
 	{
-		FFT_IDX2DIGFREQ(k, zdim, uz);
-		uz2 = uz*uz;
-
-		for (size_t i=0; i<ydimFT; ++i)
+		zz = (k-ZSIZE(inputVol)*0.5)*(k-ZSIZE(inputVol)*0.5);
+		for(size_t i=0; i<YSIZE(inputVol); ++i)
 		{
-			FFT_IDX2DIGFREQ(i, ydim, uy);
-			uz2y2 = uz2 + uy*uy;
-			for (size_t j=0; j<xdimFT; ++j)
+			yy = (i-YSIZE(inputVol)*0.5)*(i-YSIZE(inputVol)*0.5);
+			for(size_t j=0; j<XSIZE(inputVol); ++j)
 			{
-					FFT_IDX2DIGFREQ(j, xdim, ux);
-					u = std::sqrt(uz2y2 + ux*ux);
-					if (u <= 0.5)
-					{
-						idxMap.push_back(n);
-						freqTomo.push_back(u);
-					}
-					++n;
+				xx = (j-XSIZE(inputVol)*0.5)*(j-XSIZE(inputVol)*0.5);
+				DIRECT_MULTIDIM_ELEM(inputVol,nnn) = cos(0.1*sqrt(xx+yy+zz));
+				++nnn;
 			}
 		}
 	}
 
+	Image<double> saveiu;
+	saveiu = inputVol;
+	saveiu.write("franjas.vol");
+	exit(0);
+	#endif
 
-	VRiesz.resize(fdim.size());
 
-	mask().resizeNoCopy(1, zdim, ydim, xdim);
-	mask().initConstant(1);
+	transformer.FourierTransform(inputVol, fftV);
+	iu.initZeros(fftV);
 
-	smoothBorders(tomo, mask());
-	smoothBorders(noise, mask());
-
-	signalTomo.clear();
-	noiseTomo.clear();
-
-	freq_fourier_z.initZeros(zdimFT);
-	freq_fourier_x.initZeros(xdimFT);
-	freq_fourier_y.initZeros(ydimFT);
-
-	VEC_ELEM(freq_fourier_z,0) = 1e-38;
-	for(size_t k=0; k<zdimFT; ++k)
+	// Calculate u and first component of Riesz vector
+	double uz, uy, ux, uz2, u2, uz2y2;
+	long n=0;
+	for(size_t k=0; k<ZSIZE(fftV); ++k)
 	{
-		FFT_IDX2DIGFREQ(k,zdim, u);
-		VEC_ELEM(freq_fourier_z,k) = u;
+		FFT_IDX2DIGFREQ(k,ZSIZE(inputVol),uz);
+		uz2=uz*uz;
+
+		for(size_t i=0; i<YSIZE(fftV); ++i)
+		{
+			FFT_IDX2DIGFREQ(i,YSIZE(inputVol),uy);
+			uz2y2=uz2+uy*uy;
+
+			for(size_t j=0; j<XSIZE(fftV); ++j)
+			{
+				FFT_IDX2DIGFREQ(j,XSIZE(inputVol),ux);
+				u2=uz2y2+ux*ux;
+				if ((k != 0) || (i != 0) || (j != 0))
+					DIRECT_MULTIDIM_ELEM(iu,n) = 1.0/sqrt(u2);
+				else
+					DIRECT_MULTIDIM_ELEM(iu,n) = 1e38;
+				++n;
+			}
+		}
+	}
+	#ifdef DEBUG
+	Image<double> saveiu;
+	saveiu = 1/iu;
+	saveiu.write("iu.vol");
+	#endif
+
+	// Prepare low pass filter
+	lowPassFilter.FilterShape = RAISED_COSINE;
+	lowPassFilter.raised_w = 0.01;
+	lowPassFilter.do_generate_3dmask = false;
+	lowPassFilter.FilterBand = LOWPASS;
+
+	// Prepare mask
+	MultidimArray<int> &pMask=mask();
+
+	if (fnMask != "")
+	{
+		mask.read(fnMask);
+		mask().setXmippOrigin();
+	}
+	else
+	{
+		size_t Zdim, Ydim, Xdim, Ndim;
+		inputVol.getDimensions(Xdim, Ydim, Zdim, Ndim);
+		mask().resizeNoCopy(Ndim, Zdim, Ydim, Xdim);
+		mask().initConstant(1);
 	}
 
-	VEC_ELEM(freq_fourier_y,0) = 1e-38;
-	for(size_t k=0; k<ydimFT; ++k)
+	NVoxelsOriginalMask = 0;
+
+	FOR_ALL_ELEMENTS_IN_ARRAY3D(pMask)
 	{
-		FFT_IDX2DIGFREQ(k,ydim, u);
-		VEC_ELEM(freq_fourier_y,k) = u;
+		if (A3D_ELEM(pMask, k, i, j) == 1)
+			++NVoxelsOriginalMask;
+//		if (i*i+j*j+k*k > R*R)
+//			A3D_ELEM(pMask, k, i, j) = -1;
 	}
 
-	VEC_ELEM(freq_fourier_x,0) = 1e-38;
-	for(size_t k=0; k<xdimFT; ++k)
-	{
-		FFT_IDX2DIGFREQ(k,xdim, u);
-		VEC_ELEM(freq_fourier_x,k) = u;
-	}
-}
+	#ifdef DEBUG_MASK
+	mask.write("mask.vol");
+	#endif
 
-void ProgMonoTomoFast::smoothBorders(MultidimArray<float> &vol, MultidimArray<int> &pMask)
-{
+
+	V1.read(fnVol);
+	V2.read(fnVol2);
+
+	V1()-=V2();
+	V1()/=2;
+
+	fftN=new MultidimArray< std::complex<double> >;
+	FourierTransformer transformer2;
+
+	#ifdef DEBUG
+	  V1.write("diff_volume.vol");
+	#endif
+
 	int N_smoothing = 10;
 
-	int siz_z = zdim*0.5;
-	int siz_y = ydim*0.5;
-	int siz_x = xdim*0.5;
+	int siz_z = ZSIZE(inputVol)*0.5;
+	int siz_y = YSIZE(inputVol)*0.5;
+	int siz_x = XSIZE(inputVol)*0.5;
 
 
 	int limit_distance_x = (siz_x-N_smoothing);
 	int limit_distance_y = (siz_y-N_smoothing);
 	int limit_distance_z = (siz_z-N_smoothing);
 
-	long n=0;
-	for(int k=0; k<zdim; ++k)
+	n=0;
+	for(int k=0; k<ZSIZE(inputVol); ++k)
 	{
-		auto uz = (k - siz_z);
-		for(int i=0; i<ydim; ++i)
+		uz = (k - siz_z);
+		for(int i=0; i<YSIZE(inputVol); ++i)
 		{
-			auto uy = (i - siz_y);
-			for(int j=0; j<xdim; ++j)
+			uy = (i - siz_y);
+			for(int j=0; j<XSIZE(inputVol); ++j)
 			{
-				auto ux = (j - siz_x);
+				ux = (j - siz_x);
 
 				if (abs(ux)>=limit_distance_x)
 				{
-					DIRECT_MULTIDIM_ELEM(vol, n) *= 0.5*(1+std::cos(PI*(limit_distance_x - std::abs(ux))/N_smoothing));
+					DIRECT_MULTIDIM_ELEM(V1(), n) *= 0.5*(1+cos(PI*(limit_distance_x - abs(ux))/N_smoothing));
 					DIRECT_MULTIDIM_ELEM(pMask, n) = 0;
 				}
 				if (abs(uy)>=limit_distance_y)
 				{
-					DIRECT_MULTIDIM_ELEM(vol, n) *= 0.5*(1+std::cos(PI*(limit_distance_y - std::abs(uy))/N_smoothing));
+					DIRECT_MULTIDIM_ELEM(V1(), n) *= 0.5*(1+cos(PI*(limit_distance_y - abs(uy))/N_smoothing));
 					DIRECT_MULTIDIM_ELEM(pMask, n) = 0;
 				}
 				if (abs(uz)>=limit_distance_z)
 				{
-					DIRECT_MULTIDIM_ELEM(vol, n) *= 0.5*(1+std::cos(PI*(limit_distance_z - std::abs(uz))/N_smoothing));
+					DIRECT_MULTIDIM_ELEM(V1(), n) *= 0.5*(1+cos(PI*(limit_distance_z - abs(uz))/N_smoothing));
 					DIRECT_MULTIDIM_ELEM(pMask, n) = 0;
 				}
 				++n;
 			}
 		}
 	}
+
+
+	transformer2.FourierTransform(V1(), *fftN);
+
+	V.clear();
+
+	double u;
+
+	freq_fourier_z.initZeros(ZSIZE(fftV));
+	freq_fourier_x.initZeros(XSIZE(fftV));
+	freq_fourier_y.initZeros(YSIZE(fftV));
+
+	VEC_ELEM(freq_fourier_z,0) = 1e-38;
+	for(size_t k=0; k<ZSIZE(fftV); ++k)
+	{
+		FFT_IDX2DIGFREQ(k,ZSIZE(pMask), u);
+		VEC_ELEM(freq_fourier_z,k) = u;
+	}
+
+	VEC_ELEM(freq_fourier_y,0) = 1e-38;
+	for(size_t k=0; k<YSIZE(fftV); ++k)
+	{
+		FFT_IDX2DIGFREQ(k,YSIZE(pMask), u);
+		VEC_ELEM(freq_fourier_y,k) = u;
+	}
+
+	VEC_ELEM(freq_fourier_x,0) = 1e-38;
+	for(size_t k=0; k<XSIZE(fftV); ++k)
+	{
+		FFT_IDX2DIGFREQ(k,XSIZE(pMask), u);
+		VEC_ELEM(freq_fourier_x,k) = u;
+	}
+
 }
 
-/*
-void ProgMonoTomoFast::amplitudeMonogenicSignal3D(MultidimArray< std::complex<double> > &myfftV,
+
+void ProgMonoTomo::amplitudeMonogenicSignal3D(MultidimArray< std::complex<double> > &myfftV,
 		double freq, double freqH, double freqL, MultidimArray<double> &amplitude, int count, FileName fnDebug)
 {
 	fftVRiesz.initZeros(myfftV);
@@ -393,7 +439,7 @@ void ProgMonoTomoFast::amplitudeMonogenicSignal3D(MultidimArray< std::complex<do
 }
 
 
-void ProgMonoTomoFast::localNoise(MultidimArray<double> &noiseMap, Matrix2D<double> &noiseMatrix, int boxsize, Matrix2D<double> &thresholdMatrix)
+void ProgMonoTomo::localNoise(MultidimArray<double> &noiseMap, Matrix2D<double> &noiseMatrix, int boxsize, Matrix2D<double> &thresholdMatrix)
 {
 //	std::cout << "Analyzing local noise" << std::endl;
 
@@ -538,7 +584,7 @@ void ProgMonoTomoFast::localNoise(MultidimArray<double> &noiseMap, Matrix2D<doub
 
 
 
-void ProgMonoTomoFast::postProcessingLocalResolutions(MultidimArray<double> &resolutionVol,
+void ProgMonoTomo::postProcessingLocalResolutions(MultidimArray<double> &resolutionVol,
 		std::vector<double> &list)
 {
 	MultidimArray<double> resolutionVol_aux = resolutionVol;
@@ -574,7 +620,7 @@ void ProgMonoTomoFast::postProcessingLocalResolutions(MultidimArray<double> &res
 
 
 
-void ProgMonoTomoFast::lowestResolutionbyPercentile(MultidimArray<double> &resolutionVol,
+void ProgMonoTomo::lowestResolutionbyPercentile(MultidimArray<double> &resolutionVol,
 		std::vector<double> &list, double &cut_value, double &resolutionThreshold)
 {
 	double last_resolution_2 = list[(list.size()-1)];
@@ -606,7 +652,7 @@ void ProgMonoTomoFast::lowestResolutionbyPercentile(MultidimArray<double> &resol
 }
 
 
-void ProgMonoTomoFast::resolution2eval(int &count_res, double step,
+void ProgMonoTomo::resolution2eval(int &count_res, double step,
 								double &resolution, double &last_resolution,
 								double &freq, double &freqL,
 								int &last_fourier_idx,
@@ -663,11 +709,11 @@ void ProgMonoTomoFast::resolution2eval(int &count_res, double step,
 
 }
 
-*/
-void ProgMonoTomoFast::run()
+
+void ProgMonoTomo::run()
 {
 	produceSideInfo();
-	/*
+
 	Image<double> outputResolution;
 
 	outputResolution().resizeNoCopy(VRiesz);
@@ -894,5 +940,4 @@ void ProgMonoTomoFast::run()
 	postProcessingLocalResolutions(FilteredResolution, list);
 	outputResolutionImage() = FilteredResolution;
 	outputResolutionImage.write(fnOut);
-	/*/
 }
