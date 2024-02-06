@@ -1225,14 +1225,14 @@ bool ProgTomoDetectLandmarks::filterLabeledRegions(std::vector<int> coordinatesP
 	std::cout << "ocupation " << ocupation << std::endl;
 	#endif
 
-	if(ocupation < 0.25)
-	{
-		#ifdef DEBUG_FILTERLABEL
-		std::cout << "COORDINATE REMOVED AT (" << centroX << " , " << centroY << ") BECAUSE OF OCCUPATION"<< std::endl;
-		std::cout << "-------------------------------------------"  << std::endl;
-		#endif
-		return false;
-	}
+	// if(ocupation < 0.25)
+	// {
+	// 	#ifdef DEBUG_FILTERLABEL
+	// 	std::cout << "COORDINATE REMOVED AT (" << centroX << " , " << centroY << ") BECAUSE OF OCCUPATION"<< std::endl;
+	// 	std::cout << "-------------------------------------------"  << std::endl;
+	// 	#endif
+	// 	return false;
+	// }
 
 	// Check the relative area compared with the expected goldbead
 	double expectedArea = PI * ((targetFS) * targetFS);
@@ -1244,7 +1244,7 @@ bool ProgTomoDetectLandmarks::filterLabeledRegions(std::vector<int> coordinatesP
 	#endif
 
 
-	if (relativeArea > 4 || relativeArea < 0.1)
+	if (relativeArea > 8 || relativeArea < 0.1)
 	{
 		#ifdef DEBUG_FILTERLABEL
 		std::cout << "COORDINATE REMOVED AT " << centroX << " , " << centroY << " BECAUSE OF RELATIVE AREA"<< std::endl;
