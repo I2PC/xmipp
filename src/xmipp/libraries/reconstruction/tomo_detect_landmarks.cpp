@@ -1207,11 +1207,8 @@ bool ProgTomoDetectLandmarks::filterLabeledRegions(std::vector<int> coordinatesP
 		}
 	}
 
-	double maxDistace;
-	maxDistace = sqrt(maxSquareDistance);
-
 	// Check sphericity of the labeled region
-	double circumscribedArea = PI * (maxDistace * maxDistace);;
+	double circumscribedArea = PI * (maxSquareDistance);;
 	double area = 0.0 + (double)coordinatesPerLabelX.size();
 	double ocupation;
 
@@ -1225,7 +1222,6 @@ bool ProgTomoDetectLandmarks::filterLabeledRegions(std::vector<int> coordinatesP
 	std::cout << "centroY " << centroY << std::endl;
 	std::cout << "area " << area << std::endl;
 	std::cout << "circumscribedArea " << circumscribedArea << std::endl;
-	std::cout << "maxDistace " << maxDistace << std::endl;
 	std::cout << "ocupation " << ocupation << std::endl;
 	#endif
 
