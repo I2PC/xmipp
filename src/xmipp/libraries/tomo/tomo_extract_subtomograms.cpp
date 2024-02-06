@@ -165,25 +165,16 @@ void ProgTomoExtractSubtomograms::extractSubtomoFixedSize(MultidimArray<double> 
 
 	if (downsampleFactor > 1)
 	{
-			std::cout << "1 "<< std::endl;
-
 		downsample(fftSubtomoExtraction, fftSubtomo);
 	}
 	else  // downsampleFactor < 1
 	{
-					std::cout << "2 "<< std::endl;
 		upsample(fftSubtomoExtraction, fftSubtomo);
 	}
-			std::cout << "3 "<< std::endl;
 
 	subtomoExtraction.initZeros(1, boxsize, boxsize, boxsize);
-	subtomoExtraction.resize(boxsize, boxsize, boxsize);
-	// subtomoExtraction.initConstant(0);
-				std::cout << "4 "<< std::endl;
 
 	transformer2.inverseFourierTransform(fftSubtomo, subtomoExtraction);
-				std::cout << "5 "<< std::endl;
-
 }
 
 void ProgTomoExtractSubtomograms::run()
@@ -207,7 +198,6 @@ void ProgTomoExtractSubtomograms::run()
 	auto &subtomo = subtomoImg();
 
 	MultidimArray<double> subtomoExtraction;
-	std::cout << "a "<< std::endl;
 
 	int xcoor;
 	int ycoor;
@@ -231,8 +221,6 @@ void ProgTomoExtractSubtomograms::run()
 	{
 		createSphere(halfboxsize);
 	}
-	std::cout << "b "<< std::endl;
-
 
 	double dsFactorTolerance = 0.01;
 	double dsFactorDiff = abs(downsampleFactor - 1);
@@ -248,7 +236,6 @@ void ProgTomoExtractSubtomograms::run()
 		boxSizeExtraction = boxsize * downsampleFactor;
 		halfboxsize = floor(0.5*boxSizeExtraction);
 	}
-	std::cout << "c "<< std::endl;
 
 	for (const auto& row : md)
 	{
@@ -267,9 +254,6 @@ void ProgTomoExtractSubtomograms::run()
 		if ((xlim>Xtom) || (ylim>Ytom) || (zlim>Ztom) || (xinit<0) || (yinit<0) || (zinit<0))
 			continue;
 		
-			std::cout << "d "<< std::endl;
-
-
 		if (fixedBoxSize && dsFactorDiff > dsFactorTolerance)
 		{
 			subtomo.initZeros(1, boxSizeExtraction, boxSizeExtraction, boxSizeExtraction);
@@ -278,7 +262,6 @@ void ProgTomoExtractSubtomograms::run()
 		{
 			subtomo.initZeros(1, boxsize, boxsize, boxsize);
 		}
-			std::cout << "e "<< std::endl;
 
 		// Contrast inversion
 		for (int k=zinit; k<zlim; k++)
@@ -293,13 +276,11 @@ void ProgTomoExtractSubtomograms::run()
 				}
 			}
 		}
-			std::cout << "f "<< std::endl;
 
 		if (fixedBoxSize && dsFactorDiff > dsFactorTolerance)
 		{
 			extractSubtomoFixedSize(subtomo);
 		}
-			std::cout << "g "<< std::endl;
 
 		// Normalization
 		if (normalize)
