@@ -253,7 +253,7 @@ void ProgTomoExtractSubtomograms::run()
 
 		if ((xlim>Xtom) || (ylim>Ytom) || (zlim>Ztom) || (xinit<0) || (yinit<0) || (zinit<0))
 			continue;
-		
+
 		if (fixedBoxSize && dsFactorDiff > dsFactorTolerance)
 		{
 			subtomo.initZeros(1, boxSizeExtraction, boxSizeExtraction, boxSizeExtraction);
