@@ -27,7 +27,7 @@ This module contains the necessary functions to run the config command.
 """
 
 import shutil, glob, sys
-from os import path, environ
+from os import path, environ, getcwd
 from os.path import isdir, join, isfile
 
 from .constants import (CONFIG_FILE, GCC_MINIMUM,
@@ -1021,6 +1021,7 @@ def checkRsync():
 
 def exitError(output:str='', retCode:int=0, dictPackages:dict={}):
     printError(errorMsg=output, retCode=retCode)
+    print(getcwd())
     if not dictPackages:
         dictPackages, _ = readConfig()
     exitXmipp(retCode=retCode, dictPackages=dictPackages, tarPost=tarPost)

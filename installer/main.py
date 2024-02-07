@@ -895,30 +895,21 @@ def linkToScipion(directory:str, verbose:bool=False):
 				SVMLib = os.path.join(xmippLink, "lib", "libsvm.so")
 				CIFPPLib = os.path.join(xmippLink, "lib", "libcifpp.so*")
 				bindings = os.path.join(xmippLink, "bindings", "python", "*")
-
-				os.chdir(scipionSoftwareEM)
-				retCode, outputStr = runJob("ln -srf %s %s" % (coreLib, scipionLibs), showCommand=verbose)
-				if retCode != 0:
-						exitError(retCode=LINKING2SCIPION, output=outputStr)
-				retCode, outputStr = runJob("ln -srf %s %s" % (SVMLib, scipionLibs), showCommand=verbose)
-				if retCode != 0:
-						exitError(retCode=LINKING2SCIPION, output=outputStr)
-				retCode, outputStr = runJob("ln -srf %s %s" % (CIFPPLib, scipionLibs), showCommand=verbose)
-				if retCode != 0:
-						exitError(retCode=LINKING2SCIPION, output=outputStr)
-				retCode, outputStr = runJob("ln -srf %s %s" % (xmippLib, scipionLibs), showCommand=verbose)
-				if retCode != 0:
-						exitError(retCode=LINKING2SCIPION, output=outputStr)
-				retCode, outputStr = runJob("ln -srf %s %s" % (bindings, scipionBindings), showCommand=verbose)
-				if retCode != 0:
-						exitError(retCode=LINKING2SCIPION, output=outputStr)
-				os.chdir(currentDir)
+				runLinkScipion("ln -srf %s %s" % (coreLib, scipionLibs), cwd=scipionSoftwareEM, verbose=verbose)
+				runLinkScipion("ln -srf %s %s" % (SVMLib, scipionLibs), cwd=scipionSoftwareEM, verbose=verbose)
+				runLinkScipion("ln -srf %s %s" % (CIFPPLib, scipionLibs), cwd=scipionSoftwareEM, verbose=verbose)
+				runLinkScipion("ln -srf %s %s" % (xmippLib, scipionLibs), cwd=scipionSoftwareEM, verbose=verbose)
+				runLinkScipion("ln -srf %s %s" % (bindings, scipionBindings), cwd=scipionSoftwareEM, verbose=verbose)
 				printMessage(text=blue(str("Xmipp linked to Scipion on " + xmippHomeLink) + (' ' * 150)), debug=True)
 				printMessage(green("- Done"), debug=True)
 
 		else:
 				printWarning(text='', warningCode=SCIPION_LINK_WARNING)
 
+def runLinkScipion(cmd:str, cwd:str, verbose:bool):
+		retCode, outputStr = runJob(cwd=cwd, cmd=cmd, showCommand=verbose)
+		if retCode != 0:
+				exitError(retCode=LINKING2SCIPION, output=outputStr)
 
 def cleanEmptyFolders():
 		log = []

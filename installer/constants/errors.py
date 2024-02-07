@@ -108,7 +108,7 @@ ERROR_CODE = {
   CXX_NO_EXIST_ERROR: ['CXX package does not exist.', 'Please review the CXX flag on your xmipp.conf.'],
   CXX_VERSION_ERROR: ['g++ version not valid.', 'The version of g++ is lower than minimum, please review the requirements.'],
 	MPI_VERSION_ERROR: ['mpi version not valid.', 'The version of mpi is lower than minimum, please review the requirements.'],
-	MPI_NOT_FOUND_ERROR: ['mpi package does not exist or could not be found.', 'Please review the MPI flags on your xmipp.conf and the veriables on your enviroment.'],
+	MPI_NOT_FOUND_ERROR: ['mpi package does not exist, could not be found or has an error.', 'Please review the MPI flags on your xmipp.conf, the compiler on the enviroments and the variables on your enviroment.'],
   PYTHON_VERSION_ERROR: ['python version not valid.', 'The version of python is lower than minimum, please review the requirements.'],
   PYTHON_NOT_FOUND_ERROR: ['python not found.', 'Please install python on your system.'],
   NUMPY_NOT_FOUND_ERROR: ['numpy not found.', 'Please install numpy.'],
@@ -143,7 +143,7 @@ ERROR_CODE = {
   XMIPPVIZ_COMPILLATION_ERROR: ['Error compilling scripts from xmippViz.', 'Please  review the compillationLog file for details.'],
   DEPRECATE_ERROR: ['Deprecated programs were no deleted.', ''],
   INSTALLATION_ERROR: ['Some error occurred during the installation.', ''],
-  LINKING2SCIPION: [],
+  LINKING2SCIPION: ['',''],
   RSYNC_VERSION_ERROR: ['rsync not abailable on your system', 'Please install or update it'],
   HDF5_NOT_FOUND_ERROR: ['', ''],
   SCONS_ENV_ERROR: ['Scons is not available on the current enviroment', 'Please activate the scipion3 enviroment'],
@@ -173,5 +173,5 @@ WARNING_CODE = {
   SCIPION_LINK_WARNING: ['No scipion3 found.', 'If you intended to use Xmipp in the Scipion framework, compile Xmipp with Scipion "./scipion3 run ./xmipp" or check the binding at SCIPION_HOME/software/bindings...'],
   CLEANING_SOURCES_WARNING: ['Cleaning source warning', ''],
   CLEANING_BINARIES_WARNING: ['Cleaning binaries warning.', ''],
-SCONS_INSTALLATION_WARINING: ['We coulkd not install scons on your current enviroment', 'Please install it manually']
+  SCONS_INSTALLATION_WARINING: ['We coulkd not install scons on your current enviroment', 'Please install it manually']
 }
