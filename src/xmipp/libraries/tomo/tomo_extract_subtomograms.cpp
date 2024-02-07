@@ -165,14 +165,15 @@ void ProgTomoExtractSubtomograms::extractSubtomoFixedSize(MultidimArray<double> 
 
 	if (downsampleFactor > 1)
 	{
-		downsample(fftSubtomo, fftSubtomoExtraction);
+		downsample(fftSubtomoExtraction, fftSubtomo);
 	}
 	else  // downsampleFactor < 1
 	{
-		upsample(fftSubtomo, fftSubtomoExtraction);
+		upsample(fftSubtomoExtraction, fftSubtomo);
 	}
 
 	subtomoExtraction.initZeros(1, boxsize, boxsize, boxsize);
+
 	transformer2.inverseFourierTransform(fftSubtomo, subtomoExtraction);
 }
 
@@ -220,7 +221,6 @@ void ProgTomoExtractSubtomograms::run()
 	{
 		createSphere(halfboxsize);
 	}
-
 
 	double dsFactorTolerance = 0.01;
 	double dsFactorDiff = abs(downsampleFactor - 1);
