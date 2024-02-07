@@ -890,6 +890,8 @@ def getScons(dictPackages):
     retCode, outputStr = runJob('which scons')
     if retCode == 0:
         dictPackages['SCONS'] = outputStr
+    else:
+        dictPackages['SCONS'] = ''
 
 
 def getTIFF(dictPackages):
@@ -1008,17 +1010,23 @@ def checkScons(dictPackages:dict):
     sconsV = getSconsVersion(dictPackages)
     if sconsV is not None:
         if versionToNumber(sconsV) < versionToNumber(SCONS_MINIMUM):
-          status = installScons()
-          if status is False:
-            exitError(retCode=SCONS_VERSION_ERROR,
-                      output='scons found {}, required {}'.
-              format(sconsV, SCONS_MINIMUM))
+            status = installScons()
+            if status is False:
+                exitError(retCode=SCONS_VERSION_ERROR,output='scons found {}, required {}'.format(sconsV, SCONS_MINIMUM))
+            else:
+                retCode, outputStr = runJob('which scons')
+                if retCode == 0:
+                    dictPackages['SCONS'] = outputStr
         else:
           printMessage(text=green('SCons {} found'.format(sconsV)), debug=debugPrints)
     else:
         status = installScons()
         if status is False:
           exitError(retCode=SCONS_ERROR, output='Scons not found.')
+        else:
+            retCode, outputStr = runJob('which scons')
+            if retCode == 0:
+                dictPackages['SCONS'] = outputStr
 
 def checkRsync():
     rsyncV = getRsyncVersion()

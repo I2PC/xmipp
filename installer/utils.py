@@ -904,7 +904,7 @@ def installScons() -> bool:
 		return False
 	
 	# If succeeded, log message
-	printMessage(f'Succesfully installed or updated Scons on {envName} enviroment.')
+	printMessage(f'Succesfully installed or updated Scons on {envName} enviroment.', debug=True)
 	return True
 
 
