@@ -107,6 +107,10 @@ def modeConfig(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
+	try:
+		os.remove(LOG_FILE)
+	except FileNotFoundError:
+			pass
 	return config(args.debug, scratch=True, tarAndPost=False)
 
 def modeGetModels(args: argparse.Namespace):
