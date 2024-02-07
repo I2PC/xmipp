@@ -56,7 +56,7 @@ from .utils import (green, blue, runJob, existPackage,
                     getCompatibleGCC, gitVersion,
                     get_Hdf5_name, printError, MPIVersion, installScons, versionToNumber,
                     HDF5Version, opencvVersion, TIFFVersion, printMessage, FFTW3Version,
-                    updateXmippEnv)
+                    updateXmippEnv, getPackageVersionCmdReturn)
 
 from .versions import (getCmakeVersion, getGPPVersion, getGCCVersion,
                        getSconsVersion, getRsyncVersion)
@@ -105,7 +105,6 @@ def getSystemValues():
                     'LIBDIRFLAGS': ''}
     getCC(dictPackages)
     getCXX(dictPackages)
-    getMPI(dictPackages)
     getJava(dictPackages)
     getTIFF(dictPackages)
     getFFTW3(dictPackages)
@@ -149,7 +148,7 @@ def getInternalFlags(dictPackages, debug: bool=False):
     #LINKERFORPROGRAMS
     dictInternalFlags['LINKERFORPROGRAMS'] = dictPackages['CXX']
     #MPI_LINKERFORPROGRAMS
-    dictInternalFlags['MPI_LINKERFORPROGRAMS'] = dictPackages['MPI_CXX']
+    dictInternalFlags['MPI_LINKERFORPROGRAMS'] = 'mpicxx'
     # NVCC_CXXFLAGS
     if dictPackages['CUDA'] == 'True':
         try:
@@ -383,29 +382,6 @@ def getAnonDataCol(dictPackages):
     else:
         dictPackages['ANON_DATA_COLLECT'] = 'True'
 
-def getMPI(dictPackages):
-    """
-    Retrieves information about the MPI package components and updates the dictionary accordingly.
-
-    Params:
-    - dictPackages (dict): Dictionary containing package information.
-
-    Modifies:
-    - dictPackages: Updates keys 'MPI_CC', 'MPI_CXX', and 'MPI_RUN' based on MPI component availability.
-    """
-    if existPackage('mpicc'):
-        dictPackages['MPI_CC'] = 'mpicc'
-    else:
-        dictPackages['MPI_CC'] = ''
-    if existPackage('mpicxx'):
-        dictPackages['MPI_CXX'] = 'mpicxx'
-    else:
-        dictPackages['MPI_CXX'] = ''
-    if existPackage('mpirun'):
-        dictPackages['MPI_RUN'] = 'mpirun'
-        updateXmippEnv(PATH=whereIsPackage('mpirun'))
-    else:
-        dictPackages['MPI_RUN'] = ''
 
 def checkMPI(dictPackages, dictInternalFlags):
     """
@@ -422,25 +398,28 @@ def checkMPI(dictPackages, dictInternalFlags):
         - 8: Error during compilation.
         - 9: Error while running MPI jobs.
     """
-    for pack in [MPI_CC, MPI_RUN, MPI_CXX]:
-        if existPackage(dictPackages[pack]):
-            if pack == MPI_RUN:
-                strVersion = getPackageVersionCmd(dictPackages[pack])
+    for pack in ['mpicc', 'mpirun', 'mpicxx']:
+        if existPackage(pack):
+            if pack == 'mpirun':
+                strVersion = getPackageVersionCmd(pack)
                 version = MPIVersion(strVersion)
                 if versionToNumber(version) >= versionToNumber(MPI_MINIMUM):
+                    dictPackages['MPI_RUN'] = 'mpirun'
+                    updateXmippEnv(PATH=whereIsPackage('mpirun'))
                     printMessage(text=green('{} {} found'.format(pack, version)), debug=debugPrints)
                 else:
                     exitError(retCode=MPI_VERSION_ERROR,
                               output='mpi {} lower than required ({})'.format(version, GPP_MINIMUM),
                               dictPackages=dictPackages)
-        elif dictPackages[pack] =='':
-            exitError(retCode=MPI_NOT_FOUND_ERROR,
-                      output='{} package does not exist'.format(pack),
-                      dictPackages=dictPackages)
+            elif pack == 'mpicc':
+                dictPackages['MPI_CC'] = 'mpicc'
+            else:
+                dictPackages['MPI_CXX'] = 'mpicxx'
         else:
-            exitError(retCode=MPI_NOT_FOUND_ERROR,
-                      output='{} package {} does not exist'.format(pack, dictPackages[pack]),
-                      dictPackages=dictPackages)
+            if getPackageVersionCmd(pack) == None:
+                output, retCode = getPackageVersionCmdReturn(pack)
+                exitError(retCode=MPI_NOT_FOUND_ERROR,
+                      output=f'{pack} package error:\n {output}', dictPackages=dictPackages)
 
     #More checks
 

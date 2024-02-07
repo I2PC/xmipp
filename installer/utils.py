@@ -317,10 +317,13 @@ def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
             os.environ.get('PYTHONPATH', '')])
         testsPath = os.path.join(os.environ['XMIPP_SRC'], XMIPP, 'tests')
     else:
-        printMessage(red('XMIPP_SRC is not in the enviroment.') +
-              '\nTo run the tests you need to run: ' +
-              blue('source build/xmipp.bashrc'), debug=True, printLOG_FILE=False)
-        return
+        retCode, outputStr = runJob('source build/xmipp.bashrc')
+        if retCode != 0:
+            printMessage(red('XMIPP_SRC is not in the enviroment.') +
+								 '\nTo run the tests you need to run: ' +
+								 blue('source build/xmipp.bashrc'), debug=True,
+								 printLOG_FILE=False)
+            return
 
     dataSetPath = os.path.join(testsPath, 'data')
     os.environ["XMIPP_TEST_DATA"] = dataSetPath
@@ -599,6 +602,21 @@ def versionToNumber(strVersion: str) -> float:
 	# Returning result number
 	return numberVersion
 
+def getPackageVersionCmdReturn(packageName: str) -> Union[str, None]:
+	"""
+	### Retrieves the version of a package or program by executing '[packageName] --version' command.
+
+	Params:
+	- packageName (str): Name of the package or program.
+
+	Returns:
+	- (str | None): Version information of the package or None if not found or errors happened.
+	"""
+	# Running command
+	retCode, output = runJob(f'{packageName} --version')
+	# Check result if there were no errors
+	return output, retCode
+
 def getPackageVersionCmd(packageName: str) -> Union[str, None]:
 	"""
 	### Retrieves the version of a package or program by executing '[packageName] --version' command.
@@ -611,7 +629,6 @@ def getPackageVersionCmd(packageName: str) -> Union[str, None]:
 	"""
 	# Running command
 	retCode, output = runJob(f'{packageName} --version')
-
 	# Check result if there were no errors
 	return output if retCode == 0 else None
 
