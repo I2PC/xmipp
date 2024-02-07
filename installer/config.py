@@ -73,13 +73,12 @@ def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True, checkConf
     """check the config if exist else create it and check it"""
     # printMessage('LD_LIBRARY_PATH: ', debug=debugPrints)
     # runJob('echo $LD_LIBRARY_PATH', showOutput=True)
-    if not existConfig() or scratch:# or existButOld():
+    if not existConfig() or scratch:
         printMessage(text='\n-- Generating config file xmipp.conf...', debug=True)
         dictPackages = getSystemValues()
         dictInternalFlags = getInternalFlags(dictPackages)
         writeConfig(dictPackages, dictInternalFlags)
         printMessage(text=green('-- Done'), debug=True)
-
     else:
         dictPackages, dictInternalFlags = readConfig()
     if checkConf:
@@ -89,6 +88,7 @@ def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True, checkConf
         dictInternalFlags2 = getInternalFlags(dictPackages)#if checkConfig change any parameter...
         if dictPackages != dictNoChecked or dictInternalFlags != dictInternalFlags2:
             writeConfig(dictP=dictPackages, dictInt=dictInternalFlags2)
+        printMessage(text=green('-- Done'), debug=True)
         # printMessage('LD_LIBRARY_PATH: ', debug=debugPrints)
         # runJob('echo $LD_LIBRARY_PATH', showOutput=True)
     return dictPackages
@@ -110,6 +110,7 @@ def getSystemValues():
     getTIFF(dictPackages)
     getFFTW3(dictPackages)
     getHDF5(dictPackages)
+    getScons(dictPackages)
     getINCDIRFLAGS(dictPackages)
     getLIBDIRFLAGS(dictPackages)
     getOPENCV(dictPackages)
@@ -250,7 +251,7 @@ def checkConfig(dictPackages, dictInternalFlags):
     checkHDF5(dictPackages)
     checkTIFF(dictPackages)
     checkFFTW3(dictPackages)
-    checkScons()
+    checkScons(dictPackages)
     checkCMake()
     checkRsync()
 
@@ -885,6 +886,12 @@ def checkHDF5(dictPackages):
     runJob("rm xmipp_test_main*", showError=True)
     printMessage(text=green('HDF5 {} found'.format(version)), debug=debugPrints)
 
+def getScons(dictPackages):
+    retCode, outputStr = runJob('which scons')
+    if retCode == 0:
+        dictPackages['SCONS'] = outputStr
+
+
 def getTIFF(dictPackages):
     for path in PATH_TO_FIND:
         libtiffPathFound = findFileInDirList("libtiff.so", path)
@@ -997,20 +1004,20 @@ def checkCMake():
 
     printMessage(text=green('cmake {} found'.format(cmakVersion)), debug=debugPrints)
 
-def checkScons():
-    sconsV = getSconsVersion()
+def checkScons(dictPackages:dict):
+    sconsV = getSconsVersion(dictPackages)
     if sconsV is not None:
         if versionToNumber(sconsV) < versionToNumber(SCONS_MINIMUM):
           status = installScons()
-          if not status[0]:
+          if status is False:
             exitError(retCode=SCONS_VERSION_ERROR,
-                      output='scons found {}, required {}\n{}'.
-              format(sconsV, SCONS_MINIMUM, status[1]))
+                      output='scons found {}, required {}'.
+              format(sconsV, SCONS_MINIMUM))
         else:
           printMessage(text=green('SCons {} found'.format(sconsV)), debug=debugPrints)
     else:
         status = installScons()
-        if not status:
+        if status is False:
           exitError(retCode=SCONS_ERROR, output='Scons not found.')
 
 def checkRsync():

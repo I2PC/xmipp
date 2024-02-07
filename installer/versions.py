@@ -42,7 +42,7 @@ def collectAllVersions(dictPackages: dict):
 					'gccV': getGCCVersion(),
 					'gppV': getGPPVersion(),
 					'cudaV': getCUDAVersion(),
-					'sconsV': getSconsVersion(),
+					'sconsV': getSconsVersion(dictPackages),
 					'cmakeV': getCmakeVersion(),
 					'rsyncV': getRsyncVersion(),
 					'mpiV': MPIVersion(getPackageVersionCmd(dictPackages['MPI_RUN'])),
@@ -242,38 +242,33 @@ def getGCCVersion(dictPackages: Dict=None) -> Union[str, None]:
 	# Return gcc version
 	return parseCompilerVersion(getPackageVersionCmd(gccExecutable))
 
-def getSconsVersion() -> Union[str, None]:
+def getSconsVersion(dictPackage:dict) -> Union[str, None]:
 	"""
 	### Extracts scons's version string.
 
 	#### Returns:
 	- (str | None): scons's version or None if there were any errors.
 	"""
-	# Attepmt to get Scons version through python package
-	version = getPythonPackageVersion('scons')
+	version = getPackageVersionCmd(dictPackage['SCONS'])
 
-	# If Scons is not installed via Python, try standalone method
-	if version is None:
-		version = getPackageVersionCmd('scons')
+	if version is not None:
+		# Defining text before version number
+		textBefore = 'SCons: v'
 
-		if version is not None:
-			# Defining text before version number
-			textBefore = 'SCons: v'
+		# Searching for text before version number
+		textBeforeStart = version.find(textBefore)
 
-			# Searching for text before version number
-			textBeforeStart = version.find(textBefore)
+		if textBeforeStart != -1:
+			# If text was found, we need to get the first 3 numbers
+			versionStart = textBeforeStart + len(textBefore)
+			numbers = version[versionStart:].splitlines()[0].split('.')
 
-			if textBeforeStart != -1:
-				# If text was found, we need to get the first 3 numbers
-				versionStart = textBeforeStart + len(textBefore)
-				numbers = version[versionStart:].splitlines()[0].split('.')
+			# Only extract macro, minor, and micro version numbers
+			if len(numbers) >= 3:
+				# Make sure last number stops when it shoulds
+				micro = numbers[2].split(',')[0]
+				version = f'{numbers[0]}.{numbers[1]}.{micro}'
 
-				# Only extract macro, minor, and micro version numbers
-				if len(numbers) >= 3:
-					# Make sure last number stops when it shoulds
-					micro = numbers[2].split(',')[0]
-					version = f'{numbers[0]}.{numbers[1]}.{micro}'
-				
 	# Returning extracted version
 	return version
 

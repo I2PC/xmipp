@@ -266,7 +266,7 @@ def compile_libcifpp(jobs):
 				exitError(retCode=LIBCIFPP_ERROR, output=outputStr, pathFile=currDir)
 
 
-def compileSources(jobs):
+def compileSources(jobs, sconsPath:str):
 		"""
 		Compiles Xmipp source code.
 
@@ -284,8 +284,8 @@ def compileSources(jobs):
 		dictPackage, _ = readConfig()
 		for source in sources:
 				printMessage(text='\n-- Compiling {}...'.format(source), debug=True)
-				retCode, outputStr = runJob("/usr/bin/env python3 -u $(which scons) -j%s" % jobs, "src/%s" % source,
-																	streaming=True, showOutput=True, showError=True)
+				retCode, outputStr = runJob(f"/usr/bin/env python3 -u {sconsPath} -j{jobs}",	f"src/{source}",
+														streaming=True, showOutput=True, showError=True)
 				if retCode != 0:
 						if source == XMIPP_CORE:
 									exitError(retCode=XMIPPCORE_COMPILLATION_ERROR, output=outputStr)
@@ -305,7 +305,8 @@ def compileAndInstall(args):
 	compileExternalSources(jobs=args.jobs)
 	printMessage('---------------------------------------\n', debug=True)
 	# Compile Xmipp
-	compileSources(jobs=args.jobs)
+	dictPackages, _ = readConfig()
+	compileSources(jobs=args.jobs, sconsPath=dictPackages['SCONS'])
 	printMessage('---------------------------------------\n', debug=True)
 	#Install
 	install(directory=args.directory)

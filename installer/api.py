@@ -77,7 +77,7 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 		(getCmakeVersion, ()),
 		(getGCCVersion, (dictPackage,)),
 		(getGPPVersion, (dictPackage,)),
-		(getSconsVersion, ()),
+		(getSconsVersion, (dictPackage,)),
 		(getCurrentBranch, ()),
 		(isBranchUpToDate, ()),
 		(getLogTail, ())

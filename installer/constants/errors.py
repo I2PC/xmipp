@@ -93,13 +93,14 @@ GIT_PULL_WARNING = 12
 SCIPION_LINK_WARNING = 13
 CLEANING_SOURCES_WARNING = 14
 CLEANING_BINARIES_WARNING = 15
+SCONS_INSTALLATION_WARINING = 16
 
 
 # Error messages
 #TODO review the messages spelling, maybe more links to the documentation?
 ERROR_CODE = {
 	UNKOW_ERROR: ['Unkonw error.', ''],
-	SCONS_VERSION_ERROR: ['scons installation  error.', 'We tried to install it on your scipion enviroment but was not posible, please install it manually.'],
+	SCONS_VERSION_ERROR: ['scons version  error.', 'The version of scons is lower than minimum, please review the requirements.'],
 	SCONS_ERROR: ['scons not found.', 'We didnt find the scipion enviroment, please install scons manually on your conda env or in your system.'],
 	GCC_VERSION_ERROR: ['gcc version not valid.', 'The version of gcc is lower than minimum, please review the requirements.'],
   CC_NO_EXIST_ERROR: ['CC package does not exist.','Please review the CC flag on your xmipp.conf.'],
@@ -170,4 +171,5 @@ WARNING_CODE = {
   SCIPION_LINK_WARNING: ['No scipion3 found.', 'If you intended to use Xmipp in the Scipion framework, compile Xmipp with Scipion "./scipion3 run ./xmipp" or check the binding at SCIPION_HOME/software/bindings...'],
   CLEANING_SOURCES_WARNING: ['Cleaning source warning', ''],
   CLEANING_BINARIES_WARNING: ['Cleaning binaries warning.', ''],
+SCONS_INSTALLATION_WARINING: ['We coulkd not install scons on your current enviroment', 'Please install it manually']
 }

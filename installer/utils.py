@@ -36,7 +36,7 @@ from .constants import (SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
 	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, SCONS_VERSION_ERROR,
   XMIPP_VERSIONS, MODE_GET_MODELS, WARNING_CODE, XMIPPENV, urlModels, remotePath,
-  DOCUMENTATION_URL, urlTest)
+  DOCUMENTATION_URL, urlTest, SCONS_INSTALLATION_WARINING)
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
@@ -900,8 +900,7 @@ def installScons() -> bool:
 	if retCode != 0:
 		instructionStr = "Please, install it manually."
 		envNameStr = f'Scons could not be installed in enviroment "{envName}".' if envName else f'Scons does not install automatically system wide by default.'
-		printError(f'{envNameStr} {instructionStr}', retCode=SCONS_VERSION_ERROR)
-
+		printWarning(f'{envNameStr} {instructionStr}', warningCode=SCONS_INSTALLATION_WARINING)
 		return False
 	
 	# If succeeded, log message
