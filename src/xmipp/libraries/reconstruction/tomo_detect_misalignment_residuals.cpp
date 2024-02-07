@@ -374,6 +374,55 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 }
 
 
+void ProgTomoDetectMisalignmentResiduals::contructResidualMatrix()
+{
+	Matrix2D<double> xResidMat(numberOfInputCoords, nSize);
+	Matrix2D<double> yResidMat(numberOfInputCoords, nSize);
+
+	for (size_t n = 0; n < vResMod.size(); n++)
+	{
+		resMod rm = vResMod[n];
+
+		MAT_ELEM(xResidMat, (int)rm.id, rm.landmarkCoord.z) = rm.residuals.x;
+		MAT_ELEM(yResidMat, (int)rm.id, rm.landmarkCoord.z) = rm.residuals.y;
+	}
+
+	// CODE TO SAVE MATRIX TO FILES
+	// ---------------------------------------------------------------------
+	std::string matrixFileX;
+	std::string matrixFileY;
+
+	size_t li = fnOut.find_last_of("\\/");
+	std::string fileBaseName = fnOut.substr(0, li);
+	fileBaseName = fileBaseName.substr(0, li);
+
+	matrixFileX = fileBaseName + "/matrixX.txt";
+	matrixFileY = fileBaseName + "/matrixY.txt";
+
+    std::ofstream outputFileX(matrixFileX);
+    std::ofstream outputFileY(matrixFileY);
+    
+    for (size_t i = 0; i < numberOfInputCoords; ++i) {
+        for (size_t j = 0; j < nSize; ++j) {
+            outputFileX << MAT_ELEM(xResidMat, i, j);
+            outputFileY << MAT_ELEM(yResidMat, i, j);
+
+            // Add a tab separator unless it's the last element in the row
+            if (j < nSize-1) {
+                outputFileX << '\t';
+                outputFileY << '\t';
+            }
+        }
+        outputFileX << '\n'; // Start a new line for the next row
+        outputFileY << '\n'; // Start a new line for the next row
+    }
+
+    outputFileX.close();
+    outputFileY.close();
+	// ---------------------------------------------------------------------
+}
+
+
 void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 {
 	// CODE FOR GENERATING RESIDUAL STATISTICS FILE FOR DECISION TREE TRAINING
@@ -965,6 +1014,8 @@ void ProgTomoDetectMisalignmentResiduals::run()
 	#endif
 
 	generateSideInfo();
+
+	contructResidualMatrix();
 
 	// detectMisalignmentFromResiduals();
 	detectMisalignmentFromResidualsMahalanobis();

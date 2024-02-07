@@ -127,6 +127,7 @@ public:
     void detectMisalignmentFromResidualsMahalanobis();
 
     void generateResidualStatiscticsFile();
+    void contructResidualMatrix();
 
 
     // --------------------------- I/O functions ----------------------------
