@@ -75,6 +75,7 @@ XMIPPCORE_COMPILLATION_ERROR = 44
 XMIPPVIZ_COMPILLATION_ERROR = 45
 DEPRECATE_ERROR = 46
 INSTALLATION_ERROR = 47
+SCONS_ENV_ERROR = 48
 
 
 # Warning codes
@@ -145,6 +146,7 @@ ERROR_CODE = {
   LINKING2SCIPION: [],
   RSYNC_VERSION_ERROR: ['rsync not abailable on your system', 'Please install or update it'],
   HDF5_NOT_FOUND_ERROR: ['', ''],
+  SCONS_ENV_ERROR: ['Scons is not available on the current enviroment', 'Please activate the scipion3 enviroment'],
 
 
 

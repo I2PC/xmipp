@@ -49,7 +49,7 @@ from .constants import (CONFIG_FILE, GCC_MINIMUM,
                         HDF5_VERSION_ERROR, TIFF_ERROR, FFTW3_ERROR, PATH_TO_FIND_H,
                         TIFF_H_ERROR, FFTW3_H_ERROR, FFTW_MINIMUM, FFTW3_VERSION_ERROR,
                         OLD_CONFIG_FILE, GIT_MINIMUM, GIT_VERSION_ERROR, PYTHONINCFLAGS_ERROR,
-                        RSYNC_MINIMUM, RSYNC_VERSION_ERROR, HDF5_NOT_FOUND_ERROR,)
+                        RSYNC_MINIMUM, RSYNC_VERSION_ERROR, HDF5_NOT_FOUND_ERROR, SCONS_ENV_ERROR)
 from .utils import (green, blue, runJob, existPackage,
                     getPackageVersionCmd,JAVAVersion, printWarning,
                     whereIsPackage, findFileInDirList,
@@ -1025,8 +1025,11 @@ def checkScons(dictPackages:dict):
           exitError(retCode=SCONS_ERROR, output='Scons not found.')
         else:
             retCode, outputStr = runJob('which scons')
-            if retCode == 0:
+            if retCode == 0 and outputStr != '':
                 dictPackages['SCONS'] = outputStr
+            else:
+                exitError(retCode=SCONS_ENV_ERROR, output='Scons not found.')
+
 
 def checkRsync():
     rsyncV = getRsyncVersion()
