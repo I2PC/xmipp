@@ -894,7 +894,7 @@ def linkToScipion(directory:str, verbose:bool=False):
 				xmippLib = os.path.join(xmippLink, "lib", "libXmipp.so")
 				SVMLib = os.path.join(xmippLink, "lib", "libsvm.so")
 				CIFPPLib = os.path.join(xmippLink, "lib", "libcifpp.so*")
-				bindings = os.path.join(xmippLink, "bindings", "python", "*")
+				bindings = os.path.join(xmippLink, "bindings", "python")
 				runLinkScipion("ln -srf %s %s" % (coreLib, scipionLibs), cwd=scipionSoftwareEM, verbose=verbose)
 				runLinkScipion("ln -srf %s %s" % (SVMLib, scipionLibs), cwd=scipionSoftwareEM, verbose=verbose)
 				runLinkScipion("ln -srf %s %s" % (CIFPPLib, scipionLibs), cwd=scipionSoftwareEM, verbose=verbose)
