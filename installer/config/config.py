@@ -34,6 +34,7 @@ from datetime import datetime
 from .configChecks import *
 from .configGets import *
 from .main import readConfig
+from ..constants import DONE0, DONE1
 
 
 def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True):
@@ -52,7 +53,7 @@ def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True):
         dictPackages = getSystemValues()
         dictInternalFlags = getInternalFlags(dictPackages)
         writeConfig(dictPackages, dictInternalFlags)
-        printMessage(text=green('-- Done'), debug=True)
+        printMessage(text=green(DONE0), debug=True)
     else:
         dictPackages, dictInternalFlags = readConfig()
     dictNoChecked = dictPackages.copy()
@@ -61,7 +62,7 @@ def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True):
     dictInternalFlags2 = getInternalFlags(dictPackages)#if checkConfig change any parameter...
     if dictPackages != dictNoChecked or dictInternalFlags != dictInternalFlags2:
         writeConfig(dictP=dictPackages, dictInt=dictInternalFlags2)
-    printMessage(text=green('-- Done'), debug=True)
+    printMessage(text=green(DONE0), debug=True)
     # printMessage('LD_LIBRARY_PATH: ', debug=debugPrints)
     # runJob('echo $LD_LIBRARY_PATH', showOutput=True)
     return dictPackages
@@ -90,7 +91,7 @@ def getSystemValues():
     getSTARPU(dictPackages)
     getMatlab(dictPackages)
     getAnonDataCol(dictPackages)
-    printMessage(text=green('-  Done'), debug=True)
+    printMessage(text=green(DONE1), debug=True)
 
     return dictPackages
 
@@ -167,7 +168,7 @@ def getInternalFlags(dictPackages, debug: bool=False):
 
     dictInternalFlags['LINKFLAGS'] = LINKFLAGS
 
-    printMessage(text=green('-  Done'), debug=True)
+    printMessage(text=green(DONE1), debug=True)
 
     return dictInternalFlags
 
@@ -213,7 +214,7 @@ def checkConfig(dictPackages, dictInternalFlags):
         for pack in checkPackagesStatus:
             printWarning(text=pack[0], warningCode=pack[0], debug=True)
 
-    printMessage(text=green('-- Done'), debug=True)
+    printMessage(text=green(DONE0), debug=True)
 
 def existConfig():
     """ Checks if the config file exist.Return True or False """
@@ -238,7 +239,7 @@ def writeConfig(dictP: dict, dictInt: dict):
         f.write('\n\n[DATE]\n')
         f.write('Config file written: {} \n'.format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
-    printMessage(text=green('-  Done'), debug=True)
+    printMessage(text=green(DONE1), debug=True)
 
 def parseConfig():
     """Read and save on configDic all flags of config file"""

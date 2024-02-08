@@ -34,6 +34,8 @@ CTPL = 'CTPL'
 GTEST = 'googletest'
 LIBSVM = 'libsvm'
 LIBCIFPP = 'libcifpp'
+DONE0 = '-- Done'
+DONE1 = '-  Done'
 
 REPOSITORIES = {
 XMIPP: ['https://github.com/I2PC/xmipp.git', ''],

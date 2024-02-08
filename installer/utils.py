@@ -27,16 +27,17 @@ Module containing useful functions used by the installation process.
 """
 
 # General imports
-import pkg_resources, sys, glob, distutils.spawn, json, os, io, time, subprocess, shutil, multiprocessing
+import sys, glob, distutils.spawn, json, os, io, time, subprocess, shutil, multiprocessing
 import re
 from typing import List, Tuple, Union, Callable, Any
 from sysconfig import get_paths
+
 # Installer imports
-from .constants import (SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
-	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
-	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, SCONS_VERSION_ERROR,
+from .constants import (MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
+	TAB_SIZE, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
+	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME,
   XMIPP_VERSIONS, MODE_GET_MODELS, WARNING_CODE, XMIPPENV, urlModels, remotePath,
-  DOCUMENTATION_URL, urlTest, SCONS_INSTALLATION_WARINING)
+  DOCUMENTATION_URL, urlTest, SCONS_INSTALLATION_WARINING, DONE0, DONE1)
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
@@ -297,7 +298,7 @@ def downloadDeepLearningModels(dest:str='build'):
         printMessage(red('Unable to download models. Try again with ./xmipp {}\n{}'.format(MODE_GET_MODELS, outputStr)), debug=True)
     else:
         printMessage(green('Models downloaded in the path: {}'.format(modelsPath)), debug=True)
-        printMessage(green('-- Done'), debug=True)
+        printMessage(green(DONE0), debug=True)
 
 def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
 						 allFuncs:bool=False, CUDA: bool=True):

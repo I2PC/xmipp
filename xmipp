@@ -37,8 +37,7 @@ from installer.utils import (printError, runJob, addDeepLearninModel,
 														 getCurrentEnvName, printMessage)
 from installer.config.config import config, checkGit
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
-from installer.main import (getSources, compileExternalSources, compileSources, install,
-														cleanDeprecated, cleanSources, cleanBin, compileAndInstall)
+from installer.main import (cleanDeprecated, cleanSources, cleanBin, compileAndInstall)
 from installer.versions import collectAllVersions
 from installer.exit import exitXmipp
 

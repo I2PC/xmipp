@@ -38,7 +38,7 @@ from .constants import (XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN, REPOSITORIES
   CLONNING_XMIPP_SOURCE_ERROR, DOWNLOADING_XMIPP_SOURCE_ERROR, GIT_PULL_WARNING,
 	XMIPP_COMPILLATION_ERROR,XMIPPCORE_COMPILLATION_ERROR,
   XMIPPVIZ_COMPILLATION_ERROR, XMIPP_VERSIONS, VERNAME_KEY, DEPRECATE_ERROR,
-  CLEANING_SOURCES_WARNING,CONFIG_FILE,CLEANING_BINARIES_WARNING,
+  CLEANING_SOURCES_WARNING,CONFIG_FILE,CLEANING_BINARIES_WARNING, DONE0, DONE1,
   INSTALLATION_ERROR, LINKING2SCIPION, VERSION_KEY, SCIPION_LINK_WARNING,
   CUFFTADVISOR,	CTPL,	GTEST, LIBSVM, LIBCIFPP, XMIPP_CORE,XMIPP_VIZ, XMIPP_PLUGIN)
 from .utils import (runJob, getCurrentBranch, printError, printMessage, green,
@@ -73,7 +73,7 @@ def getSources(branch: str=None, LOG_FILE_path:str=''):
 			status, output = cloneSourceRepo(repo=source, branch=REPOSITORIES[source][1])
 			if status != 0:
 				exitError(retCode=CLONNING_EXTERNAL_SOURCE_ERROR, output=output)
-	printMessage(text=green('-- Done'), debug=True)
+	printMessage(text=green(DONE0), debug=True)
 
 
 	printMessage(text='\n-- Getting Xmipp sources...', debug=True)
@@ -92,7 +92,7 @@ def getSources(branch: str=None, LOG_FILE_path:str=''):
 		# If download failed, return error
 		if status != 0:
 			exitError(retCode=CLONNING_XMIPP_SOURCE_ERROR, output=output)
-	printMessage(text=green('-- Done'), debug=True)
+	printMessage(text=green(DONE0), debug=True)
 
 
 
@@ -118,7 +118,7 @@ def compileExternalSources(jobs):
 		compile_googletest()
 		compile_libsvm()
 		compile_libcifpp(jobs)
-		printMessage(text=green('-- Done'), debug=True)
+		printMessage(text=green(DONE0), debug=True)
 
 def compile_cuFFTAdvisor():
 		"""
@@ -295,7 +295,7 @@ def compileSources(jobs, sconsPath:str):
 
 						elif source == XMIPP_VIZ:
 									exitError(retCode=XMIPPVIZ_COMPILLATION_ERROR, output=outputStr)
-				printMessage(text=green('\n-- Done. Compiled {}'.format(source)), debug=True)
+				printMessage(text=green('\n{}. Compiled {}'.format(DONE0, source)), debug=True)
 
 def compileAndInstall(args):
 	# Get sources
@@ -630,7 +630,7 @@ def install(directory):
 
 		printMessage(text='Xmipp installed on {}'.format(os.path.join(os.getcwd(), directory.replace('./', ''))), debug=True)
 
-		printMessage(text=green('\n- Done'), debug=True)
+		printMessage(text=green(f'\n{DONE1}'), debug=True)
 
 		# Scipion connection
 		printMessage("\n- Linking to Scipion...",debug=True)
@@ -686,8 +686,8 @@ def install(directory):
 
 		fhBash.close()
 		fhFish.close()
-		printMessage(green("- Done"), debug=True)
-		printMessage(green("\n-- Done"), debug=True)
+		printMessage(green(DONE1), debug=True)
+		printMessage(green(f"\n{DONE1}"), debug=True)
 
 
 
@@ -726,7 +726,7 @@ def cleanDeprecated():
 
 		if len(list2RemoveXmipp) > 0:
 			printMessage(text=green('Deprecated programs removed'), debug=True)
-		printMessage(green('- Done'), debug=True)
+		printMessage(green(DONE1), debug=True)
 
 def cleanSources():
 		DEPENDENCIES = [CUFFTADVISOR,	CTPL,	GTEST, LIBSVM, LIBCIFPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN]
@@ -901,7 +901,7 @@ def linkToScipion(directory:str, verbose:bool=False):
 				runLinkScipion("ln -srf %s %s" % (xmippLib, scipionLibs), cwd=scipionSoftwareEM, verbose=verbose)
 				runLinkScipion("ln -srf %s %s" % (bindings, scipionBindings), cwd=scipionSoftwareEM, verbose=verbose)
 				printMessage(text=blue(str("Xmipp linked to Scipion on " + xmippHomeLink) + (' ' * 150)), debug=True)
-				printMessage(green("- Done"), debug=True)
+				printMessage(green(DONE1), debug=True)
 
 		else:
 				printWarning(text='', warningCode=SCIPION_LINK_WARNING)
