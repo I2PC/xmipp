@@ -33,12 +33,12 @@ from typing import Tuple
 from .exit import exitXmipp
 from .constants import (XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN, REPOSITORIES,
 	ORGANIZATION_NAME, CUFFTADVSOR_ERROR, GOOGLETEST_ERROR,LIBSVM_ERROR, LIBCIFPP_ERROR, \
-	DEVEL_BRANCHNAME, MASTER_BRANCHNAME, TAGS_SUBPAGE,
+	DEVEL_BRANCHNAME, MASTER_BRANCHNAME, TAGS_SUBPAGE, HEADER0, HEADER1, HEADER2,
   CUFFTADVISOR, CTPL, GTEST, LIBSVM, LIBCIFPP, CLONNING_EXTERNAL_SOURCE_ERROR,
   CLONNING_XMIPP_SOURCE_ERROR, DOWNLOADING_XMIPP_SOURCE_ERROR, GIT_PULL_WARNING,
 	XMIPP_COMPILLATION_ERROR,XMIPPCORE_COMPILLATION_ERROR,
   XMIPPVIZ_COMPILLATION_ERROR, XMIPP_VERSIONS, VERNAME_KEY, DEPRECATE_ERROR,
-  CLEANING_SOURCES_WARNING,CONFIG_FILE,CLEANING_BINARIES_WARNING, DONE0, DONE1,
+  CLEANING_SOURCES_WARNING,CONFIG_FILE,CLEANING_BINARIES_WARNING, DONE0, DONE1,DONE2,
   INSTALLATION_ERROR, LINKING2SCIPION, VERSION_KEY, SCIPION_LINK_WARNING,
   CUFFTADVISOR,	CTPL,	GTEST, LIBSVM, LIBCIFPP, XMIPP_CORE,XMIPP_VIZ, XMIPP_PLUGIN)
 from .utils import (runJob, getCurrentBranch, printError, printMessage, green,
@@ -67,16 +67,16 @@ def getSources(branch: str=None, LOG_FILE_path:str=''):
 	external_sources = [CUFFTADVISOR, CTPL, GTEST, LIBSVM, LIBCIFPP]
 	sources = [XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN]
 
-	printMessage(text='\n-- Getting external sources...', debug=True)
+	printMessage(text=f'\n{HEADER1} Getting external sources...', debug=True)
 	for source in external_sources:
 			# Clone source repository
 			status, output = cloneSourceRepo(repo=source, branch=REPOSITORIES[source][1])
 			if status != 0:
 				exitError(retCode=CLONNING_EXTERNAL_SOURCE_ERROR, output=output)
-	printMessage(text=green(DONE0), debug=True)
+	printMessage(text=green(DONE1), debug=True)
 
 
-	printMessage(text='\n-- Getting Xmipp sources...', debug=True)
+	printMessage(text=f'\n{HEADER1} Getting Xmipp sources...', debug=True)
 	for source in sources:
 		# Non-git directories and production branch (master also counts) download from tags, the rest clone
 		if (currentBranch is None or currentBranch == XMIPP_VERSIONS[XMIPP][VERNAME_KEY]
@@ -92,7 +92,7 @@ def getSources(branch: str=None, LOG_FILE_path:str=''):
 		# If download failed, return error
 		if status != 0:
 			exitError(retCode=CLONNING_XMIPP_SOURCE_ERROR, output=output)
-	printMessage(text=green(DONE0), debug=True)
+	printMessage(text=green(DONE1), debug=True)
 
 
 
@@ -111,14 +111,14 @@ def compileExternalSources(jobs):
 		- RuntimeError: If any error occurs during the compilation process of external sources,
 		  it raises a RuntimeError with error details.
 		"""
-		printMessage(text='\n-- Compiling external sources...', debug=True)
+		printMessage(text=f'\n{HEADER1} Compiling external sources...', debug=True)
 		dictPackage, _ = readConfig()
 		if dictPackage['CUDA'] == 'True':
 			compile_cuFFTAdvisor()
 		compile_googletest()
 		compile_libsvm()
 		compile_libcifpp(jobs)
-		printMessage(text=green(DONE0), debug=True)
+		printMessage(text=green(DONE1), debug=True)
 
 def compile_cuFFTAdvisor():
 		"""
@@ -131,7 +131,7 @@ def compile_cuFFTAdvisor():
 		- RuntimeError: If any error occurs during the compilation and copying process of cuFFTAdvisor,
 		  it raises a RuntimeError with error details.
 		"""
-		printMessage('-  Compiling cuFFTAdvisor...', debug=True)
+		printMessage(f'{HEADER2} Compiling cuFFTAdvisor...', debug=True)
 		advisorDir = "src/cuFFTAdvisor/"
 		currDir = os.getcwd()
 		libDir = "src/xmipp/lib/"
@@ -150,7 +150,7 @@ def compile_cuFFTAdvisor():
 		else:
 				os.chdir(currDir)
 				exitError(retCode=CLONNING_XMIPP_SOURCE_ERROR, output=outputStr, pathFile=currDir)
-		printMessage(green('-  Done'), debug=True, pathFile=currDir)
+		printMessage(green(DONE2), debug=True, pathFile=currDir)
 
 
 
@@ -166,18 +166,18 @@ def compile_googletest():
 		  it raises a RuntimeError with error details.
 		"""
 
-		printMessage(text="-  Compiling googletest...", debug=True)
+		printMessage(text=f'{HEADER2} Compiling googletest...', debug=True)
 		currDir = os.getcwd()
 		buildDir = os.path.join("src", "googletest", "build")
 		if not os.path.exists(buildDir):
 				os.makedirs(buildDir)
 		os.chdir(buildDir)
-		retCode, outputStr = runJob("cmake ..")
+		retCode, outputStr = runJob("cmake ..", printLOG=True, pathLOGFile=currDir)
 		if retCode == 0:
-				retCode, outputStr = runJob("make gtest gtest_main")
+				retCode, outputStr = runJob("make gtest gtest_main", printLOG=True, pathLOGFile=currDir)
 				if retCode == 0:
 						os.chdir(currDir)
-						printMessage(text=green('-  Done'), debug=True, pathFile=currDir)
+						printMessage(text=green(DONE2), debug=True, pathFile=currDir)
 				else:
 						os.chdir(currDir)
 						exitError(retCode=GOOGLETEST_ERROR, output=outputStr, pathFile=currDir)
@@ -187,7 +187,7 @@ def compile_googletest():
 
 
 def compile_libsvm():
-		printMessage(text="-  Compiling libsvm...", debug=True)
+		printMessage(text=f'{HEADER2} Compiling libsvm...', debug=True)
 		# if the libsvm repo is updated, remember that the repoFork/Makefile was edited to remove references to libsvm-so.2
 		currDir = os.getcwd()
 		libsvmDir = os.path.join("src", "libsvm")
@@ -201,7 +201,7 @@ def compile_libsvm():
 				retCode, outputStr = runJob("cp " + libsvmDir + "/libsvm.so" + " " + libDir)
 				if retCode == 0:
 						os.chdir(currDir)
-						printMessage(text=green('-  Done'), debug=True, pathFile=currDir)
+						printMessage(text=green(DONE2), debug=True, pathFile=currDir)
 				else:
 						os.chdir(currDir)
 						exitError(retCode=LIBSVM_ERROR, output=outputStr, pathFile=currDir)
@@ -225,7 +225,7 @@ def compile_libcifpp(jobs):
 		- RuntimeError: If any error occurs during the compilation and installation process of libcifpp,
 		  it raises a RuntimeError with error details.
 		"""
-		printMessage(text="-  Compiling libcifpp..", debug=True)
+		printMessage(text=f'{HEADER2}  Compiling libcifpp..', debug=True)
 		currDir = os.getcwd()
 		# Moving to library directory
 		libcifppDir = os.path.join("src", "libcifpp")
@@ -249,7 +249,7 @@ def compile_libcifpp(jobs):
 								retCode, outputStr = runJob("cp " + os.path.join(libcifppDir, libcifppLibDir,
 																							 "libcifpp.so*") + " " + libDir)
 								if retCode == 0:
-										printMessage(text=green('-  Done'), debug=True, pathFile=currDir)
+										printMessage(text=green(DONE2), debug=True, pathFile=currDir)
 								else:
 										exitError(retCode=LIBCIFPP_ERROR, output=outputStr, pathFile=currDir)
 
@@ -283,7 +283,7 @@ def compileSources(jobs, sconsPath:str):
 		sources = [XMIPP_CORE, XMIPP, XMIPP_VIZ]
 		dictPackage, _ = readConfig()
 		for source in sources:
-				printMessage(text='\n-- Compiling {}...'.format(source), debug=True)
+				printMessage(text=f'\n{HEADER1} Compiling {source}...', debug=True)
 				retCode, outputStr = runJob(f"/usr/bin/env python3 -u {sconsPath} -j{jobs}",	f"src/{source}",
 														streaming=True, showOutput=True, showError=True)
 				if retCode != 0:
@@ -295,20 +295,25 @@ def compileSources(jobs, sconsPath:str):
 
 						elif source == XMIPP_VIZ:
 									exitError(retCode=XMIPPVIZ_COMPILLATION_ERROR, output=outputStr)
-				printMessage(text=green('\n{}. Compiled {}'.format(DONE0, source)), debug=True)
+				printMessage(text=green('{}. Compiled {}'.format(DONE1, source)), debug=True)
 
 def compileAndInstall(args):
 	# Get sources
+	printMessage('\n---------------------------------------', debug=True)
+	printMessage(text=f'\n{HEADER0} Get sources {HEADER0}', debug=True)
 	getSources(branch=args.branch)
 	# Compile external dependencies
-	printMessage('---------------------------------------\n', debug=True)
+	printMessage('\n---------------------------------------', debug=True)
+	printMessage(text=f'\n{HEADER0} External compillations {HEADER0}', debug=True)
 	compileExternalSources(jobs=args.jobs)
-	printMessage('---------------------------------------\n', debug=True)
+	printMessage('\n---------------------------------------', debug=True)
 	# Compile Xmipp
+	printMessage(text=f'\n{HEADER0} Xmipp compillation {HEADER0}', debug=True)
 	dictPackages, _ = readConfig()
 	compileSources(jobs=args.jobs, sconsPath=dictPackages['SCONS'])
-	printMessage('---------------------------------------\n', debug=True)
+	printMessage('\n---------------------------------------', debug=True)
 	#Install
+	printMessage(text=f'\n{HEADER0} Installation {HEADER0}', debug=True)
 	install(directory=args.directory)
 
 
@@ -326,8 +331,6 @@ def install(directory):
 		Raises:
 		- RuntimeError: If any error occurs during the installation process, a RuntimeError is raised.
 		"""
-
-		printMessage(text='\n- Installing...', debug=True)
 		currentBranch = getCurrentBranch()
 		if XMIPP_VERSIONS[XMIPP] == currentBranch:
 				verbose = False
@@ -510,14 +513,13 @@ def install(directory):
 		- RuntimeError: If any error occurs during the installation process, a RuntimeError is raised.
 		"""
 
-		printMessage(text='\n-- Installing...', debug=True)
 		currentBranch = getCurrentBranch()
 		if XMIPP_VERSIONS[XMIPP] == currentBranch:
 				verbose = False
 		else:
 				verbose = True
 		cleanDeprecated()
-		printMessage(text='\n- Linking Xmipp...', debug=True)
+		printMessage(text=f'{HEADER1} Linking Xmipp...', debug=True)
 
 		cpCmd = "rsync -LptgoD "
 		createDir(directory)
@@ -633,11 +635,11 @@ def install(directory):
 		printMessage(text=green(f'\n{DONE1}'), debug=True)
 
 		# Scipion connection
-		printMessage("\n- Linking to Scipion...",debug=True)
+		printMessage(f"{HEADER1} Linking to Scipion...",debug=True)
 		linkToScipion(directory, verbose)
 
 		runJob("touch %s/v%s" % (directory, XMIPP_VERSIONS[XMIPP][VERSION_KEY]), showCommand=verbose)  # version token
-		printMessage("\n- Creating the xmipp.bashrc file...",debug=True)
+		printMessage(f"{HEADER1} Creating the xmipp.bashrc file...",debug=True)
 
 		fhBash = open(directory + "/xmipp.bashrc", "w")
 		fhFish = open(directory + "/xmipp.fish", "w")
@@ -706,7 +708,7 @@ def cleanDeprecated():
 		Raises:
 		- RuntimeError: If an error occurs during the removal process, a RuntimeError is raised.
 		"""
-		printMessage(text='\n- Cleaning deprecated programs...', debug=True)
+		printMessage(text=f'\n{HEADER1} Cleaning deprecated programs...', debug=True)
 		listCurrentPrograms = []
 		retCode, outputStr = runJob('find src/xmipp/bin/*')
 		files = outputStr.split('\n')

@@ -34,10 +34,12 @@ from datetime import datetime
 from .configChecks import *
 from .configGets import *
 from .main import readConfig
-from ..constants import DONE0, DONE1
+from ..constants import DONE0, DONE1, HEADER0, HEADER1, HEADER2
 
 
 def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True):
+    printMessage('---------------------------------------', debug=True)
+    printMessage(text=f'\n{HEADER0} Configutarion {HEADER0}', debug=True)
     global tarPost
     setDebugPrint(debugP)
     tarPost = tarAndPost
@@ -49,20 +51,20 @@ def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True):
             os.remove(CONFIG_FILE)
         except FileNotFoundError:
             pass
-        printMessage(text='\n-- Generating config file xmipp.conf...', debug=True)
+        printMessage(text=f'\n{HEADER1} Generating config file xmipp.conf...', debug=True)
         dictPackages = getSystemValues()
         dictInternalFlags = getInternalFlags(dictPackages)
         writeConfig(dictPackages, dictInternalFlags)
-        printMessage(text=green(DONE0), debug=True)
+        printMessage(text=green(DONE1), debug=True)
     else:
         dictPackages, dictInternalFlags = readConfig()
     dictNoChecked = dictPackages.copy()
-    printMessage(text='\n-- Checking libraries from config file...', debug=True)
+    printMessage(text=f'\n{HEADER1} Checking libraries from config file...', debug=True)
     checkConfig(dictPackages, dictInternalFlags)
     dictInternalFlags2 = getInternalFlags(dictPackages)#if checkConfig change any parameter...
     if dictPackages != dictNoChecked or dictInternalFlags != dictInternalFlags2:
         writeConfig(dictP=dictPackages, dictInt=dictInternalFlags2)
-    printMessage(text=green(DONE0), debug=True)
+    printMessage(text=green(DONE1), debug=True)
     # printMessage('LD_LIBRARY_PATH: ', debug=debugPrints)
     # runJob('echo $LD_LIBRARY_PATH', showOutput=True)
     return dictPackages
@@ -74,7 +76,7 @@ def getSystemValues():
     Returns:
     - dict: Dictionary containing system package information.
     """
-    printMessage(text='-  Getting system libraries...', debug=True)
+    printMessage(text=f'{HEADER2}  Getting system libraries...', debug=True)
     dictPackages = {'INCDIRFLAGS': '-I../ ',
                     'LIBDIRFLAGS': ''}
     getCC(dictPackages)
@@ -91,12 +93,12 @@ def getSystemValues():
     getSTARPU(dictPackages)
     getMatlab(dictPackages)
     getAnonDataCol(dictPackages)
-    printMessage(text=green(DONE1), debug=True)
+    printMessage(text=green(DONE2), debug=True)
 
     return dictPackages
 
 def getInternalFlags(dictPackages, debug: bool=False):
-    printMessage(text='\n-  Getting internal flags for config file...', debug=True)
+    printMessage(text=f'{HEADER2} Getting internal flags for config file...', debug=True)
     dictInternalFlags = INTERNAL_FLAGS
     #CCFLAGS
     dictInternalFlags['CCFLAGS'] = '-std=c99'
@@ -168,7 +170,7 @@ def getInternalFlags(dictPackages, debug: bool=False):
 
     dictInternalFlags['LINKFLAGS'] = LINKFLAGS
 
-    printMessage(text=green(DONE1), debug=True)
+    printMessage(text=green(DONE2), debug=True)
 
     return dictInternalFlags
 
@@ -214,7 +216,6 @@ def checkConfig(dictPackages, dictInternalFlags):
         for pack in checkPackagesStatus:
             printWarning(text=pack[0], warningCode=pack[0], debug=True)
 
-    printMessage(text=green(DONE0), debug=True)
 
 def existConfig():
     """ Checks if the config file exist.Return True or False """
@@ -227,7 +228,7 @@ def existConfig():
 
 def writeConfig(dictP: dict, dictInt: dict):
     """Write the config file"""
-    printMessage(text='\n-  Writting config file...', debug=True)
+    printMessage(text=f'\n{HEADER2}  Writting config file...', debug=True)
 
     with open(CONFIG_FILE, 'w') as f:
         f.write('[USER FLAGS]\n')
@@ -239,7 +240,7 @@ def writeConfig(dictP: dict, dictInt: dict):
         f.write('\n\n[DATE]\n')
         f.write('Config file written: {} \n'.format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
-    printMessage(text=green(DONE1), debug=True)
+    printMessage(text=green(DONE2), debug=True)
 
 def parseConfig():
     """Read and save on configDic all flags of config file"""

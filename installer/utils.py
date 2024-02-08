@@ -37,10 +37,12 @@ from .constants import (MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
 	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME,
   XMIPP_VERSIONS, MODE_GET_MODELS, WARNING_CODE, XMIPPENV, urlModels, remotePath,
-  DOCUMENTATION_URL, urlTest, SCONS_INSTALLATION_WARINING, DONE0, DONE1)
+  DOCUMENTATION_URL, urlTest, SCONS_INSTALLATION_WARINING, DONE0, DONE1, HEADER0, HEADER1, HEADER2)
 
 ####################### RUN FUNCTIONS #######################
-def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
+def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False,
+					 showCommand: bool=False, streaming: bool=False, printLOG:bool=False,
+					 pathLOGFile:str='') -> Tuple[int, str]:
 	"""
 	### This function runs the given command.
 
@@ -51,6 +53,7 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	- showError (bool): Optional. If True, errors are printed.
 	- showCommand (bool): Optional. If True, command is printed in blue.
 	- streaming (bool): Optional. If True, output is shown in real time as it is being produced.
+	- printLOG (bool): Optiona. If True, output on no streaming is printed on log
 
 	#### Returns:
 	- (int): Return code.
@@ -71,13 +74,16 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 		retCode = process.returncode
 		outputStr = output.decode() if not retCode else err.decode()
 
-	# Printing output if specified
-	if not streaming and showOutput:
-		print('{}\n'.format(outputStr))
+		# Printing output if specified
+		if showOutput:
+			print('{}\n'.format(outputStr))
 
-	# Printing errors if specified
-	if not streaming and err and showError:
-		print(red(outputStr))
+		# Printing errors if specified
+		if err and showError:
+			print(red(outputStr))
+
+		if printLOG:
+			printMessage(text=outputStr, debug=False, printLOG_FILE=True, pathFile=pathLOGFile)
 
 	# Returning return code
 	outputStr = outputStr[:-1] if outputStr.endswith('\n') else outputStr
@@ -285,7 +291,7 @@ def downloadDeepLearningModels(dest:str='build'):
 
     # downloading/updating the DLmodels
     if os.path.isdir(os.path.join(dest, modelsPath)):
-        printMessage("-- Updating the Deep Learning models...", debug=True)
+        printMessage(f"{HEADER0} Updating the Deep Learning models...", debug=True)
         task = "update"
     else:
         printMessage("-- Downloading Deep Learning models...", debug=True)
