@@ -863,7 +863,8 @@ def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO,
 		isProcessFinished = process.poll() is not None
 		outputStr += writeReaderLine(readerOut, show=False)
 		outputStr += writeReaderLine(readerErr, show=showError, err=True)
-		progresBar(len(outputStr), linesCompileBar)
+		if linesCompileBar != [1, 1]:
+			progresBar(len(outputStr), linesCompileBar)
 
 		# If process has finished, exit loop
 		if isProcessFinished:
