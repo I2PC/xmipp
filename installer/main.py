@@ -31,7 +31,8 @@ from typing import Tuple
 
 # Installer imports
 from .exit import exitXmipp
-from .constants import (XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN, REPOSITORIES,
+from .constants import (XMIPP, XMIPP_COMPILE_LINES, XMIPP_CORE_COMPILE_LINES,
+												XMIPP_VIZ_COMPILE_LINES, REPOSITORIES,
 	ORGANIZATION_NAME, CUFFTADVSOR_ERROR, GOOGLETEST_ERROR,LIBSVM_ERROR, LIBCIFPP_ERROR, \
 	DEVEL_BRANCHNAME, MASTER_BRANCHNAME, TAGS_SUBPAGE, HEADER0, HEADER1, HEADER2,
   CUFFTADVISOR, CTPL, GTEST, LIBSVM, LIBCIFPP, CLONNING_EXTERNAL_SOURCE_ERROR,
@@ -280,22 +281,25 @@ def compileSources(jobs, sconsPath:str):
 		- RuntimeError: If any error occurs during the compilation process for Xmipp components,
 		  it raises an appropriate RuntimeError with error details.
 		"""
-		sources = [XMIPP_CORE, XMIPP, XMIPP_VIZ]
+		sources = [[XMIPP_CORE, XMIPPCORE_COMPILLATION_ERROR, XMIPP_CORE_COMPILE_LINES],
+						   [XMIPP, XMIPP_COMPILLATION_ERROR, XMIPP_COMPILE_LINES],
+							 [XMIPP_VIZ, XMIPPVIZ_COMPILLATION_ERROR, XMIPP_VIZ_COMPILE_LINES]]
 		dictPackage, _ = readConfig()
 		for source in sources:
-				printMessage(text=f'\n{HEADER1} Compiling {source}...', debug=True)
-				retCode, outputStr = runJob(f"/usr/bin/env python3 -u {sconsPath} -j{jobs}",	f"src/{source}",
-														streaming=True, showOutput=True, showError=True)
-				if retCode != 0:
-						if source == XMIPP_CORE:
-									exitError(retCode=XMIPPCORE_COMPILLATION_ERROR, output=outputStr)
+				compileXmippRun(source=source[0], sourceError=source[1], compileLines=source[2], sconsPath=sconsPath, jobs=jobs)
 
-						elif source == XMIPP:
-									exitError(retCode=XMIPP_COMPILLATION_ERROR, output=outputStr)
 
-						elif source == XMIPP_VIZ:
-									exitError(retCode=XMIPPVIZ_COMPILLATION_ERROR, output=outputStr)
-				printMessage(text=green('{}. Compiled {}'.format(DONE1, source)), debug=True)
+def compileXmippRun(source:str, sourceError:str, compileLines:list, sconsPath:str, jobs:int):
+		printMessage(text=f'\n{HEADER1} Compiling {source}...', debug=True)
+		retCode, outputStr = runJob(
+								f"/usr/bin/env python3 -u {sconsPath} -j{jobs}",
+								f"src/{source}",
+								streaming=True, showOutput=True, showError=True,
+								linesCompileBar=compileLines)
+		if retCode != 0:
+				exitError(retCode=sourceError, output=outputStr)
+		printMessage(text=green('{}. Compiled {}'.format(DONE1, source)), debug=True)
+
 
 def compileAndInstall(args):
 	# Get sources

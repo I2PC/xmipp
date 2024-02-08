@@ -33,16 +33,16 @@ from typing import List, Tuple, Union, Callable, Any
 from sysconfig import get_paths
 
 # Installer imports
-from .constants import (MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
+from .constants import (MODES, CUDA_GCC_COMPATIBILITY, vGCC,UP, \
 	TAB_SIZE, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
-	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME,
+	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, BAR_SIZE,
   XMIPP_VERSIONS, MODE_GET_MODELS, WARNING_CODE, XMIPPENV, urlModels, remotePath,
   DOCUMENTATION_URL, urlTest, SCONS_INSTALLATION_WARINING, DONE0, DONE1, HEADER0, HEADER1, HEADER2)
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False,
 					 showCommand: bool=False, streaming: bool=False, printLOG:bool=False,
-					 pathLOGFile:str='') -> Tuple[int, str]:
+					 pathLOGFile:str='', linesCompileBar:list=[1,1]) -> Tuple[int, str]:
 	"""
 	### This function runs the given command.
 
@@ -54,6 +54,7 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	- showCommand (bool): Optional. If True, command is printed in blue.
 	- streaming (bool): Optional. If True, output is shown in real time as it is being produced.
 	- printLOG (bool): Optiona. If True, output on no streaming is printed on log
+	- linesCompileBar(list): Optional. If !=[0,0] [#full lines compiler, #lines precompile]
 
 	#### Returns:
 	- (int): Return code.
@@ -65,7 +66,7 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 
 	# Running command
 	if streaming:
-		retCode, outputStr = runStreamingJob(cmd, cwd=cwd, showOutput=showOutput, showError=showError)
+		retCode, outputStr = runStreamingJob(cmd, cwd=cwd, showOutput=showOutput, showError=showError, linesCompileBar=linesCompileBar)
 	else:
 		process = subprocess.Popen(cmd, cwd=cwd, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 
@@ -800,7 +801,8 @@ def installScons() -> bool:
 
 
 ####################### AUX FUNCTIONS (INTERNAL USE ONLY) #######################
-def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False) -> Tuple[int, str]:
+def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False,
+										showError: bool=False, linesCompileBar: list=[1, 1]) -> Tuple[int, str]:
 	"""
 	### This function runs the given command and shows its output as it is being generated.
 
@@ -809,6 +811,7 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: 
 	- cwd (str): Optional. Path to run the command from. Default is current directory.
 	- showOutput (bool): Optional. If True, output is printed.
 	- showError (bool): Optional. If True, errors are printed.
+	- linesCompileBar(list): Optional. If !=[0,0] [#full lines compiler, #lines precompile]
 
 	#### Returns:
 	- (int): Return code.
@@ -825,7 +828,7 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: 
 
 			# Run command and write output
 			process = subprocess.Popen(cmd, cwd=cwd, stdout=stdout, stderr=stderr, shell=True)
-			outputStr = writeProcessOutput(process, readerOut, readerErr, showOutput=showOutput, showError=showError)
+			outputStr = writeProcessOutput(process, readerOut, readerErr, showError=showError, linesCompileBar=linesCompileBar)
 	except (KeyboardInterrupt, OSError) as e:
 		error = True
 		errorText = str(e)
@@ -837,7 +840,9 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: 
 	# Return result
 	return process.returncode, outputStr
 
-def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO, readerErr: io.FileIO, showOutput: bool=False, showError: bool=False) -> str:
+def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO,
+											 readerErr: io.FileIO, showError: bool=False,
+											 linesCompileBar: list = [1, 1]) -> str:
 	"""
 	### This function captures the output and errors of the given process as it runs.
 
@@ -858,6 +863,7 @@ def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO, readerEr
 		isProcessFinished = process.poll() is not None
 		outputStr += writeReaderLine(readerOut, show=False)
 		outputStr += writeReaderLine(readerErr, show=showError, err=True)
+		progresBar(len(outputStr), linesCompileBar)
 
 		# If process has finished, exit loop
 		if isProcessFinished:
@@ -867,6 +873,26 @@ def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO, readerEr
 		time.sleep(OUTPUT_POLL_TIME)
 
 	return outputStr
+
+
+def progresBar(linesOut:int=0, linesCompileBar: list = [1, 1]):
+		if linesOut > linesCompileBar[0]:
+				progress = BAR_SIZE - 1
+		else:
+				progress = int(round((linesOut * BAR_SIZE) / linesCompileBar[0], 0))
+		print(linesOut, linesCompileBar[0], progress)
+		signEmpty = '-'
+		signFull = '#'
+		bar = signFull * progress + signEmpty * (BAR_SIZE - progress)
+		bar = '[' + bar + ']' + '\n'
+		#print(green(bar), end=UP)
+
+def printBar(progress):
+		signEmpty = '-'
+		signFull = '#'
+		bar = signFull * progress + signEmpty * (BAR_SIZE - progress)
+		bar = '[' + bar + ']'
+
 
 def writeReaderLine(reader: io.FileIO, show: bool=False, err: bool=False) -> str:
 	"""
