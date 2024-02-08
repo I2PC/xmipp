@@ -138,7 +138,7 @@ def compile_cuFFTAdvisor():
 		if not os.path.exists(libDir):
 				os.makedirs(libDir)
 		os.chdir(advisorDir)
-		retCode, outputStr = runJob("make all")
+		retCode, outputStr = runJob("make all", printLOG=True, pathLOGFile=currDir)
 		if retCode == 0:
 				os.chdir(currDir)
 				retCode, outputStr = runJob("cp " + advisorDir + "build/libcuFFTAdvisor.so" + " " + libDir)
@@ -192,20 +192,19 @@ def compile_libsvm():
 		currDir = os.getcwd()
 		libsvmDir = os.path.join("src", "libsvm")
 		os.chdir(libsvmDir)
-		retCode, outputStr = runJob("make lib")
+		retCode, outputStr = runJob("make lib", printLOG=True, pathLOGFile=currDir)
 		if retCode == 0:
 				libDir = "src/xmipp/lib"
 				os.chdir(currDir)
 				if not os.path.exists(libDir):
 						os.makedirs(libDir)
-				retCode, outputStr = runJob("cp " + libsvmDir + "/libsvm.so" + " " + libDir)
+				retCode, outputStr = runJob("cp " + libsvmDir + "/libsvm.so" + " " + libDir, printLOG=True, pathLOGFile=currDir)
 				if retCode == 0:
 						os.chdir(currDir)
 						printMessage(text=green(DONE2), debug=True, pathFile=currDir)
 				else:
 						os.chdir(currDir)
 						exitError(retCode=LIBSVM_ERROR, output=outputStr, pathFile=currDir)
-
 		else:
 				os.chdir(currDir)
 				exitError(retCode=LIBSVM_ERROR, output=outputStr, pathFile=currDir)
@@ -233,11 +232,12 @@ def compile_libcifpp(jobs):
 		# Installing
 		fullDir = os.path.join(currDir, libcifppDir, '')
 		retCode, outputStr = runJob("cmake -S . -B build -DCMAKE_INSTALL_PREFIX=" + fullDir +
-							" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCIFPP_DOWNLOAD_CCD=OFF -DCIFPP_INSTALL_UPDATE_SCRIPT=OFF")
+							" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCIFPP_DOWNLOAD_CCD=OFF -DCIFPP_INSTALL_UPDATE_SCRIPT=OFF"
+																, printLOG=True, pathLOGFile=currDir)
 		if retCode == 0:
-				retCode, outputStr = runJob(f"cmake --build build -j {jobs}")
+				retCode, outputStr = runJob(f"cmake --build build -j {jobs}", printLOG=True, pathLOGFile=currDir)
 				if retCode == 0:
-						retCode, outputStr = runJob("cmake --install build")
+						retCode, outputStr = runJob("cmake --install build", printLOG=True, pathLOGFile=currDir)
 						if retCode == 0:
 								# Check if libcifpp created up on compiling lib or lib64 directory
 								libcifppLibDir = "lib64" if os.path.exists("lib64") else "lib"
@@ -247,7 +247,7 @@ def compile_libcifpp(jobs):
 								if not os.path.exists(libDir):
 										os.makedirs(libDir)
 								retCode, outputStr = runJob("cp " + os.path.join(libcifppDir, libcifppLibDir,
-																							 "libcifpp.so*") + " " + libDir)
+																							 "libcifpp.so*") + " " + libDir, printLOG=True, pathLOGFile=currDir)
 								if retCode == 0:
 										printMessage(text=green(DONE2), debug=True, pathFile=currDir)
 								else:
