@@ -831,6 +831,9 @@ def opencvVersion(dictPackages, CXX_FLAGS):
 				f.close()
 				version = int(versionStr.split('.', 1)[0])
 				openCV_Version = version
+		runJob("rm xmipp_test_opencv*", showError=True)
+
+
 		return openCV_Version
 
 def HDF5Version(pathHDF5):
@@ -956,9 +959,6 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: 
 		error = True
 		errorText = str(e)
 
-	# Remove tmp files
-	runJob(f"rm -f {LOG_FILE}", cwd=cwd)
-
 	# If there were errors, show them instead of returning
 	if error:
 		printError(errorText)
@@ -992,6 +992,7 @@ def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO, readerEr
 		if isProcessFinished:
 			break
 
+		printMessage(outputStr)
 		# Sleep before continuing to next iteration
 		time.sleep(OUTPUT_POLL_TIME)
 
@@ -1025,6 +1026,7 @@ def writeReaderLine(reader: io.FileIO, show: bool=False, err: bool=False) -> str
 						pass
 				else:
 					printMessage(red(printedLine) if err else printedLine, debug=show)
+
 
 	# Return line
 	return red(line) if err else line

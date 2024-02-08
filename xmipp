@@ -31,7 +31,7 @@ from datetime import datetime
 from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,\
 	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS,\
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR,
-																 DEFAULT_MODE_DEBUG, XMIPP_VERSIONS, LOG_FILE)
+		XMIPP_MODE_ERROR,  DEFAULT_MODE_DEBUG, XMIPP_VERSIONS, LOG_FILE)
 from installer.utils import (printError, runJob, addDeepLearninModel,
 														 downloadDeepLearningModels, runTests, branchName,
 														 getCurrentEnvName, printMessage)
@@ -176,7 +176,7 @@ def modeVersion(args: argparse.Namespace):
   #### Params:
   - args (Namespace): Command line arguments parsed by argparse library.
   """
-  dictPackages = config(debugP=False, tarAndPost=False, checkConf=False)
+  dictPackages = config(debugP=False, tarAndPost=False)
   dictV = collectAllVersions(dictPackages)
   print(('----------------------------------------'))
   print('Repositories details:')
@@ -261,6 +261,7 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	else:
 		# If method was none of the above, exit with error
 		printError(f"Mode \"{args.mode}\" not recognized. {COMMON_USAGE_HELP_MESSAGE}")
+		exitXmipp(retCode=XMIPP_MODE_ERROR, tarPost=False)
 
 
 ####################### MAIN EXECUTION THREAD #######################
@@ -351,19 +352,5 @@ if __name__ == "__main__":
 	# Running always under this own directory.
 	os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-	#from installer.versions import getCmakeVersion
-	#from installer.config import readConfig
-	#from installer.api import getJSONString
-	#from installer.utils import runParallelJobs
-
-	#configFile = readConfig()
-
-	#print("TEST:", getJSONString(configFile))
-	#sys.exit(0)
-
 	# Running installer in selected mode
 	runSelectedMode(parser, args)
-
-#TODO: Add:
-# - cleanSources
-# - generateBinaries (-dir)

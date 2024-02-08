@@ -65,7 +65,7 @@ from datetime import datetime
 from sysconfig import get_paths
 from .exit import exitXmipp
 
-def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True, checkConf:bool=True):
+def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True):
     global debugPrints
     global tarPost
     tarPost = tarAndPost
@@ -81,16 +81,15 @@ def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True, checkConf
         printMessage(text=green('-- Done'), debug=True)
     else:
         dictPackages, dictInternalFlags = readConfig()
-    if checkConf:
-        dictNoChecked = dictPackages.copy()
-        printMessage(text='\n-- Checking libraries from config file...', debug=True)
-        checkConfig(dictPackages, dictInternalFlags)
-        dictInternalFlags2 = getInternalFlags(dictPackages)#if checkConfig change any parameter...
-        if dictPackages != dictNoChecked or dictInternalFlags != dictInternalFlags2:
-            writeConfig(dictP=dictPackages, dictInt=dictInternalFlags2)
-        printMessage(text=green('-- Done'), debug=True)
-        # printMessage('LD_LIBRARY_PATH: ', debug=debugPrints)
-        # runJob('echo $LD_LIBRARY_PATH', showOutput=True)
+    dictNoChecked = dictPackages.copy()
+    printMessage(text='\n-- Checking libraries from config file...', debug=True)
+    checkConfig(dictPackages, dictInternalFlags)
+    dictInternalFlags2 = getInternalFlags(dictPackages)#if checkConfig change any parameter...
+    if dictPackages != dictNoChecked or dictInternalFlags != dictInternalFlags2:
+        writeConfig(dictP=dictPackages, dictInt=dictInternalFlags2)
+    printMessage(text=green('-- Done'), debug=True)
+    # printMessage('LD_LIBRARY_PATH: ', debug=debugPrints)
+    # runJob('echo $LD_LIBRARY_PATH', showOutput=True)
     return dictPackages
 
 def getSystemValues():
@@ -238,13 +237,13 @@ def checkConfig(dictPackages, dictInternalFlags):
     checkCXX(dictPackages)
     checkMPI(dictPackages, dictInternalFlags)
     checkJava(dictPackages)
-    if dictPackages['MATLAB'] == 'True':
+    if dictPackages['MATLAB'] == True:
         checkMatlab(dictPackages, checkPackagesStatus)
-    if dictPackages['OPENCV'] == 'True':
+    if dictPackages['OPENCV'] == True:
         checkOPENCV(dictPackages, checkPackagesStatus)
-    if dictPackages['CUDA'] == 'True':
+    if dictPackages['CUDA'] == True:
         checkCUDA(dictPackages, checkPackagesStatus)
-    if dictPackages['STARPU'] == 'True':
+    if dictPackages['STARPU'] == True:
         checkSTARPU(dictPackages, checkPackagesStatus)
     checkGit()
     checkHDF5(dictPackages)
@@ -656,7 +655,7 @@ def checkOPENCV(dictPackages, checkErrors):
             checkErrors.append([OPENCV_CUDA_WARNING, 'OpenCV CUDA suport set as True but is not ready on your computer'])
             dictPackages['OPENCVCUDASUPPORTS'] = False
 
-    runJob("rm xmipp_test_opencv*", showError=True)
+    runJob("rm xmipp_test_opencv*", showError=False)
 
 def getCUDA(dictPackages):
     """
