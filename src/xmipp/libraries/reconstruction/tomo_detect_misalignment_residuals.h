@@ -125,7 +125,7 @@ public:
 
     void detectMisalignmentFromResiduals();
     void detectMisalignmentFromResidualsMahalanobis();
-
+    void detectMisalignmentFromResidualsMahalanobisRobust();
     void generateResidualStatiscticsFile();
     void contructResidualMatrix();
 

@@ -374,6 +374,128 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 }
 
 
+void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalanobisRobust()
+{
+	double sigma = fiducialSizePx / 3;	// Sigma for 99% of the points inside the fiducial radius
+	double sigma2 = sigma * sigma;
+
+	double mahaDist;
+	double sumMahaDist = 0;
+	double sumMahaDist2 = 0;
+
+	double avgMahaDist;
+	double stdMahaDist;
+
+	size_t numberResMod = vResMod.size();
+
+	// Calculate a robust threshold so only those residuals < avg + 3*std are considered
+	for(size_t i = 0; i < numberResMod; i++)
+	{
+		mahaDist = sqrt((vResMod[i].residuals.x*vResMod[i].residuals.x)/sigma2 + 
+		                (vResMod[i].residuals.y*vResMod[i].residuals.y)/sigma2);
+		
+		vResMod[i].mahalanobisDistance = mahaDist;
+		sumMahaDist += mahaDist;
+		sumMahaDist2 += mahaDist * mahaDist; 
+	}
+
+	avgMahaDist = sumMahaDist / numberResMod;
+	stdMahaDist = sqrt(sumMahaDist2 / numberResMod - avgMahaDist * avgMahaDist);
+	double mahaThr = avgMahaDist + 3 * stdMahaDist;
+
+	// Global alignment analysis
+	std::cout << "---------------- Global misalignemnt analysis" << std::endl;
+
+	double rationMisalignedChains = 0;	// 0 -> aligned -- 1 -> misaligned 
+
+	for (size_t n = 0; n < numberOfInputCoords; n++)
+	{
+		std::vector<resMod> resMod_fid;
+		getResModByFiducial(n, resMod_fid);
+
+		size_t numberResMod = resMod_fid.size();
+
+		sumMahaDist = 0;
+		sumMahaDist2 = 0;
+
+		for (size_t i = 0; i < numberResMod; i++)
+		{
+			if (resMod_fid[i].mahalanobisDistance < mahaThr)
+			{		
+				sumMahaDist += resMod_fid[i].mahalanobisDistance;
+				sumMahaDist2 += resMod_fid[i].mahalanobisDistance * resMod_fid[i].mahalanobisDistance;
+			}
+		}
+
+		avgMahaDist = sumMahaDist / numberResMod;
+
+		if (avgMahaDist > 1)
+		{
+			rationMisalignedChains += 1;
+		}
+
+		std::cout << "Average mahalanobis distance for 3D cooridinate " << n << ": " << avgMahaDist << std::endl;
+	}
+
+	// If more than thrRatioMisalignedChains of coordinates are misaligned, set global misalignment
+	double thrRatioMisalignedChains = 0.8;
+
+	if (rationMisalignedChains / numberOfInputCoords > thrRatioMisalignedChains)
+	{
+		globalAlignment = false;
+	}
+
+	std::cout << "------> Global alignment score: " << rationMisalignedChains / numberOfInputCoords << std::endl;
+	
+	// Local alignment analysis
+	std::cout << "---------------- Local misaligment analysis" << std::endl;
+	
+	for (size_t n = 0; n < nSize; n++)
+	{
+		std::vector<resMod> resMod_image;
+		getResModByImage(n, resMod_image);
+
+		size_t numberResMod = resMod_image.size();
+
+		if (numberResMod > 0)
+		{
+			sumMahaDist = 0;
+			sumMahaDist2 = 0;
+
+			for (size_t i = 0; i < numberResMod; i++)
+			{
+				if (resMod_image[i].mahalanobisDistance < mahaThr)
+				{
+					sumMahaDist += resMod_image[i].mahalanobisDistance;
+					sumMahaDist2 += resMod_image[i].mahalanobisDistance * resMod_image[i].mahalanobisDistance;
+				}
+			}
+
+			avgMahaDist = sumMahaDist / numberResMod;
+			double stdMahaDist = sqrt(sumMahaDist2 / numberResMod - avgMahaDist * avgMahaDist);
+
+			avgMahalanobisDistanceV[n] = avgMahaDist;
+			stdMahalanobisDistanceV[n] = stdMahaDist;
+
+			if (avgMahaDist > 1)
+			{
+				localAlignment[n] = false;
+				std::cout << "------> Local misalignment detected at image: " << n << std::endl;
+			}
+
+			std::cout << "Statistics of mahalanobis distances for tilt-image " << n << std::endl;
+			std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
+			std::cout << "STD mahalanobis distance: " << stdMahaDist << std::endl;
+		}
+		else
+		{
+			std::cout << "ERROR: impossible to study misalignment in tilt-image " << n << ". No residuals calculated for this image" << std::endl;
+			localAlignment[n] = false;
+		}
+	}
+}
+
+
 void ProgTomoDetectMisalignmentResiduals::contructResidualMatrix()
 {
 	Matrix2D<double> xResidMat(numberOfInputCoords, nSize);
@@ -1018,8 +1140,9 @@ void ProgTomoDetectMisalignmentResiduals::run()
 	contructResidualMatrix();
 
 	// detectMisalignmentFromResiduals();
-	detectMisalignmentFromResidualsMahalanobis();
-
+	// detectMisalignmentFromResidualsMahalanobis();
+	detectMisalignmentFromResidualsMahalanobisRobust();
+	
 	#ifdef GENERATE_RESIDUAL_STATISTICS
 	generateResidualStatiscticsFile();
 	#endif
