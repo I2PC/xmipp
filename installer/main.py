@@ -637,10 +637,9 @@ def install(directory):
 		# Scipion connection
 		printMessage(f"{HEADER1} Linking to Scipion...",debug=True)
 		linkToScipion(directory, verbose)
-
 		runJob("touch %s/v%s" % (directory, XMIPP_VERSIONS[XMIPP][VERSION_KEY]), showCommand=verbose)  # version token
-		printMessage(f"{HEADER1} Creating the xmipp.bashrc file...",debug=True)
 
+		printMessage(f"{HEADER1} Creating the xmipp.bashrc file...",debug=True)
 		fhBash = open(directory + "/xmipp.bashrc", "w")
 		fhFish = open(directory + "/xmipp.fish", "w")
 		fhBash.write("# This script is valid for bash and zsh\n\n")
@@ -689,9 +688,6 @@ def install(directory):
 		fhBash.close()
 		fhFish.close()
 		printMessage(green(DONE1), debug=True)
-		printMessage(green(f"\n{DONE1}"), debug=True)
-
-
 
 def cleanDeprecated():
 		"""

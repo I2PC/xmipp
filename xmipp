@@ -26,6 +26,7 @@
 # General imports
 import argparse, sys, os, multiprocessing
 from datetime import datetime
+from time import time
 
 # Installer imports
 from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,\
@@ -216,13 +217,14 @@ def modeAll(args: argparse.Namespace):
 	except FileNotFoundError:
 			pass
 	envName = getCurrentEnvName()
+	dateStart = time()
 	printMessage(f"Compilation date: {datetime.today()}", debug=True)
 	printMessage(f"Enviroment running: {envName}", debug=True)
 	dictConfig = config(debugP=False,tarAndPost=True)
 	compileAndInstall(args)
+	printMessage(f"Compilation and install time: {round((time() - dateStart) / 60.0, 1)} mins", debug=False)
 	printMessage('\n---------------------------------------\n', debug=True)
 	downloadDeepLearningModels()
-
 	exitXmipp(dictPackages=dictConfig)
 
 def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):

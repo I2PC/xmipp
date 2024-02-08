@@ -280,31 +280,33 @@ def addDeepLearninModel(login, modelPath='', update=None):
 				runJob("rm %s" % localFn)
 
 def downloadDeepLearningModels(dest:str='build'):
-    if not os.path.exists('build/bin/xmipp_sync_data'):
-        printMessage(red('Xmipp has not been installed. Please, first install Xmipp '))
-        return False
-    if dest == 'build':
-        modelsPath = 'models'
-    else:
-        modelsPath = dest
-    dataSet = "DLmodels"
+		printMessage(f"{HEADER0} Download DeepLearningToolKit {HEADER0} ",debug=True)
+		if not os.path.exists('build/bin/xmipp_sync_data'):
+				printMessage(red('Xmipp has not been installed. Please, first install Xmipp '))
+				return False
+		if dest == 'build':
+				modelsPath = 'models'
+		else:
+				modelsPath = dest
+		dataSet = "DLmodels"
 
-    # downloading/updating the DLmodels
-    if os.path.isdir(os.path.join(dest, modelsPath)):
-        printMessage(f"{HEADER0} Updating the Deep Learning models...", debug=True)
-        task = "update"
-    else:
-        printMessage("-- Downloading Deep Learning models...", debug=True)
-        task = "download"
-    global pDLdownload
-    retCode, outputStr = runJob("bin/xmipp_sync_data %s %s %s %s"
-                         % (task, modelsPath, urlModels, dataSet),
-                         cwd='build', streaming=True, showOutput=True)
-    if retCode != 0:
-        printMessage(red('Unable to download models. Try again with ./xmipp {}\n{}'.format(MODE_GET_MODELS, outputStr)), debug=True)
-    else:
-        printMessage(green('Models downloaded in the path: {}'.format(modelsPath)), debug=True)
-        printMessage(green(DONE0), debug=True)
+		# downloading/updating the DLmodels
+		if os.path.isdir(os.path.join(dest, modelsPath)):
+				printMessage(f"{HEADER1} Updating the Deep Learning models...", debug=True)
+				task = "update"
+		else:
+				printMessage(f"{HEADER1}  Downloading Deep Learning models...", debug=True)
+				task = "download"
+		global pDLdownload
+		retCode, outputStr = runJob("bin/xmipp_sync_data %s %s %s %s"
+		                     % (task, modelsPath, urlModels, dataSet),
+		                     cwd='build', streaming=True, showOutput=True)
+		if retCode != 0:
+				printMessage(red('Unable to download models. Try again with ./xmipp {}\n{}'.format(MODE_GET_MODELS, outputStr)), debug=True)
+		else:
+				printMessage(green('Models downloaded in the path: {}'.format(modelsPath)), debug=True)
+				printMessage(green(DONE1), debug=True)
+
 
 def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
 						 allFuncs:bool=False, CUDA: bool=True):
