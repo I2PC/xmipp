@@ -861,7 +861,6 @@ def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO, readerEr
 		if isProcessFinished:
 			break
 
-		printMessage(outputStr)
 		# Sleep before continuing to next iteration
 		time.sleep(OUTPUT_POLL_TIME)
 
@@ -894,8 +893,9 @@ def writeReaderLine(reader: io.FileIO, show: bool=False, err: bool=False) -> str
 				elif printedLine.find('serial compilation of 2 LTRANS jobs') != -1:
 						pass
 				else:
-					printMessage(red(printedLine) if err else printedLine, debug=show)
-
+					printMessage(red(printedLine), debug=show)
+		else:
+			printMessage(line, debug=show)
 
 	# Return line
 	return red(line) if err else line
