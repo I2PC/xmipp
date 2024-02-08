@@ -831,7 +831,7 @@ def opencvVersion(dictPackages, CXX_FLAGS):
 				f.close()
 				version = int(versionStr.split('.', 1)[0])
 				openCV_Version = version
-		runJob("rm xmipp_test_opencv*", showError=True)
+		runJob("rm xmipp_test_opencv*", showError=False)
 
 
 		return openCV_Version

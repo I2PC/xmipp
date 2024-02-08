@@ -43,7 +43,7 @@ from .constants import (XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN, REPOSITORIES
   CUFFTADVISOR,	CTPL,	GTEST, LIBSVM, LIBCIFPP, XMIPP_CORE,XMIPP_VIZ, XMIPP_PLUGIN)
 from .utils import (runJob, getCurrentBranch, printError, printMessage, green,
 										printWarning, createDir, getScipionHome, yellow, blue)
-from .config import readConfig
+from .config.config import readConfig
 
 ####################### COMMAND FUNCTIONS #######################
 def getSources(branch: str=None, LOG_FILE_path:str=''):

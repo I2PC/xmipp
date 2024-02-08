@@ -21,295 +21,24 @@
 # * All comments concerning this program package may be sent to the
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
-
-"""
-This module contains the necessary functions to run the config command.
-"""
-
-import shutil, glob, sys
-from os import path, environ, getcwd
 from os.path import isdir, join, isfile
+from os import path
 
-from .constants import (CONFIG_FILE, GCC_MINIMUM,
-                        GPP_MINIMUM, MPI_MINIMUM,
-                        PATH_TO_FIND, INC_PATH, INC_HDF5_PATH,
-                        CONFIG_DICT, CXX_FLAGS,INTERNAL_FLAGS,
-                        OK, SCONS_VERSION_ERROR, SCONS_ERROR,
-                        GCC_VERSION_ERROR, CC_NO_EXIST_ERROR, CXX_NO_EXIST_ERROR, CXX_VERSION_ERROR,
-                        MPI_VERSION_ERROR, MPI_NOT_FOUND_ERROR,
-                        NVCC_CXXFLAGS_ERROR,
-                        JAVA_HOME_PATH_ERROR,  MATLAB_HOME_WARNING,
-                        CUDA_VERSION_WARNING , HDF5_ERROR, LINKFLAGS,
-                        MPI_COMPILLATION_ERROR, MPI_RUNNING_ERROR, OPENCV_WARNING,
-                        JAVAC_DOESNT_WORK_ERROR, JAVA_INCLUDE_ERROR, CMAKE_MINIMUM,
-                        CMAKE_VERSION_ERROR, CMAKE_ERROR, SCONS_MINIMUM,
-                        CC, CXX, MPI_CC, MPI_CXX, MPI_RUN, OPENCV_CUDA_WARNING,
-                        STARPU_INCLUDE_WARNING, STARPU_LIB_WARNING, STARPU_LIBRARY_WARNING,
-                        STARPU_CUDA_WARNING, HDF5_MINIMUM,
-                        HDF5_VERSION_ERROR, TIFF_ERROR, FFTW3_ERROR, PATH_TO_FIND_H,
-                        TIFF_H_ERROR, FFTW3_H_ERROR, FFTW_MINIMUM, FFTW3_VERSION_ERROR,
-                        OLD_CONFIG_FILE, GIT_MINIMUM, GIT_VERSION_ERROR, PYTHONINCFLAGS_ERROR,
-                        RSYNC_MINIMUM, RSYNC_VERSION_ERROR, HDF5_NOT_FOUND_ERROR, SCONS_ENV_ERROR)
-from .utils import (green, blue, runJob, existPackage,
-                    getPackageVersionCmd,JAVAVersion, printWarning,
-                    whereIsPackage, findFileInDirList,
-                    getCompatibleGCC, gitVersion,
-                    get_Hdf5_name, printError, MPIVersion, installScons, versionToNumber,
-                    HDF5Version, opencvVersion, TIFFVersion, printMessage, FFTW3Version,
-                    updateXmippEnv, getPackageVersionCmdReturn)
+from ..utils import (existPackage, versionToNumber, printMessage, green,
+                     getPackageVersionCmd, updateXmippEnv, whereIsPackage,
+                     getPackageVersionCmdReturn, get_Hdf5_name, runJob,
+                     gitVersion, installScons, getCompatibleGCC, opencvVersion,
+                     HDF5Version, TIFFVersion)
+from ..versions import (getGPPVersion, getGCCVersion, MPIVersion, JAVAVersion,
+                        getRsyncVersion, getSconsVersion,
+                        getCmakeVersion, FFTW3Version, getCUDAVersion)
+from .main import exitError
+from ..constants import *
 
-from .versions import (getCmakeVersion, getGPPVersion, getGCCVersion,
-                       getSconsVersion, getRsyncVersion)
-from .versions import getCUDAVersion
-from datetime import datetime
-from sysconfig import get_paths
-from .exit import exitXmipp
 
-def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True):
+def setDebugPrint(dPrints:bool):
     global debugPrints
-    global tarPost
-    tarPost = tarAndPost
-    debugPrints = debugP
-    """check the config if exist else create it and check it"""
-    # printMessage('LD_LIBRARY_PATH: ', debug=debugPrints)
-    # runJob('echo $LD_LIBRARY_PATH', showOutput=True)
-    if not existConfig() or scratch:
-        printMessage(text='\n-- Generating config file xmipp.conf...', debug=True)
-        dictPackages = getSystemValues()
-        dictInternalFlags = getInternalFlags(dictPackages)
-        writeConfig(dictPackages, dictInternalFlags)
-        printMessage(text=green('-- Done'), debug=True)
-    else:
-        dictPackages, dictInternalFlags = readConfig()
-    dictNoChecked = dictPackages.copy()
-    printMessage(text='\n-- Checking libraries from config file...', debug=True)
-    checkConfig(dictPackages, dictInternalFlags)
-    dictInternalFlags2 = getInternalFlags(dictPackages)#if checkConfig change any parameter...
-    if dictPackages != dictNoChecked or dictInternalFlags != dictInternalFlags2:
-        writeConfig(dictP=dictPackages, dictInt=dictInternalFlags2)
-    printMessage(text=green('-- Done'), debug=True)
-    # printMessage('LD_LIBRARY_PATH: ', debug=debugPrints)
-    # runJob('echo $LD_LIBRARY_PATH', showOutput=True)
-    return dictPackages
-
-def getSystemValues():
-    """
-    Retrieves system information related to various packages and configurations.
-
-    Returns:
-    - dict: Dictionary containing system package information.
-    """
-    printMessage(text='-  Getting system libraries...', debug=True)
-    dictPackages = {'INCDIRFLAGS': '-I../ ',
-                    'LIBDIRFLAGS': ''}
-    getCC(dictPackages)
-    getCXX(dictPackages)
-    getJava(dictPackages)
-    getTIFF(dictPackages)
-    getFFTW3(dictPackages)
-    getHDF5(dictPackages)
-    getScons(dictPackages)
-    getINCDIRFLAGS(dictPackages)
-    getLIBDIRFLAGS(dictPackages)
-    getOPENCV(dictPackages)
-    getCUDA(dictPackages)
-    getSTARPU(dictPackages)
-    getMatlab(dictPackages)
-    getAnonDataCol(dictPackages)
-    printMessage(text=green('-  Done'), debug=True)
-
-    return dictPackages
-
-def getInternalFlags(dictPackages, debug: bool=False):
-    printMessage(text='\n-  Getting internal flags for config file...', debug=True)
-    dictInternalFlags = INTERNAL_FLAGS
-    #CCFLAGS
-    dictInternalFlags['CCFLAGS'] = '-std=c99'
-    #CCXXFLAGS
-    dictInternalFlags['CXXFLAGS'] = CXX_FLAGS
-    if debug:
-        dictInternalFlags['CXXFLAGS'] += ' -O0 -g'
-    else:
-        dictInternalFlags['CXXFLAGS'] += ' -O3 -g'
-    #PYTHONINCFLAGS
-    try:
-        from sysconfig import get_paths
-        import numpy
-        info = get_paths()
-        incDirs = [info['include'], numpy.get_include()]
-        dictInternalFlags['PYTHONINCFLAGS'] = ' '.join(["-I%s" % iDir for iDir in incDirs])
-    except Exception as e:
-        exitError(retCode=PYTHONINCFLAGS_ERROR, output=str(e), dictPackages=dictPackages)
-
-    #PYTHON_LIB
-    malloc = "m" if sys.version_info.minor < 8 else ""
-    dictInternalFlags['PYTHON_LIB'] = 'python%s.%s%s' % (sys.version_info.major, sys.version_info.minor, malloc)
-    #LINKERFORPROGRAMS
-    dictInternalFlags['LINKERFORPROGRAMS'] = dictPackages['CXX']
-    #MPI_LINKERFORPROGRAMS
-    dictInternalFlags['MPI_LINKERFORPROGRAMS'] = 'mpicxx'
-    # NVCC_CXXFLAGS
-    if dictPackages['CUDA'] == 'True':
-        try:
-            if versionToNumber(getCUDAVersion(dictPackages)) < versionToNumber('11.0'):
-                dictInternalFlags['NVCC_CXXFLAGS'] = \
-                         "--x cu -D_FORCE_INLINES -Xcompiler -fPIC "\
-                         "-ccbin {} -std=c++11 --expt-extended-lambda "\
-                         "-gencode=arch=compute_35,code=compute_35 "\
-                         "-gencode=arch=compute_50,code=compute_50 "\
-                         "-gencode=arch=compute_60,code=compute_60 "\
-                         "-gencode=arch=compute_61,code=compute_61".format(dictPackages['CUDACXX'])
-            else:
-                dictInternalFlags['NVCC_CXXFLAGS'] = \
-                         "--x cu -D_FORCE_INLINES -Xcompiler -fPIC "\
-                         "-ccbin {} -std=c++14 --expt-extended-lambda "\
-                         "-gencode=arch=compute_60,code=compute_60 "\
-                         "-gencode=arch=compute_61,code=compute_61 "\
-                         "-gencode=arch=compute_75,code=compute_75 "\
-                         "-gencode=arch=compute_86,code=compute_86".format(dictPackages['CUDACXX'])
-        except Exception as e:
-            exitError(retCode=NVCC_CXXFLAGS_ERROR, output=str(e),
-                      dictPackages=dictPackages)
-
-    # LINKFLAGS_NVCC
-    dictHomeCUDA= dictPackages['CUDA_HOME'].split('bin/nvcc')[0]
-    paths = [join(dictHomeCUDA, 'lib'),
-             join(dictHomeCUDA, 'lib64')]
-    for route in paths:
-        if isfile(join(route, 'libcudart.so')):
-            LINKFLAGS_NVCC = '-L{}'.format(route)
-            updateXmippEnv(LD_LIBRARY_PATH=route)
-            stubroute = join(route, 'stubs')
-            if path.exists(stubroute):
-                LINKFLAGS_NVCC += ' -L{}'.format(stubroute)
-                updateXmippEnv(LD_LIBRARY_PATH=stubroute)
-    dictInternalFlags['LINKFLAGS_NVCC'] = LINKFLAGS_NVCC
-    #JAVAS
-    dictInternalFlags['JAVA_BINDIR'] = join(dictPackages['JAVA_HOME'], 'bin')
-    dictInternalFlags['JAVAC'] = join(dictInternalFlags['JAVA_BINDIR'], 'javac')
-    dictInternalFlags['JAR'] = join(dictInternalFlags['JAVA_BINDIR'], 'jar')
-    dictInternalFlags['JNI_CPPPATH'] = (join(dictPackages['JAVA_HOME'], 'include') +
-                        ':' + join(dictPackages['JAVA_HOME'], 'include/linux'))
-
-    dictInternalFlags['LINKFLAGS'] = LINKFLAGS
-
-    printMessage(text=green('-  Done'), debug=True)
-
-    return dictInternalFlags
-
-
-#CONFIG FILE
-def readConfig():
-    """Check if valid all the flags of the config file"""
-    dictPackages = {}
-    internalFlags = {}
-
-    with open(CONFIG_FILE, 'r') as f:
-        config = f.read()
-    for key, _ in CONFIG_DICT.items():
-        idx = config.find(key+'=')
-        idx2 = config[idx:].find('=') + 1
-        value = config[idx+idx2:idx + idx2 + config[idx+idx2:].find('\n')]
-        dictPackages[key] = value
-    for key, _ in INTERNAL_FLAGS.items():
-        idx = config.find(key+'=')
-        idx2 = config[idx:].find('=') + 1
-        value = config[idx+idx2:idx + idx2 + config[idx+idx2:].find('\n')]
-        internalFlags[key] = value
-    return dictPackages, internalFlags
-
-def existButOld():
-    with open(CONFIG_FILE, 'r') as f:
-        config = f.read()
-        if config.find('BUILD') != -1:
-            return True
-
-def checkConfig(dictPackages, dictInternalFlags):
-    """
-    Checks the configurations of various packages.
-
-    Params:
-    - dictPackages (dict): Dictionary containing package information.
-
-    """
-    checkPackagesStatus = []
-    checkCC(dictPackages)
-    checkCXX(dictPackages)
-    checkMPI(dictPackages, dictInternalFlags)
-    checkJava(dictPackages)
-    if dictPackages['MATLAB'] == True:
-        checkMatlab(dictPackages, checkPackagesStatus)
-    if dictPackages['OPENCV'] == True:
-        checkOPENCV(dictPackages, checkPackagesStatus)
-    if dictPackages['CUDA'] == True:
-        checkCUDA(dictPackages, checkPackagesStatus)
-    if dictPackages['STARPU'] == True:
-        checkSTARPU(dictPackages, checkPackagesStatus)
-    checkGit()
-    checkHDF5(dictPackages)
-    checkTIFF(dictPackages)
-    checkFFTW3(dictPackages)
-    checkScons(dictPackages)
-    checkCMake()
-    checkRsync()
-
-    if checkPackagesStatus != []:
-        for pack in checkPackagesStatus:
-            printWarning(text=pack[0], warningCode=pack[0], debug=True)
-
-    printMessage(text=green('-- Done'), debug=True)
-
-def existConfig():
-    """ Checks if the config file exist.Return True or False """
-    if path.exists(CONFIG_FILE):
-        if existButOld():
-            runJob('mv {} {}'.format(CONFIG_FILE, OLD_CONFIG_FILE))
-            print(blue('Old xmipp.conf detected, saved as to xmipp_old.conf'))
-            return False
-        return True
-
-def writeConfig(dictP: dict, dictInt: dict):
-    """Write the config file"""
-    printMessage(text='\n-  Writting config file...', debug=True)
-
-    with open(CONFIG_FILE, 'w') as f:
-        f.write('[USER FLAGS]\n')
-        for key, value in dictP.items():
-            f.write('{}={}\n'.format(key, value))
-        f.write('\n\n[INTERNAL FLAGS]\n')
-        for key, value in dictInt.items():
-            f.write('{}={}\n'.format(key, value))
-        f.write('\n\n[DATE]\n')
-        f.write('Config file written: {} \n'.format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-
-    printMessage(text=green('-  Done'), debug=True)
-
-def parseConfig():
-    """Read and save on configDic all flags of config file"""
-    dictPackages = {}
-    with open(CONFIG_FILE, 'r'):
-        pass
-    return dictPackages
-
-
-#PACKAGES
-def getCC(dictPackages):
-    """
-    Retrieves information about the CC (GCC) package and updates the dictionary accordingly.
-
-    Params:
-    - dictPackages (dict): Dictionary containing package information.
-
-    Modifies:
-    - dictPackages: Updates the 'CC' key based on the availability of 'gcc'.
-    """
-    ccVar = environ.get('CC', '')
-    if ccVar != '':
-        dictPackages['CC'] = ccVar
-    elif existPackage('gcc'):
-        dictPackages['CC'] = 'gcc'
-    else:
-        dictPackages['CC'] = ''
+    debugPrints = dPrints
 
 def checkCC(dictPackages):
     """
@@ -333,23 +62,6 @@ def checkCC(dictPackages):
     else:
         exitError(retCode=CC_NO_EXIST_ERROR, output='GCC package path: {} does not exist'.format(dictPackages[CC]), dictPackages=dictPackages)
 
-def getCXX(dictPackages):
-    """
-    Retrieves information about the CXX package and updates the dictionary accordingly.
-
-    Params:
-    - dictPackages (dict): Dictionary containing package information.
-
-    Modifies:
-    - dictPackages: Updates the 'CXX' key based on the availability of 'g++'.
-    """
-    ccVar = environ.get('CXX', '')
-    if ccVar != '':
-        dictPackages['CXX'] = ccVar
-    elif existPackage('g++'):
-        dictPackages['CXX'] = 'g++'
-    else:
-        dictPackages['CXX'] = ''
 
 def checkCXX(dictPackages):
     """
@@ -373,14 +85,6 @@ def checkCXX(dictPackages):
 
     else:
         exitError(retCode=CXX_NO_EXIST_ERROR, output='CXX package path: {} does not exist'.format(dictPackages[CXX]), dictPackages=dictPackages)
-
-def getAnonDataCol(dictPackages):
-    aDCVar = environ.get('ANON_DATA_COLLECT', '')
-    if aDCVar == 'False':
-        dictPackages['ANON_DATA_COLLECT'] = aDCVar
-    else:
-        dictPackages['ANON_DATA_COLLECT'] = 'True'
-
 
 def checkMPI(dictPackages, dictInternalFlags):
     """
@@ -462,27 +166,6 @@ def checkMPI(dictPackages, dictInternalFlags):
                       output='mpirun or mpiexec have failed.',
                       dictPackages=dictPackages)
 
-def getJava(dictPackages):
-    """
-    Retrieves information about the Java package and updates the dictionary accordingly.
-
-    Params:
-    - dictPackages (dict): Dictionary containing package information.
-
-    Modifies:
-    - dictPackages: Updates the 'JAVA_HOME' key based on the Java installation path.
-    """
-    javaProgramPath = whereIsPackage('javac')
-    if not javaProgramPath:
-        javaProgramPath = findFileInDirList('javac', ['/usr/lib/jvm/java-*/bin'])
-    if javaProgramPath:
-        javaHomeDir = javaProgramPath.replace("/jre/bin", "")
-        javaHomeDir = javaHomeDir.replace("/bin", "")
-        dictPackages['JAVA_HOME'] = javaHomeDir
-        updateXmippEnv(PATH=javaProgramPath)
-    else:
-        dictPackages['JAVA_HOME'] = ''
-
 def checkJava(dictPackages):
     """
     Checks the Java installation and configuration.
@@ -546,26 +229,6 @@ def checkJava(dictPackages):
                   dictPackages=dictPackages)
     runJob("rm xmipp_jni_test*", showError=True)
 
-def getMatlab(dictPackages):
-    """
-    Retrieves information about the MATLAB package and updates the dictionary accordingly.
-
-    Params:
-    - dictPackages (dict): Dictionary containing package information.
-
-    Modifies:
-    - dictPackages: Updates keys 'MATLAB' and 'MATLAB_HOME' based on MATLAB availability.
-    """
-    matlabProgramPath = whereIsPackage('matlab')
-    if matlabProgramPath:
-        dictPackages['MATLAB'] = True
-        dictPackages['MATLAB_HOME'] = matlabProgramPath.replace("/bin", "")
-        printMessage(text=green('MATLAB_HOME detected at {}'.format(dictPackages['MATLAB_HOME'])), debug=debugPrints)
-        updateXmippEnv(MATLAB_BIN_DIR=matlabProgramPath)
-    else:
-        dictPackages['MATLAB'] = False
-        dictPackages['MATLAB_HOME'] = ''
-
 def checkMatlab(dictPackages, checkErrors):
     """
     Checks for the existence of MATLAB package and verifies if a specified path is a directory.
@@ -600,21 +263,6 @@ def checkMatlab(dictPackages, checkErrors):
     else:
         printMessage(text=green('Matlab installation found'), debug=debugPrints)
     runJob("rm xmipp_mex*")
-
-def getOPENCV(dictPackages):
-    opencvPath = ['opencv2', 'opencv4/opencv2']
-    filePath = ['core.hpp', 'core/core.hpp']
-    for p in INC_PATH:
-        for oP in opencvPath:
-            for f in filePath:
-                if path.isfile(join(p, oP, f)):
-                    try:
-                        dictPackages['INCDIRFLAGS'] += ' -I' + p + '/' + oP.split('/')[0]
-                    except KeyError:
-                        dictPackages['INCDIRFLAGS'] = ' -I' + p + '/' + oP.split('/')[0]
-                    dictPackages['OPENCV'] = True
-                    dictPackages['OPENCVCUDASUPPORTS'] = True
-                    break
 
 def checkOPENCV(dictPackages, checkErrors):
     """
@@ -657,27 +305,6 @@ def checkOPENCV(dictPackages, checkErrors):
 
     runJob("rm xmipp_test_opencv*", showError=False)
 
-def getCUDA(dictPackages):
-    """
-     Retrieves information about the CUDA package and updates the dictionary accordingly.
-
-     Params:
-     - dictPackages (dict): Dictionary containing package information.
-
-     Modifies:
-     - dictPackages: Updates keys 'CUDA', 'CUDA_HOME', and 'CUDACXX' based on CUDA package availability.
-     """
-    if not existPackage('nvcc'):
-        dictPackages['CUDA'] = 'False'
-        dictPackages['CUDA_HOME'] = ''
-        dictPackages['CUDACXX'] = ''
-        updateXmippEnv(CUDA=False)
-    else:
-        dictPackages['CUDA'] = 'True'
-        dictPackages['CUDA_HOME'] = shutil.which('nvcc')
-        dictPackages['CUDACXX'] = dictPackages['CXX']
-        updateXmippEnv(CUDA=True)
-
 def checkCUDA(dictPackages, checkPackagesStatus):
     """
     Checks the compatibility of CUDA with the current g++ compiler version and updates the dictionary accordingly.
@@ -710,32 +337,6 @@ def checkCUDA(dictPackages, checkPackagesStatus):
         checkPackagesStatus.append([CUDA_VERSION_WARNING, 'CUDA version not found{}\n'])
         dictPackages['CUDA'] = 'False'
         updateXmippEnv(CUDA=False)
-
-def getSTARPU(dictPackages):
-    """
-    Retrieves information about the STARPU package and updates the dictionary accordingly.
-
-    Params:
-    - dictPackages (dict): Dictionary containing package information.
-
-    Modifies:
-    - dictPackages: Updates keys related to STARPU package information.
-    """
-    if whereIsPackage("starpu_sched_display"):
-        dictPackages["STARPU"] = 'True'
-        starpuBinDir = whereIsPackage("starpu_sched_display")
-        dictPackages["STARPU_HOME"] = starpuBinDir.replace("/bin", "")
-        dictPackages["STARPU_INCLUDE"] = "%(STARPU_HOME)s/include/starpu/1.3"
-        dictPackages["STARPU_LIB"] = "%(STARPU_HOME)s/lib"
-        dictPackages["STARPU_LIBRARY"] = "libstarpu-1.3"
-        printMessage(text=green('STARPU detected at {}'.format(dictPackages['STARPU_HOME'])), debug=debugPrints)
-
-    else:
-        dictPackages["STARPU"] = False
-        dictPackages["STARPU_HOME"] = ''
-        dictPackages["STARPU_INCLUDE"] = ''
-        dictPackages["STARPU_LIB"] = ''
-        dictPackages["STARPU_LIBRARY"] = ''
 
 def checkSTARPU(dictPackages, checkPackagesStatus):
     """
@@ -811,26 +412,6 @@ def checkSTARPU(dictPackages, checkPackagesStatus):
 #                                                                PYTHON_MINIMUM)), debug=True)
 #             return 10
 #
-def getHDF5(dictPackages):
-    """
-    This function searches for HDF5 library ('libhdf5*') in specified directories.
-    If found, updates 'LIBDIRFLAGS' in 'dictPackages' with the HDF5 library path.
-    If not found, prints a message indicating HDF5 is not detected.
-    Updates 'LIBDIRFLAGS' in 'dictPackages' based on HDF5 library detection.
-
-    Params:
-    - dictPackages (dict): Dictionary with package information.
-        Expected keys: 'LIBDIRFLAGS'.
-    """
-    #get hdf5 libdir
-    PATH_TO_FIND.append(join(get_paths()['data'].replace(' ', ''), 'lib'))
-    for path in PATH_TO_FIND:
-        hdf5PathFound = findFileInDirList("libhdf5*", path)
-        if hdf5PathFound:
-            dictPackages['LIBDIRFLAGS'] += " -L%s" % hdf5PathFound
-            dictPackages['HDF5_HOME'] = hdf5PathFound
-            updateXmippEnv(LD_LIBRARY_PATH=hdf5PathFound)
-            break
 
 def checkHDF5(dictPackages):
     """
@@ -864,27 +445,6 @@ def checkHDF5(dictPackages):
     runJob("rm xmipp_test_main*", showError=True)
     printMessage(text=green('HDF5 {} found'.format(version)), debug=debugPrints)
 
-def getScons(dictPackages):
-    retCode, outputStr = runJob('which scons')
-    if retCode == 0:
-        dictPackages['SCONS'] = outputStr
-    else:
-        dictPackages['SCONS'] = ''
-
-
-def getTIFF(dictPackages):
-    for path in PATH_TO_FIND:
-        libtiffPathFound = findFileInDirList("libtiff.so", path)
-        if libtiffPathFound:
-            dictPackages['LIBDIRFLAGS'] += " -L%s" % libtiffPathFound
-            dictPackages['TIFF_SO'] = join(libtiffPathFound, 'libtiff.so')
-            break
-    patron = '/**/tiffio.h'
-    for path in PATH_TO_FIND_H:
-        pathTIFF_H = glob.glob(f'''{path}/{patron}''')
-        if pathTIFF_H:
-            dictPackages['TIFF_H'] = pathTIFF_H[0]
-
 def checkTIFF(dictPackages):
     if path.exists(dictPackages['TIFF_H']):
         printMessage(text=green('TIFF {} found'.format(TIFFVersion(dictPackages['TIFF_SO']))), debug=debugPrints)
@@ -892,19 +452,6 @@ def checkTIFF(dictPackages):
         exitError(retCode=TIFF_H_ERROR, output='TIFF library not found', dictPackages=dictPackages)
     if path.exists(dictPackages['TIFF_SO']) == False:
         exitError(retCode=TIFF_ERROR, output='libtiff.so not found', dictPackages=dictPackages)
-
-def getFFTW3(dictPackages):
-    for path in PATH_TO_FIND:
-        libfftw3PathFound = findFileInDirList("libfftw3f.so", path)
-        if libfftw3PathFound:
-            dictPackages['LIBDIRFLAGS'] += " -L%s" % libfftw3PathFound
-            dictPackages['FFTW3_SO'] = join(libfftw3PathFound, 'libfftw3.so')
-            break
-    patron = 'fftw3.h'
-    for path in PATH_TO_FIND_H:
-        pathFFTW3_H = glob.glob(join(path, patron))
-        if pathFFTW3_H:
-            dictPackages['FFTW3_H'] = pathFFTW3_H[0]
 
 def checkFFTW3(dictPackages):
     if path.exists(dictPackages['FFTW3_H']):
@@ -920,37 +467,6 @@ def checkFFTW3(dictPackages):
                       dictPackages=dictPackages)
     else:
         exitError(retCode=FFTW3_H_ERROR, output='FFTW3 does not exist', dictPackages=dictPackages)
-
-def getINCDIRFLAGS(dictPackages):
-    """
-    This function checks for HDF5 ('hdf5.h') in a specified directory list.
-    If found, updates 'INCDIRFLAGS' in 'dictPackages' with the HDF5 include path.
-    Updates 'INCDIRFLAGS' in 'dictPackages' based on HDF5 presence.
-
-    Params:
-    - dictPackages (dict): Dictionary with package information.
-        Expected keys: 'INCDIRFLAGS'.
-    """
-    #HDF5
-    pathHdf5 = findFileInDirList('hdf5.h', INC_HDF5_PATH)
-    if pathHdf5:
-        try:
-            dictPackages['INCDIRFLAGS'] += ' -I' + pathHdf5
-        except KeyError:
-            dictPackages['INCDIRFLAGS'] = ' -I' + pathHdf5
-
-    #TIFF
-    if path.exists(dictPackages['TIFF_H']):
-        dictPackages['INCDIRFLAGS'] += ' -I' + path.dirname(dictPackages['TIFF_H'])
-
-    #FFTW3
-    if path.exists(dictPackages['FFTW3_H']):
-        dictPackages['INCDIRFLAGS'] += ' -I' + path.dirname(dictPackages['FFTW3_H'])
-
-def getLIBDIRFLAGS(dictPackages):
-    localLib = "%s/lib" % get_paths()['data']
-    dictPackages["LIBDIRFLAGS"] += " -L%s" % localLib
-    updateXmippEnv(LD_LIBRARY_PATH=localLib)
 
 def checkGit():
     version = gitVersion()
@@ -1008,7 +524,6 @@ def checkScons(dictPackages:dict):
             else:
                 exitError(retCode=SCONS_ENV_ERROR, output='Scons not found.')
 
-
 def checkRsync():
     rsyncV = getRsyncVersion()
     if rsyncV is None:
@@ -1017,10 +532,3 @@ def checkRsync():
                       output='rsync found {}, required {}'.format(rsyncV, RSYNC_MINIMUM))
     printMessage(text=green('rsync {} found'.format(rsyncV)), debug=debugPrints)
 
-
-def exitError(output:str='', retCode:int=0, dictPackages:dict={}):
-    printError(errorMsg=output, retCode=retCode)
-    print(getcwd())
-    if not dictPackages:
-        dictPackages, _ = readConfig()
-    exitXmipp(retCode=retCode, dictPackages=dictPackages, tarPost=tarPost)

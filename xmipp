@@ -35,7 +35,7 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 from installer.utils import (printError, runJob, addDeepLearninModel,
 														 downloadDeepLearningModels, runTests, branchName,
 														 getCurrentEnvName, printMessage)
-from installer.config import config, checkGit
+from installer.config.config import config, checkGit
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
 from installer.main import (getSources, compileExternalSources, compileSources, install,
 														cleanDeprecated, cleanSources, cleanBin, compileAndInstall)
