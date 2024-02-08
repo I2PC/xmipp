@@ -32,8 +32,7 @@ from typing import Dict, Union
 import os
 # Installer imports
 from .utils import (runJob, getPackageVersionCmd, getPythonPackageVersion,
-										getCurrentBranch, isBranchUpToDate, MPIVersion, JAVAVersion,
-										HDF5Version, TIFFVersion, FFTW3Version, opencvVersion)
+										getCurrentBranch, isBranchUpToDate)
 from .constants import UNKNOWN_VALUE, CC, CXX, CMAKE, CUDA, CXX_FLAGS
 
 def collectAllVersions(dictPackages: dict):
@@ -77,6 +76,7 @@ def parseCompilerVersion(versionCmdStr: Union[str, None]) -> Union[str, None]:
 
 	# Returning compiler version
 	return compilerVersion
+
 
 ####################### PACKAGE SPECIFIC FUNCTIONS #######################
 def getOSReleaseName() -> str:
@@ -272,6 +272,95 @@ def getSconsVersion(dictPackage:dict) -> Union[str, None]:
 	# Returning extracted version
 	return version
 
+def MPIVersion(string):
+			"""
+			Extracts the MPI version information from a given string.
+
+			Params:
+			- string (str): Input string containing MPI version details.
+
+			Returns:
+			- str: Extracted MPI version information.
+			"""
+			idx = string.find('\n')
+			idx2 = string[:idx].rfind(' ')
+			return string[idx2:idx].replace(' ', '')
+
+def opencvVersion(dictPackages, CXX_FLAGS):
+		with open("xmipp_test_opencv.cpp", "w") as cppFile:
+				cppFile.write('#include <opencv2/core/version.hpp>\n')
+				cppFile.write('#include <fstream>\n')
+				cppFile.write('int main()'
+											'{std::ofstream fh;'
+											' fh.open("xmipp_test_opencv.txt");'
+											' fh << CV_MAJOR_VERSION << std::endl;'
+											' fh.close();'
+											'}\n')
+		if runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s " % (
+						dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']),
+							showError=True)[0] != 0:
+				openCV_Version = 2
+		else:
+				runJob("./xmipp_test_opencv", showError=True)
+				f = open("xmipp_test_opencv.txt")
+				versionStr = f.readline()
+				f.close()
+				version = int(versionStr.split('.', 1)[0])
+				openCV_Version = version
+		runJob("rm xmipp_test_opencv*", showError=False)
+
+		return openCV_Version
+
+def HDF5Version(pathHDF5):
+		"""
+		Extracts the HDF5 version information from a given string.
+
+		Params:
+		- string (str): Input string containing HDF5 version details.
+
+		Returns:
+		- str: Extracted HDF5 version information.
+		"""
+		cmd = '''strings {}/libhdf5.so  | grep "HDF5 library version: "'''.format(
+				pathHDF5)
+		status, output = runJob(cmd)
+		if status == 0:
+				version = output.split(' ')[-1]
+				return version
+
+def JAVAVersion(string):
+		"""
+		Extracts the JAVA version information from a given string.
+
+		Params:
+		- string (str): Input string containing JAVA version details.
+
+		Returns:
+		- str: Extracted JAVA version information.
+		"""
+		idx = string.find('\n')
+		string[:idx].split(' ')[1]
+		return string[:idx].split(' ')[1]
+
+def TIFFVersion(libtiffPathFound):
+		retCode, outputStr = runJob(
+				'strings {} | grep "LIBTIFF"'.format(libtiffPathFound))
+		if retCode == 0:
+				idx = outputStr.find('Version ')
+				if idx != -1:
+						version = outputStr[idx:].split(' ')[-1]
+				return outputStr.split(' ')[-1]
+
+def FFTW3Version(pathSO):
+		retCode, outputStr = runJob('readlink {}'.format(pathSO))
+		if retCode == 0:
+				return outputStr.split('so.')[-1]
+
+def gitVersion():
+		version = getPackageVersionCmd('git')
+		if version != None:
+				version = version.split(' ')[-1]
+		return version
 
 def getRsyncVersion():
 	"""

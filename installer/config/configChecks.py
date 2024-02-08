@@ -27,11 +27,11 @@ from os import path
 from ..utils import (existPackage, versionToNumber, printMessage, green,
                      getPackageVersionCmd, updateXmippEnv, whereIsPackage,
                      getPackageVersionCmdReturn, get_Hdf5_name, runJob,
-                     gitVersion, installScons, getCompatibleGCC, opencvVersion,
-                     HDF5Version, TIFFVersion)
+                     installScons, getCompatibleGCC)
 from ..versions import (getGPPVersion, getGCCVersion, MPIVersion, JAVAVersion,
-                        getRsyncVersion, getSconsVersion,
-                        getCmakeVersion, FFTW3Version, getCUDAVersion)
+                        getRsyncVersion, getSconsVersion,gitVersion, opencvVersion,
+                        getCmakeVersion, FFTW3Version, getCUDAVersion, HDF5Version,
+                        TIFFVersion)
 from .main import exitError
 from ..constants import *
 

@@ -27,10 +27,10 @@ This module contains the necessary functions to run the config command.
 """
 
 import sys
+import os
 
 from ..utils import ( blue,  printWarning)
 from datetime import datetime
-
 from .configChecks import *
 from .configGets import *
 from .main import readConfig
@@ -44,6 +44,10 @@ def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True):
     # printMessage('LD_LIBRARY_PATH: ', debug=debugPrints)
     # runJob('echo $LD_LIBRARY_PATH', showOutput=True)
     if not existConfig() or scratch:
+        try:
+            os.remove(CONFIG_FILE)
+        except FileNotFoundError:
+            pass
         printMessage(text='\n-- Generating config file xmipp.conf...', debug=True)
         dictPackages = getSystemValues()
         dictInternalFlags = getInternalFlags(dictPackages)

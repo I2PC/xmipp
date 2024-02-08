@@ -356,8 +356,6 @@ def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
         printMessage(red('Error runnig test.\n{}'.format(outputStr)), printLOG_FILE=False)
 
 
-
-
 ####################### COLORS #######################
 def green(text: str) -> str:
 	"""
@@ -570,7 +568,6 @@ def writeXmippEnv(env):
 
 ####################### VERSION FUNCTIONS #######################
 
-
 def versionToNumber(strVersion: str) -> float:
 	"""
 	### This function converts the version string into a version number that can be numerically compared.
@@ -678,7 +675,6 @@ def printHappyEnd():
 		printMessage(text=strXmipp, debug=False)
 		printMessage('More about Xmipp: {}'.format(DOCUMENTATION_URL), debug=True)
 
-
 def branchName():
 		retCode, outputStr = runJob('git status')
 		if retCode == 0:
@@ -733,33 +729,6 @@ def existPackage(packageName):
 def getINCDIRFLAG():
 		return ' -I ' + os.path.join(get_paths()['data'].replace(' ', ''),  'include')
 
-def sconsVersion():
-		# TODO: Revisar: no se "puede" devolver un número indeterminado de argumentos, tienes que devolver siempre el mismo numero, aunque a veces uno no sirva
-		# No se entiende muy bien qué hace (y creo que se puede optimizar)
-		"""
-		Checks if the installed version of SCons meets a minimum requirement.
-
-		Returns:
-		- bool or tuple: If the installed SCons version meets the requirement, returns True.
-										 If not, and it's possible to install SCons in a Scipion environment, it attempts to do so.
-										 Returns a tuple (error_code, False) if installation fails.
-		"""
-		try:
-			textVersion = pkg_resources.get_distribution("scons").version
-			if versionToNumber(textVersion) >= versionToNumber(SCONS_MINIMUM):
-				return True
-		except Exception:
-			pass
-		if isScipionEnv():
-			status, output = runJob('pip install scons', showOutput=True, showCommand=True)
-			if status == 0:
-				return True
-			else:
-				printError(output, retCode=2)
-		else:
-			print(blue('Scons package not found, please install it  with \"pip install scons\".'))
-			return False
-
 def getCompatibleGCC(nvccVersion):
 		"""
 		Retrieves compatible versions of GCC based on a given NVCC (NVIDIA CUDA Compiler) version.
@@ -777,113 +746,6 @@ def getCompatibleGCC(nvccVersion):
 								versionToNumber(nvccVersion) <= versionToNumber(versionList[1]):
 						return value, True
 		return vGCC, False
-
-def CXXVersion(string):
-		"""
-		Extracts the version of a C++ compiler from a given string.
-
-		Params:
-		- string (str): Input string containing compiler version information.
-
-		Returns:
-		- str: Extracted C++ compiler version.
-		"""
-		idx = string.find('\n')
-		idx2 = string[:idx].rfind(' ')
-		version = string[idx2:idx]
-		gxx_version = version.replace(' ', '')
-		idx = gxx_version.rfind('.')
-		gxx_version = gxx_version[:idx]
-		return gxx_version
-
-def MPIVersion(string):
-		"""
-		Extracts the MPI version information from a given string.
-
-		Params:
-		- string (str): Input string containing MPI version details.
-
-		Returns:
-		- str: Extracted MPI version information.
-		"""
-		idx = string.find('\n')
-		idx2 = string[:idx].rfind(' ')
-		return string[idx2:idx].replace(' ', '')
-
-def opencvVersion(dictPackages, CXX_FLAGS):
-		with open("xmipp_test_opencv.cpp", "w") as cppFile:
-				cppFile.write('#include <opencv2/core/version.hpp>\n')
-				cppFile.write('#include <fstream>\n')
-				cppFile.write('int main()'
-											'{std::ofstream fh;'
-											' fh.open("xmipp_test_opencv.txt");'
-											' fh << CV_MAJOR_VERSION << std::endl;'
-											' fh.close();'
-											'}\n')
-		if runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s " % (
-		dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']),
-							showError=True)[0] != 0:
-				openCV_Version = 2
-		else:
-				runJob("./xmipp_test_opencv", showError=True)
-				f = open("xmipp_test_opencv.txt")
-				versionStr = f.readline()
-				f.close()
-				version = int(versionStr.split('.', 1)[0])
-				openCV_Version = version
-		runJob("rm xmipp_test_opencv*", showError=False)
-
-
-		return openCV_Version
-
-def HDF5Version(pathHDF5):
-		"""
-		Extracts the HDF5 version information from a given string.
-
-		Params:
-		- string (str): Input string containing HDF5 version details.
-
-		Returns:
-		- str: Extracted HDF5 version information.
-		"""
-		cmd = '''strings {}/libhdf5.so  | grep "HDF5 library version: "'''.format(pathHDF5)
-		status, output = runJob(cmd)
-		if status == 0:
-				version = output.split(' ')[-1]
-				return version
-
-def JAVAVersion(string):
-		"""
-		Extracts the JAVA version information from a given string.
-
-		Params:
-		- string (str): Input string containing JAVA version details.
-
-		Returns:
-		- str: Extracted JAVA version information.
-		"""
-		idx = string.find('\n')
-		string[:idx].split(' ')[1]
-		return string[:idx].split(' ')[1]
-
-def TIFFVersion(libtiffPathFound):
-		retCode, outputStr = runJob('strings {} | grep "LIBTIFF"'.format(libtiffPathFound))
-		if retCode == 0:
-				idx = outputStr.find('Version ')
-				if idx != -1:
-						version = outputStr[idx:].split(' ')[-1]
-				return outputStr.split(' ')[-1]
-
-def FFTW3Version(pathSO):
-		retCode, outputStr = runJob('readlink {}'.format(pathSO))
-		if retCode == 0:
-				return outputStr.split('so.')[-1]
-
-def gitVersion():
-		version = getPackageVersionCmd('git')
-		if version != None:
-				version = version.split(' ')[-1]
-		return version
 
 def get_Hdf5_name(libdirflags):
 		"""
