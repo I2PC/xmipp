@@ -27,7 +27,7 @@ from os import path
 from ..utils import (existPackage, versionToNumber, printMessage, green,
                      getPackageVersionCmd, updateXmippEnv, whereIsPackage,
                      getPackageVersionCmdReturn, get_Hdf5_name, runJob,
-                     installScons, getCompatibleGCC)
+                     installScons, getCompatibleGCC, printWarning)
 from ..versions import (getGPPVersion, getGCCVersion, MPIVersion, JAVAVersion,
                         getRsyncVersion, getSconsVersion,gitVersion, opencvVersion,
                         getCmakeVersion, FFTW3Version, getCUDAVersion, HDF5Version,
@@ -36,9 +36,45 @@ from .main import exitError
 from ..constants import *
 
 
-def setDebugPrint(dPrints:bool):
+
+def checkConfig(dictPackages, dictInternalFlags, scratch, dPrints):
+    """
+    Checks the configurations of various packages.
+
+    Params:
+    - dictPackages (dict): Dictionary containing package information.
+
+    """
+    global tarPost
+    tarPost = scratch
     global debugPrints
     debugPrints = dPrints
+
+    checkPackagesStatus = []
+    checkCC(dictPackages)
+    checkCXX(dictPackages)
+    checkMPI(dictPackages, dictInternalFlags)
+    checkJava(dictPackages)
+    if dictPackages['MATLAB'] == True:
+        checkMatlab(dictPackages, checkPackagesStatus)
+    if dictPackages['OPENCV'] == True:
+        checkOPENCV(dictPackages, checkPackagesStatus)
+    if dictPackages['CUDA'] == True:
+        checkCUDA(dictPackages, checkPackagesStatus)
+    if dictPackages['STARPU'] == True:
+        checkSTARPU(dictPackages, checkPackagesStatus)
+    checkGit()
+    checkHDF5(dictPackages)
+    checkTIFF(dictPackages)
+    checkFFTW3(dictPackages)
+    checkScons(dictPackages)
+    checkCMake()
+    checkRsync()
+
+    if checkPackagesStatus != []:
+        for pack in checkPackagesStatus:
+            printWarning(text=pack[0], warningCode=pack[0], debug=True)
+
 
 def checkCC(dictPackages):
     """

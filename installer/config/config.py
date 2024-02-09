@@ -41,7 +41,6 @@ def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True):
     printMessage('---------------------------------------', debug=True)
     printMessage(text=f'\n{HEADER0} Configutarion {HEADER0}', debug=True)
     global tarPost
-    setDebugPrint(debugP)
     tarPost = tarAndPost
     """check the config if exist else create it and check it"""
     # printMessage('LD_LIBRARY_PATH: ', debug=debugPrints)
@@ -52,7 +51,7 @@ def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True):
         except FileNotFoundError:
             pass
         printMessage(text=f'\n{HEADER1} Generating config file xmipp.conf...', debug=True)
-        dictPackages = getSystemValues()
+        dictPackages = getSystemValues(scratch)
         dictInternalFlags = getInternalFlags(dictPackages)
         writeConfig(dictPackages, dictInternalFlags)
         printMessage(text=green(DONE1), debug=True)
@@ -60,7 +59,7 @@ def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True):
         dictPackages, dictInternalFlags = readConfig()
     dictNoChecked = dictPackages.copy()
     printMessage(text=f'\n{HEADER1} Checking libraries from config file...', debug=True)
-    checkConfig(dictPackages, dictInternalFlags)
+    checkConfig(dictPackages, dictInternalFlags, scratch, debugP)
     dictInternalFlags2 = getInternalFlags(dictPackages)#if checkConfig change any parameter...
     if dictPackages != dictNoChecked or dictInternalFlags != dictInternalFlags2:
         writeConfig(dictP=dictPackages, dictInt=dictInternalFlags2)
@@ -69,33 +68,7 @@ def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True):
     # runJob('echo $LD_LIBRARY_PATH', showOutput=True)
     return dictPackages
 
-def getSystemValues():
-    """
-    Retrieves system information related to various packages and configurations.
 
-    Returns:
-    - dict: Dictionary containing system package information.
-    """
-    printMessage(text=f'{HEADER2}  Getting system libraries...', debug=True)
-    dictPackages = {'INCDIRFLAGS': '-I../ ',
-                    'LIBDIRFLAGS': ''}
-    getCC(dictPackages)
-    getCXX(dictPackages)
-    getJava(dictPackages)
-    getTIFF(dictPackages)
-    getFFTW3(dictPackages)
-    getHDF5(dictPackages)
-    getScons(dictPackages)
-    getINCDIRFLAGS(dictPackages)
-    getLIBDIRFLAGS(dictPackages)
-    getOPENCV(dictPackages)
-    getCUDA(dictPackages)
-    getSTARPU(dictPackages)
-    getMatlab(dictPackages)
-    getAnonDataCol(dictPackages)
-    printMessage(text=green(DONE2), debug=True)
-
-    return dictPackages
 
 def getInternalFlags(dictPackages, debug: bool=False):
     printMessage(text=f'{HEADER2} Getting internal flags for config file...', debug=True)
@@ -183,40 +156,6 @@ def existButOld():
         config = f.read()
         if config.find('BUILD') != -1:
             return True
-
-def checkConfig(dictPackages, dictInternalFlags):
-    """
-    Checks the configurations of various packages.
-
-    Params:
-    - dictPackages (dict): Dictionary containing package information.
-
-    """
-    checkPackagesStatus = []
-    checkCC(dictPackages)
-    checkCXX(dictPackages)
-    checkMPI(dictPackages, dictInternalFlags)
-    checkJava(dictPackages)
-    if dictPackages['MATLAB'] == True:
-        checkMatlab(dictPackages, checkPackagesStatus)
-    if dictPackages['OPENCV'] == True:
-        checkOPENCV(dictPackages, checkPackagesStatus)
-    if dictPackages['CUDA'] == True:
-        checkCUDA(dictPackages, checkPackagesStatus)
-    if dictPackages['STARPU'] == True:
-        checkSTARPU(dictPackages, checkPackagesStatus)
-    checkGit()
-    checkHDF5(dictPackages)
-    checkTIFF(dictPackages)
-    checkFFTW3(dictPackages)
-    checkScons(dictPackages)
-    checkCMake()
-    checkRsync()
-
-    if checkPackagesStatus != []:
-        for pack in checkPackagesStatus:
-            printWarning(text=pack[0], warningCode=pack[0], debug=True)
-
 
 def existConfig():
     """ Checks if the config file exist.Return True or False """

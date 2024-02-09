@@ -29,9 +29,40 @@ from sysconfig import get_paths
 
 from ..utils import (existPackage, printMessage, green, updateXmippEnv, whereIsPackage,
                       runJob, findFileInDirList)
-from ..constants import INC_PATH, PATH_TO_FIND, PATH_TO_FIND_H, INC_HDF5_PATH
+from ..constants import INC_PATH, PATH_TO_FIND, PATH_TO_FIND_H, INC_HDF5_PATH, HEADER2, DONE2
 
+def getSystemValues(scratch, debugP):
+    """
+    Retrieves system information related to various packages and configurations.
 
+    Returns:
+    - dict: Dictionary containing system package information.
+    """
+    global tarPost
+    tarPost = scratch
+    global debugPrints
+    debugPrints = debugP
+
+    printMessage(text=f'{HEADER2}  Getting system libraries...', debug=True)
+    dictPackages = {'INCDIRFLAGS': '-I../ ',
+                    'LIBDIRFLAGS': ''}
+    getCC(dictPackages)
+    getCXX(dictPackages)
+    getJava(dictPackages)
+    getTIFF(dictPackages)
+    getFFTW3(dictPackages)
+    getHDF5(dictPackages)
+    getScons(dictPackages)
+    getINCDIRFLAGS(dictPackages)
+    getLIBDIRFLAGS(dictPackages)
+    getOPENCV(dictPackages)
+    getCUDA(dictPackages)
+    getSTARPU(dictPackages)
+    getMatlab(dictPackages)
+    getAnonDataCol(dictPackages)
+    printMessage(text=green(DONE2), debug=True)
+
+    return dictPackages
 
 def getCC(dictPackages):
     """
