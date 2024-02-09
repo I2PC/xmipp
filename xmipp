@@ -267,7 +267,11 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 if __name__ == "__main__":
 	""" Calls main function when executed. """
 	# Defining default jobs
-	DEFAULT_JOBS = multiprocessing.cpu_count()
+	JOBS = multiprocessing.cpu_count()
+	if JOBS <= 18:
+			DEFAULT_JOBS = JOBS - 3
+	else:
+			DEFAULT_JOBS = 16
 
 	# Creating parser to parse the command-line arguments
 	parser = ErrorHandlerArgumentParser(formatter_class=GeneralHelpFormatter, prog="xmipp")
