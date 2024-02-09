@@ -263,11 +263,11 @@ def addDeepLearningModel(login, modelPath='', update=None):
 		tgzFn = "xmipp_model_%s.tgz" % modelName
 		localFn = os.path.join(modelsDir, tgzFn)
 
-		printMessage("Creating the '%s' model." % tgzFn, debug=True)
+		printMessage("Creating model: '%s'." % tgzFn, debug=True)
 		runJob("tar czf %s %s" % (tgzFn, modelName), cwd=modelsDir)
 
-		printMessage("Warning: Uploading, please BE CAREFUL! This can be dangerous.")
-		printMessage('You are going to be connected to "%s" to write in folder '
+		printMessage("Warning: Uploading model, please BE CAREFUL! This can be dangerous.")
+		printMessage('A connection to "%s" is needed in order to write in folder '
 					'"%s".' % (login, remotePath))
 		if input("Continue? YES/no\n").lower() == 'no':
 				sys.exit()
@@ -276,14 +276,14 @@ def addDeepLearningModel(login, modelPath='', update=None):
 		args = "%s %s %s %s" % (
 		login, os.path.abspath(localFn), remotePath, update)
 		if runJob("src/xmipp/bin/xmipp_sync_data upload %s" % args):
-				printMessage("'%s' model successfully uploaded! Removing the local .tgz"
+				printMessage("'%s' model was successfully uploaded! Removing the local .tgz file."
 							% modelName)
 				runJob("rm %s" % localFn)
 
 def downloadDeepLearningModels(dest:str='build'):
-		printMessage(f"{HEADER0} Download DeepLearningToolKit models{HEADER0} ",debug=True)
+		printMessage(f"{HEADER0} Downloading DeepLearningToolKit models{HEADER0} ",debug=True)
 		if not os.path.exists('build/bin/xmipp_sync_data'):
-				printMessage(red('Xmipp has not been installed. Please, first install Xmipp '))
+				printMessage(red('Xmipp is not installed. Please, install Xmipp before downloading DLTK models.'))
 				return False
 		if dest == 'build':
 				modelsPath = 'models'
@@ -296,7 +296,7 @@ def downloadDeepLearningModels(dest:str='build'):
 				printMessage(f"{HEADER1} Updating the Deep Learning models...", debug=True)
 				task = "update"
 		else:
-				printMessage(f"{HEADER1}  Downloading Deep Learning models...", debug=True)
+				printMessage(f"{HEADER1} Downloading Deep Learning models...", debug=True)
 				task = "download"
 		global pDLdownload
 		retCode, outputStr = runJob("bin/xmipp_sync_data %s %s %s %s"
@@ -329,8 +329,8 @@ def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
     else:
         retCode, outputStr = runJob('source build/xmipp.bashrc')
         if retCode != 0:
-            printMessage(red('XMIPP_SRC is not in the enviroment.') +
-								 '\nTo run the tests you need to run: ' +
+            printMessage(red('XMIPP_SRC variable is not set.') +
+								 '\nBefore running tests you need to do: ' +
 								 blue('source build/xmipp.bashrc'), debug=True,
 								 printLOG_FILE=False)
             return
@@ -341,11 +341,11 @@ def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
     # downloading/updating the dataset
     dataset = 'xmipp_programs'
     if os.path.isdir(dataSetPath):
-        printMessage("\n- Updating the test files...", debug=True, printLOG_FILE=False)
+        printMessage("\n- Updating test files...", debug=True, printLOG_FILE=False)
         task = "update"
         showOutput=False
     else:
-        printMessage("\n- Downloading the test files...", debug=True, printLOG_FILE=False)
+        printMessage("\n- Downloading test files...", debug=True, printLOG_FILE=False)
         task = "download"
         showOutput=True
     args = "%s %s %s" % ("tests/data", urlTest, dataset)

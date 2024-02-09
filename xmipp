@@ -164,7 +164,7 @@ def modeTest(parser, args=argparse.Namespace):
 	"""
 	# Check if at least either one of the two params has been used
 	if not args.show and not args.testName and not args.allPrograms and not args.allFuncs:
-		parser.error("Some option must be used. Use \"./xmipp test -h\" for help.")
+		parser.error("At least one flag is required in testing mode. Run \"./xmipp test -h\" to get a list of available flags.")
 	dictPackages = config(debugP=False, tarAndPost=False)
 	runTests(testName=args.testName, show=args.show, allPrograms=args.allPrograms,
 					 allFuncs=args.allFuncs, CUDA=dictPackages['CUDA'])
@@ -190,7 +190,7 @@ def modeVersion(args: argparse.Namespace):
     print('\t{} (Branch: {})'.format(value['vername'], branch))
 
   print(('----------------------------------------'))
-  print('Packages version:')
+  print('Package versions:')
   print(('gcc version: \t{}'.format(dictV['gccV'])))
   print(('gpp version: \t{}'.format(dictV['gppV'])))
   print(('mpi version: \t{}'.format(dictV['mpiV'])))
@@ -219,7 +219,7 @@ def modeAll(args: argparse.Namespace):
 	envName = getCurrentEnvName()
 	dateStart = time()
 	printMessage(f"Compilation date: {datetime.today()}", debug=True)
-	printMessage(f"Enviroment running: {envName}", debug=True)
+	printMessage(f"Active enviroment: {envName}", debug=True)
 	dictConfig = config(debugP=False,tarAndPost=True)
 	#compileAndInstall(args)
 	printMessage(f"Compilation and install time: {round((time() - dateStart) / 60.0, 1)} mins", debug=False)
@@ -353,7 +353,7 @@ if __name__ == "__main__":
 	
 	# Error control for branch
 	if hasattr(args, "branch") and args.branch is not None and len(args.branch.split(' ')) > 1:
-		parser.error(f"Incorrect branchname \"{args.branch}\". Branch names can only be one word long.")
+		parser.error(f"Incorrect branch name \"{args.branch}\". Branch names can only be one word long.")
 
 	# Running always under this own directory.
 	os.chdir(os.path.dirname(os.path.abspath(__file__)))
