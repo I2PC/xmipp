@@ -104,7 +104,7 @@ LOG_FILE = 'compileLOG.txt'
 CMD_OUT_LOG_FILE = 'commandOutput.log'
 CMD_ERR_LOG_FILE = 'commandError.log'
 OUTPUT_POLL_TIME = 0.5
-TAIL_LOG = 1000
+TAIL_LOG = 300
 
 INTERNAL_FLAGS = {'CCFLAGS': '',
 								  'CXXFLAGS': '',
