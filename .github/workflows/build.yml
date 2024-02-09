@@ -53,4 +53,4 @@ jobs:
           BRANCH_NAME: ${{ github.head_ref }}
           CIBuild: 1
           BUILD_TESTS: True
-        run: ./xmipp all br=$BRANCH_NAME || (cat compileLOG.txt && false)
+        run: ./xmipp all -br=$BRANCH_NAME || (cat compileLOG.txt && false)
