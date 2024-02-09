@@ -48,7 +48,7 @@ def readConfig():
 
 
 
-def exitError(output:str='', retCode:int=0, dictPackages:dict={}):
+def exitError(output:str='', retCode:int=0, dictPackages:dict={}, tarPost:bool=True):
     printError(errorMsg=output, retCode=retCode)
     print(getcwd())
     if not dictPackages:

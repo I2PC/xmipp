@@ -94,9 +94,9 @@ def checkCC(dictPackages):
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             printMessage(text=green('gcc {} found'.format(version)), debug=debugPrints)
             return OK
-        exitError(retCode=GCC_VERSION_ERROR, output='gcc {} lower than required ({})'.format(version, GCC_MINIMUM), dictPackages=dictPackages)
+        exitError(retCode=GCC_VERSION_ERROR, output='gcc {} lower than required ({})'.format(version, GCC_MINIMUM), dictPackages=dictPackages, tarPost=tarPost)
     else:
-        exitError(retCode=CC_NO_EXIST_ERROR, output='GCC package path: {} does not exist'.format(dictPackages[CC]), dictPackages=dictPackages)
+        exitError(retCode=CC_NO_EXIST_ERROR, output='GCC package path: {} does not exist'.format(dictPackages[CC]), dictPackages=dictPackages, tarPost=tarPost)
 
 
 def checkCXX(dictPackages):
@@ -117,10 +117,10 @@ def checkCXX(dictPackages):
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             printMessage(text=green('g++ {} found'.format(version)), debug=debugPrints)
             return OK
-        exitError(retCode=CXX_VERSION_ERROR, output='g++ {} lower than required ({})'.format(version, GPP_MINIMUM), dictPackages=dictPackages)
+        exitError(retCode=CXX_VERSION_ERROR, output='g++ {} lower than required ({})'.format(version, GPP_MINIMUM), dictPackages=dictPackages, tarPost=tarPost)
 
     else:
-        exitError(retCode=CXX_NO_EXIST_ERROR, output='CXX package path: {} does not exist'.format(dictPackages[CXX]), dictPackages=dictPackages)
+        exitError(retCode=CXX_NO_EXIST_ERROR, output='CXX package path: {} does not exist'.format(dictPackages[CXX]), dictPackages=dictPackages, tarPost=tarPost)
 
 def checkMPI(dictPackages, dictInternalFlags):
     """
@@ -149,7 +149,7 @@ def checkMPI(dictPackages, dictInternalFlags):
                 else:
                     exitError(retCode=MPI_VERSION_ERROR,
                               output='mpi {} lower than required ({})'.format(version, GPP_MINIMUM),
-                              dictPackages=dictPackages)
+                              dictPackages=dictPackages, tarPost=tarPost)
             elif pack == 'mpicc':
                 dictPackages['MPI_CC'] = 'mpicc'
             else:
@@ -158,7 +158,7 @@ def checkMPI(dictPackages, dictInternalFlags):
             if getPackageVersionCmd(pack) == None:
                 output, retCode = getPackageVersionCmdReturn(pack)
                 exitError(retCode=MPI_NOT_FOUND_ERROR,
-                      output=f'{pack} package error:\n {output}', dictPackages=dictPackages)
+                      output=f'{pack} package error:\n {output}', dictPackages=dictPackages, tarPost=tarPost)
 
     #More checks
 
@@ -174,7 +174,7 @@ def checkMPI(dictPackages, dictInternalFlags):
     if status != 0:
         exitError(retCode=MPI_RUNNING_ERROR,
                   output='Fails running the command: \n{}\nError message: {}'.format(cmd, output),
-                  dictPackages=dictPackages)
+                  dictPackages=dictPackages, tarPost=tarPost)
 
     libhdf5 = get_Hdf5_name(dictPackages["LIBDIRFLAGS"])
     cmd = (("%s %s %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main -lfftw3"
@@ -189,7 +189,7 @@ def checkMPI(dictPackages, dictInternalFlags):
     if status != 0:
         exitError(retCode=MPI_COMPILLATION_ERROR,
                   output='Fails running the command: \n{}\n\nError message:\n{}'.format(cmd, output),
-                  dictPackages=dictPackages)
+                  dictPackages=dictPackages, tarPost=tarPost)
 
     runJob("rm xmipp_mpi_test_main*", showOutput=False,showCommand=False)
 
@@ -200,7 +200,7 @@ def checkMPI(dictPackages, dictInternalFlags):
         if output.count('Running') != processors:
             exitError(retCode=MPI_RUNNING_ERROR,
                       output='mpirun or mpiexec have failed.',
-                      dictPackages=dictPackages)
+                      dictPackages=dictPackages, tarPost=tarPost)
 
 def checkJava(dictPackages):
     """
@@ -220,7 +220,7 @@ def checkJava(dictPackages):
     else:
         exitError(retCode=JAVA_HOME_PATH_ERROR,
                   output='JAVA_HOME path: {} does not work'.format(dictPackages['JAVA_HOME']),
-                  dictPackages=dictPackages)
+                  dictPackages=dictPackages, tarPost=tarPost)
 
     #JAVA Version
     version = JAVAVersion(getPackageVersionCmd('java'))
@@ -237,7 +237,7 @@ def checkJava(dictPackages):
     if retCode!= 0:
         exitError(retCode=JAVAC_DOESNT_WORK_ERROR,
                   output=cmd,
-                  dictPackages=dictPackages)
+                  dictPackages=dictPackages, tarPost=tarPost)
     runJob("rm Xmipp.java Xmipp.class", showError=True)
 
     #Other check 2
@@ -262,7 +262,7 @@ def checkJava(dictPackages):
     if status != 0:
         exitError(retCode=JAVA_INCLUDE_ERROR,
                   output=output,
-                  dictPackages=dictPackages)
+                  dictPackages=dictPackages, tarPost=tarPost)
     runJob("rm xmipp_jni_test*", showError=True)
 
 def checkMatlab(dictPackages, checkErrors):
@@ -463,10 +463,10 @@ def checkHDF5(dictPackages):
         True, 0: HDF5 configuration successful.
     """
     if not path.exists(dictPackages['HDF5_HOME']):
-        exitError(retCode=HDF5_NOT_FOUND_ERROR, output='HDF5 nod found', dictPackages=dictPackages)
+        exitError(retCode=HDF5_NOT_FOUND_ERROR, output='HDF5 nod found', dictPackages=dictPackages, tarPost=tarPost)
     version = HDF5Version(dictPackages['HDF5_HOME'])
     if versionToNumber(version) < versionToNumber(HDF5_MINIMUM):
-        exitError(retCode=HDF5_VERSION_ERROR, output='HDF5 {} version minor than {}'.format(version, HDF5_MINIMUM), dictPackages=dictPackages)
+        exitError(retCode=HDF5_VERSION_ERROR, output='HDF5 {} version minor than {}'.format(version, HDF5_MINIMUM), dictPackages=dictPackages, tarPost=tarPost)
     cppProg = ("""
                #include <hdf5.h>
                \n int main(){}\n
@@ -477,7 +477,7 @@ def checkHDF5(dictPackages):
            (dictPackages['CXX'], LINKFLAGS, dictPackages["INCDIRFLAGS"]))
     status, output = runJob(cmd)
     if status != 0:
-        exitError(retCode=HDF5_ERROR, output=output, dictPackages=dictPackages)
+        exitError(retCode=HDF5_ERROR, output=output, dictPackages=dictPackages, tarPost=tarPost)
     runJob("rm xmipp_test_main*", showError=True)
     printMessage(text=green('HDF5 {} found'.format(version)), debug=debugPrints)
 
@@ -485,9 +485,9 @@ def checkTIFF(dictPackages):
     if path.exists(dictPackages['TIFF_H']):
         printMessage(text=green('TIFF {} found'.format(TIFFVersion(dictPackages['TIFF_SO']))), debug=debugPrints)
     else:
-        exitError(retCode=TIFF_H_ERROR, output='TIFF library not found', dictPackages=dictPackages)
+        exitError(retCode=TIFF_H_ERROR, output='TIFF library not found', dictPackages=dictPackages, tarPost=tarPost)
     if path.exists(dictPackages['TIFF_SO']) == False:
-        exitError(retCode=TIFF_ERROR, output='libtiff.so not found', dictPackages=dictPackages)
+        exitError(retCode=TIFF_ERROR, output='libtiff.so not found', dictPackages=dictPackages, tarPost=tarPost)
 
 def checkFFTW3(dictPackages):
     if path.exists(dictPackages['FFTW3_H']):
@@ -497,19 +497,19 @@ def checkFFTW3(dictPackages):
                 printMessage(text=green('FFTW3 {} found'.format(version)), debug=debugPrints)
             else:
                 exitError(retCode=FFTW3_VERSION_ERROR, output='FFTW3 version {} lower than minimum: {}'.format(version, FFTW_MINIMUM),
-                          dictPackages=dictPackages)
+                          dictPackages=dictPackages, tarPost=tarPost)
         else:
             exitError(retCode=FFTW3_ERROR, output='libfftw3.so does not exist',
-                      dictPackages=dictPackages)
+                      dictPackages=dictPackages, tarPost=tarPost)
     else:
-        exitError(retCode=FFTW3_H_ERROR, output='FFTW3 does not exist', dictPackages=dictPackages)
+        exitError(retCode=FFTW3_H_ERROR, output='FFTW3 does not exist', dictPackages=dictPackages, tarPost=tarPost)
 
 def checkGit():
     version = gitVersion()
     if versionToNumber(version) < versionToNumber(GIT_MINIMUM):
         exitError(retCode=GIT_VERSION_ERROR,
                   output='GIT version {} lower than minimum: {}'.
-                   format(version, GIT_MINIMUM))
+                   format(version, GIT_MINIMUM), tarPost=tarPost)
     else:
         printMessage(text=green('git {} found'.format(version)), debug=debugPrints)
 
@@ -528,11 +528,11 @@ def checkCMake():
         cmakVersion = getCmakeVersion()
         # Checking if installed version is below minimum required
         if versionToNumber(cmakVersion) < versionToNumber(CMAKE_MINIMUM):
-            exitError(retCode=CMAKE_VERSION_ERROR, output='Your CMake version {} is below {}'.format(cmakVersion, CMAKE_MINIMUM))
+            exitError(retCode=CMAKE_VERSION_ERROR, output='Your CMake version {} is below {}'.format(cmakVersion, CMAKE_MINIMUM), tarPost=tarPost)
     except FileNotFoundError:
-        exitError(retCode=CMAKE_ERROR, output='CMake is not installed')
+        exitError(retCode=CMAKE_ERROR, output='CMake is not installed', tarPost=tarPost)
     except Exception:
-        exitError(retCode=CMAKE_ERROR, output='Can not get the cmake version')
+        exitError(retCode=CMAKE_ERROR, output='Can not get the cmake version', tarPost=tarPost)
 
     printMessage(text=green('cmake {} found'.format(cmakVersion)), debug=debugPrints)
 
@@ -542,7 +542,7 @@ def checkScons(dictPackages:dict):
         if versionToNumber(sconsV) < versionToNumber(SCONS_MINIMUM):
             status = installScons()
             if status is False:
-                exitError(retCode=SCONS_VERSION_ERROR,output='scons found {}, required {}'.format(sconsV, SCONS_MINIMUM))
+                exitError(retCode=SCONS_VERSION_ERROR,output='scons found {}, required {}'.format(sconsV, SCONS_MINIMUM), tarPost=tarPost)
             else:
                 retCode, outputStr = runJob('which scons')
                 if retCode == 0:
@@ -552,13 +552,13 @@ def checkScons(dictPackages:dict):
     else:
         status = installScons()
         if status is False:
-          exitError(retCode=SCONS_ERROR, output='Scons not found.')
+          exitError(retCode=SCONS_ERROR, output='Scons not found.', tarPost=tarPost)
         else:
             retCode, outputStr = runJob('which scons')
             if retCode == 0 and outputStr != '':
                 dictPackages['SCONS'] = outputStr
             else:
-                exitError(retCode=SCONS_ENV_ERROR, output='Scons not found.')
+                exitError(retCode=SCONS_ENV_ERROR, output='Scons not found.', tarPost=tarPost)
 
 def checkRsync():
     rsyncV = getRsyncVersion()
