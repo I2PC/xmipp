@@ -294,7 +294,7 @@ def compileXmippRun(source:str, sourceError:str, compileLines:list, sconsPath:st
 		retCode, outputStr = runJob(
 								f"/usr/bin/env python3 -u {sconsPath} -j{jobs}",
 								f"src/{source}",
-								streaming=True, showOutput=True, showError=False,
+								streaming=True, showOutput=True, showError=True,
 								linesCompileBar=compileLines)
 		if retCode != 0:
 				exitError(retCode=sourceError, output=outputStr)

@@ -837,6 +837,7 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False,
 	if error:
 		printError(errorText)
 
+
 	# Return result
 	return process.returncode, outputStr
 
@@ -862,7 +863,7 @@ def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO,
 		# Get process running status and print output
 		isProcessFinished = process.poll() is not None
 		outputStr += writeReaderLine(readerOut, show=False)
-		outputStr += writeReaderLine(readerErr, show=showError, err=True)
+		outputStr += writeReaderLine(readerErr, show=False, err=True)
 		if linesCompileBar:
 			if outputStr.count('is up to date') > 4:
 					lines = linesCompileBar[1]
