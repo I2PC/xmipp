@@ -880,7 +880,7 @@ def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO,
 	if linesCompileBar:
 		print(REMOVE_LINE)
 		print(REMOVE_LINE, end='\r')
-		print('lines: {}'.format(len(outputStr.split('\n'))))
+		#print('lines: {}'.format(len(outputStr.split('\n'))))
 
 	return outputStr
 
