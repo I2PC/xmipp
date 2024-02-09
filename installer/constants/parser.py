@@ -112,6 +112,7 @@ MODE_ARGS = {
 	MODE_ALL: {
 		'-j': f"Number of jobs. Defaults to all available.",
 		'-br': "Branch for the source repositories.",
+		'-NoModels': "Avoid to download the models for the DeepLearningToolkit",
 		'-dir': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\"."
 	},
 	MODE_CONFIG: {
@@ -161,6 +162,7 @@ MODE_EXAMPLES = {
 		'./xmipp -j 20',
 		'./xmipp -dir /path/to/my/build/dir',
 		'./xmipp -br devel',
+		'./xmipp -NoModels',
 		f'./xmipp {MODE_ALL} -j 20 dir /path/to/my/build/dir -br devel]'
 	],
 	MODE_CONFIG: [],

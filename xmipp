@@ -221,10 +221,11 @@ def modeAll(args: argparse.Namespace):
 	printMessage(f"Compilation date: {datetime.today()}", debug=True)
 	printMessage(f"Enviroment running: {envName}", debug=True)
 	dictConfig = config(debugP=False,tarAndPost=True)
-	compileAndInstall(args)
+	#compileAndInstall(args)
 	printMessage(f"Compilation and install time: {round((time() - dateStart) / 60.0, 1)} mins", debug=False)
 	printMessage('\n---------------------------------------\n', debug=True)
-	downloadDeepLearningModels()
+	if args.NoModels == None:
+			downloadDeepLearningModels(args)
 	exitXmipp(dictPackages=dictConfig)
 
 def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
@@ -290,6 +291,8 @@ if __name__ == "__main__":
 	allSubparser.add_argument("-j", "--jobs", type=int, default=DEFAULT_JOBS)
 	allSubparser.add_argument("-br", "--branch")
 	allSubparser.add_argument("-dir", "--directory", default=DEFAULT_BUILD_DIR)
+	allSubparser.add_argument("-NoModels", "--NoModels", action='store_false', default=None)
+
 
 
 	# Arguments for mode 'cleanAll'

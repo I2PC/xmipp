@@ -281,7 +281,7 @@ def addDeepLearninModel(login, modelPath='', update=None):
 				runJob("rm %s" % localFn)
 
 def downloadDeepLearningModels(dest:str='build'):
-		printMessage(f"{HEADER0} Download DeepLearningToolKit {HEADER0} ",debug=True)
+		printMessage(f"{HEADER0} Download DeepLearningToolKit models{HEADER0} ",debug=True)
 		if not os.path.exists('build/bin/xmipp_sync_data'):
 				printMessage(red('Xmipp has not been installed. Please, first install Xmipp '))
 				return False
