@@ -50,7 +50,6 @@ def readConfig():
 
 def exitError(output:str='', retCode:int=0, dictPackages:dict={}, tarPost:bool=True):
     printError(errorMsg=output, retCode=retCode)
-    print(getcwd())
     if not dictPackages:
         dictPackages, _ = readConfig()
     exitXmipp(retCode=retCode, dictPackages=dictPackages, tarPost=tarPost)
