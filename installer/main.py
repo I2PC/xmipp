@@ -225,7 +225,7 @@ def compile_libcifpp(jobs):
 		- RuntimeError: If any error occurs during the compilation and installation process of libcifpp,
 		  it raises a RuntimeError with error details.
 		"""
-		printMessage(text=f'{HEADER2}  Compiling libcifpp..', debug=True)
+		printMessage(text=f'{HEADER2} Compiling libcifpp..', debug=True)
 		currDir = os.getcwd()
 		# Moving to library directory
 		libcifppDir = os.path.join("src", "libcifpp")
@@ -298,7 +298,7 @@ def compileXmippRun(source:str, sourceError:str, compileLines:list, sconsPath:st
 								linesCompileBar=compileLines)
 		if retCode != 0:
 				exitError(retCode=sourceError, output=outputStr)
-		printMessage(text=green('{}. Compiled {}'.format(DONE1, source)), debug=True)
+		printMessage(text=green('{}'.format(DONE1)), debug=True)
 
 
 def compileAndInstall(args):

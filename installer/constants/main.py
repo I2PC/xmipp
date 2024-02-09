@@ -28,11 +28,13 @@ Submodule containing all the general constants needed for Xmipp's installation.
 XMIPP = 'xmipp'
 XMIPP_CORE = 'xmippCore'
 XMIPP_VIZ = 'xmippViz'
-XMIPP_COMPILE_LINES = [1597, 286] #[#full lines compiler, #lines precompile] 8/02/2024
-XMIPP_CORE_COMPILE_LINES = [152, 9]
-XMIPP_VIZ_COMPILE_LINES = [64, 18]
+XMIPP_COMPILE_LINES = [856, 244] #[full # lines compiler, lines # precompiled] 8/02/2024
+XMIPP_CORE_COMPILE_LINES = [124, 9]
+XMIPP_VIZ_COMPILE_LINES = [55, 19]
 BAR_SIZE = 20
 UP = "\x1B[1A\r"
+REMOVE_LINE = '\033[K'
+
 XMIPP_PLUGIN = 'scipion-em-xmipp'
 CUFFTADVISOR = 'cuFFTAdvisor'
 CTPL = 'CTPL'

@@ -33,7 +33,7 @@ from typing import List, Tuple, Union, Callable, Any
 from sysconfig import get_paths
 
 # Installer imports
-from .constants import (MODES, CUDA_GCC_COMPATIBILITY, vGCC,UP, \
+from .constants import (MODES, CUDA_GCC_COMPATIBILITY, vGCC,UP, REMOVE_LINE,\
 	TAB_SIZE, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
 	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, BAR_SIZE,
   XMIPP_VERSIONS, MODE_GET_MODELS, WARNING_CODE, XMIPPENV, urlModels, remotePath,
@@ -864,7 +864,11 @@ def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO,
 		outputStr += writeReaderLine(readerOut, show=False)
 		outputStr += writeReaderLine(readerErr, show=showError, err=True)
 		if linesCompileBar:
-			progresBar(len(outputStr.split('\n')), linesCompileBar)
+			if outputStr.count('is up to date') > 4:
+					lines = linesCompileBar[1]
+			else:
+					lines = linesCompileBar[0]
+			progresBar(len(outputStr.split('\n')), lines)
 
 		# If process has finished, exit loop
 		if isProcessFinished:
@@ -873,27 +877,29 @@ def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO,
 		# Sleep before continuing to next iteration
 		time.sleep(OUTPUT_POLL_TIME)
 
+	if linesCompileBar:
+		print(REMOVE_LINE)
+		print(REMOVE_LINE, end='\r')
+		print('lines: {}'.format(len(outputStr.split('\n'))))
+
 	return outputStr
 
 
-def progresBar(linesOut:int=0, linesCompileBar: list = [1, 1]):
-		if linesOut > linesCompileBar[0]:
+def progresBar(linesOut:int=0, lines:int=0):
+		if linesOut > lines:
 				progress = BAR_SIZE - 1
 		else:
-				progress = int(round((linesOut * BAR_SIZE) / linesCompileBar[0], 0))
+				progress = int((linesOut * BAR_SIZE) / lines)
 		#print(linesOut, linesCompileBar[0], progress)
-		signEmpty = '-'
-		signFull = '#'
-		bar = signFull * progress + signEmpty * (BAR_SIZE - progress)
-		bar = '[' + bar + ']' + '\n'
-		percent = int(round(progress * 100 / BAR_SIZE), 0)
-		print(green(bar), f'{percent}% ', end=UP)
+		percent = int(round(progress * 100 / BAR_SIZE, 0))
 
-def printBar(progress):
-		signEmpty = '-'
-		signFull = '#'
-		bar = signFull * progress + signEmpty * (BAR_SIZE - progress)
-		bar = '[' + bar + ']'
+		signEmpty = ' '
+		signFull = '='
+		bar = signFull * progress + '>'+ signEmpty * (BAR_SIZE - progress)
+		bar = ' [' + bar + ']'
+		print(green(bar), end='')
+		print(green(f' {percent}% '), end='\n')
+		print(f'More about the compilation: {LOG_FILE}', end=UP)
 
 
 def writeReaderLine(reader: io.FileIO, show: bool=False, err: bool=False) -> str:
