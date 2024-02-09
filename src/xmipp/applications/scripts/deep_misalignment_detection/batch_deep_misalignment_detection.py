@@ -17,7 +17,6 @@ class ScriptDeepMisalignmentDetection(XmippScript):
 
         XmippScript.__init__(self)
         
-        self.modelPick = None
         self.inputModel1 = None
         self.inputModel2 = None
         self.subtomoFilePath = None
@@ -32,9 +31,6 @@ class ScriptDeepMisalignmentDetection(XmippScript):
         self.addUsageLine('Detect artifacted tomographic reconstruction from extracted fiducial markers')
         
         # Params
-        self.addParamsLine(' --modelPick <modelPick>: choose model for weak misalignment estimation. Strict model (0) is picked in '
-                           'order to avoid false positives. In case loose (1) model is chosen, less good aligned '
-                           'tomograms are lost. As a tradeoff, the number of false positives will increase.')
         self.addParamsLine(' --subtomoFilePath <subtomoFilePath>: file path of the xmd file containg the coordiantes of the extracted subtomos. ' +
                            'The extracted subtomo should be in the same folder with the same basename + "-[numberOfSubtomo]." ' +
                            'This is the output got when extracting with xmipp_tomo_extract_subtomograms.')
@@ -51,23 +47,14 @@ class ScriptDeepMisalignmentDetection(XmippScript):
 
         
         # Examples       
-        self.addExampleLine('xmipp_deep_misalingment_detection -modelPick 0 --subtomoFilePath path/to/coords.xmd ' 
-                            '--misaliThr 0.45')
+        self.addExampleLine('xmipp_deep_misalingment_detection --subtomoFilePath path/to/coords.xmd --misaliThr 0.45 -g 0')
 
     
     #  --------------------- I/O FUNCTIONS -----------------------------
     def readInputParams(self):
-        self.modelPick = self.getDoubleParam('--modelPick')
-
-        if self.modelPick == 0:
-            self.inputModel1 = self.getModel("deepTomoMisalignment", "xmipp_FS_phc_model.06-0.01.h5")
-        elif self.modelPick == 1:
-            self.inputModel1 = self.getModel("deepTomoMisalignment", "xmipp_FS_phc_artifacts_model.19-0.02.h5")
-        else:
-            print("ERROR: INVALID OPTION FOR MODEL PICK")
-            exit()
-
-        self.inputModel2 = self.getModel("deepTomoMisalignment", 'xmipp_SS_phc_model.22-0.67.h5')
+        
+        self.inputModel1 = self.getModel("deepTomoMisalignment", "xmipp_FS_phc_model.10-0.01.h5")
+        self.inputModel2 = self.getModel("deepTomoMisalignment", "xmipp_SS_phc_model.17-0.25.h5")
 
         self.subtomoFilePath = self.getParam('--subtomoFilePath')
 
