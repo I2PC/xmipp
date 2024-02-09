@@ -28,9 +28,9 @@ Submodule containing all the general constants needed for Xmipp's installation.
 XMIPP = 'xmipp'
 XMIPP_CORE = 'xmippCore'
 XMIPP_VIZ = 'xmippViz'
-XMIPP_COMPILE_LINES = [856, 244] #[full # lines compiler, lines # precompiled] 8/02/2024
-XMIPP_CORE_COMPILE_LINES = [124, 9]
-XMIPP_VIZ_COMPILE_LINES = [55, 19]
+XMIPP_COMPILE_LINES = [860, 244] #[full # lines compiler, lines # precompiled] 8/02/2024
+XMIPP_CORE_COMPILE_LINES = [130, 10]
+XMIPP_VIZ_COMPILE_LINES = [60, 20]
 BAR_SIZE = 30
 UP = "\x1B[1A\r"
 REMOVE_LINE = '\033[K'
