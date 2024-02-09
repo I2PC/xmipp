@@ -249,7 +249,7 @@ def getAllModes() -> List[str]:
 	# Return full mode list
 	return modes
 
-def addDeepLearninModel(login, modelPath='', update=None):
+def addDeepLearningModel(login, modelPath='', update=None):
 		""" Takes the folder name modelName from models dir and
 				makes a .tgz, uploads the .tgz to xmipp server.
 		"""

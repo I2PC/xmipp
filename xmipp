@@ -33,7 +33,7 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS,\
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR,
 		XMIPP_MODE_ERROR,  DEFAULT_MODE_DEBUG, XMIPP_VERSIONS, LOG_FILE)
-from installer.utils import (printError, runJob, addDeepLearninModel,
+from installer.utils import (printError, runJob, addDeepLearningModel,
 														 downloadDeepLearningModels, runTests, branchName,
 														 getCurrentEnvName, printMessage)
 from installer.config.config import config, checkGit
@@ -51,7 +51,7 @@ def modeAddModel(args: argparse.Namespace):
   #### Params:
   - args (Namespace): Command line arguments parsed by argparse library.
   """
-  addDeepLearninModel(login=args.login, modelPath=args.modelPath, update=args.update)
+  addDeepLearningModel(login=args.login, modelPath=args.modelPath, update=args.update)
 
 def modeCleanBin(args: argparse.Namespace):
   """
