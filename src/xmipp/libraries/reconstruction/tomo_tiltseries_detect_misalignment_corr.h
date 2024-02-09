@@ -23,8 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef __IMAGE_PEAK_HIGH_CONTRAST
-#define __IMAGE_PEAK_HIGH_CONTRAST
+#ifndef __TOMO_TS_DETECT_MISALI_CORR
+#define __TOMO_TS_DETECT_MISALI_CORR
 
 #include <iostream>
 #include <core/xmipp_program.h>
@@ -50,6 +50,7 @@
 #define VERBOSE_OUTPUT
 
 // #define DEBUG_DIM
+#define DEBUG_TI_CORR
 
 #define DEBUG_OUTPUT_FILES
 
@@ -57,9 +58,6 @@ class ProgTomoTSDetectMisalignmentCorr : public XmippProgram
 {
 
 public:
-    /** Landmark detector */
-    ProgTomoDetectLandmarks lmDetector;
-
     /** Params specific for landmark detectior */
     double targetFS;
 
@@ -74,10 +72,6 @@ public:
     float fiducialSizePx;   // Fiducial size in pixels
     double samplingRate;
 
-    /** Thresholds */
-    float thrSDHCC;              // Threshold number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.
-    float thrFiducialDistance;   // Maximum distance of a detected landmark to consider it belongs to a chain
-
    
     /** Input tilt-series dimensions */
     size_t xSize;
@@ -86,19 +80,11 @@ public:
     size_t nSize;
     size_t normDim;
 
-    /** Array of coordinate model structures */
-    std::vector<CM> vCM;
-
     /** Vector containig the tilt angles from the series */
     std::vector<double> tiltAngles;
 
-    /** Vector containig the input 3D coorinates used for alignment */
-    std::vector<Point3D<int>> inputCoords;
-    size_t numberOfInputCoords = inputCoords.size();
-
     /** Angle step */
     float tiltAngleStep;
-
 
     /** Alignment report. True = aligned / False = misaligned */
     bool globalAlignment = true;
@@ -147,6 +133,8 @@ public:
      *
     */
     Matrix2D<double> getCosineStretchingMatrix(double tiltAngle);
+
+    Matrix2D<double> maxCorrelationShift(MultidimArray<double> &ti1, MultidimArray<double> &ti2);
 
     void detectSubtleMisalingment();
     // --------------------------- MAIN ----------------------------------
