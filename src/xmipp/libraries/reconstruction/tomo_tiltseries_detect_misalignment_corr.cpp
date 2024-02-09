@@ -258,19 +258,18 @@ void ProgTomoTSDetectMisalignmentCorr::adjustCoordinatesCosineStreching()
 Matrix2D<double> ProgTomoTSDetectMisalignmentCorr::getCosineStretchingMatrix(double tiltAngle)
 {
 	double cosTiltAngle = cos(tiltAngle * PI/180.0);
-	double sinTiltAngle = sin(tiltAngle * PI/180.0);
 
-	Matrix2D<double> projectionMatrix(3,3);
+	Matrix2D<double> m(3,3);
 
-	MAT_ELEM(projectionMatrix, 0, 0) = cosTiltAngle;
-	// MAT_ELEM(projectionMatrix, 0, 1) = 0;
-	MAT_ELEM(projectionMatrix, 0, 2) = sinTiltAngle;
-	// MAT_ELEM(projectionMatrix, 1, 0) = 0;
-	MAT_ELEM(projectionMatrix, 1, 1) = 1;
-	// MAT_ELEM(projectionMatrix, 1, 2) = 0;
-	MAT_ELEM(projectionMatrix, 2, 0) = -sinTiltAngle;
-	// MAT_ELEM(projectionMatrix, 2, 1) = 0;
-	MAT_ELEM(projectionMatrix, 2, 2) = cosTiltAngle;
+	MAT_ELEM(m, 0, 0) = 1/cosTiltAngle;
+	// MAT_ELEM(m, 0, 1) = 0;
+	// MAT_ELEM(m, 0, 2) = 0;
+	// MAT_ELEM(m, 1, 0) = 0;
+	MAT_ELEM(m, 1, 1) = 1;
+	// MAT_ELEM(m, 1, 2) = 0;
+	// MAT_ELEM(m, 2, 0) = 0;
+	// MAT_ELEM(m, 2, 1) = 0;
+	MAT_ELEM(m, 2, 2) = 1;
 
-	return projectionMatrix;
+	return m;
 }
