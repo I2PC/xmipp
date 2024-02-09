@@ -37,8 +37,8 @@ from .constants import (XMIPP, XMIPP_COMPILE_LINES, XMIPP_CORE_COMPILE_LINES,
 	DEVEL_BRANCHNAME, MASTER_BRANCHNAME, TAGS_SUBPAGE, HEADER0, HEADER1, HEADER2,
   CUFFTADVISOR, CTPL, GTEST, LIBSVM, LIBCIFPP, CLONNING_EXTERNAL_SOURCE_ERROR,
   CLONNING_XMIPP_SOURCE_ERROR, DOWNLOADING_XMIPP_SOURCE_ERROR, GIT_PULL_WARNING,
-	XMIPP_COMPILLATION_ERROR,XMIPPCORE_COMPILLATION_ERROR,
-  XMIPPVIZ_COMPILLATION_ERROR, XMIPP_VERSIONS, VERNAME_KEY, DEPRECATE_ERROR,
+	XMIPP_COMPILATION_ERROR,XMIPPCORE_COMPILATION_ERROR,
+  XMIPPVIZ_COMPILATION_ERROR, XMIPP_VERSIONS, VERNAME_KEY, DEPRECATE_ERROR,
   CLEANING_SOURCES_WARNING,CONFIG_FILE,CLEANING_BINARIES_WARNING, DONE0, DONE1,DONE2,
   INSTALLATION_ERROR, LINKING2SCIPION, VERSION_KEY, SCIPION_LINK_WARNING,
   CUFFTADVISOR,	CTPL,	GTEST, LIBSVM, LIBCIFPP, XMIPP_CORE,XMIPP_VIZ, XMIPP_PLUGIN)
@@ -281,9 +281,9 @@ def compileSources(jobs, sconsPath:str):
 		- RuntimeError: If any error occurs during the compilation process for Xmipp components,
 		  it raises an appropriate RuntimeError with error details.
 		"""
-		sources = [[XMIPP_CORE, XMIPPCORE_COMPILLATION_ERROR, XMIPP_CORE_COMPILE_LINES],
-						   [XMIPP, XMIPP_COMPILLATION_ERROR, XMIPP_COMPILE_LINES],
-							 [XMIPP_VIZ, XMIPPVIZ_COMPILLATION_ERROR, XMIPP_VIZ_COMPILE_LINES]]
+		sources = [[XMIPP_CORE, XMIPPCORE_COMPILATION_ERROR, XMIPP_CORE_COMPILE_LINES],
+						   [XMIPP, XMIPP_COMPILATION_ERROR, XMIPP_COMPILE_LINES],
+							 [XMIPP_VIZ, XMIPPVIZ_COMPILATION_ERROR, XMIPP_VIZ_COMPILE_LINES]]
 		dictPackage, _ = readConfig()
 		for source in sources:
 				compileXmippRun(source=source[0], sourceError=source[1], compileLines=source[2], sconsPath=sconsPath, jobs=jobs)
@@ -308,11 +308,11 @@ def compileAndInstall(args):
 	getSources(branch=args.branch)
 	# Compile external dependencies
 	printMessage('\n---------------------------------------', debug=True)
-	printMessage(text=f'\n{HEADER0} External compillations {HEADER0}', debug=True)
+	printMessage(text=f'\n{HEADER0} External compilations {HEADER0}', debug=True)
 	compileExternalSources(jobs=args.jobs)
 	printMessage('\n---------------------------------------', debug=True)
 	# Compile Xmipp
-	printMessage(text=f'\n{HEADER0} Xmipp compillation {HEADER0}', debug=True)
+	printMessage(text=f'\n{HEADER0} Xmipp compilation {HEADER0}', debug=True)
 	dictPackages, _ = readConfig()
 	compileSources(jobs=args.jobs, sconsPath=dictPackages['SCONS'])
 	printMessage('\n---------------------------------------', debug=True)

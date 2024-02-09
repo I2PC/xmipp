@@ -46,7 +46,7 @@ RSYNC_VERSION_ERROR = 15
 HDF5_NOT_FOUND_ERROR = 16
 HDF5_NOT_FOUND_ERROR = 17
 HDF5_ERROR = 18
-MPI_COMPILLATION_ERROR = 19
+MPI_COMPILATION_ERROR = 19
 MPI_RUNNING_ERROR = 20
 JAVAC_DOESNT_WORK_ERROR = 21
 JAVA_INCLUDE_ERROR = 22
@@ -70,9 +70,9 @@ LIBSVM_ERROR = 39
 LIBCIFPP_ERROR = 40
 PYTHONINCFLAGS_ERROR = 41
 NVCC_CXXFLAGS_ERROR = 42
-XMIPP_COMPILLATION_ERROR = 43
-XMIPPCORE_COMPILLATION_ERROR = 44
-XMIPPVIZ_COMPILLATION_ERROR = 45
+XMIPP_COMPILATION_ERROR = 43
+XMIPPCORE_COMPILATION_ERROR = 44
+XMIPPVIZ_COMPILATION_ERROR = 45
 DEPRECATE_ERROR = 46
 INSTALLATION_ERROR = 47
 SCONS_ENV_ERROR = 48
@@ -115,7 +115,7 @@ ERROR_CODE = {
   JAVA_HOME_PATH_ERROR: ['JAVA_HOME path with errors or bad installed.', 'bin/jar, bin/javac or include not found on the JAVA_HOME path but required.'],
   HDF5_ERROR: ['hdf5 libs does not work.', 'Please review the LIBDIRFLAGS flag on xmipp.conf.'],
   HDF5_NOT_FOUND_ERROR: ['HDF5 library was not found on your system.', 'Please install it or add the path in the flag HDF5_HOME in xmipp.conf file and run the ./xmipp confile.'],
-  MPI_COMPILLATION_ERROR: ['Unable to compile with mpicxx', '.'],
+  MPI_COMPILATION_ERROR: ['Unable to compile with mpicxx', '.'],
 	MPI_RUNNING_ERROR: ['mpirun or mpiexec can not run several process in parallel.', 'Please, review the mpi installation, if you are running a virtual machine, please allow several processors not just one.'],
 	JAVAC_DOESNT_WORK_ERROR: ['JAVAC does not work.', 'Check the JAVA_HOME flag on xmipp.conf.'],
 	JAVA_INCLUDE_ERROR: ['JAVA fails. jni include fails.','Check the JNI_CPPPATH, CXX and INCDIRFLAGS.'],
@@ -138,9 +138,9 @@ ERROR_CODE = {
   LIBCIFPP_ERROR: ['Error compilling libcifpp.', 'Please, read the documentation of the package.'],
   PYTHONINCFLAGS_ERROR: ['Error collecting the pyton and numpy packages.','Please, review your python executable and the numpy on your enviroment.'],
   NVCC_CXXFLAGS_ERROR: ['Error collecting the nvcc version.', 'Please review your nvcc installation or set CUDA flag to False on xmipp.conf'],
-  XMIPP_COMPILLATION_ERROR: ['Error compilling scripts from xmipp.', 'Please  review the compillationLog file for details.'],
-  XMIPPCORE_COMPILLATION_ERROR: ['Error compilling scripts from xmippCore.', 'Please  review the compillationLog file for details.'],
-  XMIPPVIZ_COMPILLATION_ERROR: ['Error compilling scripts from xmippViz.', 'Please  review the compillationLog file for details.'],
+  XMIPP_COMPILATION_ERROR: ['Error compilling scripts from xmipp.', 'Please  review the compilationLog file for details.'],
+  XMIPPCORE_COMPILATION_ERROR: ['Error compilling scripts from xmippCore.', 'Please  review the compilationLog file for details.'],
+  XMIPPVIZ_COMPILATION_ERROR: ['Error compilling scripts from xmippViz.', 'Please  review the compilationLog file for details.'],
   DEPRECATE_ERROR: ['Deprecated programs were no deleted.', ''],
   INSTALLATION_ERROR: ['Some error occurred during the installation.', ''],
   LINKING2SCIPION: ['',''],

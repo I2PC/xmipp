@@ -187,7 +187,7 @@ def checkMPI(dictPackages, dictInternalFlags):
 
     status, output = runJob(cmd)
     if status != 0:
-        exitError(retCode=MPI_COMPILLATION_ERROR,
+        exitError(retCode=MPI_COMPILATION_ERROR,
                   output='Fails running the command: \n{}\n\nError message:\n{}'.format(cmd, output),
                   dictPackages=dictPackages, tarPost=tarPost)
 
