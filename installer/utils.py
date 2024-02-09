@@ -42,7 +42,7 @@ from .constants import (MODES, CUDA_GCC_COMPATIBILITY, vGCC,UP, \
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False,
 					 showCommand: bool=False, streaming: bool=False, printLOG:bool=False,
-					 pathLOGFile:str='', linesCompileBar:list=[1,1]) -> Tuple[int, str]:
+					 pathLOGFile:str='', linesCompileBar:list=None) -> Tuple[int, str]:
 	"""
 	### This function runs the given command.
 
@@ -802,7 +802,7 @@ def installScons() -> bool:
 
 ####################### AUX FUNCTIONS (INTERNAL USE ONLY) #######################
 def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False,
-										showError: bool=False, linesCompileBar: list=[1, 1]) -> Tuple[int, str]:
+										showError: bool=False, linesCompileBar:list=None) -> Tuple[int, str]:
 	"""
 	### This function runs the given command and shows its output as it is being generated.
 
@@ -842,7 +842,7 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False,
 
 def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO,
 											 readerErr: io.FileIO, showError: bool=False,
-											 linesCompileBar: list = [1, 1]) -> str:
+											 linesCompileBar:list=None) -> str:
 	"""
 	### This function captures the output and errors of the given process as it runs.
 
@@ -863,8 +863,8 @@ def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO,
 		isProcessFinished = process.poll() is not None
 		outputStr += writeReaderLine(readerOut, show=False)
 		outputStr += writeReaderLine(readerErr, show=showError, err=True)
-		if linesCompileBar != [1, 1]:
-			progresBar(len(outputStr), linesCompileBar)
+		if linesCompileBar:
+			progresBar(len(outputStr.split('\n')), linesCompileBar)
 
 		# If process has finished, exit loop
 		if isProcessFinished:
@@ -881,12 +881,13 @@ def progresBar(linesOut:int=0, linesCompileBar: list = [1, 1]):
 				progress = BAR_SIZE - 1
 		else:
 				progress = int(round((linesOut * BAR_SIZE) / linesCompileBar[0], 0))
-		print(linesOut, linesCompileBar[0], progress)
+		#print(linesOut, linesCompileBar[0], progress)
 		signEmpty = '-'
 		signFull = '#'
 		bar = signFull * progress + signEmpty * (BAR_SIZE - progress)
 		bar = '[' + bar + ']' + '\n'
-		#print(green(bar), end=UP)
+		percent = int(round(progress * 100 / BAR_SIZE), 0)
+		print(green(bar), f'{percent}% ', end=UP)
 
 def printBar(progress):
 		signEmpty = '-'
