@@ -47,12 +47,11 @@ void ProgTomoTSDetectMisalignmentCorr::defineParams()
 	addUsageLine("This function determines the location of high contrast features in a volume.");
 	addParamsLine("  -i <mrcs_file=\"\">                   					: Input tilt-series.");
 	addParamsLine("  --tlt <xmd_file=\"\">      							: Input file containning the tilt angles of the tilt-series in .xmd format.");
-	addParamsLine("  --inputCoord <output=\"\">								: Input coordinates of the 3D landmarks. Origin at top left coordinate (X and Y always positive) and centered at the middle of the volume (Z positive and negative).");
 	addParamsLine("  [-o <output=\"./alignemntReport.xmd\">]       			: Output file containing the alignemnt report.");
 
 	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px).");
 
-	addParamsLine("  [--targetLMsize <targetLMsize=8>]		    : Targer size of landmark when downsampling (px).");
+	addParamsLine("  [--targetLMsize <targetLMsize=8>]		    			: Targer size of landmark when downsampling (px).");
 }
 
 
@@ -68,6 +67,14 @@ void ProgTomoTSDetectMisalignmentCorr::generateSideInfo()
 	inputTiltAnglesMd.read(fnTiltAngles);
 
 	size_t objIdTlt;
+	double tiltAngle;
+
+	for(size_t objIdTlt : inputTiltAnglesMd.ids())
+	{
+		inputTiltAnglesMd.getValue(MDL_ANGLE_TILT, tiltAngle, objIdTlt);
+		tiltAngles.push_back(tiltAngle);
+	}
+
 
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Input tilt angles read from: " << fnTiltAngles << std::endl;
@@ -86,6 +93,7 @@ void ProgTomoTSDetectMisalignmentCorr::generateSideInfo()
 
 void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment(MultidimArray<double> &ts)
 {
+	std::cout << "Detecting misalignment..." << std::endl;
 	MultidimArray<double> ti_bw;
 	MultidimArray<double> ti_fw;
 
@@ -95,13 +103,19 @@ void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment(MultidimArray<do
 	double ta_bw;
 	double ta_fw;
 
-	std::vector<Matrix2D<double>> shifts_bw(nSize-1);
-	std::vector<Matrix2D<double>> shifts_fw(nSize-1);
+	std::cout <<"XSIZE(ts) "<< XSIZE(ts) <<std::endl;
+	std::cout <<"YSIZE(ts) "<< YSIZE(ts) <<std::endl;
+	std::cout <<"ZSIZE(ts) "<< ZSIZE(ts) <<std::endl;
+	std::cout <<"NSIZE(ts) "<< NSIZE(ts) <<std::endl;
 
-	// Forward 
+	std::cout << "nSize " << nSize <<std::endl;
+
+
 	for (size_t n = 0; n < nSize-1; n++)
 	{
 		// Construct forward and backward images
+		std::cout << "Construct images " <<std::endl;
+
 		for (size_t i = 0; i < ySize; i++)
 		{
 			for (size_t j = 0; j < xSize; j++)
@@ -111,35 +125,58 @@ void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment(MultidimArray<do
 			}
 		}
 
+		#ifdef DEBUG_OUTPUT_FILES
+		Image<double> saveImage;
+
+		saveImage() = ti_bw;
+		saveImage.write("./ti_bw.mrc");
+
+		saveImage() = ti_fw;
+		saveImage.write("./ti_fw.mrc");
+		#endif
+
 		// Apply cosine stretching
+		std::cout << "Apply CS " <<std::endl;
+
 		ta_bw = tiltAngles[n];
 		ta_fw = tiltAngles[n+1];
-
-		int direction;
 
 		if (abs(ta_bw)>abs(ta_fw))
 		{
 			cosineStretching(ti_bw, ta_bw-ta_fw);
-			direction = 1;
 		}
 		else
 		{
 			cosineStretching(ti_fw, ta_bw-ta_fw);
-			direction = -1;
 		}
 
+
+		#ifdef DEBUG_OUTPUT_FILES
+		saveImage() = ti_bw;
+		saveImage.write("./ti_bw_cs.mrc");
+
+		saveImage() = ti_fw;
+		saveImage.write("./ti_fw_cs.mrc");
+		#endif
+
 		// Calculate shift for maximum correlation
+		std::cout << "Calculate max correlation " <<std::endl;
+
 		Matrix2D<double> relShift;
 		relShift = maxCorrelationShift(ti_bw, ti_fw);
-
-		MAT_ELEM(relShift, 0, 0) *= direction;
-		MAT_ELEM(relShift, 0, 1) *= direction;
-
 
 		std::cout << "For image " << n << ": shift [" << MAT_ELEM(relShift, 0, 0) << ", " << MAT_ELEM(relShift, 0, 1) << "]" << std::endl;
 
 		relativeShifts.push_back(relShift);
 	}
+
+	for (size_t i = 0; i < relativeShifts.size(); i++)
+	{
+		std::cout << "[" << MAT_ELEM(relativeShifts[i], 0, 0) << " ," 
+		                 << MAT_ELEM(relativeShifts[i], 0, 1) << " ]"
+						 								 << std::endl;
+	}
+	
 }
 
 
@@ -165,31 +202,36 @@ void ProgTomoTSDetectMisalignmentCorr::run()
 	MetaDataVec tiltseriesmd;
     Image<double> tiltSeriesImages;
 
-    if (fnVol.isMetaData())
-    {
-        tiltseriesmd.read(fnVol);
-    }
-    else
-    {
-        tiltSeriesImages.read(fnVol, HEADER);
+    // if (fnVol.isMetaData())
+    // {
+    //     tiltseriesmd.read(fnVol);
+    // }
+    // else
+    // {
+    //     tiltSeriesImages.read(fnVol, HEADER);
 
-        size_t Zdim, Ndim;
-        tiltSeriesImages.getDimensions(Xdim, Ydim, Zdim, Ndim);
+    //     size_t Zdim, Ndim;
+    //     tiltSeriesImages.getDimensions(Xdim, Ydim, Zdim, Ndim);
 
-        if (fnVol.getExtension() == "mrc" and Ndim == 1)
-            Ndim = Zdim;
+    //     if (fnVol.getExtension() == "mrc" and Ndim == 1)
+    //         Ndim = Zdim;
 
-        size_t id;
-        FileName fn;
-        for (size_t i = 0; i < Ndim; i++) 
-        {
-            id = tiltseriesmd.addObject();
-            fn.compose(i + FIRST_IMAGE, fnVol);
-            tiltseriesmd.setValue(MDL_IMAGE, fn, id);
-        }
-    }
+    //     size_t id;
+    //     FileName fn;
+    //     for (size_t i = 0; i < Ndim; i++) 
+    //     {
+    //         id = tiltseriesmd.addObject();
+    //         fn.compose(i + FIRST_IMAGE, fnVol);
+    //         tiltseriesmd.setValue(MDL_IMAGE, fn, id);
+    //     }
+    // }
 
+	tiltSeriesImages.read(fnVol);
 	tiltSeriesImages.getDimensions(xSize, ySize, zSize, nSize);
+
+	if (fnVol.getExtension() == "mrc" and nSize == 1)
+		nSize = zSize;
+
 
 	#ifdef DEBUG_DIM
 	std::cout << "Input tilt-series dimensions:" << std::endl;
@@ -201,7 +243,8 @@ void ProgTomoTSDetectMisalignmentCorr::run()
 
 	generateSideInfo();
 
-	detectSubtleMisalingment(tiltSeriesImages());
+	auto &ptrts = tiltSeriesImages();
+	detectSubtleMisalingment(ptrts);
 
 	auto t2 = high_resolution_clock::now();
     auto ms_int = duration_cast<milliseconds>(t2 - t1); 	// Getting number of milliseconds as an integer
@@ -249,44 +292,59 @@ Matrix2D<double> ProgTomoTSDetectMisalignmentCorr::maxCorrelationShift(MultidimA
 	std::cout << "Calculating shift for maximum correlation..." << std::endl;
 	#endif
 
-	Matrix2D<double> relShift(2, 1);
-	MultidimArray<double> tsCorr;
-
-	// Shift the particle respect to its symmetric to look for the maximum correlation displacement
+	double shiftX;
+	double shiftY;
 	CorrelationAux aux;
-	correlation_matrix(ti1, ti2, tsCorr, aux, true);
 
-	auto maximumCorrelation = MINDOUBLE;
-	int xDisplacement = 0;
-	int yDisplacement = 0;
+	bestShift(ti1, ti2, shiftX, shiftY, aux, nullptr, 100);
 
-	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(tsCorr)
-	{
-		double value = DIRECT_A2D_ELEM(tsCorr, i, j);
+	Matrix2D<double> relShift(2, 1);
 
-		if (value > maximumCorrelation)
-		{
-			#ifdef DEBUG_CENTER_COORDINATES
-			std::cout << "new maximumCorrelation " << value << " at (" << i << ", " << j << ")" << std::endl;
-			#endif
+	MAT_ELEM(relShift, 0, 0) = shiftX;
+	MAT_ELEM(relShift, 0, 1) = shiftY;
 
-			maximumCorrelation = value;
-			xDisplacement = j;
-			yDisplacement = i;
-		}
-	}
+			// double bestShift(const MultidimArray<double> &I1, const MultidimArray<double> &I2,
+			//            double &shiftX, double &shiftY, CorrelationAux &aux,
+			//            const MultidimArray<int> *mask, int maxShift)
 
-	MAT_ELEM(relShift, 0, 0) = (xDisplacement - xSize) / 2;
-	MAT_ELEM(relShift, 0, 1) = (yDisplacement - ySize) / 2;
+	// Matrix2D<double> relShift(2, 1);
+	// MultidimArray<double> tsCorr;
+
+	// // Shift the particle respect to its symmetric to look for the maximum correlation displacement
+	// CorrelationAux aux;
+	// correlation_matrix(ti1, ti2, tsCorr, aux, true);
+
+	// auto maximumCorrelation = MINDOUBLE;
+	// int xDisplacement = 0;
+	// int yDisplacement = 0;
+
+	// FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(tsCorr)
+	// {
+	// 	double value = DIRECT_A2D_ELEM(tsCorr, i, j);
+
+	// 	if (value > maximumCorrelation)
+	// 	{
+	// 		#ifdef DEBUG_CENTER_COORDINATES
+	// 		std::cout << "new maximumCorrelation " << value << " at (" << i << ", " << j << ")" << std::endl;
+	// 		#endif
+
+	// 		maximumCorrelation = value;
+	// 		xDisplacement = j;
+	// 		yDisplacement = i;
+	// 	}
+	// }
+
+	// MAT_ELEM(relShift, 0, 0) = (xDisplacement - xSize) / 2;
+	// MAT_ELEM(relShift, 0, 1) = (yDisplacement - ySize) / 2;
 
 
-	#ifdef DEBUG_TI_CORR
-	std::cout << "maximumCorrelation " << maximumCorrelation << std::endl;
-	std::cout << "xDisplacement " << (xDisplacement - xSize) / 2 << std::endl;
-	std::cout << "yDisplacement " << (yDisplacement - ySize) / 2 << std::endl;
+	// #ifdef DEBUG_TI_CORR
+	// std::cout << "maximumCorrelation " << maximumCorrelation << std::endl;
+	// std::cout << "xDisplacement " << (xDisplacement - xSize) / 2 << std::endl;
+	// std::cout << "yDisplacement " << (yDisplacement - ySize) / 2 << std::endl;
 
-	std::cout << "Correlation volume dimensions (" << XSIZE(tsCorr) << ", " << YSIZE(tsCorr) << ")" << std::endl;
-	#endif
+	// std::cout << "Correlation volume dimensions (" << XSIZE(tsCorr) << ", " << YSIZE(tsCorr) << ")" << std::endl;
+	// #endif
 
 	return relShift;
 }
