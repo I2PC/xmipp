@@ -34,8 +34,8 @@ from sysconfig import get_paths
 
 # Installer imports
 from .constants import (MODES, CUDA_GCC_COMPATIBILITY, vGCC,UP, REMOVE_LINE,\
-	TAB_SIZE, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
-	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, BAR_SIZE,
+	TAB_SIZE, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE, DEFAULT_MODELS_DIR,\
+	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, BAR_SIZE, DEFAULT_BUILD_DIR,
   XMIPP_VERSIONS, MODE_GET_MODELS, WARNING_CODE, XMIPPENV, urlModels, remotePath,
   DOCUMENTATION_URL, urlTest, SCONS_INSTALLATION_WARINING, DONE0, DONE1, HEADER0, HEADER1, HEADER2)
 
@@ -285,7 +285,7 @@ def downloadDeepLearningModels(dest:str='build'):
 		if not os.path.exists('build/bin/xmipp_sync_data'):
 				printMessage(red('Xmipp is not installed. Please, install Xmipp before downloading DLTK models.'))
 				return False
-		if dest == 'build':
+		if dest == DEFAULT_BUILD_DIR or dest == DEFAULT_MODELS_DIR:
 				modelsPath = 'models'
 		else:
 				modelsPath = dest

@@ -225,7 +225,7 @@ def modeAll(args: argparse.Namespace):
 	printMessage(f"Compilation and install time: {round((time() - dateStart) / 60.0, 1)} mins", debug=False)
 	printMessage('\n---------------------------------------\n', debug=True)
 	if args.NoModels == None:
-			downloadDeepLearningModels(args)
+			downloadDeepLearningModels(args.directory)
 	exitXmipp(dictPackages=dictConfig)
 
 def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
