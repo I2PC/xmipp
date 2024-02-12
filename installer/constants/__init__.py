@@ -36,4 +36,6 @@ cmakeInstallURL = 'https://i2pc.github.io/docs/Installation/InstallationNotes/in
 urlModels = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
 remotePath = "scipionfiles/downloads/scipion/software/em"
 urlTest = "http://scipion.cnb.csic.es/downloads/scipion/data/tests"
+HOST_TEST = 'google.com'
+HOST_TEST_2 = 'https://github.com'
 warningToHidden = 'using serial compilation of 2 LTRANS jobs'

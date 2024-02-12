@@ -538,11 +538,11 @@ def checkCMake():
 
 def checkScons(dictPackages:dict):
     sconsV = getSconsVersion(dictPackages)
-    if sconsV is not None:
+    if sconsV:
         if versionToNumber(sconsV) < versionToNumber(SCONS_MINIMUM):
             status = installScons()
             if status is False:
-                exitError(retCode=SCONS_VERSION_ERROR,output='scons found {}, required {}'.format(sconsV, SCONS_MINIMUM), tarPost=tarPost)
+                exitError(retCode=SCONS_VERSION_INSTALL_ERROR, output='scons found {}, required {}'.format(sconsV, SCONS_MINIMUM), tarPost=tarPost)
             else:
                 retCode, outputStr = runJob('which scons')
                 if retCode == 0:
@@ -552,7 +552,7 @@ def checkScons(dictPackages:dict):
     else:
         status = installScons()
         if status is False:
-          exitError(retCode=SCONS_ERROR, output='Scons not found.', tarPost=tarPost)
+          exitError(retCode=SCONS_INSTALL_ERROR, output='Scons not found.', tarPost=tarPost)
         else:
             retCode, outputStr = runJob('which scons')
             if retCode == 0 and outputStr != '':

@@ -33,12 +33,12 @@ from typing import List, Tuple, Union, Callable, Any
 from sysconfig import get_paths
 
 # Installer imports
-from .constants import (MODES, CUDA_GCC_COMPATIBILITY, vGCC,UP, REMOVE_LINE,\
-	TAB_SIZE, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE, DEFAULT_MODELS_DIR,\
-	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, BAR_SIZE, DEFAULT_BUILD_DIR,
-  XMIPP_VERSIONS, MODE_GET_MODELS, WARNING_CODE, XMIPPENV, urlModels, remotePath,
-  DOCUMENTATION_URL, urlTest, SCONS_INSTALLATION_WARINING, DONE0, DONE1, HEADER0,
-  HEADER1, HEADER2, warningToHidden)
+from .constants import (MODES, CUDA_GCC_COMPATIBILITY, vGCC, UP, REMOVE_LINE, \
+						TAB_SIZE, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE, DEFAULT_MODELS_DIR, \
+						CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, BAR_SIZE, DEFAULT_BUILD_DIR,
+						XMIPP_VERSIONS, MODE_GET_MODELS, WARNING_CODE, XMIPPENV, urlModels, remotePath,
+						DOCUMENTATION_URL, urlTest, DONE0, DONE1, HEADER0,
+						HEADER1, HEADER2, warningToHidden, HOST_TEST, HOST_TEST_2, NETWORK_WARINING)
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False,
@@ -205,7 +205,7 @@ def printWarning(text: str, warningCode: int, debug: bool=True, pathFile:str='')
 	- warningCode (int): Code of the controlled warning.
 	- debug (bool): Indicates if debug mode is active.
 	"""
-	printMessage(yellow(f'! Warning code {warningCode}: {WARNING_CODE[warningCode][0]}\n{WARNING_CODE[warningCode][1]}\n'),
+	printMessage(yellow(f'! Warning code {warningCode}: {text}\n{WARNING_CODE[warningCode][0]}\n{WARNING_CODE[warningCode][1]}\n'),
 							 debug=debug, pathFile=pathFile)
 
 def remove_color_codes(coloredText):
@@ -284,32 +284,32 @@ def addDeepLearningModel(login, modelPath='', update=None):
 def downloadDeepLearningModels(dest:str='build'):
 		printMessage(f"{HEADER0} Downloading DeepLearningToolKit models {HEADER0} ",debug=True)
 		if not os.path.exists('build/bin/xmipp_sync_data'):
-				printMessage(red('Xmipp is not installed. Please, install Xmipp before downloading DLTK models.'))
-				return False
+			printMessage(red('Xmipp is not installed. Please, install Xmipp before downloading DLTK models.'))
+			return False
 		if dest == DEFAULT_BUILD_DIR or dest == DEFAULT_MODELS_DIR:
-				modelsPath = 'models'
+			modelsPath = 'models'
 		else:
-				modelsPath = dest
+			modelsPath = dest
 		dataSet = "DLmodels"
 
 		# downloading/updating the DLmodels
 		if os.path.isdir(os.path.join(dest, modelsPath)):
-				printMessage(f"{HEADER1} Updating the Deep Learning models...", debug=True)
-				task = "update"
-				showOut = False
+			printMessage(f"{HEADER1} Updating the Deep Learning models...", debug=True)
+			task = "update"
+			showOut = False
 		else:
-				printMessage(f"{HEADER1} Downloading Deep Learning models...", debug=True)
-				task = "download"
-				showOut = True
+			printMessage(f"{HEADER1} Downloading Deep Learning models...", debug=True)
+			task = "download"
+			showOut = True
 		global pDLdownload
 		retCode, outputStr = runJob("bin/xmipp_sync_data %s %s %s %s"
 		                     % (task, modelsPath, urlModels, dataSet),
 		                     cwd='build', streaming=True, showOutput=showOut)
 		if retCode != 0:
-				printMessage(red('Unable to download models. Try again with ./xmipp {}\n{}'.format(MODE_GET_MODELS, outputStr)), debug=True)
+			printMessage(red('Unable to download models. Try again with ./xmipp {}\n{}'.format(MODE_GET_MODELS, outputStr)), debug=True)
 		else:
-				printMessage(green('Models downloaded in the path: {}'.format(modelsPath)), debug=True)
-				printMessage(green(DONE1), debug=True)
+			printMessage(green(f'Models {task}d in the path: {modelsPath}'), debug=True)
+			printMessage(green(DONE1), debug=True)
 
 
 def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
@@ -795,16 +795,15 @@ def installScons() -> bool:
 	### This function attempts to install Scons in the current enviroment.
 	"""
 	# Attempt installing/upgrading Scons
-	retCode = runJob('pip install --upgrade scons', streaming=True)[0]
-
+	if networkCheck():
+		retCode, str = runJob('pip install --upgrade scons', streaming=True)
+	else:
+		retCode = 1
 	# Obtain enviroment's name for log's message
 	envName = getCurrentEnvName()
 
 	# If command failed, show error message and exit
 	if retCode != 0:
-		instructionStr = "Please, install it manually."
-		envNameStr = f'Scons could not be installed in enviroment "{envName}".' if envName else f'Scons does not install automatically system wide by default.'
-		printWarning(f'{envNameStr} {instructionStr}', warningCode=SCONS_INSTALLATION_WARINING)
 		return False
 	
 	# If succeeded, log message
@@ -995,3 +994,15 @@ def whereis(program, findReal=False, env=None):
 		return os.path.dirname(programPath)
 	else:
 		return None
+
+def networkCheck():
+	try:
+		subprocess.run(["ping", "-c", "3", HOST_TEST], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+		return True
+	except subprocess.CalledProcessError:
+		try:
+			subprocess.run(["ping", "-c", "3", HOST_TEST_2], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+			return True
+		except subprocess.CalledProcessError:
+			printWarning(text='', debug=True, warningCode=NETWORK_WARINING)
+			return False
