@@ -221,7 +221,7 @@ def modeAll(args: argparse.Namespace):
 	printMessage(f"Compilation date: {datetime.today()}", debug=True)
 	printMessage(f"Active enviroment: {envName}", debug=True)
 	dictConfig = config(debugP=False,tarAndPost=True)
-	#compileAndInstall(args)
+	compileAndInstall(args)
 	printMessage(f"Compilation and install time: {round((time() - dateStart) / 60.0, 1)} mins", debug=False)
 	printMessage('\n---------------------------------------\n', debug=True)
 	if args.NoModels == None:

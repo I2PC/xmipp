@@ -327,8 +327,10 @@ def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
             os.environ.get('PYTHONPATH', '')])
         testsPath = os.path.join(os.environ['XMIPP_SRC'], XMIPP, 'tests')
     else:
-        retCode, outputStr = runJob('source build/xmipp.bashrc')
+        pathBashrc = os.path.join(os.getcwd(),'build/xmipp.bashrc' )
+        retCode, outputStr = runJob(f'. {pathBashrc}')
         if retCode != 0:
+            print(outputStr)
             printMessage(red('XMIPP_SRC variable is not set.') +
 								 '\nBefore running tests you need to do: ' +
 								 blue('source build/xmipp.bashrc'), debug=True,
