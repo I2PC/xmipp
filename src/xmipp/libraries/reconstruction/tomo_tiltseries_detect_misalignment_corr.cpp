@@ -69,27 +69,12 @@ void ProgTomoTSDetectMisalignmentCorr::generateSideInfo()
 
 	size_t objIdTlt;
 
-	double tiltAngle;
-	tiltAngleStep=0;
-
-	for(size_t objIdTlt : inputTiltAnglesMd.ids())
-	{
-		inputTiltAnglesMd.getValue(MDL_ANGLE_TILT, tiltAngle, objIdTlt);
-		tiltAngles.push_back(tiltAngle);
-
-		tiltAngleStep += tiltAngle;
-	}
-
-	tiltAngleStep /= tiltAngles.size();
-
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Input tilt angles read from: " << fnTiltAngles << std::endl;
 	#endif
 
-
 	// Initialize local alignment vector (depends on the number of acquisition angles)
 	localAlignment.resize(nSize, true);
-
 
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Side info generated succesfully!" << std::endl;
@@ -99,8 +84,49 @@ void ProgTomoTSDetectMisalignmentCorr::generateSideInfo()
 
 // --------------------------- HEAD functions ----------------------------
 
-void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment()
+void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment(MultidimArray<double> &ts)
 {
+	MultidimArray<double> ti_bw;
+	MultidimArray<double> ti_fw;
+
+	ti_bw.initZeros(ySize, xSize);
+	ti_fw.initZeros(ySize, xSize);
+
+	double ta_bw;
+	double ta_fw;
+
+	std::vector<Matrix2D<double>> shifts_bw(nSize-1);
+	std::vector<Matrix2D<double>> shifts_fw(nSize-1);
+
+	// Forward 
+	for (size_t n = 0; n < nSize-1; n++)
+	{
+		// Construct forward and backward images
+		for (size_t i = 0; i < ySize; i++)
+		{
+			for (size_t j = 0; j < xSize; j++)
+			{
+				DIRECT_A2D_ELEM(ti_bw, i, j) = DIRECT_NZYX_ELEM(ts, n, 0, i, j);
+				DIRECT_A2D_ELEM(ti_fw, i, j) = DIRECT_NZYX_ELEM(ts, n+1, 0, i, j);
+			}
+		}
+
+		// Apply cosine stretching
+		ta_bw = tiltAngles[n];
+		ta_fw = tiltAngles[n+1];
+
+		if (abs(ta_bw)>abs(ta_fw))
+		{
+			cosineStretching(ti_bw, ta_bw-ta_fw);
+		}
+		else
+		{
+			cosineStretching(ti_fw, ta_bw-ta_fw);
+		}
+
+		// Calculate shift for maximum correlation
+		Matrix2D<double> relShift;
+	}
 	
 }
 
@@ -125,7 +151,7 @@ void ProgTomoTSDetectMisalignmentCorr::run()
 	size_t Xdim, Ydim;
 
 	MetaDataVec tiltseriesmd;
-    ImageGeneric tiltSeriesImages;
+    Image<double> tiltSeriesImages;
 
     if (fnVol.isMetaData())
     {
@@ -163,7 +189,7 @@ void ProgTomoTSDetectMisalignmentCorr::run()
 
 	generateSideInfo();
 
-	detectSubtleMisalingment();
+	detectSubtleMisalingment(tiltSeriesImages());
 
 	auto t2 = high_resolution_clock::now();
     auto ms_int = duration_cast<milliseconds>(t2 - t1); 	// Getting number of milliseconds as an integer
@@ -174,74 +200,14 @@ void ProgTomoTSDetectMisalignmentCorr::run()
 // --------------------------- UTILS functions ----------------------------
 
 
-void ProgTomoTSDetectMisalignmentCorr::adjustCoordinatesCosineStreching()
+void ProgTomoTSDetectMisalignmentCorr::cosineStretching(MultidimArray<double> &ti, double tiltAngle)
 {
-	// MultidimArray<int> csProyectedCoordinates;
-	// csProyectedCoordinates.initZeros(ySize, xSize);
+	Matrix2D<double> sm = getCosineStretchingMatrix(tiltAngle);
+	MultidimArray<double> ti_tmp;
+	ti_tmp = ti;
 
-	// Point3D<double> dc;
-	// Point3D<double> c3d;
-	// int xTA = (int)(xSize/2);
+    applyGeometry(1, ti, ti_tmp, sm, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
 
-	// int goldBeadX;
-	// int goldBeadY;
-	// int goldBeadZ;
-
-	// for(int j = 0; j < numberOfInputCoords; j++)
-	// {
-	// 	goldBeadX = inputCoords[j].x;
-	// 	goldBeadY = inputCoords[j].y;
-	// 	goldBeadZ = inputCoords[j].z;
-
-	// 	#ifdef DEBUG_COORDS_CS
-	// 	std::cout << "Analyzing residuals corresponding to coordinate 3D " << goldBeadX << ", " << goldBeadY << ", " << goldBeadZ << std::endl;
-	// 	#endif
-
-	//     std::vector<CM> vCMc;
-	// 	getCMFromCoordinate(goldBeadX, goldBeadY, goldBeadZ, vCMc);
-
-	// 	std::vector<Point2D<double>> residuals;
-	// 	for (size_t i = 0; i < vCMc.size(); i++)
-	// 	{
-	// 		residuals.push_back(vCMc[i].residuals);
-	// 	}
-
-	// 	#ifdef DEBUG_COORDS_CS
-	// 	std::cout << " vCMc.size()" << vCMc.size() << std::endl;
-	// 	#endif
-
-	// 	// These are the proyected 2D points. The Z component is the id for each 3D coordinate (cluster projections).
-	// 	std::vector<Point3D<double>> proyCoords;
-
-	// 	for (size_t i = 0; i < vCMc.size(); i++)
-	// 	{
-	// 		CM cm = vCMc[i];
-	// 		double tiltAngle = tiltAngles[(int)cm.detectedCoordinate.z]* PI/180.0;
-			
-	// 		Point3D<double> proyCoord(((((cm.detectedCoordinate.x-xTA)-((cm.coordinate3d.z)*sin(tiltAngle)))/cos(tiltAngle))+xTA), 
-	// 								  cm.detectedCoordinate.y,
-	// 								  i);
-	// 		proyCoords.push_back(proyCoord);
-
-	// 		#ifdef DEBUG_OUTPUT_FILES
-	// 		fillImageLandmark(csProyectedCoordinates,
-	// 						  (int) ((((cm.detectedCoordinate.x-xTA)-((cm.coordinate3d.z)*sin(tiltAngle)))/cos(tiltAngle))+xTA),
-	// 						  (int)cm.detectedCoordinate.y,
-	// 						  i);
-	// 		#endif
-	// 	}
-	// }
-
-	// #ifdef DEBUG_OUTPUT_FILES
-	// size_t li = fnOut.find_last_of("\\/");
-	// std::string rn = fnOut.substr(0, li);
-	// std::string ofn;
-    // ofn = rn + "/ts_proyected_cs.mrc";
-
-	// Image<int> si;
-	// si() = csProyectedCoordinates;
-	// si.write(ofn);
-	// #endif
 }
 
 
