@@ -96,7 +96,7 @@ def checkCC(dictPackages):
             return OK
         exitError(retCode=GCC_VERSION_ERROR, output='gcc {} lower than required ({})'.format(version, GCC_MINIMUM), dictPackages=dictPackages, tarPost=tarPost)
     else:
-        exitError(retCode=CC_NO_EXIST_ERROR, output='GCC package path: {} does not exist'.format(dictPackages[CC]), dictPackages=dictPackages, tarPost=tarPost)
+        exitError(retCode=CC_NO_EXIST_ERROR, output='GCC package path "{}" does not exist'.format(dictPackages[CC]), dictPackages=dictPackages, tarPost=tarPost)
 
 
 def checkCXX(dictPackages):
@@ -120,7 +120,7 @@ def checkCXX(dictPackages):
         exitError(retCode=CXX_VERSION_ERROR, output='g++ {} lower than required ({})'.format(version, GPP_MINIMUM), dictPackages=dictPackages, tarPost=tarPost)
 
     else:
-        exitError(retCode=CXX_NO_EXIST_ERROR, output='CXX package path: {} does not exist'.format(dictPackages[CXX]), dictPackages=dictPackages, tarPost=tarPost)
+        exitError(retCode=CXX_NO_EXIST_ERROR, output='CXX package path "{}" does not exist'.format(dictPackages[CXX]), dictPackages=dictPackages, tarPost=tarPost)
 
 def checkMPI(dictPackages, dictInternalFlags):
     """
@@ -173,7 +173,7 @@ def checkMPI(dictPackages, dictInternalFlags):
     status, output = runJob(cmd)
     if status != 0:
         exitError(retCode=MPI_RUNNING_ERROR,
-                  output='Fails running the command: \n{}\nError message: {}'.format(cmd, output),
+                  output='Fails running the command: \n{}\n\nError message: {}'.format(cmd, output),
                   dictPackages=dictPackages, tarPost=tarPost)
 
     libhdf5 = get_Hdf5_name(dictPackages["LIBDIRFLAGS"])
@@ -198,7 +198,7 @@ def checkMPI(dictPackages, dictInternalFlags):
     if output.count('Running') != processors:
         output = runJob('{} -np 2 --allow-run-as-root echo {}'.format(dictPackages['MPI_RUN'], processors,  'Running'))[1]
         if output.count('Running') != processors:
-            exitError(retCode=MPI_RUNNING_ERROR,
+            exitError(retCode=MPI_PARALLEL_ERROR,
                       output='mpirun or mpiexec have failed.',
                       dictPackages=dictPackages, tarPost=tarPost)
 

@@ -30,28 +30,28 @@ from .main import XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN
 # Xmipp's current versions
 
 #####################################
-DEVEL_BRANCHNAME = 'devel'				  #
-MASTER_BRANCHNAME = 'master'				#
+DEVEL_BRANCHNAME = 'devel'				#
+MASTER_BRANCHNAME = 'master'			#
 
-VERSION_KEY = 'version'							#
-VERNAME_KEY = 'vername'							#
-XMIPP_VERSIONS = {									#
-	XMIPP: {													#
-		VERSION_KEY: '3.23.11.0',				#
+VERSION_KEY = 'version'					#
+VERNAME_KEY = 'vername'					#
+XMIPP_VERSIONS = {						#
+	XMIPP: {							#
+		VERSION_KEY: '3.23.11.0',		#
 		VERNAME_KEY: 'v3.23.11-Nereus'  #
-	},																#
-	XMIPP_CORE: {											#
-		VERSION_KEY: '3.23.11.0',				#
+	},									#
+	XMIPP_CORE: {						#
+		VERSION_KEY: '3.23.11.0',		#
 		VERNAME_KEY: 'v3.23.11-Nereus'  #
-	},																#
-	XMIPP_VIZ: {											#
-		VERSION_KEY: '3.23.11.0',				#
+	},									#
+	XMIPP_VIZ: {						#
+		VERSION_KEY: '3.23.11.0',		#
 		VERNAME_KEY: 'v3.23.11-Nereus'  #
-	},																#
-	XMIPP_PLUGIN: {										#
-		VERSION_KEY: '3.23.11.0',				#
+	},									#
+	XMIPP_PLUGIN: {						#
+		VERSION_KEY: '3.23.11.0',		#
 		VERNAME_KEY: 'v3.23.11-Nereus'  #
-	}																	#
+	}									#
 }
 #####################################
 

@@ -36,6 +36,7 @@ CC_NO_EXIST_ERROR = 5
 CXX_NO_EXIST_ERROR = 6
 CXX_VERSION_ERROR = 7
 MPI_VERSION_ERROR = 8
+MPI_PARALLEL_ERROR = 50
 MPI_NOT_FOUND_ERROR = 9
 PYTHON_VERSION_ERROR = 10#TODO not used
 PYTHON_NOT_FOUND_ERROR = 11#TODO not used
@@ -104,7 +105,7 @@ ERROR_CODE = {
 	SCONS_VERSION_INSTALL_ERROR: ['Scons version  error, we tried to update it but fails.', 'The version of scons is lower than minimum, please review the requirements and update it manually'],
 	SCONS_INSTALL_ERROR: ['Scons not found. We tried to install it on scipion3 enviroment but fails.', 'Please install Scons manually on your conda env or in your system.'],
 	GCC_VERSION_ERROR: ['gcc version not valid.', 'The version of gcc is lower than minimum, please review the requirements.'],
-	CC_NO_EXIST_ERROR: ['CC package does not exist.','Please review the CC flag on your xmipp.conf.'],
+	CC_NO_EXIST_ERROR: ['GCC compiler does not exist.','Please review the CC flag on your xmipp.conf'],
 	CXX_NO_EXIST_ERROR: ['CXX package does not exist.', 'Please review the CXX flag on your xmipp.conf.'],
 	CXX_VERSION_ERROR: ['g++ version not valid.', 'The version of g++ is lower than minimum, please review the requirements.'],
 	MPI_VERSION_ERROR: ['mpi version not valid.', 'The version of mpi is lower than minimum, please review the requirements.'],
@@ -116,7 +117,7 @@ ERROR_CODE = {
 	HDF5_ERROR: ['hdf5 libs does not work.', 'Please review the LIBDIRFLAGS flag on xmipp.conf.'],
 	HDF5_NOT_FOUND_ERROR: ['HDF5 library was not found on your system.', 'Please install it or add the path in the flag HDF5_HOME in xmipp.conf file and run the ./xmipp confile.'],
 	MPI_COMPILATION_ERROR: ['Unable to compile with mpicxx', '.'],
-	MPI_RUNNING_ERROR: ['mpirun or mpiexec can not run several process in parallel.', 'Please, review the mpi installation, if you are running a virtual machine, please allow several processors not just one.'],
+	MPI_RUNNING_ERROR: ['mpirun or mpiexec error. mpi.h could not be found on your system.', f'Please, review the mpi installation (we recomend libopenmpi-dev), review the LIBDIRFLAGS in the xmipp.conf file. '],
 	JAVAC_DOESNT_WORK_ERROR: ['JAVAC does not work.', 'Check the JAVA_HOME flag on xmipp.conf.'],
 	JAVA_INCLUDE_ERROR: ['JAVA fails. jni include fails.','Check the JNI_CPPPATH, CXX and INCDIRFLAGS.'],
 	CMAKE_VERSION_ERROR: ['', f'Please update your CMake version by following the instructions at {cmakeInstallURL}\033[0m'],
@@ -148,6 +149,7 @@ ERROR_CODE = {
 	HDF5_NOT_FOUND_ERROR: ['', ''],
 	SCONS_ENV_ERROR: ['Scons is not available on the current enviroment', 'Please activate the scipion3 enviroment'],
 	XMIPP_MODE_ERROR: ['', ],
+	MPI_PARALLEL_ERROR: ['MPI could not be runned in parallel','If you are running a virtual machine, please allow several processors not just one.']
 
 
 }
