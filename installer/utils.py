@@ -282,7 +282,7 @@ def addDeepLearningModel(login, modelPath='', update=None):
 				runJob("rm %s" % localFn)
 
 def downloadDeepLearningModels(dest:str='build'):
-		printMessage(f"{HEADER0} Downloading DeepLearningToolKit models{HEADER0} ",debug=True)
+		printMessage(f"{HEADER0} Downloading DeepLearningToolKit models {HEADER0} ",debug=True)
 		if not os.path.exists('build/bin/xmipp_sync_data'):
 				printMessage(red('Xmipp is not installed. Please, install Xmipp before downloading DLTK models.'))
 				return False
@@ -296,13 +296,15 @@ def downloadDeepLearningModels(dest:str='build'):
 		if os.path.isdir(os.path.join(dest, modelsPath)):
 				printMessage(f"{HEADER1} Updating the Deep Learning models...", debug=True)
 				task = "update"
+				showOut = False
 		else:
 				printMessage(f"{HEADER1} Downloading Deep Learning models...", debug=True)
 				task = "download"
+				showOut = True
 		global pDLdownload
 		retCode, outputStr = runJob("bin/xmipp_sync_data %s %s %s %s"
 		                     % (task, modelsPath, urlModels, dataSet),
-		                     cwd='build', streaming=True, showOutput=True)
+		                     cwd='build', streaming=True, showOutput=showOut)
 		if retCode != 0:
 				printMessage(red('Unable to download models. Try again with ./xmipp {}\n{}'.format(MODE_GET_MODELS, outputStr)), debug=True)
 		else:
@@ -312,55 +314,68 @@ def downloadDeepLearningModels(dest:str='build'):
 
 def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
 						 allFuncs:bool=False, CUDA: bool=True):
-    str2Test = ''
-    if testName:
-        str2Test += testName
-    if show:
-        str2Test += ' -show'
-    if allPrograms:
-        str2Test += ' -allPrograms'
-    if allFuncs:
-        str2Test += ' -allFuncs'
-    xmippSrc = os.environ.get('XMIPP_SRC', None)
-    if xmippSrc and os.path.isdir(xmippSrc):
-        os.environ['PYTHONPATH'] = ':'.join([
-            os.path.join(os.environ['XMIPP_SRC'], XMIPP),
-            os.environ.get('PYTHONPATH', '')])
-        testsPath = os.path.join(os.environ['XMIPP_SRC'], XMIPP, 'tests')
-    else:
-        printMessage(red('XMIPP_SRC variable is not set. Before running tests you need to do:'), debug=True, printLOG_FILE=False)
-        printMessage('source build/xmipp.bashrc', debug=True, printLOG_FILE=False)
-        return
+	printMessage('\n---------------------------------------', debug=True)
+	printMessage(text=f'\n{HEADER0} Testing {HEADER0}', debug=True)
+	str2Test = ''
+	if testName:
+		str2Test += testName
+	if show:
+		str2Test += ' -show'
+	if allPrograms:
+		str2Test += ' -allPrograms'
+	if allFuncs:
+		str2Test += ' -allFuncs'
+	xmippSrc = os.environ.get('XMIPP_SRC', None)
+	if xmippSrc and os.path.isdir(xmippSrc):
+		os.environ['PYTHONPATH'] = ':'.join([
+	        os.path.join(os.environ['XMIPP_SRC'], XMIPP),
+	        os.environ.get('PYTHONPATH', '')])
+		testsPath = os.path.join(os.environ['XMIPP_SRC'], XMIPP, 'tests')
+	else:
+		printMessage(red('XMIPP_SRC variable is not set. Before running tests you need to do:'), debug=True, printLOG_FILE=False)
+		printMessage('source build/xmipp.bashrc', debug=True, printLOG_FILE=False)
+		return
 
-    dataSetPath = os.path.join(testsPath, 'data')
-    os.environ["XMIPP_TEST_DATA"] = dataSetPath
+	dataSetPath = os.path.join(testsPath, 'data')
+	os.environ["XMIPP_TEST_DATA"] = dataSetPath
 
-    # downloading/updating the dataset
-    dataset = 'xmipp_programs'
-    if os.path.isdir(dataSetPath):
-        printMessage("\n- Updating test files...", debug=True, printLOG_FILE=False)
-        task = "update"
-        showOutput=False
-    else:
-        printMessage("\n- Downloading test files...", debug=True, printLOG_FILE=False)
-        task = "download"
-        showOutput=True
-    args = "%s %s %s" % ("tests/data", urlTest, dataset)
-    retCode, outputStr = runJob("bin/xmipp_sync_data %s %s" % (task, args),
-												cwd='src/xmipp', showOutput=showOutput)
-    if retCode != 0:
-        printMessage(red('Error downloading test files.\n{}'.format(outputStr)), printLOG_FILE=False)
-    else:
-        printMessage(text=green('Done'), debug=True, printLOG_FILE=False)
+	# downloading/updating the dataset
+	dataset = 'xmipp_programs'
+	if os.path.isdir(dataSetPath):
+		printMessage("\n- Updating test files...", debug=True, printLOG_FILE=False)
+		task = "update"
+		showOutput=False
+	else:
+		printMessage("\n- Downloading test files...", debug=True, printLOG_FILE=False)
+		task = "download"
+		showOutput=True
+	args = "%s %s %s" % ("tests/data", urlTest, dataset)
+	retCode, outputStr = runJob("bin/xmipp_sync_data %s %s" % (task, args),
+									streaming=True, cwd='src/xmipp', showOutput=True)
+	if retCode != 0:
+		printMessage(red('Error downloading test files.\n{}'.format(outputStr)), printLOG_FILE=False)
+	else:
+		printMessage(text=green('Done'), debug=True, printLOG_FILE=False)
 
-    noCudaStr = '-noCuda' if not CUDA else ''
-    if testName or allPrograms:
-        printMessage('\n-----------------------------', debug=True, printLOG_FILE=False)
-        printMessage("Tests to do: %s" % (str2Test), debug=True, printLOG_FILE=False)
-    retCode, outputStr = runJob("%s test.py %s %s" % ('python3', str2Test, noCudaStr),
-					cwd=testsPath,  streaming=False, showError=True, showOutput=True	)
-    if retCode != 0:
-        printMessage(red('Error runnig test.\n{}'.format(outputStr)), printLOG_FILE=False)
+	noCudaStr = '-noCuda' if not CUDA else ''
+
+
+	if allPrograms:
+		printMessage('\n-----------------------------', debug=True, printLOG_FILE=False)
+		printMessage('Running all tests...', debug=True, printLOG_FILE=False)
+		retCode, outputStr = runJob(
+						"%s test.py %s %s" % ('python3', str2Test, noCudaStr),
+						cwd=testsPath, streaming=True, showError=True, showOutput=True)
+	elif testName:
+		printMessage('\n-----------------------------', debug=True, printLOG_FILE=False)
+		printMessage("Tests to do: %s" % (str2Test), debug=True, printLOG_FILE=False)
+		retCode, outputStr = runJob(
+	    		"%s test.py %s %s" % ('python3', str2Test, noCudaStr),
+	    		cwd=testsPath, streaming=False, showError=True, showOutput=True)
+
+
+	if retCode != 0:
+		printMessage(red('Error runnig test.\n{}'.format(outputStr)), printLOG_FILE=False)
 
 
 ####################### COLORS #######################
@@ -825,7 +840,8 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False,
 
 			# Run command and write output
 			process = subprocess.Popen(cmd, cwd=cwd, stdout=stdout, stderr=stderr, shell=True)
-			outputStr = writeProcessOutput(process, readerOut, readerErr, showError=showError, linesCompileBar=linesCompileBar)
+			outputStr = writeProcessOutput(process, readerOut, readerErr, showError=showError,
+										   showOutput=showOutput, linesCompileBar=linesCompileBar)
 	except (KeyboardInterrupt, OSError) as e:
 		error = True
 		errorText = str(e)
@@ -839,8 +855,8 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False,
 	return process.returncode, outputStr
 
 def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO,
-											 readerErr: io.FileIO, showError: bool=False,
-											 linesCompileBar:list=None) -> str:
+									readerErr: io.FileIO, showError: bool=False,
+									showOutput:bool=False, linesCompileBar:list=None) -> str:
 	"""
 	### This function captures the output and errors of the given process as it runs.
 
@@ -859,8 +875,8 @@ def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO,
 	while True:
 		# Get process running status and print output
 		isProcessFinished = process.poll() is not None
-		outputStr += writeReaderLine(readerOut, show=False)
-		outputStr += writeReaderLine(readerErr, show=False, err=True)
+		outputStr += writeReaderLine(readerOut, show=showOutput)
+		outputStr += writeReaderLine(readerErr, show=showError, err=True)
 		if linesCompileBar:
 			if outputStr.count('is up to date') > 4:
 					lines = linesCompileBar[1]
