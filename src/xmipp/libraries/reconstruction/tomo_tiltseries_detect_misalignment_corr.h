@@ -84,6 +84,9 @@ public:
     bool globalAlignment = true;
     std::vector<bool> localAlignment;
 
+    /** Vector containig the tilt angles from the series */
+    std::vector<Matrix2D<double>> relativeShifts;
+
 public:
 
     // --------------------------- INFO functions ----------------------------

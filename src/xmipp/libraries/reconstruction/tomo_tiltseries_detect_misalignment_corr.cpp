@@ -115,19 +115,31 @@ void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment(MultidimArray<do
 		ta_bw = tiltAngles[n];
 		ta_fw = tiltAngles[n+1];
 
+		int direction;
+
 		if (abs(ta_bw)>abs(ta_fw))
 		{
 			cosineStretching(ti_bw, ta_bw-ta_fw);
+			direction = 1;
 		}
 		else
 		{
 			cosineStretching(ti_fw, ta_bw-ta_fw);
+			direction = -1;
 		}
 
 		// Calculate shift for maximum correlation
 		Matrix2D<double> relShift;
+		relShift = maxCorrelationShift(ti_bw, ti_fw);
+
+		MAT_ELEM(relShift, 0, 0) *= direction;
+		MAT_ELEM(relShift, 0, 1) *= direction;
+
+
+		std::cout << "For image " << n << ": shift [" << MAT_ELEM(relShift, 0, 0) << ", " << MAT_ELEM(relShift, 0, 1) << "]" << std::endl;
+
+		relativeShifts.push_back(relShift);
 	}
-	
 }
 
 
