@@ -37,7 +37,8 @@ from .constants import (MODES, CUDA_GCC_COMPATIBILITY, vGCC,UP, REMOVE_LINE,\
 	TAB_SIZE, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE, DEFAULT_MODELS_DIR,\
 	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, BAR_SIZE, DEFAULT_BUILD_DIR,
   XMIPP_VERSIONS, MODE_GET_MODELS, WARNING_CODE, XMIPPENV, urlModels, remotePath,
-  DOCUMENTATION_URL, urlTest, SCONS_INSTALLATION_WARINING, DONE0, DONE1, HEADER0, HEADER1, HEADER2)
+  DOCUMENTATION_URL, urlTest, SCONS_INSTALLATION_WARINING, DONE0, DONE1, HEADER0,
+  HEADER1, HEADER2, warningToHidden)
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False,
@@ -327,15 +328,9 @@ def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
             os.environ.get('PYTHONPATH', '')])
         testsPath = os.path.join(os.environ['XMIPP_SRC'], XMIPP, 'tests')
     else:
-        pathBashrc = os.path.join(os.getcwd(),'build/xmipp.bashrc' )
-        retCode, outputStr = runJob(f'. {pathBashrc}')
-        if retCode != 0:
-            print(outputStr)
-            printMessage(red('XMIPP_SRC variable is not set.') +
-								 '\nBefore running tests you need to do: ' +
-								 blue('source build/xmipp.bashrc'), debug=True,
-								 printLOG_FILE=False)
-            return
+        printMessage(red('XMIPP_SRC variable is not set. Before running tests you need to do:'), debug=True, printLOG_FILE=False)
+        printMessage('source build/xmipp.bashrc', debug=True, printLOG_FILE=False)
+        return
 
     dataSetPath = os.path.join(testsPath, 'data')
     os.environ["XMIPP_TEST_DATA"] = dataSetPath
@@ -927,9 +922,8 @@ def writeReaderLine(reader: io.FileIO, show: bool=False, err: bool=False) -> str
 		if err:
 				if printedLine.find('warning:') != -1 \
 								or printedLine.find('Note:') != -1\
-								or printedLine.find('Warning:') != -1:
-					printMessage(yellow(f'{printedLine}'), debug=True)
-				elif printedLine.find('serial compilation of 2 LTRANS jobs') != -1:
+								or printedLine.find('Warning:') != -1\
+								or printedLine.find(f'{warningToHidden}') != -1:
 						pass
 				else:
 					printMessage(red(printedLine), debug=show)
