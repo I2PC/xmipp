@@ -181,6 +181,9 @@ void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment(MultidimArray<do
 
 
 
+
+
+
 // --------------------------- I/O functions ----------------------------
 
 
@@ -296,55 +299,64 @@ Matrix2D<double> ProgTomoTSDetectMisalignmentCorr::maxCorrelationShift(MultidimA
 	double shiftY;
 	CorrelationAux aux;
 
-	bestShift(ti1, ti2, shiftX, shiftY, aux, nullptr, 100);
-
-	Matrix2D<double> relShift(2, 1);
-
-	MAT_ELEM(relShift, 0, 0) = shiftX;
-	MAT_ELEM(relShift, 0, 1) = shiftY;
-
-			// double bestShift(const MultidimArray<double> &I1, const MultidimArray<double> &I2,
-			//            double &shiftX, double &shiftY, CorrelationAux &aux,
-			//            const MultidimArray<int> *mask, int maxShift)
+	// bestShift(ti1, ti2, shiftX, shiftY, aux, nullptr, 100);
 
 	// Matrix2D<double> relShift(2, 1);
-	// MultidimArray<double> tsCorr;
 
-	// // Shift the particle respect to its symmetric to look for the maximum correlation displacement
-	// CorrelationAux aux;
-	// correlation_matrix(ti1, ti2, tsCorr, aux, true);
+	// MAT_ELEM(relShift, 0, 0) = shiftX;
+	// MAT_ELEM(relShift, 0, 1) = shiftY;
 
-	// auto maximumCorrelation = MINDOUBLE;
-	// int xDisplacement = 0;
-	// int yDisplacement = 0;
+	// 		// double bestShift(const MultidimArray<double> &I1, const MultidimArray<double> &I2,
+	// 		//            double &shiftX, double &shiftY, CorrelationAux &aux,
+	// 		//            const MultidimArray<int> *mask, int maxShift)
 
-	// FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(tsCorr)
-	// {
-	// 	double value = DIRECT_A2D_ELEM(tsCorr, i, j);
+	Matrix2D<double> relShift(2, 1);
+	MultidimArray<double> tsCorr;
 
-	// 	if (value > maximumCorrelation)
-	// 	{
-	// 		#ifdef DEBUG_CENTER_COORDINATES
-	// 		std::cout << "new maximumCorrelation " << value << " at (" << i << ", " << j << ")" << std::endl;
-	// 		#endif
+	// Shift the particle respect to its symmetric to look for the maximum correlation displacement
+	correlation_matrix(ti1, ti2, tsCorr, aux, true);
 
-	// 		maximumCorrelation = value;
-	// 		xDisplacement = j;
-	// 		yDisplacement = i;
-	// 	}
-	// }
+	#ifdef DEBUG_OUTPUT_FILES
+	Image<double> saveImage;
 
-	// MAT_ELEM(relShift, 0, 0) = (xDisplacement - xSize) / 2;
-	// MAT_ELEM(relShift, 0, 1) = (yDisplacement - ySize) / 2;
+	saveImage() = tsCorr;
+	saveImage.write("./tsCorr.mrc");
+	#endif
+
+	auto maximumCorrelation = MINDOUBLE;
+	int xDisplacement = 0;
+	int yDisplacement = 0;
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(tsCorr)
+	{
+		double value = DIRECT_A2D_ELEM(tsCorr, i, j);
+
+		if (value > maximumCorrelation)
+		{
+			#ifdef DEBUG_TI_CORRs
+			std::cout << "new maximumCorrelation " << value << " at (" << i << ", " << j << ")" << std::endl;
+			#endif
+
+			maximumCorrelation = value;
+			xDisplacement = j;
+			yDisplacement = i;
+		}
+	}
+	
+	// MAT_ELEM(relShift, 0, 0) = (double)(xDisplacement - (int)xSize) / 2;
+	// MAT_ELEM(relShift, 0, 1) = (double)(yDisplacement - (int)ySize) / 2;
+
+	MAT_ELEM(relShift, 0, 0) = (double)(xDisplacement) - (double)xSize / 2;
+	MAT_ELEM(relShift, 0, 1) = (double)(yDisplacement) - (double)ySize / 2;
 
 
-	// #ifdef DEBUG_TI_CORR
-	// std::cout << "maximumCorrelation " << maximumCorrelation << std::endl;
-	// std::cout << "xDisplacement " << (xDisplacement - xSize) / 2 << std::endl;
-	// std::cout << "yDisplacement " << (yDisplacement - ySize) / 2 << std::endl;
+	#ifdef DEBUG_TI_CORR
+	std::cout << "maximumCorrelation " << maximumCorrelation << std::endl;
+	std::cout << "xDisplacement " << (double)(xDisplacement) - (double)xSize / 2 << std::endl;
+	std::cout << "yDisplacement " << (double)(yDisplacement) - (double)ySize / 2 << std::endl;
 
-	// std::cout << "Correlation volume dimensions (" << XSIZE(tsCorr) << ", " << YSIZE(tsCorr) << ")" << std::endl;
-	// #endif
+	std::cout << "Correlation volume dimensions (" << XSIZE(tsCorr) << ", " << YSIZE(tsCorr) << ")" << std::endl;
+	#endif
 
 	return relShift;
 }

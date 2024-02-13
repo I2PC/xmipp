@@ -120,6 +120,8 @@ public:
     Matrix2D<double> maxCorrelationShift(MultidimArray<double> &ti1, MultidimArray<double> &ti2);
 
     void detectSubtleMisalingment(MultidimArray<double> &ts);
+
+
     // --------------------------- MAIN ----------------------------------
 
     void run();
