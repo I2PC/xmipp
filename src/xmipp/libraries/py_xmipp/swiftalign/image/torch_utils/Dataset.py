@@ -20,17 +20,56 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Sequence, Iterable, Optional, Union
+from typing import Sequence, Iterable, Tuple, Union, Optional
 import torch
 import mrcfile
 import numpy as np
-import operator
 
 from ..Path import Path
 from ...utils import LruCache
 
 def _read(filename: str):
     return mrcfile.mmap(filename, mode='r')
+
+def _index_or_none(position_in_stack: Optional[int]) -> Optional[int]:
+    return None if position_in_stack is None else position_in_stack - 1
+
+def _batch_files(paths: Iterable[Path]) -> Tuple[str, Optional[slice]]:
+    it = iter(paths)
+    
+    # Initialize with the first loop iteration
+    path = next(it)
+    current_filename = path.filename
+    current_end = path.position_in_stack
+    current_start = _index_or_none(current_end)
+    
+    for path in it:
+        filename = path.filename
+        index = _index_or_none(path.position_in_stack)
+        
+        if filename == current_filename and index == current_end and current_end is not None:
+            # We can continue with this run
+            current_end += 1
+                
+        else:
+            # Finalize the last iteration and start over
+            if current_start is not None:
+                assert (current_end is not None)
+                yield current_filename, slice(current_start, current_end)
+            else:
+                yield current_filename, None
+            
+            current_filename = path.filename
+            current_end = path.position_in_stack
+            current_start = _index_or_none(current_end)
+     
+    # Finalize the last iteration   
+    if current_start is not None:
+        assert (current_end is not None)
+        yield current_filename, slice(current_start, current_end)
+    else:
+        yield current_filename, None
+    
 
 class Dataset(torch.utils.data.Dataset):
     def __init__(self, paths: Sequence[Path], max_open=64):
@@ -61,41 +100,17 @@ class Dataset(torch.utils.data.Dataset):
         
     def get_batch(self, indices: Iterable[int]) -> np.ndarray:
         output_stacks = []
-
-        current_filename = None
-        current_end = None
-        current_start = None
-        
-        def finish_run():
-            if current_filename is not None:
-                mrc = self._cache(current_filename)
-                data = mrc.data
-                
-                if mrc.is_image_stack() or mrc.is_volume_stack():
-                    if current_start is None or current_end is None:
-                        raise RuntimeError('Image index should be provided for image stacks')
-                    output_stacks.append(data[current_start:current_end])
-                else:
-                    output_stacks.append(data[None])
-                
-        for index in indices:
-            path = self._paths[index]
-            filename = path.filename
-            slice_index = None if path.position_in_stack is None else path.position_in_stack - 1
+        filenames = map(self._paths.__getitem__, indices)
+        for filename, index_slice in _batch_files(filenames):
+            mrc = self._cache(filename)
+            data = mrc.data
             
-            if filename == current_filename and slice_index == current_end and current_end is not None:
-                # We can continue with this run
-                current_end += 1
-                
+            if mrc.is_image_stack() or mrc.is_volume_stack():
+                if index_slice is None:
+                    raise RuntimeError('Image index should be provided for image stacks')
+                output_stacks.append(data[index_slice])
             else:
-                finish_run()
-
-                current_filename = path.filename
-                current_start = slice_index
-                current_end = path.position_in_stack
-
-        # Finish the last run
-        finish_run()
+                output_stacks.append(data[None])
 
         # Concatenate the arrays
         if len(output_stacks) == 1:
