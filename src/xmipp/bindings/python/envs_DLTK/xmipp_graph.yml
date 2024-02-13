@@ -1,3 +1,6 @@
+#Protocols ussing the enviroment:
+#xmipp_graph_max_cut
+
 name: xmipp_graph
 channels:
   - anaconda
@@ -8,6 +11,3 @@ dependencies:
   - scipy=1.10
   - networkx=2.8
   - cvxpy=1.3
-  - pip
-  - pip:
-      - numpy==1.23
