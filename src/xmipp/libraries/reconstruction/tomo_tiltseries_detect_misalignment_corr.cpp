@@ -94,66 +94,6 @@ void ProgTomoTSDetectMisalignmentCorr::generateSideInfo()
 
 // --------------------------- HEAD functions ----------------------------
 
-
-void ProgTomoTSDetectMisalignmentCorr::lowpassFilter(MultidimArray<double> &tiltImage)
-{
-	MultidimArray< std::complex<double> > fftTI;
-
-    FourierTransformer transformer;
-	transformer.FourierTransform(tiltImage, fftTI, false);
-
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Applying lowpass filter to image..." << std::endl;
-	#endif
-
-	int n=0;
-	
-	double freq = samplingRate / (normDim*0.9);
-	
-	double w= 0.05;
-	double cutoffFreq = freq + w;
-	double delta = PI / w;
-
-	#ifdef DEBUG_PREPROCESS
-	std::cout << "samplingRate " << samplingRate << std::endl;
-	std::cout << "freq " << freqLow << std::endl;
-	std::cout << "cutoffFreq " << cutoffFreqLow << std::endl;
-	#endif
-
-	for(size_t i=0; i<YSIZE(fftTI); ++i)
-	{
-		double uy;
-		double ux;
-		double uy2;
-
-		FFT_IDX2DIGFREQ(i,ySize,uy);
-		uy2=uy*uy;
-
-		for(size_t j=0; j<XSIZE(fftTI); ++j)
-		{
-			FFT_IDX2DIGFREQ(j,xSize,ux);
-			double u=sqrt(uy2+ux*ux);
-
-			if(u > cutoffFreq)
-			{
-				DIRECT_MULTIDIM_ELEM(fftTI, n) = 0;
-			} 
-			else
-			{
-				if(u >= freq && u < cutoffFreq)
-				{
-					DIRECT_MULTIDIM_ELEM(fftTI, n) *= 0.5*(1+cos((u-freq)*delta));
-				}
-			}
-			
-			++n;
-		}
-	}
-
-	transformer.inverseFourierTransform();
-}
-
-
 void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment(MultidimArray<double> &ts)
 {
 	std::cout << "Detecting misalignment..." << std::endl;
@@ -187,9 +127,6 @@ void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment(MultidimArray<do
 				DIRECT_A2D_ELEM(ti_fw, i, j) = DIRECT_NZYX_ELEM(ts, n+1, 0, i, j);
 			}
 		}
-
-		lowpassFilter(ti_bw);
-		lowpassFilter(ti_fw);
 
 		#ifdef DEBUG_OUTPUT_FILES
 		Image<double> saveImage;
