@@ -83,6 +83,9 @@ void ProgTomoTSDetectMisalignmentCorr::generateSideInfo()
 	// Initialize local alignment vector (depends on the number of acquisition angles)
 	localAlignment.resize(nSize, true);
 
+	// Normalized dimension
+	normDim = (xSize<ySize) ? xSize : ySize;
+
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Side info generated succesfully!" << std::endl;
 	#endif
@@ -90,6 +93,66 @@ void ProgTomoTSDetectMisalignmentCorr::generateSideInfo()
 
 
 // --------------------------- HEAD functions ----------------------------
+
+
+void ProgTomoTSDetectMisalignmentCorr::lowpassFilter(MultidimArray<double> &tiltImage)
+{
+	MultidimArray< std::complex<double> > fftTI;
+
+    FourierTransformer transformer;
+	transformer.FourierTransform(tiltImage, fftTI, false);
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Applying lowpass filter to image..." << std::endl;
+	#endif
+
+	int n=0;
+	
+	double freq = samplingRate / (normDim*0.9);
+	
+	double w= 0.05;
+	double cutoffFreq = freq + w;
+	double delta = PI / w;
+
+	#ifdef DEBUG_PREPROCESS
+	std::cout << "samplingRate " << samplingRate << std::endl;
+	std::cout << "freq " << freqLow << std::endl;
+	std::cout << "cutoffFreq " << cutoffFreqLow << std::endl;
+	#endif
+
+	for(size_t i=0; i<YSIZE(fftTI); ++i)
+	{
+		double uy;
+		double ux;
+		double uy2;
+
+		FFT_IDX2DIGFREQ(i,ySize,uy);
+		uy2=uy*uy;
+
+		for(size_t j=0; j<XSIZE(fftTI); ++j)
+		{
+			FFT_IDX2DIGFREQ(j,xSize,ux);
+			double u=sqrt(uy2+ux*ux);
+
+			if(u > cutoffFreq)
+			{
+				DIRECT_MULTIDIM_ELEM(fftTI, n) = 0;
+			} 
+			else
+			{
+				if(u >= freq && u < cutoffFreq)
+				{
+					DIRECT_MULTIDIM_ELEM(fftTI, n) *= 0.5*(1+cos((u-freq)*delta));
+				}
+			}
+			
+			++n;
+		}
+	}
+
+	transformer.inverseFourierTransform();
+}
+
 
 void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment(MultidimArray<double> &ts)
 {
@@ -124,6 +187,9 @@ void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment(MultidimArray<do
 				DIRECT_A2D_ELEM(ti_fw, i, j) = DIRECT_NZYX_ELEM(ts, n+1, 0, i, j);
 			}
 		}
+
+		lowpassFilter(ti_bw);
+		lowpassFilter(ti_fw);
 
 		#ifdef DEBUG_OUTPUT_FILES
 		Image<double> saveImage;
@@ -180,6 +246,61 @@ void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment(MultidimArray<do
 }
 
 
+void ProgTomoTSDetectMisalignmentCorr::refineAlignment(MultidimArray<double> &ts)
+{
+	std::cout << "Refine alignment..." << std::endl;
+	MultidimArray<double> ti_bw;
+	MultidimArray<double> ti_fw;
+
+	ti_bw.initZeros(ySize, xSize);
+	ti_fw.initZeros(ySize, xSize);
+
+	double ta_bw;
+	double ta_fw;
+
+	std::cout <<"XSIZE(ts) "<< XSIZE(ts) <<std::endl;
+	std::cout <<"YSIZE(ts) "<< YSIZE(ts) <<std::endl;
+	std::cout <<"ZSIZE(ts) "<< ZSIZE(ts) <<std::endl;
+	std::cout <<"NSIZE(ts) "<< NSIZE(ts) <<std::endl;
+
+	MultidimArray<double> ti;
+	MultidimArray<double> ti_tmp;
+	ti_tmp.initZeros(ySize, xSize);
+
+	for (size_t n = 0; n < nSize-2; n++)
+	{
+		for (size_t i = 0; i < ySize; i++)
+		{
+			for (size_t j = 0; j < xSize; j++)
+			{
+				DIRECT_A2D_ELEM(ti_tmp, i, j) = DIRECT_NZYX_ELEM(ts, n, 0, i, j);
+			}
+		}
+		
+		Matrix2D<double> m;
+		m.initIdentity(3);
+
+		MAT_ELEM(m, 0, 2) = -1 * MAT_ELEM(relativeShifts[n], 0, 0);
+		MAT_ELEM(m, 1, 2) = -1 * MAT_ELEM(relativeShifts[n], 0, 1);
+	
+    	applyGeometry(1, ti, ti_tmp, m, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
+
+		for (size_t i = 0; i < ySize; i++)
+		{
+			for (size_t j = 0; j < xSize; j++)
+			{
+				DIRECT_NZYX_ELEM(ts, n, 0, i, j) = DIRECT_A2D_ELEM(ti, i, j);
+			}
+		}
+	}
+
+	#ifdef DEBUG_OUTPUT_FILES
+	Image<double> saveImage;
+
+	saveImage() = ts;
+	saveImage.write("./ts_ali.mrc");
+	#endif
+}
 
 
 
@@ -248,6 +369,7 @@ void ProgTomoTSDetectMisalignmentCorr::run()
 
 	auto &ptrts = tiltSeriesImages();
 	detectSubtleMisalingment(ptrts);
+	refineAlignment(ptrts);
 
 	auto t2 = high_resolution_clock::now();
     auto ms_int = duration_cast<milliseconds>(t2 - t1); 	// Getting number of milliseconds as an integer
