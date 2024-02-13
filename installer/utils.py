@@ -813,7 +813,7 @@ def installScons() -> bool:
 
 ####################### AUX FUNCTIONS (INTERNAL USE ONLY) #######################
 def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False,
-										showError: bool=False, linesCompileBar:list=None) -> Tuple[int, str]:
+					showError: bool=False, linesCompileBar:list=None) -> Tuple[int, str]:
 	"""
 	### This function runs the given command and shows its output as it is being generated.
 
@@ -831,10 +831,12 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False,
 	# Creating writer and reader buffers in same tmp file
 	error = False
 	try:
-		with io.open(CMD_OUT_LOG_FILE, "wb") as writerOut, io.open(CMD_OUT_LOG_FILE, "rb", 0) as readerOut,\
-			io.open(CMD_ERR_LOG_FILE, "wb") as writerErr, io.open(CMD_ERR_LOG_FILE, "rb", 0) as readerErr:
+		with io.open(CMD_OUT_LOG_FILE, "wb") as writerOut,\
+			 io.open(CMD_OUT_LOG_FILE, "rb", 0) as readerOut,\
+			 io.open(CMD_ERR_LOG_FILE, "wb") as writerErr,\
+			 io.open(CMD_ERR_LOG_FILE, "rb", 0) as readerErr:
 			# Configure stdout and stderr deppending on param values
-			stdout = writerOut if showOutput else subprocess.PIPE
+			stdout = writerOut# if showOutput else subprocess.PIPE
 			stderr = writerErr if showError else subprocess.PIPE
 
 			# Run command and write output
@@ -943,7 +945,7 @@ def writeReaderLine(reader: io.FileIO, show: bool=False, err: bool=False) -> str
 				else:
 					printMessage(red(printedLine), debug=show)
 		else:
-			printMessage(line, debug=show)
+			printMessage(line, debug=show, printLOG_FILE=True)
 
 	# Return line
 	return red(line) if err else line
