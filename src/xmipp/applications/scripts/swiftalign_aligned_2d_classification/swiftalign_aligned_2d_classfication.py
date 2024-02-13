@@ -64,9 +64,6 @@ def run(images_md_path: str,
     images_dataset = image.torch_utils.Dataset(images_paths)
     images_loader = torch.utils.data.DataLoader(
         images_dataset,
-        #sampler=torch.utils.data.BatchSampler(
-        #    torch.utils.data.SequentialSampler(images_dataset), batch_size=batch_size, drop_last=False
-        #),
         batch_size=batch_size,
         drop_last=False,
         pin_memory=pin_memory,
