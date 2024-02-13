@@ -65,7 +65,7 @@ def affine_matrix_2d(angles: torch.Tensor,
     )
     
     # Flip if necessary
-    if type(mirror) == bool:
+    if isinstance(mirror, bool):
         if mirror:
             out[...,0,:] = -out[...,0,:]
     else:

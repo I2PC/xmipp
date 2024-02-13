@@ -38,7 +38,7 @@ def twist_decomposition(quaternions: torch.Tensor,
     # Create the output
     out = torch.empty(quaternions.shape, dtype=quaternions.dtype, device=quaternions.device, out=out)
     
-    if type(direction) == int:
+    if isinstance(direction, int):
         # Only copy the selected axis to te output
         for i in range(3):
             out[...,i+1] = quaternions[...,i+1] if i == direction else 0
