@@ -120,7 +120,7 @@ def modeGetModels(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	downloadDeepLearningModels(dest=args.directory)
+	downloadDeepLearningModels(dest=args.directory, printLOG=False)
 
 def modeGit(args: argparse.Namespace):
 	"""
@@ -225,7 +225,7 @@ def modeAll(args: argparse.Namespace):
 	printMessage(f"Compilation and install time: {round((time() - dateStart) / 60.0, 1)} mins", debug=False)
 	printMessage('\n---------------------------------------\n', debug=True)
 	if args.NoModels == None:
-			downloadDeepLearningModels(args.directory)
+			downloadDeepLearningModels(args.directory, printLOG=True)
 	exitXmipp(dictPackages=dictConfig)
 
 def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):

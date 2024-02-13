@@ -281,10 +281,10 @@ def addDeepLearningModel(login, modelPath='', update=None):
 							% modelName)
 				runJob("rm %s" % localFn)
 
-def downloadDeepLearningModels(dest:str='build'):
-		printMessage(f"{HEADER0} Downloading DeepLearningToolKit models {HEADER0} ",debug=True)
+def downloadDeepLearningModels(dest:str='build', printLOG:bool=True):
+		printMessage(f"{HEADER0} Downloading DeepLearningToolKit models {HEADER0} ",debug=True, printLOG_FILE=printLOG)
 		if not os.path.exists('build/bin/xmipp_sync_data'):
-			printMessage(red('Xmipp is not installed. Please, install Xmipp before downloading DLTK models.'))
+			printMessage(red('Xmipp is not installed. Please, install Xmipp before downloading DLTK models.'),debug=True, printLOG_FILE=printLOG)
 			return False
 		if dest == DEFAULT_BUILD_DIR or dest == DEFAULT_MODELS_DIR:
 			modelsPath = 'models'
@@ -294,22 +294,23 @@ def downloadDeepLearningModels(dest:str='build'):
 
 		# downloading/updating the DLmodels
 		if os.path.isdir(os.path.join(dest, modelsPath)):
-			printMessage(f"{HEADER1} Updating the Deep Learning models...", debug=True)
+			printMessage(f"{HEADER1} Updating the Deep Learning models...", debug=True, printLOG_FILE=printLOG)
 			task = "update"
 			showOut = False
 		else:
-			printMessage(f"{HEADER1} Downloading Deep Learning models...", debug=True)
+			printMessage(f"{HEADER1} Downloading Deep Learning models...", debug=True, printLOG_FILE=printLOG)
 			task = "download"
 			showOut = True
 		global pDLdownload
 		retCode, outputStr = runJob("bin/xmipp_sync_data %s %s %s %s"
 		                     % (task, modelsPath, urlModels, dataSet),
-		                     cwd='build', streaming=True, showOutput=showOut)
+		                     cwd='build', streaming=False, showOutput=showOut)
 		if retCode != 0:
-			printMessage(red('Unable to download models. Try again with ./xmipp {}\n{}'.format(MODE_GET_MODELS, outputStr)), debug=True)
+			printMessage(red('Unable to download models. Try again with ./xmipp {}\n{}'.format(
+				MODE_GET_MODELS, outputStr)), debug=True, printLOG_FILE=printLOG)
 		else:
-			printMessage(green(f'Models {task}d in the path: {modelsPath}'), debug=True)
-			printMessage(green(DONE1), debug=True)
+			printMessage(green(f'Models {task}d in the path: {modelsPath}'), debug=True, printLOG_FILE=printLOG)
+			printMessage(green(DONE1), debug=True, printLOG_FILE=printLOG)
 
 
 def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
