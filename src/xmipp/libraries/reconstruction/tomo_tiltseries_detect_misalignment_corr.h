@@ -122,7 +122,8 @@ public:
     void detectSubtleMisalingment(MultidimArray<double> &ts);
 
     void refineAlignment(MultidimArray<double> &ts);
-
+    
+    void lowpassFilter(MultidimArray<double> &tiltImage);
 
     // --------------------------- MAIN ----------------------------------
 
