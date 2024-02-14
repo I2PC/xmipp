@@ -220,6 +220,7 @@ def modeAll(args: argparse.Namespace):
 	dateStart = time()
 	printMessage(f"Compilation date: {datetime.today()}", debug=True)
 	printMessage(f"Active enviroment: {envName}", debug=True)
+	printMessage(f'Jobs: {DEFAULT_JOBS}', debug=True)
 	dictConfig = config(debugP=False,tarAndPost=True)
 	compileAndInstall(args)
 	printMessage(f"Compilation and install time: {round((time() - dateStart) / 60.0, 1)} mins", debug=False)
@@ -270,10 +271,9 @@ if __name__ == "__main__":
 	# Defining default jobs
 	JOBS = multiprocessing.cpu_count()
 	if JOBS <= 18:
-			DEFAULT_JOBS = JOBS - 3
+			DEFAULT_JOBS = JOBS - 4
 	else:
 			DEFAULT_JOBS = 16
-
 	# Creating parser to parse the command-line arguments
 	parser = ErrorHandlerArgumentParser(formatter_class=GeneralHelpFormatter, prog="xmipp")
 

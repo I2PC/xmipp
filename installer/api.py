@@ -83,6 +83,12 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 		(getLogTail, ())
 	])
 
+	#logTail manage
+	if retCode == 0:
+		logTail = 'null'
+	else:
+		logTail = jsonData[9]
+
 	# Introducing data into a dictionary
 	jsonDict: Dict = {
 		"user": {
@@ -102,7 +108,7 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 			"updated": jsonData[8]
 		},
 		"returnCode": retCode,
-		"logTail": jsonData[9]
+		"logTail": logTail
 	}
 
 	# Return JSON object with all info
