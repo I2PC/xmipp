@@ -32,7 +32,7 @@
 
 void ProgTomoTSDetectMisalignmentCorr::readParams()
 {
-	fnVol = getParam("-i");
+	fnIn = getParam("-i");
 	fnTiltAngles = getParam("--tlt");
 	fnOut = getParam("-o");
 
@@ -40,17 +40,16 @@ void ProgTomoTSDetectMisalignmentCorr::readParams()
 }
 
 
-
 void ProgTomoTSDetectMisalignmentCorr::defineParams()
 {
 	addUsageLine("This function determines the location of high contrast features in a volume.");
-	addParamsLine("  -i <mrcs_file=\"\">                   					: Input tilt-series.");
-	addParamsLine("  --tlt <xmd_file=\"\">      							: Input file containning the tilt angles of the tilt-series in .xmd format.");
-	addParamsLine("  [-o <output=\"./alignemntReport.xmd\">]       			: Output file containing the alignemnt report.");
+	addParamsLine("  -i <mrcs_file=\"\">                   			: Input tilt-series.");
+	addParamsLine("  --tlt <xmd_file=\"\">      					: Input file containning the tilt angles of the tilt-series in .xmd format.");
+	addParamsLine("  -o <o=\"./alignemntReport.xmd\">      			: Output file containing the alignemnt report.");
 
-	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px).");
+	addParamsLine("  [--shfitTol <shfitTol=1>]						: Sampling rate of the input tomogram (A/px).");
+	addParamsLine("  [--samplingRate <samplingRate=1>]				: Sampling rate of the input tomogram (A/px).");
 }
-
 
 
 void ProgTomoTSDetectMisalignmentCorr::generateSideInfo()
@@ -89,8 +88,8 @@ void ProgTomoTSDetectMisalignmentCorr::generateSideInfo()
 }
 
 
-// --------------------------- HEAD functions ----------------------------
 
+// --------------------------- HEAD functions ----------------------------
 
 void ProgTomoTSDetectMisalignmentCorr::lowpassFilter(MultidimArray<double> &tiltImage)
 {
@@ -208,6 +207,11 @@ void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment(MultidimArray<do
 		relShift = maxCorrelationShift(ti_bw, ti_fw);
 
 		relativeShifts.push_back(relShift);
+
+		if (abs(MAT_ELEM(relShift, 0, 1)) > shfitTol)
+		{
+			localAlignment[n] = false;
+		}	
 	}
 
 	for (size_t i = 0; i < relativeShifts.size(); i++)
@@ -279,9 +283,15 @@ void ProgTomoTSDetectMisalignmentCorr::refineAlignment(MultidimArray<double> &ts
 }
 
 
+
 // --------------------------- I/O functions ----------------------------
+
 void ProgTomoTSDetectMisalignmentCorr::writeOutputShifts()
 {
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Saving calculated shifts... " << std::endl;
+	#endif
+
 	MetaDataVec md;
 	size_t id;
 
@@ -295,7 +305,7 @@ void ProgTomoTSDetectMisalignmentCorr::writeOutputShifts()
 	size_t li = fnOut.find_last_of("\\/");
 	std::string rn = fnOut.substr(0, li);
 	std::string outShiftsFn;
-    outShiftsFn = rn + "/outputShifts.mrcs";
+    outShiftsFn = rn + "/outputShifts.xmd";
 
 	md.write(outShiftsFn);
 
@@ -305,7 +315,49 @@ void ProgTomoTSDetectMisalignmentCorr::writeOutputShifts()
 }
 
 
+void ProgTomoTSDetectMisalignmentCorr::writeOutputAlignmentReport()
+{
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Saving alginemnt report... " << std::endl;
+	#endif
+	
+	MetaDataVec md;
+	FileName fn;
+	size_t id;
+
+	size_t li = fnIn.find_last_of(":");
+	std::string rawnameTS = fnIn.substr(0, li);
+
+	for(size_t i = 0; i < localAlignment.size(); i++)
+	{
+		fn.compose(i + FIRST_IMAGE, rawnameTS);
+		id = md.addObject();
+
+		// Tilt-image			
+		md.setValue(MDL_IMAGE, fn, id);
+
+		// Alignment
+		if(localAlignment[i])
+		{
+			md.setValue(MDL_ENABLED, 1, id);
+		}
+		else
+		{
+			md.setValue(MDL_ENABLED, -1, id);
+		}
+	}
+
+	md.write(fnOut);
+	
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Alignment report saved at: " << fnOut << std::endl;
+	#endif
+}
+
+
+
 // --------------------------- MAIN ----------------------------------
+
 void ProgTomoTSDetectMisalignmentCorr::run()
 {
 	using std::chrono::high_resolution_clock;
@@ -320,18 +372,18 @@ void ProgTomoTSDetectMisalignmentCorr::run()
 	MetaDataVec tiltseriesmd;
     Image<double> tiltSeriesImages;
 
-    // if (fnVol.isMetaData())
+    // if (fnIn.isMetaData())
     // {
-    //     tiltseriesmd.read(fnVol);
+    //     tiltseriesmd.read(fnIn);
     // }
     // else
     // {
-    //     tiltSeriesImages.read(fnVol, HEADER);
+    //     tiltSeriesImages.read(fnIn, HEADER);
 
     //     size_t Zdim, Ndim;
     //     tiltSeriesImages.getDimensions(Xdim, Ydim, Zdim, Ndim);
 
-    //     if (fnVol.getExtension() == "mrc" and Ndim == 1)
+    //     if (fnIn.getExtension() == "mrc" and Ndim == 1)
     //         Ndim = Zdim;
 
     //     size_t id;
@@ -339,15 +391,15 @@ void ProgTomoTSDetectMisalignmentCorr::run()
     //     for (size_t i = 0; i < Ndim; i++) 
     //     {
     //         id = tiltseriesmd.addObject();
-    //         fn.compose(i + FIRST_IMAGE, fnVol);
+    //         fn.compose(i + FIRST_IMAGE, fnIn);
     //         tiltseriesmd.setValue(MDL_IMAGE, fn, id);
     //     }
     // }
 
-	tiltSeriesImages.read(fnVol);
+	tiltSeriesImages.read(fnIn);
 	tiltSeriesImages.getDimensions(xSize, ySize, zSize, nSize);
 
-	if (fnVol.getExtension() == "mrc" and nSize == 1)
+	if (fnIn.getExtension() == "mrc" and nSize == 1)
 		nSize = zSize;
 
 
@@ -366,6 +418,7 @@ void ProgTomoTSDetectMisalignmentCorr::run()
 	// refineAlignment(ptrts);
 
 	writeOutputShifts();
+	writeOutputAlignmentReport();
 
 	auto t2 = high_resolution_clock::now();
     auto ms_int = duration_cast<milliseconds>(t2 - t1); 	// Getting number of milliseconds as an integer
@@ -373,8 +426,8 @@ void ProgTomoTSDetectMisalignmentCorr::run()
 }
 
 
-// --------------------------- UTILS functions ----------------------------
 
+// --------------------------- UTILS functions ----------------------------
 
 void ProgTomoTSDetectMisalignmentCorr::cosineStretching(MultidimArray<double> &ti, double tiltAngle)
 {
@@ -489,7 +542,6 @@ Matrix2D<double> ProgTomoTSDetectMisalignmentCorr::maxCorrelationShift(MultidimA
 // 		}
 // 	}
 // }
-
 
 
 // void ProgTomoTSDetectMisalignmentCorr::removeOutliers(MultidimArray<double> &ti) 

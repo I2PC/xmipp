@@ -59,7 +59,7 @@ public:
     double targetFS;
 
     /** Filenames */
-    FileName fnVol;
+    FileName fnIn;
     FileName fnOut;
     FileName fnTiltAngles;
     FileName fnInputCoord;
@@ -69,7 +69,6 @@ public:
     float fiducialSizePx;   // Fiducial size in pixels
     double samplingRate;
 
-   
     /** Input tilt-series dimensions */
     size_t xSize;
 	size_t ySize;
@@ -81,11 +80,14 @@ public:
     std::vector<double> tiltAngles;
 
     /** Alignment report. True = aligned / False = misaligned */
-    bool globalAlignment = true;
     std::vector<bool> localAlignment;
 
     /** Vector containig the tilt angles from the series */
     std::vector<Matrix2D<double>> relativeShifts;
+
+    /** Input info */
+    double shfitTol;
+
 
 public:
 
@@ -124,6 +126,11 @@ public:
     void refineAlignment(MultidimArray<double> &ts);
     
     void lowpassFilter(MultidimArray<double> &tiltImage);
+
+    // void removeOutliers(MultidimArray<double> &ti);
+
+    void writeOutputShifts();
+    void writeOutputAlignmentReport();
 
     // --------------------------- MAIN ----------------------------------
 
