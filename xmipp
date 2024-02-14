@@ -270,12 +270,14 @@ if __name__ == "__main__":
 	""" Calls main function when executed. """
 	# Defining default jobs
 	JOBS = multiprocessing.cpu_count()
-	if JOBS <= 18 and JOBS > 4:
-			DEFAULT_JOBS = JOBS - 4
-	elif JOBS <= 4:
-		DEFAULT_JOBS = 1
-	else:
+	if JOBS > 18:
 		DEFAULT_JOBS = 16
+	elif JOBS <= 18 and JOBS > 4:
+			DEFAULT_JOBS = JOBS - 4
+	elif JOBS <= 4 and JOBS >= 2:
+		DEFAULT_JOBS = 2
+	else:
+		DEFAULT_JOBS = 1
 	# Creating parser to parse the command-line arguments
 	parser = ErrorHandlerArgumentParser(formatter_class=GeneralHelpFormatter, prog="xmipp")
 
