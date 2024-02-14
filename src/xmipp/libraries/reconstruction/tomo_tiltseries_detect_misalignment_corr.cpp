@@ -37,7 +37,6 @@ void ProgTomoTSDetectMisalignmentCorr::readParams()
 	fnOut = getParam("-o");
 
 	samplingRate = getDoubleParam("--samplingRate");
-	targetFS = getDoubleParam("--targetLMsize");
 }
 
 
@@ -50,8 +49,6 @@ void ProgTomoTSDetectMisalignmentCorr::defineParams()
 	addParamsLine("  [-o <output=\"./alignemntReport.xmd\">]       			: Output file containing the alignemnt report.");
 
 	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px).");
-
-	addParamsLine("  [--targetLMsize <targetLMsize=8>]		    			: Targer size of landmark when downsampling (px).");
 }
 
 
@@ -282,9 +279,30 @@ void ProgTomoTSDetectMisalignmentCorr::refineAlignment(MultidimArray<double> &ts
 }
 
 
-
-
 // --------------------------- I/O functions ----------------------------
+void ProgTomoTSDetectMisalignmentCorr::writeOutputShifts()
+{
+	MetaDataVec md;
+	size_t id;
+
+	for(size_t i = 0; i < relativeShifts.size(); i++)
+	{
+		id = md.addObject();
+		md.setValue(MDL_SHIFT_X, MAT_ELEM(relativeShifts[i], 0, 0), id);
+		md.setValue(MDL_SHIFT_Y, MAT_ELEM(relativeShifts[i], 0, 1), id);
+	}
+
+	size_t li = fnOut.find_last_of("\\/");
+	std::string rn = fnOut.substr(0, li);
+	std::string outShiftsFn;
+    outShiftsFn = rn + "/outputShifts.mrcs";
+
+	md.write(outShiftsFn);
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Output shifts saved at: " << outShiftsFn << std::endl;
+	#endif
+}
 
 
 // --------------------------- MAIN ----------------------------------
@@ -345,7 +363,9 @@ void ProgTomoTSDetectMisalignmentCorr::run()
 
 	auto &ptrts = tiltSeriesImages();
 	detectSubtleMisalingment(ptrts);
-	refineAlignment(ptrts);
+	// refineAlignment(ptrts);
+
+	writeOutputShifts();
 
 	auto t2 = high_resolution_clock::now();
     auto ms_int = duration_cast<milliseconds>(t2 - t1); 	// Getting number of milliseconds as an integer
