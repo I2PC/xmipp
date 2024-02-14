@@ -37,7 +37,7 @@ from ..constants import *
 
 
 
-def checkConfig(dictPackages, dictInternalFlags, scratch, dPrints):
+def checkConfig(dictPackages:dict, dictInternalFlags:dict, dPrints:bool, tarAndPost:bool=True):
     """
     Checks the configurations of various packages.
 
@@ -46,9 +46,10 @@ def checkConfig(dictPackages, dictInternalFlags, scratch, dPrints):
 
     """
     global tarPost
-    tarPost = scratch
+    tarPost = tarAndPost
     global debugPrints
     debugPrints = dPrints
+    print(f'checkConfig tarPost: {tarPost}')
 
     checkPackagesStatus = []
     checkCC(dictPackages)
@@ -157,6 +158,7 @@ def checkMPI(dictPackages, dictInternalFlags):
         else:
             if getPackageVersionCmd(pack) == None:
                 output, retCode = getPackageVersionCmdReturn(pack)
+                print(f'tarPost: {tarPost}')
                 exitError(retCode=MPI_NOT_FOUND_ERROR,
                       output=f'{pack} package error:\n {output}', dictPackages=dictPackages, tarPost=tarPost)
 

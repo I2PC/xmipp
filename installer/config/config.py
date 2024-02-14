@@ -59,7 +59,9 @@ def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True):
         dictPackages, dictInternalFlags = readConfig()
     dictNoChecked = dictPackages.copy()
     printMessage(text=f'\n{HEADER1} Checking libraries from config file...', debug=True)
-    checkConfig(dictPackages, dictInternalFlags, scratch, debugP)
+    print(f'config tarPost: {tarPost}')
+    checkConfig(dictPackages=dictPackages, dictInternalFlags=dictInternalFlags,
+				tarAndPost=tarPost, dPrints=debugP)
     dictInternalFlags2 = getInternalFlags(dictPackages)#if checkConfig change any parameter...
     if dictPackages != dictNoChecked or dictInternalFlags != dictInternalFlags2:
         writeConfig(dictP=dictPackages, dictInt=dictInternalFlags2)
