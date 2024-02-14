@@ -83,9 +83,12 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 		(getLogTail, ())
 	])
 
+	for index, element in enumerate(jsonData):
+		if element is None:
+			jsonData[index] = 'Null'
 	#logTail manage
 	if retCode == 0:
-		logTail = 'null'
+		logTail = 'Null'
 	else:
 		logTail = jsonData[9]
 
