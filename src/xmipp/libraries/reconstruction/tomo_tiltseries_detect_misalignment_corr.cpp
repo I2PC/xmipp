@@ -102,13 +102,9 @@ void ProgTomoTSDetectMisalignmentCorr::lowpassFilter(MultidimArray<double> &tilt
     FourierTransformer transformer;
 	transformer.FourierTransform(tiltImage, fftTI, false);
 
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Applying lowpass filter to image..." << std::endl;
-	#endif
-
 	int n=0;
 	
-	double freq = samplingRate / (normDim*0.9);
+	double freq = samplingRate / (normDim);
 	
 	double w= 0.05;
 	double cutoffFreq = freq + w;
@@ -166,19 +162,9 @@ void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment(MultidimArray<do
 	double ta_bw;
 	double ta_fw;
 
-	std::cout <<"XSIZE(ts) "<< XSIZE(ts) <<std::endl;
-	std::cout <<"YSIZE(ts) "<< YSIZE(ts) <<std::endl;
-	std::cout <<"ZSIZE(ts) "<< ZSIZE(ts) <<std::endl;
-	std::cout <<"NSIZE(ts) "<< NSIZE(ts) <<std::endl;
-
-	std::cout << "nSize " << nSize <<std::endl;
-
-
 	for (size_t n = 0; n < nSize-1; n++)
 	{
 		// Construct forward and backward images
-		std::cout << "Construct images " <<std::endl;
-
 		for (size_t i = 0; i < ySize; i++)
 		{
 			for (size_t j = 0; j < xSize; j++)
@@ -187,9 +173,6 @@ void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment(MultidimArray<do
 				DIRECT_A2D_ELEM(ti_fw, i, j) = DIRECT_NZYX_ELEM(ts, n+1, 0, i, j);
 			}
 		}
-
-		lowpassFilter(ti_bw);
-		lowpassFilter(ti_fw);
 
 		#ifdef DEBUG_OUTPUT_FILES
 		Image<double> saveImage;
@@ -202,8 +185,6 @@ void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment(MultidimArray<do
 		#endif
 
 		// Apply cosine stretching
-		std::cout << "Apply CS " <<std::endl;
-
 		ta_bw = tiltAngles[n];
 		ta_fw = tiltAngles[n+1];
 
@@ -226,21 +207,18 @@ void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment(MultidimArray<do
 		#endif
 
 		// Calculate shift for maximum correlation
-		std::cout << "Calculate max correlation " <<std::endl;
-
 		Matrix2D<double> relShift;
 		relShift = maxCorrelationShift(ti_bw, ti_fw);
-
-		std::cout << "For image " << n << ": shift [" << MAT_ELEM(relShift, 0, 0) << ", " << MAT_ELEM(relShift, 0, 1) << "]" << std::endl;
 
 		relativeShifts.push_back(relShift);
 	}
 
 	for (size_t i = 0; i < relativeShifts.size(); i++)
 	{
-		std::cout << "[" << MAT_ELEM(relativeShifts[i], 0, 0) << " ," 
-		                 << MAT_ELEM(relativeShifts[i], 0, 1) << " ]"
-						 								 << std::endl;
+		std::cout << "image " << i << " "
+					 "[" << MAT_ELEM(relativeShifts[i], 0, 0) << " ," 
+						 << MAT_ELEM(relativeShifts[i], 0, 1) << " ]"
+														<< std::endl;
 	}
 	
 }
@@ -258,14 +236,12 @@ void ProgTomoTSDetectMisalignmentCorr::refineAlignment(MultidimArray<double> &ts
 	double ta_bw;
 	double ta_fw;
 
-	std::cout <<"XSIZE(ts) "<< XSIZE(ts) <<std::endl;
-	std::cout <<"YSIZE(ts) "<< YSIZE(ts) <<std::endl;
-	std::cout <<"ZSIZE(ts) "<< ZSIZE(ts) <<std::endl;
-	std::cout <<"NSIZE(ts) "<< NSIZE(ts) <<std::endl;
-
 	MultidimArray<double> ti;
 	MultidimArray<double> ti_tmp;
 	ti_tmp.initZeros(ySize, xSize);
+
+	double xShiftPrev = 0;
+	double yShiftPrev = 0;
 
 	for (size_t n = 0; n < nSize-2; n++)
 	{
@@ -280,8 +256,11 @@ void ProgTomoTSDetectMisalignmentCorr::refineAlignment(MultidimArray<double> &ts
 		Matrix2D<double> m;
 		m.initIdentity(3);
 
-		MAT_ELEM(m, 0, 2) = -1 * MAT_ELEM(relativeShifts[n], 0, 0);
-		MAT_ELEM(m, 1, 2) = -1 * MAT_ELEM(relativeShifts[n], 0, 1);
+		MAT_ELEM(m, 0, 2) = MAT_ELEM(relativeShifts[n], 0, 0) + xShiftPrev;
+		MAT_ELEM(m, 1, 2) = MAT_ELEM(relativeShifts[n], 0, 1) + yShiftPrev;
+
+		xShiftPrev += MAT_ELEM(relativeShifts[n], 0, 0);
+		yShiftPrev += MAT_ELEM(relativeShifts[n], 0, 1);		
 	
     	applyGeometry(1, ti, ti_tmp, m, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
 
@@ -308,7 +287,6 @@ void ProgTomoTSDetectMisalignmentCorr::refineAlignment(MultidimArray<double> &ts
 // --------------------------- I/O functions ----------------------------
 
 
-
 // --------------------------- MAIN ----------------------------------
 void ProgTomoTSDetectMisalignmentCorr::run()
 {
@@ -318,8 +296,6 @@ void ProgTomoTSDetectMisalignmentCorr::run()
     using std::chrono::milliseconds;	
 
 	auto t1 = high_resolution_clock::now();
-
-	std::cout << "Starting..." << std::endl;
 
 	size_t Xdim, Ydim;
 
@@ -387,7 +363,6 @@ void ProgTomoTSDetectMisalignmentCorr::cosineStretching(MultidimArray<double> &t
 	ti_tmp = ti;
 
     applyGeometry(1, ti, ti_tmp, sm, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
-
 }
 
 
@@ -413,10 +388,6 @@ Matrix2D<double> ProgTomoTSDetectMisalignmentCorr::getCosineStretchingMatrix(dou
 
 Matrix2D<double> ProgTomoTSDetectMisalignmentCorr::maxCorrelationShift(MultidimArray<double> &ti1, MultidimArray<double> &ti2)
 {
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Calculating shift for maximum correlation..." << std::endl;
-	#endif
-
 	double shiftX;
 	double shiftY;
 	CorrelationAux aux;
@@ -455,7 +426,7 @@ Matrix2D<double> ProgTomoTSDetectMisalignmentCorr::maxCorrelationShift(MultidimA
 
 		if (value > maximumCorrelation)
 		{
-			#ifdef DEBUG_TI_CORRs
+			#ifdef DEBUG_TI_CORR
 			std::cout << "new maximumCorrelation " << value << " at (" << i << ", " << j << ")" << std::endl;
 			#endif
 
@@ -465,20 +436,73 @@ Matrix2D<double> ProgTomoTSDetectMisalignmentCorr::maxCorrelationShift(MultidimA
 		}
 	}
 	
-	// MAT_ELEM(relShift, 0, 0) = (double)(xDisplacement - (int)xSize) / 2;
-	// MAT_ELEM(relShift, 0, 1) = (double)(yDisplacement - (int)ySize) / 2;
-
 	MAT_ELEM(relShift, 0, 0) = (double)(xDisplacement) - (double)xSize / 2;
 	MAT_ELEM(relShift, 0, 1) = (double)(yDisplacement) - (double)ySize / 2;
 
 
 	#ifdef DEBUG_TI_CORR
 	std::cout << "maximumCorrelation " << maximumCorrelation << std::endl;
-	std::cout << "xDisplacement " << (double)(xDisplacement) - (double)xSize / 2 << std::endl;
-	std::cout << "yDisplacement " << (double)(yDisplacement) - (double)ySize / 2 << std::endl;
+	std::cout << "xDisplacement " << -(double)(xDisplacement) + (double)xSize / 2 << std::endl;
+	std::cout << "yDisplacement " << -(double)(yDisplacement) + (double)ySize / 2 << std::endl;
 
 	std::cout << "Correlation volume dimensions (" << XSIZE(tsCorr) << ", " << YSIZE(tsCorr) << ")" << std::endl;
 	#endif
 
 	return relShift;
 }
+
+
+// void ProgTomoTSDetectMisalignmentCorr::removeOutliers(MultidimArray<double> &ti)
+// {
+// 	double avg;
+// 	double std;
+
+// 	ti.computeAvgStdev(avg, std);
+
+// 	double thr = avg - 2*std;
+
+// 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(ti)
+// 	{
+// 		if (DIRECT_A1D_ELEM(ti, n) < thr)
+// 		{
+// 			DIRECT_A1D_ELEM(ti, n) = avg;
+// 		}
+// 	}
+// }
+
+
+
+// void ProgTomoTSDetectMisalignmentCorr::removeOutliers(MultidimArray<double> &ti) 
+// {
+// 	size_t windowSize = 64;
+// 	MultidimArray<double> window;
+
+// 	double avg;
+// 	double std;
+
+// 	std::cout << "lets go con esta movida " <<std::endl;
+//     // Iterate through each pixel in the ti
+//     for (size_t i = 0; i < ySize; ++i) 
+// 	{
+//         for (size_t j = 0; j < xSize; ++j) 
+// 		{
+//             // Define the local region based on the windowSize
+//             int y0 = std::max(0, int(i - windowSize / 2));
+//             int x0 = std::max(0, int(j - windowSize / 2));
+//             int yF = std::min(ySize - 1, i + windowSize / 2);
+//             int xF = std::min(xSize - 1, j + windowSize / 2);
+
+//             // Construct window
+// 			window2D(ti, window, y0, x0, yF, xF);
+
+// 			window.computeAvgStdev(avg, std);
+
+// 			double thr = avg - std;
+
+// 			if (DIRECT_A2D_ELEM(ti, i, j) < thr)
+// 			{
+// 				DIRECT_A2D_ELEM(ti, i, j) = avg;
+// 			}
+//         }
+//     }
+// }

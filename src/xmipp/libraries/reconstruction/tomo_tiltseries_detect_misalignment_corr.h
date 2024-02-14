@@ -47,7 +47,7 @@
 #define VERBOSE_OUTPUT
 
 #define DEBUG_DIM
-#define DEBUG_TI_CORR
+// #define DEBUG_TI_CORR
 
 #define DEBUG_OUTPUT_FILES
 
