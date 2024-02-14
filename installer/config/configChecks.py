@@ -49,7 +49,6 @@ def checkConfig(dictPackages:dict, dictInternalFlags:dict, dPrints:bool, tarAndP
     tarPost = tarAndPost
     global debugPrints
     debugPrints = dPrints
-    print(f'checkConfig tarPost: {tarPost}')
 
     checkPackagesStatus = []
     checkCC(dictPackages)
