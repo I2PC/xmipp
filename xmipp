@@ -275,7 +275,7 @@ if __name__ == "__main__":
 	elif JOBS < 4:
 		DEFAULT_JOBS = 1
 	else:
-			DEFAULT_JOBS = 16
+		DEFAULT_JOBS = 16
 	# Creating parser to parse the command-line arguments
 	parser = ErrorHandlerArgumentParser(formatter_class=GeneralHelpFormatter, prog="xmipp")
 
