@@ -80,13 +80,12 @@ def getSources(branch: str=None, LOG_FILE_path:str=''):
 	printMessage(text=f'\n{HEADER1} Getting Xmipp sources...', debug=True)
 	for source in sources:
 		# Non-git directories and production branch (master also counts) download from tags, the rest clone
-		if (currentBranch is None or currentBranch == XMIPP_VERSIONS[XMIPP][VERNAME_KEY]
-						or currentBranch == MASTER_BRANCHNAME):
-			# Download source tag
-			status, output = downloadSourceTag(source)
-			if status != 0:
-					exitError(retCode=DOWNLOADING_XMIPP_SOURCE_ERROR, output=output)
-
+		#if (currentBranch is None or currentBranch == XMIPP_VERSIONS[XMIPP][VERNAME_KEY]
+		#				or currentBranch == MASTER_BRANCHNAME):
+		# Download source tag
+		status, output = downloadSourceTag(source)
+		if status != 0:
+				exitError(retCode=DOWNLOADING_XMIPP_SOURCE_ERROR, output=output)
 		else:
 			# Clone source repository
 			status, output = cloneSourceRepo(source, branch=branch)
@@ -791,25 +790,28 @@ def downloadSourceTag(source: str) -> Tuple[bool, str]:
 	baseName = REPOSITORIES[source][0].replace(f'{source}.git',f'{source}')
 	url = f'{baseName}/{TAGS_SUBPAGE}{zipName}.zip'
 	print(url)
-	retcode, output = runJob(f"wget -o {source} {url}")
-	os.chdir(currentPath)
+	retcode, output = runJob(f"wget {url} ")
 
 	# If download failed, return error
 	if retcode != 0:
-		return retcode, output
-	
+		os.chdir(currentPath)
+		return False, output
 	# Unzip tag and change folder name to match repository name
-	runJob(f"unzip {zipName}.zip")
-
+	retcode, output = runJob(f"unzip {zipName}.zip", showCommand=True)
+	if retcode != 0:
+		os.chdir(currentPath)
+		return False, output
 	# Check unzipped folder naming scheme
 	folderName = source + '-' + zipName[1:] # Old naming system
 	folderName = folderName if os.path.isdir(folderName) else source + '-' + zipName
-
 	# Change folder name to match repository name
 	retcode, output = runJob(f"mv {folderName} {source} && rm {zipName}.zip")
-
+	if retcode != 0:
+		os.chdir(currentPath)
+		return False, output
 	# Return last command's code and output.
-	return retcode, output
+	os.chdir(currentPath)
+	return True, ''
 
 def cloneSourceRepo(repo: str, branch: str=None) -> Tuple[bool, str]:
 	"""
