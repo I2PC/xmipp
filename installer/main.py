@@ -80,12 +80,12 @@ def getSources(branch: str=None, LOG_FILE_path:str=''):
 	printMessage(text=f'\n{HEADER1} Getting Xmipp sources...', debug=True)
 	for source in sources:
 		# Non-git directories and production branch (master also counts) download from tags, the rest clone
-		#if (currentBranch is None or currentBranch == XMIPP_VERSIONS[XMIPP][VERNAME_KEY]
-		#				or currentBranch == MASTER_BRANCHNAME):
-		# Download source tag
-		status, output = downloadSourceTag(source)
-		if not status:
-			exitError(retCode=DOWNLOADING_XMIPP_SOURCE_ERROR, output=output)
+		if (currentBranch is None or currentBranch == XMIPP_VERSIONS[XMIPP][VERNAME_KEY]
+						or currentBranch == MASTER_BRANCHNAME):
+			# Download source tag
+			status, output = downloadSourceTag(source)
+			if not status:
+				exitError(retCode=DOWNLOADING_XMIPP_SOURCE_ERROR, output=output)
 		else:
 			# Clone source repository
 			status, output = cloneSourceRepo(source, branch=branch)
