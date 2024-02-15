@@ -34,7 +34,8 @@ from typing import Dict, Union
 from .versions import getOSReleaseName, getArchitectureName, getCUDAVersion,\
 	getCmakeVersion, getGPPVersion, getGCCVersion, getSconsVersion
 from .utils import runJob, runNetworkJob, getCurrentBranch, isBranchUpToDate, runParallelJobs
-from .constants import API_URL, LOG_FILE, TAIL_LOG
+from .constants import (API_URL, LOG_FILE, TAIL_LOG, MASTER_BRANCHNAME,
+                        XMIPP_VERSIONS, XMIPP, VERNAME_KEY)
 
 def sendApiPOST(dictPackage:Dict, retCode: int=0):
 	"""
@@ -91,6 +92,10 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 		logTail = 'Null'
 	else:
 		logTail = jsonData[9]
+	if jsonData[7] == None or jsonData[7] == MASTER_BRANCHNAME:
+		currentBranch = XMIPP_VERSIONS[XMIPP][VERNAME_KEY]
+	else:
+		currentBranch = jsonData[7]
 
 	# Introducing data into a dictionary
 	jsonDict: Dict = {
@@ -107,7 +112,7 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 			"scons": jsonData[6]
 		},
 		"xmipp": {
-			"branch": jsonData[7],
+			"branch": currentBranch,
 			"updated": jsonData[8]
 		},
 		"returnCode": retCode,
