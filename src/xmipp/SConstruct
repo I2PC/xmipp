@@ -132,7 +132,7 @@ def appendUnique(elist, element):
 #  ************************************************************************
 
 
-CUDA = 'NVCC'
+CUDA = 'CUDA_HOME'
 NVCC_LINKFLAGS = 'LINKFLAGS_NVCC'
 MATLAB_DIR = 'MATLAB_HOME'
 

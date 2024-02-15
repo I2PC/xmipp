@@ -173,22 +173,22 @@ def getCUDA(dictPackages):
      - dictPackages (dict): Dictionary containing package information.
 
      Modifies:
-     - dictPackages: Updates keys 'CUDA', 'NVCC', and 'CUDACXX' based on CUDA package availability.
+     - dictPackages: Updates keys 'CUDA', 'CUDA_HOME', and 'CUDACXX' based on CUDA package availability.
      """
     if not existPackage('nvcc'):
         nvcc_loc_candidates = ['/usr/local/cuda/bin', '/usr/local/cuda*/bin']
         for path in nvcc_loc_candidates:
             if not existPackage('nvcc', path2Find=path):
                 dictPackages['CUDA'] = 'False'
-                dictPackages['NVCC'] = ''
+                dictPackages['CUDA_HOME'] = ''
                 dictPackages['CUDACXX'] = ''
                 updateXmippEnv(CUDA=False)
                 return
             else:
-                dictPackages['NVCC'] = shutil.which('nvcc', path=path)
+                dictPackages['CUDA_HOME'] = shutil.which('nvcc', path=path)
                 break
     else:
-        dictPackages['NVCC'] = shutil.which('nvcc')
+        dictPackages['CUDA_HOME'] = shutil.which('nvcc')
     dictPackages['CUDA'] = 'True'
     dictPackages['CUDACXX'] = dictPackages['CXX']
     updateXmippEnv(CUDA=True)

@@ -152,7 +152,7 @@ def getCUDAVersion(dictPackages: Dict=None) -> Union[str, None]:
 		return None
 
 	# Get the nvcc to extract
-	nvccExecutable = dictPackages['NVCC'] if dictPackages is not None and CUDA in dictPackages else 'nvcc'
+	nvccExecutable = dictPackages['CUDA_HOME'] if dictPackages is not None and CUDA in dictPackages else 'nvcc'
 
 	# Extracting version command string
 	versionCmdStr = getPackageVersionCmd(nvccExecutable)
