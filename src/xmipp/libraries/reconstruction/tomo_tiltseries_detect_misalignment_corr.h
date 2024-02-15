@@ -115,9 +115,9 @@ public:
 
     // --------------------------- UTILS functions ----------------------------
 
-    void cosineStretching(MultidimArray<double> &ti, double tiltAngle);
+    void cosineStretching(MultidimArray<double> &ti, double ti_angle_high, double ti_angle_low);
 
-    Matrix2D<double> getCosineStretchingMatrix(double tiltAngle);
+    Matrix2D<double> getCosineStretchingMatrix(double ti_angle_high, double ti_angle_low);
 
     Matrix2D<double> maxCorrelationShift(MultidimArray<double> &ti1, MultidimArray<double> &ti2);
 

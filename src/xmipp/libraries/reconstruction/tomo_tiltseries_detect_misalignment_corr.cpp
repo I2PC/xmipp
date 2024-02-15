@@ -184,16 +184,21 @@ void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment(MultidimArray<do
 		#endif
 
 		// Apply cosine stretching
+		MultidimArray<double> ti_bw_cs;
+		MultidimArray<double> ti_fw_cs;
+		ti_bw_cs = ti_bw;
+		ti_fw_cs = ti_fw;
+
 		ta_bw = tiltAngles[n];
 		ta_fw = tiltAngles[n+1];
 
 		if (abs(ta_bw)>abs(ta_fw))
 		{
-			cosineStretching(ti_bw, ta_bw-ta_fw);
+			cosineStretching(ti_bw, ta_bw, ta_fw);
 		}
 		else
 		{
-			cosineStretching(ti_fw, ta_bw-ta_fw);
+			cosineStretching(ti_fw, ta_fw, ta_bw);
 		}
 
 
@@ -432,9 +437,9 @@ void ProgTomoTSDetectMisalignmentCorr::run()
 
 // --------------------------- UTILS functions ----------------------------
 
-void ProgTomoTSDetectMisalignmentCorr::cosineStretching(MultidimArray<double> &ti, double tiltAngle)
+void ProgTomoTSDetectMisalignmentCorr::cosineStretching(MultidimArray<double> &ti, double ti_angle_high, double ti_angle_low)
 {
-	Matrix2D<double> sm = getCosineStretchingMatrix(tiltAngle);
+	Matrix2D<double> sm = getCosineStretchingMatrix(ti_angle_high, ti_angle_low);
 	MultidimArray<double> ti_tmp;
 	ti_tmp = ti;
 
@@ -442,13 +447,12 @@ void ProgTomoTSDetectMisalignmentCorr::cosineStretching(MultidimArray<double> &t
 }
 
 
-Matrix2D<double> ProgTomoTSDetectMisalignmentCorr::getCosineStretchingMatrix(double tiltAngle)
+Matrix2D<double> ProgTomoTSDetectMisalignmentCorr::getCosineStretchingMatrix(double ti_angle_high, double ti_angle_low)
 {
-	double cosTiltAngle = cos(tiltAngle * PI/180.0);
-
+	double cosFactor = cos(ti_angle_low * PI/180.0) / cos(ti_angle_high * PI/180.0);
 	Matrix2D<double> m(3,3);
 
-	MAT_ELEM(m, 0, 0) = 1/cosTiltAngle;
+	MAT_ELEM(m, 0, 0) = cosFactor;
 	// MAT_ELEM(m, 0, 1) = 0;
 	// MAT_ELEM(m, 0, 2) = 0;
 	// MAT_ELEM(m, 1, 0) = 0;
