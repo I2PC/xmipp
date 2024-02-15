@@ -84,6 +84,11 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 		(getLogTail, ())
 	])
 
+	if jsonData[7] == None or jsonData[7] == MASTER_BRANCHNAME:
+		currentBranch = XMIPP_VERSIONS[XMIPP][VERNAME_KEY]
+	else:
+		currentBranch = jsonData[7]
+
 	for index, element in enumerate(jsonData):
 		if element is None:
 			jsonData[index] = 'Null'
@@ -92,10 +97,7 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 		logTail = 'Null'
 	else:
 		logTail = jsonData[9]
-	if jsonData[7] == None or jsonData[7] == MASTER_BRANCHNAME:
-		currentBranch = XMIPP_VERSIONS[XMIPP][VERNAME_KEY]
-	else:
-		currentBranch = jsonData[7]
+
 
 	# Introducing data into a dictionary
 	jsonDict: Dict = {
