@@ -147,10 +147,10 @@ def compile_cuFFTAdvisor():
 						os.chdir(currDir)
 				else:
 						os.chdir(currDir)
-						exitError(retCode=CLONNING_XMIPP_SOURCE_ERROR, output=outputStr, pathFile=currDir)
+						exitError(retCode=CUFFTADVSOR_ERROR, output=outputStr, pathFile=currDir)
 		else:
 				os.chdir(currDir)
-				exitError(retCode=CLONNING_XMIPP_SOURCE_ERROR, output=outputStr, pathFile=currDir)
+				exitError(retCode=CUFFTADVSOR_ERROR, output=outputStr, pathFile=currDir)
 		printMessage(green(DONE2), debug=True, pathFile=currDir)
 
 
@@ -502,6 +502,7 @@ def install(directory):
 
 		fhBash.close()
 		fhFish.close()
+
 def install(directory):
 		"""
 		Installs Xmipp components to the specified directory.
