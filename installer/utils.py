@@ -742,9 +742,12 @@ def whereIsPackage(packageName):
 		else:
 				return None
 
-def existPackage(packageName):
+def existPackage(packageName, path2Find:list=None):
 		"""Return True if packageName exist, else False"""
-		path = shutil.which(packageName)
+		if path2Find:
+			path = shutil.which(packageName, path=path2Find)
+		else:
+			path = shutil.which(packageName)
 		if path and getPackageVersionCmd(path) is not None:
 				return True
 		return False

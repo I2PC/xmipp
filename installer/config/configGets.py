@@ -176,15 +176,22 @@ def getCUDA(dictPackages):
      - dictPackages: Updates keys 'CUDA', 'CUDA_HOME', and 'CUDACXX' based on CUDA package availability.
      """
     if not existPackage('nvcc'):
-        dictPackages['CUDA'] = 'False'
-        dictPackages['CUDA_HOME'] = ''
-        dictPackages['CUDACXX'] = ''
-        updateXmippEnv(CUDA=False)
+        nvcc_loc_candidates = ['/usr/local/cuda/bin', '/usr/local/cuda*/bin']
+        for path in nvcc_loc_candidates:
+            if not existPackage('nvcc', path2Find=path):
+                dictPackages['CUDA'] = 'False'
+                dictPackages['CUDA_HOME'] = ''
+                dictPackages['CUDACXX'] = ''
+                updateXmippEnv(CUDA=False)
+                return
+            else:
+                dictPackages['CUDA_HOME'] = shutil.which('nvcc', path=path)
+                break
     else:
-        dictPackages['CUDA'] = 'True'
         dictPackages['CUDA_HOME'] = shutil.which('nvcc')
-        dictPackages['CUDACXX'] = dictPackages['CXX']
-        updateXmippEnv(CUDA=True)
+    dictPackages['CUDA'] = 'True'
+    dictPackages['CUDACXX'] = dictPackages['CXX']
+    updateXmippEnv(CUDA=True)
 
 def getSTARPU(dictPackages):
     """
