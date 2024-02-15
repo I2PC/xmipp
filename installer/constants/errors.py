@@ -177,5 +177,5 @@ WARNING_CODE = {
 	CLEANING_SOURCES_WARNING: ['Cleaning source warning', ''],
 	CLEANING_BINARIES_WARNING: ['Cleaning binaries warning.', ''],
 	NETWORK_WARINING: ['No internet connection detected', 'Please check your internet connection'],
-    CUDA_NOT_IN_PATH_WARNING: ['nvcc not in the PATH but installed', 'Please add it to the PATH in order to be accesible']
+    CUDA_NOT_IN_PATH_WARNING: ['nvcc not in the PATH but installed. CUDA tools disabled in Xmipp', 'Please add it to the PATH in order to be accesible']
 }
