@@ -122,36 +122,36 @@ def compileExternalSources(jobs):
 		printMessage(text=green(DONE1), debug=True)
 
 def compile_cuFFTAdvisor():
-		"""
-		Compiles the cuFFTAdvisor library for Xmipp.
+	"""
+	Compiles the cuFFTAdvisor library for Xmipp.
 
-		This function compiles the cuFFTAdvisor library required by Xmipp by executing the necessary build commands.
-		Upon successful compilation, it copies the resulting library file to the Xmipp library directory.
+	This function compiles the cuFFTAdvisor library required by Xmipp by executing the necessary build commands.
+	Upon successful compilation, it copies the resulting library file to the Xmipp library directory.
 
-		Raises:
-		- RuntimeError: If any error occurs during the compilation and copying process of cuFFTAdvisor,
-		  it raises a RuntimeError with error details.
-		"""
-		printMessage(f'{HEADER2} Compiling cuFFTAdvisor...', debug=True)
-		advisorDir = "src/cuFFTAdvisor/"
-		currDir = os.getcwd()
-		libDir = "src/xmipp/lib/"
-		if not os.path.exists(libDir):
-				os.makedirs(libDir)
-		os.chdir(advisorDir)
-		retCode, outputStr = runJob("make all", printLOG=True, pathLOGFile=currDir)
+	Raises:
+	- RuntimeError: If any error occurs during the compilation and copying process of cuFFTAdvisor,
+	  it raises a RuntimeError with error details.
+	"""
+	printMessage(f'{HEADER2} Compiling cuFFTAdvisor...', debug=True)
+	advisorDir = "src/cuFFTAdvisor/"
+	currDir = os.getcwd()
+	libDir = "src/xmipp/lib/"
+	if not os.path.exists(libDir):
+			os.makedirs(libDir)
+	os.chdir(advisorDir)
+	retCode, outputStr = runJob("make all", printLOG=True, pathLOGFile=currDir)
+	if retCode == 0:
+		os.chdir(currDir)
+		retCode, outputStr = runJob("cp " + advisorDir + "build/libcuFFTAdvisor.so" + " " + libDir)
 		if retCode == 0:
-				os.chdir(currDir)
-				retCode, outputStr = runJob("cp " + advisorDir + "build/libcuFFTAdvisor.so" + " " + libDir)
-				if retCode == 0:
-						os.chdir(currDir)
-				else:
-						os.chdir(currDir)
-						exitError(retCode=CUFFTADVSOR_ERROR, output=outputStr, pathFile=currDir)
+			os.chdir(currDir)
 		else:
-				os.chdir(currDir)
-				exitError(retCode=CUFFTADVSOR_ERROR, output=outputStr, pathFile=currDir)
-		printMessage(green(DONE2), debug=True, pathFile=currDir)
+			os.chdir(currDir)
+			exitError(retCode=CUFFTADVSOR_ERROR, output=outputStr, pathFile=currDir)
+	else:
+		os.chdir(currDir)
+		exitError(retCode=CUFFTADVSOR_ERROR, output=outputStr, pathFile=currDir)
+	printMessage(green(DONE2), debug=True, pathFile=currDir)
 
 
 

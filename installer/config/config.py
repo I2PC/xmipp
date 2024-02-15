@@ -124,7 +124,7 @@ def getInternalFlags(dictPackages, debug: bool=False):
 
     # LINKFLAGS_NVCC
     LINKFLAGS_NVCC= None
-    dictHomeCUDA= dictPackages['CUDA_HOME'].split('bin/nvcc')[0]
+    dictHomeCUDA= dictPackages['NVCC'].split('bin/nvcc')[0]
     paths = [join(dictHomeCUDA, 'lib'),
              join(dictHomeCUDA, 'lib64')]
     for route in paths:
