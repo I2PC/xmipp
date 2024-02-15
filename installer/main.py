@@ -783,9 +783,16 @@ def downloadSourceTag(source: str) -> Tuple[bool, str]:
 	if os.path.isdir(source):
 		return 0, ''
 
+	currentPath = os.getcwd()
+	srcPath = os.path.join(currentPath, 'src')
+	os.chdir(srcPath)
 	# Download tag
 	zipName = XMIPP_VERSIONS[source][VERNAME_KEY]
-	retcode, output = runJob(f"wget -O {REPOSITORIES[source][0]}/{TAGS_SUBPAGE}{zipName}.zip")
+	baseName = REPOSITORIES[source][0].replace(f'{source}.git',f'{source}')
+	url = f'{baseName}/{TAGS_SUBPAGE}{zipName}.zip'
+	print(url)
+	retcode, output = runJob(f"wget -o {source} {url}")
+	os.chdir(currentPath)
 
 	# If download failed, return error
 	if retcode != 0:
