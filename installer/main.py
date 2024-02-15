@@ -84,8 +84,8 @@ def getSources(branch: str=None, LOG_FILE_path:str=''):
 		#				or currentBranch == MASTER_BRANCHNAME):
 		# Download source tag
 		status, output = downloadSourceTag(source)
-		if status != 0:
-				exitError(retCode=DOWNLOADING_XMIPP_SOURCE_ERROR, output=output)
+		if not status:
+			exitError(retCode=DOWNLOADING_XMIPP_SOURCE_ERROR, output=output)
 		else:
 			# Clone source repository
 			status, output = cloneSourceRepo(source, branch=branch)
@@ -797,7 +797,7 @@ def downloadSourceTag(source: str) -> Tuple[bool, str]:
 		os.chdir(currentPath)
 		return False, output
 	# Unzip tag and change folder name to match repository name
-	retcode, output = runJob(f"unzip {zipName}.zip", showCommand=True)
+	retcode, output = runJob(f"yes | unzip {zipName}.zip", showCommand=True)
 	if retcode != 0:
 		os.chdir(currentPath)
 		return False, output
@@ -842,18 +842,18 @@ def cloneSourceRepo(repo: str, branch: str=None) -> Tuple[bool, str]:
 	os.chdir(srcPath)
 	destinyPath = os.path.join(srcPath,  repo)
 	if os.path.exists(destinyPath):
-			printMessage(text="The {} repository exists.".format(repo), debug=True, pathFile=currentPath)
-			os.chdir(destinyPath)
-			retcode, output = runJob(f"git pull ")
-			if retcode != 0 and retcode != 1:
-					printWarning(text=output, warningCode=GIT_PULL_WARNING, pathFile=currentPath)
-					retcode = 0
-			else:
-					printMessage(text=green("{} updated.".format(repo)), debug=True, pathFile=currentPath)
+		printMessage(text="The {} repository exists.".format(repo), debug=True, pathFile=currentPath)
+		os.chdir(destinyPath)
+		retcode, output = runJob(f"git pull ")
+		if retcode != 0 and retcode != 1:
+			printWarning(text=output, warningCode=GIT_PULL_WARNING, pathFile=currentPath)
+			retcode = 0
+		else:
+			printMessage(text=green("{} updated.".format(repo)), debug=True, pathFile=currentPath)
 	else:
-			retcode, output = runJob(f"git clone --branch {branch} {REPOSITORIES[repo][0]}")
-			if retcode == 0:
-					printMessage(green(text="Clonned repository {}".format(repo)), debug=True, pathFile=currentPath)
+		retcode, output = runJob(f"git clone --branch {branch} {REPOSITORIES[repo][0]}")
+		if retcode == 0:
+			printMessage(green(text="Clonned repository {}".format(repo)), debug=True, pathFile=currentPath)
 	os.chdir(currentPath)
 	if retcode == 1: retcode = 0
 	return retcode, output
