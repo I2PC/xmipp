@@ -86,7 +86,7 @@ public:
     std::vector<Matrix2D<double>> relativeShifts;
 
     /** Input info */
-    double shfitTol;
+    double shiftTol;
 
 
 public:

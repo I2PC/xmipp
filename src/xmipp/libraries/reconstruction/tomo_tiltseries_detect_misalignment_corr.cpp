@@ -28,6 +28,8 @@
 
 
 
+// TODO: 
+
 // --------------------------- INFO functions ----------------------------
 
 void ProgTomoTSDetectMisalignmentCorr::readParams()
@@ -36,6 +38,7 @@ void ProgTomoTSDetectMisalignmentCorr::readParams()
 	fnTiltAngles = getParam("--tlt");
 	fnOut = getParam("-o");
 
+	shiftTol = getDoubleParam("--shiftTol");
 	samplingRate = getDoubleParam("--samplingRate");
 }
 
@@ -47,7 +50,7 @@ void ProgTomoTSDetectMisalignmentCorr::defineParams()
 	addParamsLine("  --tlt <xmd_file=\"\">      					: Input file containning the tilt angles of the tilt-series in .xmd format.");
 	addParamsLine("  -o <o=\"./alignemntReport.xmd\">      			: Output file containing the alignemnt report.");
 
-	addParamsLine("  [--shfitTol <shfitTol=1>]						: Sampling rate of the input tomogram (A/px).");
+	addParamsLine("  [--shiftTol <shiftTol=1>]						: Sampling rate of the input tomogram (A/px).");
 	addParamsLine("  [--samplingRate <samplingRate=1>]				: Sampling rate of the input tomogram (A/px).");
 }
 
@@ -208,7 +211,7 @@ void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment(MultidimArray<do
 
 		relativeShifts.push_back(relShift);
 
-		if (abs(MAT_ELEM(relShift, 0, 1)) > shfitTol)
+		if (abs(MAT_ELEM(relShift, 0, 1)) > shiftTol)
 		{
 			localAlignment[n] = false;
 		}	
