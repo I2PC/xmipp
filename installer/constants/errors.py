@@ -96,6 +96,7 @@ SCIPION_LINK_WARNING = 13
 CLEANING_SOURCES_WARNING = 14
 CLEANING_BINARIES_WARNING = 15
 NETWORK_WARINING = 17
+CUDA_NOT_IN_PATH_WARNING = 18
 
 
 # Error messages
@@ -175,5 +176,6 @@ WARNING_CODE = {
 	SCIPION_LINK_WARNING: ['No scipion3 found.', 'If you intended to use Xmipp in the Scipion framework, compile Xmipp with Scipion "./scipion3 run ./xmipp" or check the binding at SCIPION_HOME/software/bindings...'],
 	CLEANING_SOURCES_WARNING: ['Cleaning source warning', ''],
 	CLEANING_BINARIES_WARNING: ['Cleaning binaries warning.', ''],
-	NETWORK_WARINING: ['No internet connection detected', 'Please check your internet connection']
+	NETWORK_WARINING: ['No internet connection detected', 'Please check your internet connection'],
+    CUDA_NOT_IN_PATH_WARNING: ['nvcc not in the PATH but installed', 'Please add it to the PATH in order to be accesible']
 }

@@ -28,8 +28,9 @@ from os import path, environ
 from sysconfig import get_paths
 
 from ..utils import (existPackage, printMessage, green, updateXmippEnv, whereIsPackage,
-                      runJob, findFileInDirList)
-from ..constants import INC_PATH, PATH_TO_FIND, PATH_TO_FIND_H, INC_HDF5_PATH, HEADER2, DONE2
+                      runJob, findFileInDirList, printWarning)
+from ..constants import (INC_PATH, PATH_TO_FIND, PATH_TO_FIND_H, INC_HDF5_PATH,
+                         HEADER2, DONE2, CUDA_NOT_IN_PATH_WARNING)
 
 def getSystemValues(scratch, debugP):
     """
@@ -175,23 +176,22 @@ def getCUDA(dictPackages):
      Modifies:
      - dictPackages: Updates keys 'CUDA', 'CUDA_HOME', and 'CUDACXX' based on CUDA package availability.
      """
-    if not existPackage('nvcc'):
+    if not existPackage('nvcc'):#not exist or not in PATH
         nvcc_loc_candidates = ['/usr/local/cuda/bin', '/usr/local/cuda*/bin']
         for path in nvcc_loc_candidates:
-            if not existPackage('nvcc', path2Find=path):
-                dictPackages['CUDA'] = 'False'
-                dictPackages['CUDA_HOME'] = ''
-                dictPackages['CUDACXX'] = ''
-                updateXmippEnv(CUDA=False)
-                return
-            else:
-                dictPackages['CUDA_HOME'] = shutil.which('nvcc', path=path)
-                break
+            if existPackage('nvcc', path2Find=path):
+                 nvccPath = shutil.which('nvcc', path=path)
+                 printWarning(text=f'nvcc found in {nvccPath}',
+                              warningCode=CUDA_NOT_IN_PATH_WARNING, debug=True)
+        dictPackages['CUDA'] = 'False'
+        dictPackages['CUDA_HOME'] = ''
+        dictPackages['CUDACXX'] = ''
+        updateXmippEnv(CUDA=False)
     else:
         dictPackages['CUDA_HOME'] = shutil.which('nvcc')
-    dictPackages['CUDA'] = 'True'
-    dictPackages['CUDACXX'] = dictPackages['CXX']
-    updateXmippEnv(CUDA=True)
+        dictPackages['CUDA'] = 'True'
+        dictPackages['CUDACXX'] = dictPackages['CXX']
+        updateXmippEnv(CUDA=True)
 
 def getSTARPU(dictPackages):
     """
