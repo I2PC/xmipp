@@ -31,7 +31,7 @@ from ..utils import (existPackage, versionToNumber, printMessage, green,
 from ..versions import (getGPPVersion, getGCCVersion, MPIVersion, JAVAVersion,
                         getRsyncVersion, getSconsVersion,gitVersion, opencvVersion,
                         getCmakeVersion, FFTW3Version, getCUDAVersion, HDF5Version,
-                        TIFFVersion)
+                        TIFFVersion, getmakeVersion)
 from .main import exitError
 from ..constants import *
 
@@ -69,6 +69,7 @@ def checkConfig(dictPackages:dict, dictInternalFlags:dict, dPrints:bool, tarAndP
     checkFFTW3(dictPackages)
     checkScons(dictPackages)
     checkCMake()
+    checkMake()
     checkRsync()
 
     if checkPackagesStatus != []:
@@ -569,3 +570,27 @@ def checkRsync():
                       output='rsync found {}, required {}'.format(rsyncV, RSYNC_MINIMUM))
     printMessage(text=green('rsync {} found'.format(rsyncV)), debug=debugPrints)
 
+def checkMake():
+    """
+	### This function checks if the current installed version, if installed, is above the minimum required version.
+	### If no version is provided it just checks if Make is installed.
+
+	#### Params:
+	minimumRequired (str): Optional. Minimum required Make version.
+
+	#### Returns:
+	An error message in color red in a string if there is a problem with Make, None otherwise.
+	"""
+    try:
+        makeVersion = getmakeVersion()
+        # Checking if installed version is below minimum required
+        if versionToNumber(makeVersion) < versionToNumber(MAKE_MINIMUM):
+            exitError(retCode=MAKE_VERSION_ERROR,
+			          output='Your make version {} is below {}'.format(
+				          makeVersion, MAKE_MINIMUM), tarPost=tarPost)
+    except FileNotFoundError:
+        exitError(retCode=MAKE_ERROR, output='Make is not installed', tarPost=tarPost)
+    except Exception:
+        exitError(retCode=MAKE_ERROR, output='Can not get the make version', tarPost=tarPost)
+
+    printMessage(text=green('make {} found'.format(makeVersion)), debug=debugPrints)

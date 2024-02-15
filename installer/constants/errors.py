@@ -78,6 +78,8 @@ DEPRECATE_ERROR = 46
 INSTALLATION_ERROR = 47
 SCONS_ENV_ERROR = 48
 XMIPP_MODE_ERROR = 49
+MAKE_ERROR = 50
+MAKE_VERSION_ERROR = 51
 
 # Warning codes
 MATLAB_WARNING = 1
@@ -150,8 +152,9 @@ ERROR_CODE = {
 	HDF5_NOT_FOUND_ERROR: ['', ''],
 	SCONS_ENV_ERROR: ['Scons is not available on the current enviroment', 'Please activate the scipion3 enviroment'],
 	XMIPP_MODE_ERROR: ['', ],
-	MPI_PARALLEL_ERROR: ['MPI could not be runned in parallel','If you are running a virtual machine, please allow several processors not just one.']
-
+	MPI_PARALLEL_ERROR: ['MPI could not be runned in parallel','If you are running a virtual machine, please allow several processors not just one.'],
+	MAKE_VERSION_ERROR: ['Version of make not valid', 'Please update your Make version by following the instructions'],
+	MAKE_ERROR: ['make package not found','Please install or review your Make version'],
 
 }
 

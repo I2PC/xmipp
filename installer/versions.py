@@ -33,7 +33,7 @@ import os
 # Installer imports
 from .utils import (runJob, getPackageVersionCmd, getPythonPackageVersion,
 										getCurrentBranch, isBranchUpToDate)
-from .constants import UNKNOWN_VALUE, CC, CXX, CMAKE, CUDA, CXX_FLAGS
+from .constants import UNKNOWN_VALUE, CC, CXX, CMAKE, CUDA, CXX_FLAGS, MAKE
 
 def collectAllVersions(dictPackages: dict):
   return {'branch': getCurrentBranch(),
@@ -43,7 +43,8 @@ def collectAllVersions(dictPackages: dict):
 					'cudaV': getCUDAVersion(),
 					'sconsV': getSconsVersion(dictPackages),
 					'cmakeV': getCmakeVersion(),
-					'rsyncV': getRsyncVersion(),
+                    'makeV': getmakeVersion(),
+                    'rsyncV': getRsyncVersion(),
 					'mpiV': MPIVersion(getPackageVersionCmd(dictPackages['MPI_RUN'])),
 					'javaV': JAVAVersion(getPackageVersionCmd('java')),
 					'hdf5V': HDF5Version(dictPackages['HDF5_HOME']),
@@ -208,6 +209,34 @@ def getCmakeVersion(dictPackages: Dict=None) -> str:
 
 	# Return cmake version
 	return cmakeVersion
+
+
+def getmakeVersion(dictPackages: Dict=None) -> str:
+	"""
+	### Extracts the Make version from the PATH or the config file, the last one having a higher priority.
+
+	#### Params:
+	- dictPackages (dict): Optional. Dictionary containing packages found in the config file.
+
+	#### Returns:
+	- (str | None): Make version, or None if there were any errors.
+	"""
+	# Initializing default version
+	makeVersion = None
+
+	# Get the cmake to extract
+	makeExecutable = dictPackages[MAKE] if dictPackages is not None and MAKE in dictPackages else 'make'
+
+	# Extracting version command string
+	versionCmdStr = getPackageVersionCmd(makeExecutable)
+
+	# Version number is the last word of the first line of the output text
+	if versionCmdStr is not None:
+		# Only extract if command output string is not empty
+		makeVersion = versionCmdStr.splitlines()[0].split()[-1]
+
+	# Return cmake version
+	return makeVersion
 
 def getGPPVersion(dictPackages: Dict=None) -> Union[str, None]:
 	"""
@@ -379,3 +408,32 @@ def getRsyncVersion():
 				if len(numbers) >= 2:
 					version = f'{numbers[0]}.{numbers[1]}'
 	return version
+
+
+
+def getmakeVersion(dictPackages: Dict=None) -> str:
+	"""
+	### Extracts the CMake version from the PATH or the config file, the last one having a higher priority.
+
+	#### Params:
+	- dictPackages (dict): Optional. Dictionary containing packages found in the config file.
+
+	#### Returns:
+	- (str | None): CMake version, or None if there were any errors.
+	"""
+	# Initializing default version
+	makeVersion = None
+
+	# Get the cmake to extract
+	makeExecutable = dictPackages[MAKE] if dictPackages is not None and MAKE in dictPackages else 'make'
+
+	# Extracting version command string
+	versionCmdStr = getPackageVersionCmd(makeExecutable)
+
+	# Version number is the last word of the first line of the output text
+	if versionCmdStr is not None:
+		# Only extract if command output string is not empty
+		makeVersion = versionCmdStr.splitlines()[0].split()[-1]
+
+	# Return cmake version
+	return makeVersion

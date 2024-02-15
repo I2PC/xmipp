@@ -67,8 +67,9 @@ vGCC = [
 # Version requirements
 #####################################
 GCC_MINIMUM = vGCC[-1]							#TODO: NEEDED? MAYBE ONLY G++, check with nvcc -- g++
-GPP_MINIMUM = GCC_MINIMUM						# #8.4 - 2019
-CMAKE_MINIMUM = '3.16'							# #3.16 - 2019
+GPP_MINIMUM = GCC_MINIMUM						#   #8.4 - 2019
+CMAKE_MINIMUM = '3.16'							#   #3.16 - 2019
+MAKE_MINIMUM = '4.0'                            #   #4.0 - 2014
 SCONS_MINIMUM = '4.0'							#	#4.0 - 2019
 CUDA_MINIMUM = '10.1'							#	#10.1 - 2019
 MPI_MINIMUM = '3.0'								#	#3.0 - 2012
@@ -103,6 +104,7 @@ STARPU = 'STARPU'
 HDF5 = 'HDF5'
 SCONS = 'SCons'
 CMAKE = 'CMake'
+MAKE = 'make'
 TIFF = 'TIFF'
 
 # Other variables
