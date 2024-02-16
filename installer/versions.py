@@ -210,7 +210,6 @@ def getCmakeVersion(dictPackages: Dict=None) -> str:
 	# Return cmake version
 	return cmakeVersion
 
-
 def getmakeVersion(dictPackages: Dict=None) -> str:
 	"""
 	### Extracts the Make version from the PATH or the config file, the last one having a higher priority.
@@ -408,8 +407,6 @@ def getRsyncVersion():
 				if len(numbers) >= 2:
 					version = f'{numbers[0]}.{numbers[1]}'
 	return version
-
-
 
 def getmakeVersion(dictPackages: Dict=None) -> str:
 	"""

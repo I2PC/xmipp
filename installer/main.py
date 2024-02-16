@@ -33,15 +33,15 @@ from typing import Tuple
 from .exit import exitXmipp
 from .constants import (XMIPP, XMIPP_COMPILE_LINES, XMIPP_CORE_COMPILE_LINES,
 												XMIPP_VIZ_COMPILE_LINES, REPOSITORIES,
-	ORGANIZATION_NAME, CUFFTADVSOR_ERROR, GOOGLETEST_ERROR,LIBSVM_ERROR, LIBCIFPP_ERROR, \
+	CUFFTADVSOR_ERROR, GOOGLETEST_ERROR,LIBSVM_ERROR, LIBCIFPP_ERROR, \
 	DEVEL_BRANCHNAME, MASTER_BRANCHNAME, TAGS_SUBPAGE, HEADER0, HEADER1, HEADER2,
-  CUFFTADVISOR, CTPL, GTEST, LIBSVM, LIBCIFPP, CLONNING_EXTERNAL_SOURCE_ERROR,
-  CLONNING_XMIPP_SOURCE_ERROR, DOWNLOADING_XMIPP_SOURCE_ERROR, GIT_PULL_WARNING,
+	CLONNING_EXTERNAL_SOURCE_ERROR,CLONNING_XMIPP_SOURCE_ERROR,
+	DOWNLOADING_XMIPP_SOURCE_ERROR, GIT_PULL_WARNING,
 	XMIPP_COMPILATION_ERROR,XMIPPCORE_COMPILATION_ERROR,
-  XMIPPVIZ_COMPILATION_ERROR, XMIPP_VERSIONS, VERNAME_KEY, DEPRECATE_ERROR,
-  CLEANING_SOURCES_WARNING,CONFIG_FILE,CLEANING_BINARIES_WARNING, DONE0, DONE1,DONE2,
-  INSTALLATION_ERROR, LINKING2SCIPION, VERSION_KEY, SCIPION_LINK_WARNING,
-  CUFFTADVISOR,	CTPL,	GTEST, LIBSVM, LIBCIFPP, XMIPP_CORE,XMIPP_VIZ, XMIPP_PLUGIN)
+	XMIPPVIZ_COMPILATION_ERROR, XMIPP_VERSIONS, VERNAME_KEY, DEPRECATE_ERROR,
+	CLEANING_SOURCES_WARNING,CONFIG_FILE,CLEANING_BINARIES_WARNING, DONE0, DONE1,DONE2,
+	INSTALLATION_ERROR, LINKING2SCIPION, VERSION_KEY, SCIPION_LINK_WARNING,
+	CUFFTADVISOR,	CTPL,	GTEST, LIBSVM, LIBCIFPP, XMIPP_CORE,XMIPP_VIZ, XMIPP_PLUGIN)
 from .utils import (runJob, getCurrentBranch, printError, printMessage, green,
 										printWarning, createDir, getScipionHome, yellow, blue)
 from .config.config import readConfig
@@ -93,8 +93,6 @@ def getSources(branch: str=None, LOG_FILE_path:str=''):
 		if status != 0:
 			exitError(retCode=CLONNING_XMIPP_SOURCE_ERROR, output=output)
 	printMessage(text=green(DONE1), debug=True)
-
-
 
 def compileExternalSources(jobs):
 		"""
@@ -152,8 +150,6 @@ def compile_cuFFTAdvisor():
 				exitError(retCode=CUFFTADVSOR_ERROR, output=outputStr, pathFile=currDir)
 		printMessage(green(DONE2), debug=True, pathFile=currDir)
 
-
-
 def compile_googletest():
 		"""
 		Compiles the libsvm library for Xmipp.
@@ -185,7 +181,6 @@ def compile_googletest():
 				os.chdir(currDir)
 				exitError(retCode=GOOGLETEST_ERROR, output=outputStr, pathFile=currDir)
 
-
 def compile_libsvm():
 		printMessage(text=f'{HEADER2} Compiling libsvm...', debug=True)
 		# if the libsvm repo is updated, remember that the repoFork/Makefile was edited to remove references to libsvm-so.2
@@ -208,7 +203,6 @@ def compile_libsvm():
 		else:
 				os.chdir(currDir)
 				exitError(retCode=LIBSVM_ERROR, output=outputStr, pathFile=currDir)
-
 
 def compile_libcifpp(jobs):
 		"""
@@ -265,7 +259,6 @@ def compile_libcifpp(jobs):
 				os.chdir(currDir)
 				exitError(retCode=LIBCIFPP_ERROR, output=outputStr, pathFile=currDir)
 
-
 def compileSources(jobs, sconsPath:str):
 		"""
 		Compiles Xmipp source code.
@@ -287,7 +280,6 @@ def compileSources(jobs, sconsPath:str):
 		for source in sources:
 				compileXmippRun(source=source[0], sourceError=source[1], compileLines=source[2], sconsPath=sconsPath, jobs=jobs)
 
-
 def compileXmippRun(source:str, sourceError:str, compileLines:list, sconsPath:str, jobs:int):
 		printMessage(text=f'\n{HEADER1} Compiling {source}...', debug=True)
 		retCode, outputStr = runJob(
@@ -298,7 +290,6 @@ def compileXmippRun(source:str, sourceError:str, compileLines:list, sconsPath:st
 		if retCode != 0:
 				exitError(retCode=sourceError, output=outputStr)
 		printMessage(text=green('{}'.format(DONE1)), debug=True)
-
 
 def compileAndInstall(args):
 	# Get sources
@@ -318,7 +309,6 @@ def compileAndInstall(args):
 	#Install
 	printMessage(text=f'\n{HEADER0} Installation {HEADER0}', debug=True)
 	install(directory=args.directory)
-
 
 def install(directory):
 		"""
@@ -747,7 +737,6 @@ def cleanSources():
 		if retCode != 0:
 				printWarning(text=outputStr, warningCode=CLEANING_SOURCES_WARNING)
 
-
 def cleanBin():
 		printMessage('Deleting binaries files...', debug=True)
 		for ext in ['so', 'os', 'o']:
@@ -763,7 +752,6 @@ def cleanBin():
 				printWarning(text=outputStr, warningCode=CLEANING_BINARIES_WARNING)
 		cleanEmptyFolders()
 		printMessage(green('Done'), debug=True)
-
 
 
 ####################### AUX FUNCTIONS #######################

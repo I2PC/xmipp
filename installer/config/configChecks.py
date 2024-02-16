@@ -36,7 +36,6 @@ from .main import exitError
 from ..constants import *
 
 
-
 def checkConfig(dictPackages:dict, dictInternalFlags:dict, dPrints:bool, tarAndPost:bool=True):
     """
     Checks the configurations of various packages.
@@ -98,7 +97,6 @@ def checkCC(dictPackages):
         exitError(retCode=GCC_VERSION_ERROR, output='gcc {} lower than required ({})'.format(version, GCC_MINIMUM), dictPackages=dictPackages, tarPost=tarPost)
     else:
         exitError(retCode=CC_NO_EXIST_ERROR, output='GCC package path "{}" does not exist'.format(dictPackages[CC]), dictPackages=dictPackages, tarPost=tarPost)
-
 
 def checkCXX(dictPackages):
     """
@@ -422,34 +420,6 @@ def checkSTARPU(dictPackages, checkPackagesStatus):
     else:
         dictPackages['STARPU'] = 'False'
     runJob("rm -f xmipp_starpu_config_test*")
-
-# def checkPYTHONINCFLAGS(incPath):
-#     includes = incPath.split(' ')
-#     pythonPath = includes[0].replace('-I', '')
-#     numpyPath = includes[1].replace('-I', '')
-#     if existPackage(pythonPath):
-#         strVersion = getPackageVersionCmd(pythonPath)
-#         idx = strVersion.find('\n')
-#         idx2 = strVersion[idx].rfind(' ')
-#         version = strVersion[idx - idx2:idx]
-#         if versionToNumber(version) < versionToNumber(PYTHON_MINIMUM):
-#             printMessage(text=red('python {} lower than required ({})'.format(version,
-#                                                                PYTHON_MINIMUM)), debug=debugPrints)
-#             return 10
-#
-#     #NUMPY
-#     import sys
-#     sys.path.append('/path/to/directory')
-#     if existPackage(numpyPath):
-#         strVersion = getPackageVersionCmd(pythonPath)
-#         idx = strVersion.find('\n')
-#         idx2 = strVersion[idx].rfind(' ')
-#         version = strVersion[idx - idx2:idx]
-#         if versionToNumber(version) < versionToNumber(PYTHON_MINIMUM):
-#             prinprintMessaget(text=red('python {} lower than required ({})'.format(version,
-#                                                                PYTHON_MINIMUM)), debug=True)
-#             return 10
-#
 
 def checkHDF5(dictPackages):
     """
