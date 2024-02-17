@@ -23,19 +23,16 @@
 # ***************************************************************************/
 
 # General imports
-import sys, os
+import sys
 
 # Self imports
 from .api import sendApiPOST
 from .reportTar import createTar
 from .constants import COMPRESED_FILE
-from .utils import printHappyEnd
+from .utils import printHappyEnd, runJob
 
 def exitXmipp(retCode:int=0, dictPackages:dict={}, tarPost:bool=True):
-	try:
-		os.remove(COMPRESED_FILE)
-	except FileNotFoundError:
-		pass
+	runJob(f"rm -rf {COMPRESED_FILE}")
 	if tarPost:
 		if retCode != 0:
 			createTar()
