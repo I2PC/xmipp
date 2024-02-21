@@ -253,16 +253,43 @@ class BnBgpu:
             count+=1
             del(Texp) 
         return(cl)
-        
+    
+    
+    def split_classes_for_range(self, classes, matches, percent=0.7):
+        thr = torch.zeros(classes)
+        for n in range(classes):
+            vmin = torch.min(matches[matches[:, 1] == n, 2])
+            vmax = torch.max(matches[matches[:, 1] == n, 2])
+            percentile = (vmax - vmin) * percent
+            thr[n] = vmax - percentile
+            
+            # conteo_total = torch.sum((matches[:, 1] == n))
+            # conteo_positivo = torch.sum((matches[:, 1] == n) & (matches[:, 2] < thr[n]))
+            # conteo_negativo = torch.sum((matches[:, 1] == n) & (matches[:, 2] >= thr[n]))
+            # print(conteo_total, conteo_positivo, conteo_negativo)
+            # print(vmax - vmin, vmax, vmin)
+            
+        return(thr)        
     
     
     def create_classes(self, mmap, tMatrix, iter, nExp, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, sampling, mask, sigma):
         
-        print("----------create-classes-------------")
+        print("----------create-classes-------------")      
+        
+        class_split = 0
+        if iter > 1 and iter < 5:
+            thr = self.split_classes_for_range(classes, matches)
+            # print(thr)
+            
+            class_split = int(final_classes/(2*3))
+            if iter == 4:
+                class_split = final_classes - classes
+            
+        newCL = [[] for i in range(classes + class_split)]
+
 
         step = int(np.ceil(nExp/expBatchSize))
         batch_projExp_cpu = [0 for i in range(step)]
-        newCL = [[] for i in range(classes)]
         
         #rotate and translations
         rotBatch = -matches[:,3].view(nExp,1)
@@ -287,16 +314,34 @@ class BnBgpu:
             
             batch_projExp_cpu[count] = self.batchExpToCpu(transforIm, freqBn, coef, cvecs)
             count+=1
+            
+                
+             
+            if iter > 1 and iter < 5: 
+                for n in range(classes):
                     
-            for n in range(classes):
-                class_images = transforIm[matches[initBatch:endBatch, 1] == n]#.to("cpu")
-                newCL[n].append(class_images)
+                    if n < class_split:
+                        class_images = transforIm[(matches[initBatch:endBatch, 1] == n) & (matches[initBatch:endBatch, 2] < thr[n])]
+                        newCL[n].append(class_images)
+                        
+                        non_class_images = transforIm[(matches[initBatch:endBatch, 1] == n) & (matches[initBatch:endBatch, 2] >= thr[n])]
+                        newCL[n + classes].append(non_class_images)
+                    else:
+                        class_images = transforIm[matches[initBatch:endBatch, 1] == n]#.to("cpu")
+                        newCL[n].append(class_images)
+            
+            else:       
+                for n in range(classes):
+                    class_images = transforIm[matches[initBatch:endBatch, 1] == n]#.to("cpu")
+                    newCL[n].append(class_images)
                          
             del(transforIm)
             
         newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL]   
                          
-        clk = self.averages_increaseClas(mmap, iter, newCL, classes, final_classes)
+        # clk = self.averages_increaseClas(mmap, iter, newCL, classes, final_classes)
+        clk = self.averages_createClasses(mmap, iter, newCL)
+        
         # if iter < 12:            
         # clk = self.apply_lowpass_filter(clk, 10, sampling)
         if mask:
@@ -448,6 +493,25 @@ class BnBgpu:
 
         clk = torch.stack(clk_list)                           
         return(clk)
+    
+    
+    
+    def averages_createClasses(self, mmap, iter, newCL): 
+        
+        if iter < 10:
+            newCL = sorted(newCL, key=len, reverse=True)    
+        element = list(map(len, newCL))
+        # print(element)    
+        classes = len(newCL)       
+  
+        clk = []
+        for n in range(classes):
+            if len(newCL[n]) > 0:
+                clk.append(torch.mean(newCL[n], dim=0))
+            else:
+                clk.append(torch.zeros((mmap.data.shape[1], mmap.data.shape[2]), device=newCL[0].device))
+        clk = torch.stack(clk)
+        return clk
     
     
     def averages(self, data, newCL, classes): 
