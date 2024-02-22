@@ -272,7 +272,7 @@ if __name__ == "__main__":
 	# Creating parser to parse the command-line arguments
 	parser = ErrorHandlerArgumentParser(formatter_class=GeneralHelpFormatter, prog="xmipp")
 
-	# Adding subparsers to have other variables deppending on the value of the mode
+	# Adding subparsers to have other variables depending on the value of the mode
 	subparsers = parser.add_subparsers(dest="mode")
 
 	# Arguments for mode 'addModel'
@@ -284,9 +284,9 @@ if __name__ == "__main__":
 	# Arguments for mode 'all'
 	allSubparser = subparsers.add_parser(MODE_ALL, formatter_class=ModeHelpFormatter)
 	allSubparser.add_argument("-j", "--jobs", type=int, default=DEFAULT_JOBS)
-	allSubparser.add_argument("-br", "--branch")
-	allSubparser.add_argument("-dir", "--directory", default=DEFAULT_BUILD_DIR)
-	allSubparser.add_argument("-NoModels", "--NoModels", action='store_false', default=None)
+	allSubparser.add_argument("-b", "--branch")
+	allSubparser.add_argument("-d", "--directory", default=DEFAULT_BUILD_DIR)
+	allSubparser.add_argument("--noModels", action='store_false', default=None)
 
 
 
@@ -302,18 +302,18 @@ if __name__ == "__main__":
 	# Arguments for mode 'compileAndInstall'
 	compileAndInstallSubparser = subparsers.add_parser(MODE_COMPILE_AND_INSTALL, formatter_class=ModeHelpFormatter)
 	compileAndInstallSubparser.add_argument("-j", "--jobs", type=int, default=DEFAULT_JOBS)
-	compileAndInstallSubparser.add_argument("-br", "--branch")
-	compileAndInstallSubparser.add_argument("-dir", "--directory", default=DEFAULT_BUILD_DIR)
+	compileAndInstallSubparser.add_argument("-b", "--branch")
+	compileAndInstallSubparser.add_argument("-d", "--directory", default=DEFAULT_BUILD_DIR)
 
 	# Arguments for mode 'config'
 	configSubparser = subparsers.add_parser(MODE_CONFIG, formatter_class=ModeHelpFormatter)
-	configSubparser.add_argument("-debug", "--debug", action='store_true', default=DEFAULT_MODE_DEBUG)
+	configSubparser.add_argument("--debug", action='store_true', default=DEFAULT_MODE_DEBUG)
 
 
 
 	# Arguments for mode 'getModels'
 	getModelsSubparser = subparsers.add_parser(MODE_GET_MODELS, formatter_class=ModeHelpFormatter)
-	getModelsSubparser.add_argument("-dir", "--directory", default=DEFAULT_MODELS_DIR)
+	getModelsSubparser.add_argument("-d", "--directory", default=DEFAULT_MODELS_DIR)
 
 	# Arguments for mode 'git'
 	gitSubparser = subparsers.add_parser(MODE_GIT, formatter_class=ModeHelpFormatter)
@@ -322,14 +322,14 @@ if __name__ == "__main__":
 	# Arguments for mode 'test'
 	testSubparser = subparsers.add_parser(MODE_TEST, formatter_class=ModeHelpFormatter)
 	testSubparser.add_argument("testName", nargs='?', default=None)
-	testSubparser.add_argument("-show", "--show", action='store_true')
-	testSubparser.add_argument("-allPrograms", "--allPrograms", "--allprograms", action='store_true')
-	testSubparser.add_argument("-allFuncs", "--allFuncs", "-allfuncs", action='store_true')
+	testSubparser.add_argument("--show", action='store_true')
+	testSubparser.add_argument("--allPrograms", action='store_true')
+	testSubparser.add_argument("--allFuncs", action='store_true')
 
 
 	# Arguments for mode 'version'
 	versionSubparser = subparsers.add_parser(MODE_VERSION, formatter_class=ModeHelpFormatter)
-	versionSubparser.add_argument("-short", "--short", action='store_true')
+	versionSubparser.add_argument("--short", action='store_true')
 
 	# Applying default mode value if needed
 	if len(sys.argv) == 1 or (
