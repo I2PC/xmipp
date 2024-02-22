@@ -36,7 +36,7 @@ from .main import exitError
 from ..constants import *
 
 
-def checkConfig(dictPackages:dict, dictInternalFlags:dict, dPrints:bool, tarAndPost:bool=True):
+def checkConfig(dictPackages:dict, dictInternalFlags:dict, **kwargs):
     """
     Checks the configurations of various packages.
 
@@ -44,39 +44,34 @@ def checkConfig(dictPackages:dict, dictInternalFlags:dict, dPrints:bool, tarAndP
     - dictPackages (dict): Dictionary containing package information.
 
     """
-    global tarPost
-    tarPost = tarAndPost
-    global debugPrints
-    debugPrints = dPrints
-
     checkPackagesStatus = []
-    checkCC(dictPackages)
-    checkCXX(dictPackages)
-    checkMPI(dictPackages, dictInternalFlags)
-    checkJava(dictPackages)
+    checkCC(dictPackages, **kwargs)
+    checkCXX(dictPackages, **kwargs)
+    checkMPI(dictPackages, dictInternalFlags, **kwargs)
+    checkJava(dictPackages, **kwargs)
     if dictPackages['MATLAB'] == True:
-        checkMatlab(dictPackages, checkPackagesStatus)
+        checkMatlab(dictPackages, checkPackagesStatus, **kwargs)
     if dictPackages['OPENCV'] == True:
-        checkOPENCV(dictPackages, checkPackagesStatus)
+        checkOPENCV(dictPackages, **kwargs)
     if dictPackages['CUDA'] == True:
-        checkCUDA(dictPackages, checkPackagesStatus)
+        checkCUDA(dictPackages, checkPackagesStatus, **kwargs)
     if dictPackages['STARPU'] == True:
-        checkSTARPU(dictPackages, checkPackagesStatus)
-    checkGit()
-    checkHDF5(dictPackages)
-    checkTIFF(dictPackages)
-    checkFFTW3(dictPackages)
-    checkScons(dictPackages)
-    checkCMake()
-    checkMake()
-    checkRsync()
+        checkSTARPU(dictPackages, checkPackagesStatus, **kwargs)
+    checkGit(**kwargs)
+    checkHDF5(dictPackages, **kwargs)
+    checkTIFF(dictPackages, **kwargs)
+    checkFFTW3(dictPackages, **kwargs)
+    checkScons(dictPackages, **kwargs)
+    checkCMake(**kwargs)
+    checkMake(**kwargs)
+    checkRsync(**kwargs)
 
     if checkPackagesStatus != []:
         for pack in checkPackagesStatus:
             printWarning(text=pack[0], warningCode=pack[0], debug=True)
 
 
-def checkCC(dictPackages):
+def checkCC(dictPackages, debugPrints: bool, tarPost: bool):
     """
     Checks the GCC (CC) package at the specified path for version compatibility.
 
@@ -98,7 +93,7 @@ def checkCC(dictPackages):
     else:
         exitError(retCode=CC_NO_EXIST_ERROR, output='GCC package path "{}" does not exist'.format(dictPackages[CC]), dictPackages=dictPackages, tarPost=tarPost)
 
-def checkCXX(dictPackages):
+def checkCXX(dictPackages, debugPrints: bool, tarPost: bool):
     """
     Checks the CXX package at the specified path for version compatibility.
 
@@ -121,7 +116,7 @@ def checkCXX(dictPackages):
     else:
         exitError(retCode=CXX_NO_EXIST_ERROR, output='CXX package path "{}" does not exist'.format(dictPackages[CXX]), dictPackages=dictPackages, tarPost=tarPost)
 
-def checkMPI(dictPackages, dictInternalFlags):
+def checkMPI(dictPackages, dictInternalFlags, debugPrints: bool, tarPost: bool):
     """
     Checks the MPI packages for compatibility and performs additional checks.
 
@@ -202,7 +197,7 @@ def checkMPI(dictPackages, dictInternalFlags):
                       output='mpirun or mpiexec have failed.',
                       dictPackages=dictPackages, tarPost=tarPost)
 
-def checkJava(dictPackages):
+def checkJava(dictPackages, debugPrints: bool, tarPost: bool):
     """
     Checks the Java installation and configuration.
 
@@ -265,7 +260,7 @@ def checkJava(dictPackages):
                   dictPackages=dictPackages, tarPost=tarPost)
     runJob("rm xmipp_jni_test*", showError=True)
 
-def checkMatlab(dictPackages, checkErrors):
+def checkMatlab(dictPackages, checkErrors, debugPrints):
     """
     Checks for the existence of MATLAB package and verifies if a specified path is a directory.
 
@@ -300,7 +295,7 @@ def checkMatlab(dictPackages, checkErrors):
         printMessage(text=green('Matlab installation found'), debug=debugPrints)
     runJob("rm xmipp_mex*")
 
-def checkOPENCV(dictPackages, checkErrors):
+def checkOPENCV(dictPackages, checkErrors: bool, debugPrints: bool):
     """
     Checks OpenCV installation, version, and CUDA support.
 
@@ -341,7 +336,7 @@ def checkOPENCV(dictPackages, checkErrors):
 
     runJob("rm xmipp_test_opencv*", showError=False)
 
-def checkCUDA(dictPackages, checkPackagesStatus):
+def checkCUDA(dictPackages, checkPackagesStatus, debugPrints: bool):
     """
     Checks the compatibility of CUDA with the current g++ compiler version and updates the dictionary accordingly.
 
@@ -421,7 +416,7 @@ def checkSTARPU(dictPackages, checkPackagesStatus):
         dictPackages['STARPU'] = 'False'
     runJob("rm -f xmipp_starpu_config_test*")
 
-def checkHDF5(dictPackages):
+def checkHDF5(dictPackages, debugPrints: bool, tarPost: bool):
     """
     Checks HDF5 library configuration based on provided package information.
 
@@ -453,7 +448,7 @@ def checkHDF5(dictPackages):
     runJob("rm xmipp_test_main*", showError=True)
     printMessage(text=green('HDF5 {} found'.format(version)), debug=debugPrints)
 
-def checkTIFF(dictPackages):
+def checkTIFF(dictPackages, debugPrints: bool, tarPost: bool):
     if path.exists(dictPackages['TIFF_H']):
         printMessage(text=green('TIFF {} found'.format(TIFFVersion(dictPackages['TIFF_SO']))), debug=debugPrints)
     else:
@@ -461,7 +456,7 @@ def checkTIFF(dictPackages):
     if path.exists(dictPackages['TIFF_SO']) == False:
         exitError(retCode=TIFF_ERROR, output='libtiff.so not found', dictPackages=dictPackages, tarPost=tarPost)
 
-def checkFFTW3(dictPackages):
+def checkFFTW3(dictPackages, debugPrints: bool, tarPost: bool):
     if path.exists(dictPackages['FFTW3_H']):
         if path.exists(dictPackages['FFTW3_SO']):
             version = FFTW3Version(dictPackages['FFTW3_SO'])
@@ -476,7 +471,7 @@ def checkFFTW3(dictPackages):
     else:
         exitError(retCode=FFTW3_H_ERROR, output='FFTW3 does not exist', dictPackages=dictPackages, tarPost=tarPost)
 
-def checkGit():
+def checkGit(debugPrints: bool, tarPost: bool):
     version = gitVersion()
     if versionToNumber(version) < versionToNumber(GIT_MINIMUM):
         exitError(retCode=GIT_VERSION_ERROR,
@@ -485,7 +480,7 @@ def checkGit():
     else:
         printMessage(text=green('git {} found'.format(version)), debug=debugPrints)
 
-def checkCMake():
+def checkCMake(debugPrints: bool, tarPost: bool):
     """
     ### This function checks if the current installed version, if installed, is above the minimum required version.
     ### If no version is provided it just checks if CMake is installed.
@@ -508,7 +503,7 @@ def checkCMake():
 
     printMessage(text=green('cmake {} found'.format(cmakVersion)), debug=debugPrints)
 
-def checkScons(dictPackages:dict):
+def checkScons(dictPackages:dict, debugPrints: bool, tarPost: bool):
     sconsV = getSconsVersion(dictPackages)
     if sconsV:
         if versionToNumber(sconsV) < versionToNumber(SCONS_MINIMUM):
@@ -532,7 +527,7 @@ def checkScons(dictPackages:dict):
             else:
                 exitError(retCode=SCONS_ENV_ERROR, output='Scons not found.', tarPost=tarPost)
 
-def checkRsync():
+def checkRsync(debugPrints: bool):
     rsyncV = getRsyncVersion()
     if rsyncV is None:
         if versionToNumber(rsyncV) < versionToNumber(RSYNC_MINIMUM):
@@ -540,7 +535,7 @@ def checkRsync():
                       output='rsync found {}, required {}'.format(rsyncV, RSYNC_MINIMUM))
     printMessage(text=green('rsync {} found'.format(rsyncV)), debug=debugPrints)
 
-def checkMake():
+def checkMake(debugPrints: bool, tarPost: bool):
     """
 	### This function checks if the current installed version, if installed, is above the minimum required version.
 	### If no version is provided it just checks if Make is installed.

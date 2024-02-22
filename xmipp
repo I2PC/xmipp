@@ -129,7 +129,7 @@ def modeGit(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	checkGit()
+	checkGit(debugPrints=False, tarPost=False) #FIXME harvest parameters from args
 	print('\n------------------------------------')
 	print('-Repository xmippCore:\n', end='')
 	retCode, outputStr = runJob("(cd src/xmippCore; git %s)" % " ".join(args.command))
