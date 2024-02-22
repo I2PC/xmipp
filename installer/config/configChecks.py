@@ -155,39 +155,6 @@ def checkMPI(dictPackages, dictInternalFlags, debugPrints: bool, tarPost: bool):
                 exitError(retCode=MPI_NOT_FOUND_ERROR,
                       output=f'{pack} package error:\n {output}', dictPackages=dictPackages, tarPost=tarPost)
 
-    #More checks
-
-    cppProg = """
-    #include <mpi.h>
-    int main(){}
-    """
-    with open("xmipp_mpi_test_main.cpp", "w") as cppFile:
-        cppFile.write(cppProg)
-    cmd = ("%s -c -w %s %s xmipp_mpi_test_main.cpp -o xmipp_mpi_test_main.o"
-           % (dictPackages["MPI_CXX"], dictPackages["LIBDIRFLAGS"],CXX_FLAGS))
-    status, output = runJob(cmd)
-    if status != 0:
-        exitError(retCode=MPI_RUNNING_ERROR,
-                  output='Fails running the command: \n{}\n\nError message: {}'.format(cmd, output),
-                  dictPackages=dictPackages, tarPost=tarPost)
-
-    libhdf5 = get_Hdf5_name(dictPackages["LIBDIRFLAGS"])
-    cmd = (("%s %s %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main -lfftw3"
-           " -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread ")
-           % (dictInternalFlags["MPI_LINKERFORPROGRAMS"],
-              dictInternalFlags["LINKFLAGS"],
-              dictPackages["LIBDIRFLAGS"],
-              libhdf5
-              ))
-
-    status, output = runJob(cmd)
-    if status != 0:
-        exitError(retCode=MPI_COMPILATION_ERROR,
-                  output='Fails running the command: \n{}\n\nError message:\n{}'.format(cmd, output),
-                  dictPackages=dictPackages, tarPost=tarPost)
-
-    runJob("rm xmipp_mpi_test_main*", showOutput=False,showCommand=False)
-
     processors = 2
     output = runJob('{} -np {} echo {}'.format(dictPackages['MPI_RUN'], processors, 'Running'))[1]
     if output.count('Running') != processors:
