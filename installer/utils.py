@@ -735,7 +735,7 @@ def whereIsPackage(packageName):
 		Returns:
 		- str or None: Directory containing the package or program, or None if not found.
 		"""
-		programPath = distutils.spawn.find_executable(packageName)
+		programPath = shutil.which(packageName)
 		if programPath:
 				programPath = os.path.realpath(programPath)
 				return os.path.dirname(programPath)
