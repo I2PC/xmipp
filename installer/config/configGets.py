@@ -32,18 +32,13 @@ from ..utils import (existPackage, printMessage, green, updateXmippEnv, whereIsP
 from ..constants import (INC_PATH, PATH_TO_FIND, PATH_TO_FIND_H, INC_HDF5_PATH,
                          HEADER2, DONE2, CUDA_NOT_IN_PATH_WARNING)
 
-def getSystemValues(scratch, debugP):
+def getSystemValues():
     """
     Retrieves system information related to various packages and configurations.
 
     Returns:
     - dict: Dictionary containing system package information.
     """
-    global tarPost
-    tarPost = scratch
-    global debugPrints
-    debugPrints = debugP
-
     printMessage(text=f'{HEADER2}  Getting system libraries...', debug=True)
     dictPackages = {'INCDIRFLAGS': '-I../ ',
                     'LIBDIRFLAGS': ''}
@@ -261,6 +256,8 @@ def getTIFF(dictPackages):
         pathTIFF_H = glob.glob(f'''{path}/{patron}''')
         if pathTIFF_H:
             dictPackages['TIFF_H'] = pathTIFF_H[0]
+        else:
+            dictPackages['TIFF_H'] = ''
 
 
 def getFFTW3(dictPackages):
@@ -275,6 +272,8 @@ def getFFTW3(dictPackages):
         pathFFTW3_H = glob.glob(join(path, patron))
         if pathFFTW3_H:
             dictPackages['FFTW3_H'] = pathFFTW3_H[0]
+        else:
+            dictPackages['FFTW3_H'] = ''
 
 
 def getINCDIRFLAGS(dictPackages):

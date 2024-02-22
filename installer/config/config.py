@@ -51,7 +51,7 @@ def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True):
         except FileNotFoundError:
             pass
         printMessage(text=f'\n{HEADER1} Generating config file xmipp.conf...', debug=True)
-        dictPackages = getSystemValues(scratch, debugP)
+        dictPackages = getSystemValues()
         dictInternalFlags = getInternalFlags(dictPackages)
         writeConfig(dictPackages, dictInternalFlags)
         printMessage(text=green(DONE1), debug=True)
