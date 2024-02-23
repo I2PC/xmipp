@@ -255,7 +255,7 @@ class BnBgpu:
         return(cl)
     
     
-    def split_classes_for_range(self, classes, matches, percent=0.7):
+    def split_classes_for_range(self, classes, matches, percent=0.8):
         thr = torch.zeros(classes)
         for n in range(classes):
             vmin = torch.min(matches[matches[:, 1] == n, 2])
