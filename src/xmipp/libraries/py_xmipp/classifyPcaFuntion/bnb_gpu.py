@@ -255,15 +255,15 @@ class BnBgpu:
         return(cl)
     
     
-    def split_classes_for_range(self, classes, matches, percentTrash=0.5, percent=0.85):
-        thr = torch.zeros(classes,2)
+    def split_classes_for_range(self, classes, matches, percent=0.7):
+        thr = torch.zeros(classes)
         for n in range(classes):
             vmin = torch.min(matches[matches[:, 1] == n, 2])
             vmax = torch.max(matches[matches[:, 1] == n, 2])
-            percentileTrash = (vmax - vmin) * percentTrash
+            # percentileTrash = (vmax - vmin) * percentTrash
             percentile = (vmax - vmin) * percent
-            # thr[n] = vmax - percentile
-            thr[n] = torch.tensor([vmax - percentileTrash, vmax - percentile]) 
+            thr[n] = vmax - percentile
+            # thr[n] = torch.tensor([vmax - percentileTrash, vmax - percentile]) 
             
             # conteo_total = torch.sum((matches[:, 1] == n))
             # conteo_positivo = torch.sum((matches[:, 1] == n) & (matches[:, 2] < thr[n]))
@@ -330,14 +330,14 @@ class BnBgpu:
                 for n in range(classes):
                     
                     if n < class_split:
-                        class_images = transforIm[(matches[initBatch:endBatch, 1] == n) & (matches[initBatch:endBatch, 2] <= thr[n][1])]
+                        class_images = transforIm[(matches[initBatch:endBatch, 1] == n) & (matches[initBatch:endBatch, 2] < thr[n])]
                         newCL[n].append(class_images)
                         
-                        non_class_images = transforIm[(matches[initBatch:endBatch, 1] == n) & (matches[initBatch:endBatch, 2] > thr[n][1]) & (matches[initBatch:endBatch, 2] < thr[n][0])]
+                        non_class_images = transforIm[(matches[initBatch:endBatch, 1] == n) & (matches[initBatch:endBatch, 2] >= thr[n]) 
                         newCL[n + classes].append(non_class_images)
                         
-                        trash_images = transforIm[(matches[initBatch:endBatch, 1] == n) & (matches[initBatch:endBatch, 2] >= thr[n][0])]
-                        newCL[classes].append(trash_images)
+                        # trash_images = transforIm[(matches[initBatch:endBatch, 1] == n) & (matches[initBatch:endBatch, 2] >= thr[n][0])]
+                        # newCL[classes].append(trash_images)
                     else:
                         class_images = transforIm[matches[initBatch:endBatch, 1] == n]#.to("cpu")
                         newCL[n].append(class_images)
