@@ -283,7 +283,7 @@ class BnBgpu:
             # print(thr)
             
             # class_split = int(final_classes/(2*3))
-            class_split = int(final_classes/(n*4))
+            class_split = int(final_classes/(iter*4))
             # if iter == 1:
             #     class_split = int(classes*0.7)
             # if iter == 4:
