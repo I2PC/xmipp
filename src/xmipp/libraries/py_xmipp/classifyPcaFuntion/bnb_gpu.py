@@ -255,7 +255,7 @@ class BnBgpu:
         return(cl)
     
     
-    def split_classes_for_range(self, classes, matches, percent=0.4):
+    def split_classes_for_range(self, classes, matches, percent=0.8):
         thr = torch.zeros(classes)
         for n in range(classes):
             vmin = torch.min(matches[matches[:, 1] == n, 2])
@@ -277,16 +277,17 @@ class BnBgpu:
         print("----------create-classes-------------")      
         
         class_split = 0
-        # if iter > 1 and iter < 5:
-        if iter == 1 or iter == 3:
+        if iter >= 1 and iter < 5:
+        # if iter == 1 or iter == 3:
             thr = self.split_classes_for_range(classes, matches)
             # print(thr)
             
             # class_split = int(final_classes/(2*3))
-            if iter == 1:
-                class_split = int(classes*0.7)
+            class_split = int(final_classes/(n*4))
+            # if iter == 1:
+            #     class_split = int(classes*0.7)
             # if iter == 4:
-            if iter == 3:
+            if iter == 4:
                 class_split = final_classes - classes
             
         newCL = [[] for i in range(classes + class_split)]
@@ -321,8 +322,8 @@ class BnBgpu:
             
                 
              
-            # if iter > 1 and iter < 5: 
-            if iter == 1 or iter == 3: 
+            if iter >= 1 and iter < 5: 
+            # if iter == 1 or iter == 3: 
                 for n in range(classes):
                     
                     if n < class_split:
