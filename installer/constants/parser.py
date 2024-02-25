@@ -101,36 +101,29 @@ MODES = {
 # Arguments of each mode, sorted by group, with their respective help message
 MODE_ARGS = {
 	MODE_VERSION: {
-		'-dir': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\".",
-		'-short': "If set, only version number is shown."
+		'-d': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\".",
+		'--short': "If set, only version number is shown."
 	},
 	MODE_COMPILE_AND_INSTALL: {
 		'-j': f"Number of jobs. Defaults to all available.",
-		'-br': "Branch for the source repositories.",
-		'-dir': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\"."
+		'-b': "Branch for the source repositories.",
+		'-d': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\"."
 	},
 	MODE_ALL: {
 		'-j': f"Number of jobs. Defaults to all available.",
-		'-br': "Branch for the source repositories.",
-		'-NoModels': "Avoid to download the models for the DeepLearningToolkit",
-		'-dir': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\"."
+		'-b': "Branch for the source repositories.",
+		'-d': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\"."
 	},
-	MODE_CONFIG: {
-			'-debug': "Verbose mode to see versions of packages"
-	},
+	MODE_CONFIG: {},
 	MODE_GET_MODELS: {
-		'-dir': f"Directory where the Deep Learning Models will be downloaded. Default is \"{DEFAULT_MODELS_DIR}\"."
+		'-d': f"Directory where the Deep Learning Models will be downloaded. Default is \"{DEFAULT_MODELS_DIR}\"."
 	},
 	MODE_CLEAN_BIN: {},
 	MODE_CLEAN_DEPRECATED: {},
 	MODE_CLEAN_ALL: {},
 	MODE_TEST: {
 		'testName': "Run certain test. If combined with --show, greps the test name from the test list.",
-		'show': "Shows the tests available and how to invoke those.",
-		'allPrograms': "Run all program tests",
-	  'allFuncs': "Run all function tests"
-
-
+		'--show': "Shows the tests available and how to invoke those."
 	},
 	MODE_GIT: {
 		'command': "Git command to run on all source repositories."
