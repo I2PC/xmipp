@@ -65,6 +65,12 @@ API_URL = 'xmipp.i2pc.margaro.eus/api/attempts/' #temporal url
 # documentation xmipp
 DOCUMENTATION_URL = 'https://i2pc.github.io/docs/'
 
+# URLs
+CMAKE_INSTALL_DOCS_URL = 'https://i2pc.github.io/docs/Installation/InstallationNotes/index.html#cmake'
+MODELS_URL = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
+SCIPION_FILES_REMOTE_PATH = "scipionfiles/downloads/scipion/software/em"
+SCIPION_TESTS_URLS = "http://scipion.cnb.csic.es/downloads/scipion/data/tests"
+
 # Other variables
 CXX_FLAGS = ' -mtune=native -march=native -flto=auto -std=c++17 '
 LINKFLAGS = '-flto=auto'

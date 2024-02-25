@@ -30,9 +30,3 @@ from .main import *
 from .errors import *
 from .parser import *
 from .versions import *
-
-# URLs
-CMAKE_INSTALL_DOCS_URL = 'https://i2pc.github.io/docs/Installation/InstallationNotes/index.html#cmake'
-MODELS_URL = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
-SCIPION_FILES_REMOTE_PATH = "scipionfiles/downloads/scipion/software/em"
-SCIPION_TESTS_URLS = "http://scipion.cnb.csic.es/downloads/scipion/data/tests"

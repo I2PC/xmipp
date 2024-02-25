@@ -29,11 +29,9 @@ import argparse, sys, os, multiprocessing
 # Installer imports
 from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,
 	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS, MODE_TEST, MODE_GIT,
-	MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, XMIPP_MODE_ERROR,
-	DEFAULT_MODE_DEBUG)
+	MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, DEFAULT_MODE_DEBUG)
 from installer.utils import printError
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
-
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
@@ -169,7 +167,6 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	else:
 		# If method was none of the above, exit with error
 		printError(f"Mode \"{args.mode}\" not recognized. {COMMON_USAGE_HELP_MESSAGE}")
-		#exitXmipp(retCode=XMIPP_MODE_ERROR, tarPost=False)
 
 ####################### MAIN EXECUTION THREAD #######################
 if __name__ == "__main__":
