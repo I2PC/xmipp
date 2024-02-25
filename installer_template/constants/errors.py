@@ -21,12 +21,10 @@
 # * All comments concerning this program package may be sent to the
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
-
+from .__init__ import cmakeInstallURL
 """
 Submodule containing all constants needed for handling errors during Xmipp's installation.
 """
-
-from . import CMAKE_INSTALL_DOCS_URL
 
 # Error codes
 OK = 0
@@ -102,6 +100,7 @@ CLEANING_BINARIES_WARNING = 15
 NETWORK_WARINING = 17
 CUDA_NOT_IN_PATH_WARNING = 18
 
+
 # Error messages
 #TODO review the messages spelling, maybe more links to the documentation?
 ERROR_CODE = {
@@ -124,8 +123,8 @@ ERROR_CODE = {
 	MPI_RUNNING_ERROR: ['mpirun or mpiexec error. mpi.h could not be found on your system.', f'Please, review the mpi installation (we recomend libopenmpi-dev), review the LIBDIRFLAGS in the xmipp.conf file. '],
 	JAVAC_DOESNT_WORK_ERROR: ['JAVAC does not work.', 'Check the JAVA_HOME flag on xmipp.conf.'],
 	JAVA_INCLUDE_ERROR: ['JAVA fails. jni include fails.','Check the JNI_CPPPATH, CXX and INCDIRFLAGS.'],
-	CMAKE_VERSION_ERROR: ['', f'Please update your CMake version by following the instructions at {CMAKE_INSTALL_DOCS_URL}\033[0m'],
-	CMAKE_ERROR: ['', f'Please install or review your CMake version by following the instructions at {CMAKE_INSTALL_DOCS_URL}\033[0m'],
+	CMAKE_VERSION_ERROR: ['', f'Please update your CMake version by following the instructions at {cmakeInstallURL}\033[0m'],
+	CMAKE_ERROR: ['', f'Please install or review your CMake version by following the instructions at {cmakeInstallURL}\033[0m'],
 	NETWORK_ERROR: ['There was a network error running a command.', ''],
 	IO_ERROR: ['Input/output error.', 'This error can be caused by the installer not being able to read/write/create/delete a file. Check your permissions on this directory.'],
 	TIFF_ERROR: ['TIFF library was not found on your system.', 'Please install it or add the path in the flag TIFF_H and TIFF_SO of the xmipp.conf file.'],
@@ -150,11 +149,13 @@ ERROR_CODE = {
 	INSTALLATION_ERROR: ['Some error occurred during the installation.', ''],
 	LINKING2SCIPION: ['',''],
 	RSYNC_VERSION_ERROR: ['rsync not abailable on your system', 'Please install or update it'],
+	HDF5_NOT_FOUND_ERROR: ['', ''],
 	SCONS_ENV_ERROR: ['Scons is not available on the current enviroment', 'Please activate the scipion3 enviroment'],
 	XMIPP_MODE_ERROR: ['', ],
 	MPI_PARALLEL_ERROR: ['MPI could not be runned in parallel','If you are running a virtual machine, please allow several processors not just one.'],
 	MAKE_VERSION_ERROR: ['Version of make not valid', 'Please update your Make version by following the instructions'],
-	MAKE_ERROR: ['make package not found','Please install or review your Make version']
+	MAKE_ERROR: ['make package not found','Please install or review your Make version'],
+
 }
 
 # Warning messages
@@ -179,5 +180,5 @@ WARNING_CODE = {
 	CLEANING_SOURCES_WARNING: ['Cleaning source warning', ''],
 	CLEANING_BINARIES_WARNING: ['Cleaning binaries warning.', ''],
 	NETWORK_WARINING: ['No internet connection detected', 'Please check your internet connection'],
-	CUDA_NOT_IN_PATH_WARNING: ['nvcc not in the PATH but installed. CUDA tools disabled in Xmipp', 'Please add it to the PATH in order to be accesible']
+    CUDA_NOT_IN_PATH_WARNING: ['nvcc not in the PATH but installed. CUDA tools disabled in Xmipp', 'Please add it to the PATH in order to be accesible']
 }

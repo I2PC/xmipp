@@ -25,7 +25,6 @@
 """
 Submodule containing all the general constants needed for Xmipp's installation.
 """
-
 XMIPP = 'xmipp'
 XMIPP_CORE = 'xmippCore'
 XMIPP_VIZ = 'xmippViz'
@@ -42,19 +41,24 @@ CTPL = 'CTPL'
 GTEST = 'googletest'
 LIBSVM = 'libsvm'
 LIBCIFPP = 'libcifpp'
+DONE0 = '###### Done'
+DONE1 = '#### Done'
+DONE2 = '## Done'
+HEADER0 = '######'
+HEADER1 = '####'
+HEADER2 = '##'
 
 REPOSITORIES = {
-	XMIPP: ['https://github.com/I2PC/xmipp.git', ''],
-	XMIPP_CORE: ['https://github.com/I2PC/xmippCore.git', ''],
-	XMIPP_VIZ: ['https://github.com/I2PC/xmippViz.git', ''],
-	XMIPP_PLUGIN: ['https://github.com/I2PC/scipion-em-xmipp.git', ''],
-	CUFFTADVISOR: ['https://github.com/DStrelak/cuFFTAdvisor.git', 'master'],
-	CTPL: ['https://github.com/vit-vit/CTPL.git', 'master'],
-	GTEST: ['https://github.com/google/googletest', 'v1.13.x'],
-	LIBSVM: ['https://github.com/cossorzano/libsvm.git', 'master'],
-	LIBCIFPP: ['https://github.com/MartinSalinas98/libcifpp', 'ms_feature_ciflibrary'],
+XMIPP: ['https://github.com/I2PC/xmipp.git', ''],
+XMIPP_CORE: ['https://github.com/I2PC/xmippCore.git', ''],
+XMIPP_VIZ: ['https://github.com/I2PC/xmippViz.git', ''],
+XMIPP_PLUGIN: ['https://github.com/I2PC/scipion-em-xmipp.git', ''],
+CUFFTADVISOR: ['https://github.com/DStrelak/cuFFTAdvisor.git', 'master'],
+CTPL: ['https://github.com/vit-vit/CTPL.git', 'master'],
+GTEST: ['https://github.com/google/googletest', 'v1.13.x'],
+LIBSVM: ['https://github.com/cossorzano/libsvm.git', 'master'],
+LIBCIFPP: ['https://github.com/MartinSalinas98/libcifpp', 'ms_feature_ciflibrary'],
 }
-
 # Source repositories
 ORGANIZATION_NAME = 'I2PC'
 TAGS_SUBPAGE = 'archive/refs/tags/'
@@ -85,7 +89,10 @@ PATH_TO_FIND = [
   "/lib"
 ]
 
-PATH_TO_FIND_H = ['/usr/include', '/usr/local/include']
+PATH_TO_FIND_H = ['/usr/include',
+									'/usr/local/include']
+
+
 
 # File names
 CONFIG_FILE = 'xmipp.conf'
@@ -96,51 +103,49 @@ COMPRESED_FILE = 'report.tar.gz'
 LOG_FILE = 'compileLOG.txt'
 CMD_OUT_LOG_FILE = 'commandOutput.log'
 CMD_ERR_LOG_FILE = 'commandError.log'
-OUTPUT_POLL_TIME = 0.5 # Seconds between each output refresh
-TAIL_LOG_NCHARS = 300
+OUTPUT_POLL_TIME = 0.5
+TAIL_LOG = 300
 
-INTERNAL_FLAGS = {
-	'CCFLAGS': '',
-	'CXXFLAGS': '',
-	'PYTHONINCFLAGS': '',
-	'LINKERFORPROGRAMS': '',
-	'MPI_LINKERFORPROGRAMS': '',
-	'NVCC_CXXFLAGS': '',
-	'LINKFLAGS_NVCC': '',
-	'PYTHON_LIB': '',
-	'JAVA_BINDIR': '',
-	'JAVAC': '',
-	'JAR': '',
-	'JNI_CPPPATH': '',
-	'LINKFLAGS': '',
-}
+INTERNAL_FLAGS = {'CCFLAGS': '',
+								  'CXXFLAGS': '',
+								  'PYTHONINCFLAGS': '',
+								  'LINKERFORPROGRAMS': '',
+								  'MPI_LINKERFORPROGRAMS': '',
+								  'NVCC_CXXFLAGS': '',
+								  'LINKFLAGS_NVCC': '',
+									'PYTHON_LIB': '',
+								  'JAVA_BINDIR': '',
+								  'JAVAC': '',
+								  'JAR': '',
+									'JNI_CPPPATH': '',
+									'LINKFLAGS': '',
+									}
 
-CONFIG_DICT = {
-	'INCDIRFLAGS': '',
-	'CC': '',
-	'CXX': '',
-	'MPI_CC': '',
-	'MPI_CXX': '',
-	'MPI_RUN': '',
-	'JAVA_HOME': '',
-	'OPENCV': '',
-	'OPENCVCUDASUPPORTS': '',
-	'CUDA': '',
-	'CUDA_HOME': '',
-	'CUDACXX': '',
-	'SCONS': '',
-	'STARPU': '',
-	'STARPU_HOME': '',
-	'STARPU_INCLUDE': '',
-	'STARPU_LIB': '',
-	'STARPU_LIBRARY': '',
-	'MATLAB': '',
-	'MATLAB_HOME': '',
-	'LIBDIRFLAGS': '',
-	'HDF5_HOME': '',
-	'TIFF_SO': '',
-	'FFTW3_SO': '',
-	'TIFF_H': '',
-	'FFTW3_H': '',
-	'ANON_DATA_COLLECT': ''
+CONFIG_DICT = {'INCDIRFLAGS': '',
+								'CC': '',
+								'CXX': '',
+								'MPI_CC': '',
+								'MPI_CXX': '',
+								'MPI_RUN': '',
+								'JAVA_HOME': '',
+								'OPENCV': '',
+								'OPENCVCUDASUPPORTS': '',
+								'CUDA': '',
+								'CUDA_HOME': '',
+								'CUDACXX': '',
+							  'SCONS': '',
+								'STARPU': '',
+								'STARPU_HOME': '',
+								'STARPU_INCLUDE': '',
+								'STARPU_LIB': '',
+								'STARPU_LIBRARY': '',
+								'MATLAB': '',
+								'MATLAB_HOME': '',
+								'LIBDIRFLAGS': '',
+							  'HDF5_HOME': '',
+							  'TIFF_SO': '',
+							 	'FFTW3_SO': '',
+							  'TIFF_H': '',
+							 	'FFTW3_H': '',
+							  'ANON_DATA_COLLECT': ''
 }

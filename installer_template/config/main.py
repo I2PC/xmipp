@@ -21,3 +21,35 @@
 # * All comments concerning this program package may be sent to the
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
+from os import getcwd
+
+from ..constants import CONFIG_FILE, CONFIG_DICT, INTERNAL_FLAGS
+from ..utils import printError
+from ..exit import exitXmipp
+
+def readConfig():
+    """Check if valid all the flags of the config file"""
+    dictPackages = {}
+    internalFlags = {}
+
+    with open(CONFIG_FILE, 'r') as f:
+        config = f.read()
+    for key, _ in CONFIG_DICT.items():
+        idx = config.find(key+'=')
+        idx2 = config[idx:].find('=') + 1
+        value = config[idx+idx2:idx + idx2 + config[idx+idx2:].find('\n')]
+        dictPackages[key] = value
+    for key, _ in INTERNAL_FLAGS.items():
+        idx = config.find(key+'=')
+        idx2 = config[idx:].find('=') + 1
+        value = config[idx+idx2:idx + idx2 + config[idx+idx2:].find('\n')]
+        internalFlags[key] = value
+    return dictPackages, internalFlags
+
+
+
+def exitError(output:str='', retCode:int=0, dictPackages:dict={}, tarPost:bool=True):
+    printError(errorMsg=output, retCode=retCode)
+    if not dictPackages:
+        dictPackages, _ = readConfig()
+    exitXmipp(retCode=retCode, dictPackages=dictPackages, tarPost=tarPost)

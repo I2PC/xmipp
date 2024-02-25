@@ -31,7 +31,6 @@ COMMON_USAGE_HELP_MESSAGE = 'Run \"./xmipp -h\" for usage help.'
 DEFAULT_BUILD_DIR = './build'
 DEFAULT_MODELS_DIR = 'build'
 DEFAULT_MODE_DEBUG = False
-
 # Mode list (alphabetical order)
 MODE_ADD_MODEL = 'addModel'
 MODE_ALL = 'all'
@@ -95,6 +94,7 @@ MODES = {
     "        4. Update the MANIFEST file."
     "The model name will be the folder name in <modelsPath>"
     "Must have write permisions to such machine."
+
 	}
 }
 

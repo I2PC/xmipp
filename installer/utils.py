@@ -27,23 +27,17 @@ Module containing useful functions used by the installation process.
 """
 
 # General imports
-import sys, glob, distutils.spawn, json, os, io, time, subprocess, shutil, multiprocessing
-import re
+import sys, os, time, multiprocessing
 from typing import List, Tuple, Union, Callable, Any
-from sysconfig import get_paths
+from io import FileIO
+from subprocess import Popen, PIPE
 
 # Installer imports
-from .constants import (MODES, CUDA_GCC_COMPATIBILITY, vGCC, UP, REMOVE_LINE, \
-						TAB_SIZE, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE, DEFAULT_MODELS_DIR, \
-						CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, BAR_SIZE, DEFAULT_BUILD_DIR,
-						XMIPP_VERSIONS, MODE_GET_MODELS, WARNING_CODE, XMIPPENV, urlModels, remotePath,
-						DOCUMENTATION_URL, urlTest, DONE0, DONE1, HEADER0,
-						HEADER1, HEADER2, warningToHidden, HOST_TEST, HOST_TEST_2, NETWORK_WARINING)
+from .constants import (MODES, TAB_SIZE, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,
+	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, XMIPP_VERSIONS, SCONS_INSTALL_ERROR)
 
 ####################### RUN FUNCTIONS #######################
-def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False,
-					 showCommand: bool=False, streaming: bool=False, printLOG:bool=False,
-					 pathLOGFile:str='', linesCompileBar:list=None) -> Tuple[int, str]:
+def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
 	"""
 	### This function runs the given command.
 
@@ -54,8 +48,6 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	- showError (bool): Optional. If True, errors are printed.
 	- showCommand (bool): Optional. If True, command is printed in blue.
 	- streaming (bool): Optional. If True, output is shown in real time as it is being produced.
-	- printLOG (bool): Optiona. If True, output on no streaming is printed on log
-	- linesCompileBar(list): Optional. If !=[0,0] [#full lines compiler, #lines precompile]
 
 	#### Returns:
 	- (int): Return code.
@@ -67,31 +59,28 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 
 	# Running command
 	if streaming:
-		retCode, outputStr = runStreamingJob(cmd, cwd=cwd, showOutput=showOutput, showError=showError, linesCompileBar=linesCompileBar)
+		retCode, outputStr = runStreamingJob(cmd, cwd=cwd, showOutput=showOutput, showError=showError)
 	else:
-		process = subprocess.Popen(cmd, cwd=cwd, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-
+		process = Popen(cmd, cwd=cwd, env=os.environ, stdout=PIPE, stderr=PIPE, shell=True)
+		
 		# Defining output string
-		output, err = process.communicate()
 		retCode = process.returncode
-		outputStr = output.decode() if not retCode else err.decode()
+		output, err = process.communicate()
+		outputStr = output.decode() if retCode else err.decode()
 
-		# Printing output if specified
-		if showOutput:
-			print('{}\n'.format(outputStr))
+	# Printing output if specified
+	if not streaming and showOutput:
+		print('{}\n'.format(outputStr))
 
-		# Printing errors if specified
-		if err and showError:
-			print(red(outputStr))
+	# Printing errors if specified
+	if not streaming and err and showError:
+		print(red(outputStr))
 
-		if printLOG:
-			printMessage(text=outputStr, debug=False, printLOG_FILE=True, pathFile=pathLOGFile)
-
-	# Returning return code
+	# Returing return code
 	outputStr = outputStr[:-1] if outputStr.endswith('\n') else outputStr
 	return retCode, outputStr
 
-def runNetworkJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, nRetries: int=5) -> Tuple[int, str]:
+def runInsistentJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, nRetries: int=5) -> Tuple[int, str]:
 	"""
 	### This function runs the given network command and retries it the number given of times until one of the succeeds or it fails for all the retries.
 
@@ -156,23 +145,21 @@ def getFormattingTabs(text: str) -> str:
 	"""
 	return text.expandtabs(TAB_SIZE)
 
-def printError(errorMsg: str, retCode: int=1, pathFile:str=''):
+def printError(errorMsg: str, retCode: int=1):
 	"""
-	### This function prints an error message.
+	### This function prints an error message and exits with the given return code.
 
 	#### Params:
 	- errorMsg (str): Error message to show.
 	- retCode (int): Optional. Return code to end the exection with.
 	"""
 	# Print the error message in red color
-	errorStr = (f'!! ERROR {retCode}: {errorMsg}\n{ERROR_CODE[retCode][0]}\n'
-							f'{ERROR_CODE[retCode][1]}'
-							f'\nMore details on the Xmipp documentation portal: {DOCUMENTATION_URL}')
-	printMessage(red(errorStr), debug=True, pathFile=pathFile)
+	print(red(errorMsg))
+	sys.exit(retCode) # TODO: Try API POST. Remove responsibility?
 
-def printMessage(text: str, debug: bool=False, pathFile:str='', printLOG_FILE:bool=True):
+def printMessage(text: str, debug: bool=False):
 	"""
-	### This function prints the given text into the log file, and, if debug mode is active, also through terminal.
+	### This method prints the given text into the log file, and, if debug mode is active, also through terminal.
 
 	### Params:
 	- text (str): The text to be printed.
@@ -181,45 +168,14 @@ def printMessage(text: str, debug: bool=False, pathFile:str='', printLOG_FILE:bo
 	# If debug mode is active, print through terminal
 	if debug:
 		print(text, flush=True)
+	
 	# Open the file to add text
 	try:
-		if not pathFile:
-				pathFile = LOG_FILE
-		else:
-				pathFile = os.path.join(pathFile, LOG_FILE)
-		if printLOG_FILE:
-				with open(pathFile, mode="a") as file:
-					text = remove_color_codes(text)
-					file.write(f"{text}\n")
-					file.flush()
+		with open(LOG_FILE, mode="a") as file:
+			file.write(f"{text}\n")
 	# If there was an error during the process, show error and exit
 	except OSError:
 		printError(f"Could not open log file to add info.\n{ERROR_CODE[IO_ERROR]}", retCode=IO_ERROR)
-
-def printWarning(text: str, warningCode: int, debug: bool=True, pathFile:str=''):
-	"""
-	### This function logs the given text as a warning.
-
-	### Params:
-	- text (str): The text to be printed.
-	- warningCode (int): Code of the controlled warning.
-	- debug (bool): Indicates if debug mode is active.
-	"""
-	printMessage(yellow(f'! Warning code {warningCode}: {text}\n{WARNING_CODE[warningCode][0]}\n{WARNING_CODE[warningCode][1]}\n'),
-							 debug=debug, pathFile=pathFile)
-
-def remove_color_codes(coloredText):
-		"""
-		Removes ANSI color codes from a given text.
-		Args:
-				text_with_colors (str): The input text containing ANSI color codes.
-
-		Returns:
-				str: The text with color codes removed.
-		"""
-		patron = re.compile(r'\x1b\[[0-9;]*[mK]')
-		texto_sin_colores = patron.sub('', coloredText)
-		return texto_sin_colores
 
 ####################### EXECUTION MODE FUNCTIONS #######################
 def getModeGroups() -> List[str]:
@@ -249,135 +205,6 @@ def getAllModes() -> List[str]:
 	
 	# Return full mode list
 	return modes
-
-def addDeepLearningModel(login, modelPath='', update=None):
-		""" Takes the folder name modelName from models dir and
-				makes a .tgz, uploads the .tgz to xmipp server.
-		"""
-		modelPath = modelPath.rstrip("/")
-		if not os.path.isdir(modelPath):
-				print("<modelsPath> is not a directory. Please, check the path. \n"
-							"The name of the model will be the name of that folder.\n")
-
-		modelName = os.path.basename(modelPath)
-		modelsDir = os.path.dirname(modelPath)
-		tgzFn = "xmipp_model_%s.tgz" % modelName
-		localFn = os.path.join(modelsDir, tgzFn)
-
-		printMessage("Creating model: '%s'." % tgzFn, debug=True)
-		runJob("tar czf %s %s" % (tgzFn, modelName), cwd=modelsDir)
-
-		printMessage("Warning: Uploading model, please BE CAREFUL! This can be dangerous.")
-		printMessage('A connection to "%s" is needed in order to write in folder '
-					'"%s".' % (login, remotePath))
-		if input("Continue? YES/no\n").lower() == 'no':
-				sys.exit()
-
-		printMessage("Trying to upload the model using '%s' as login" % login)
-		args = "%s %s %s %s" % (
-		login, os.path.abspath(localFn), remotePath, update)
-		if runJob("src/xmipp/bin/xmipp_sync_data upload %s" % args):
-				printMessage("'%s' model was successfully uploaded! Removing the local .tgz file."
-							% modelName)
-				runJob("rm %s" % localFn)
-
-def downloadDeepLearningModels(dest:str='build', printLOG:bool=True):
-		printMessage(f"{HEADER0} Downloading DeepLearningToolKit models {HEADER0} ",debug=True, printLOG_FILE=printLOG)
-		if not os.path.exists('build/bin/xmipp_sync_data'):
-			printMessage(red('Xmipp is not installed. Please, install Xmipp before downloading DLTK models.'),debug=True, printLOG_FILE=printLOG)
-			return False
-		if dest == DEFAULT_BUILD_DIR or dest == DEFAULT_MODELS_DIR:
-			modelsPath = 'models'
-		else:
-			modelsPath = dest
-		dataSet = "DLmodels"
-
-		# downloading/updating the DLmodels
-		if os.path.isdir(os.path.join(dest, modelsPath)):
-			printMessage(f"{HEADER1} Updating the Deep Learning models...", debug=True, printLOG_FILE=printLOG)
-			task = "update"
-			showOut = False
-		else:
-			printMessage(f"{HEADER1} Downloading Deep Learning models...", debug=True, printLOG_FILE=printLOG)
-			task = "download"
-			showOut = True
-		global pDLdownload
-		retCode, outputStr = runJob("bin/xmipp_sync_data %s %s %s %s"
-		                     % (task, modelsPath, urlModels, dataSet),
-		                     cwd='build', streaming=False, showOutput=showOut)
-		if retCode != 0:
-			printMessage(red('Unable to download models. Try again with ./xmipp {}\n{}'.format(
-				MODE_GET_MODELS, outputStr)), debug=True, printLOG_FILE=printLOG)
-		else:
-			printMessage(green(f'Models {task}d in the path: {modelsPath}'), debug=True, printLOG_FILE=printLOG)
-			printMessage(green(DONE1), debug=True, printLOG_FILE=printLOG)
-
-
-def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
-						 allFuncs:bool=False, CUDA: bool=True):
-	printMessage('\n---------------------------------------', debug=True)
-	printMessage(text=f'\n{HEADER0} Testing {HEADER0}', debug=True)
-	str2Test = ''
-	if testName:
-		str2Test += testName
-	if show:
-		str2Test += ' -show'
-	if allPrograms:
-		str2Test += ' -allPrograms'
-	if allFuncs:
-		str2Test += ' -allFuncs'
-	xmippSrc = os.environ.get('XMIPP_SRC', None)
-	if xmippSrc and os.path.isdir(xmippSrc):
-		os.environ['PYTHONPATH'] = ':'.join([
-	        os.path.join(os.environ['XMIPP_SRC'], XMIPP),
-	        os.environ.get('PYTHONPATH', '')])
-		testsPath = os.path.join(os.environ['XMIPP_SRC'], XMIPP, 'tests')
-	else:
-		printMessage(red('XMIPP_SRC variable is not set. Before running tests you need to do:'), debug=True, printLOG_FILE=False)
-		printMessage('source build/xmipp.bashrc', debug=True, printLOG_FILE=False)
-		return
-
-	dataSetPath = os.path.join(testsPath, 'data')
-	os.environ["XMIPP_TEST_DATA"] = dataSetPath
-
-	# downloading/updating the dataset
-	dataset = 'xmipp_programs'
-	if os.path.isdir(dataSetPath):
-		printMessage("\n- Updating test files...", debug=True, printLOG_FILE=False)
-		task = "update"
-		showOutput=False
-	else:
-		printMessage("\n- Downloading test files...", debug=True, printLOG_FILE=False)
-		task = "download"
-		showOutput=True
-	args = "%s %s %s" % ("tests/data", urlTest, dataset)
-	retCode, outputStr = runJob("bin/xmipp_sync_data %s %s" % (task, args),
-									streaming=True, cwd='src/xmipp', showOutput=True)
-	if retCode != 0:
-		printMessage(red('Error downloading test files.\n{}'.format(outputStr)), printLOG_FILE=False)
-	else:
-		printMessage(text=green('Done'), debug=True, printLOG_FILE=False)
-
-	noCudaStr = '-noCuda' if not CUDA else ''
-
-
-	if allPrograms:
-		printMessage('\n-----------------------------', debug=True, printLOG_FILE=False)
-		printMessage('Running all tests...', debug=True, printLOG_FILE=False)
-		retCode, outputStr = runJob(
-						"%s test.py %s %s" % ('python3', str2Test, noCudaStr),
-						cwd=testsPath, streaming=True, showError=True, showOutput=True)
-	elif testName:
-		printMessage('\n-----------------------------', debug=True, printLOG_FILE=False)
-		printMessage("Tests to do: %s" % (str2Test), debug=True, printLOG_FILE=False)
-		retCode, outputStr = runJob(
-	    		"%s test.py %s %s" % ('python3', str2Test, noCudaStr),
-	    		cwd=testsPath, streaming=False, showError=True, showOutput=True)
-
-
-	if retCode != 0:
-		printMessage(red('Error runnig test.\n{}'.format(outputStr)), printLOG_FILE=False)
-
 
 ####################### COLORS #######################
 def green(text: str) -> str:
@@ -440,8 +267,6 @@ def bold(text: str) -> str:
 	"""
 	return f"\033[1m{text}\033[0m"
 
-
-
 ####################### GIT FUNCTIONS #######################
 def getCurrentBranch(dir: str='./') -> Union[str, None]:
 	"""
@@ -487,7 +312,7 @@ def isBranchUpToDate(dir: str='./') -> bool:
 		return False
 	
 	# Update branch
-	retCode = runNetworkJob("git fetch")[0]
+	retCode = runInsistentJob("git fetch")[0]
 
 	# Check if command succeeded
 	if retCode != 0:
@@ -497,7 +322,7 @@ def isBranchUpToDate(dir: str='./') -> bool:
 	localCommit = runJob(f"git rev-parse {currentBranch}")[1]
 
 	# Get latest remote commit
-	retCode, remoteCommit = runNetworkJob(f"git rev-parse origin/{currentBranch}")
+	retCode, remoteCommit = runInsistentJob(f"git rev-parse origin/{currentBranch}")
 
 	# Check if command succeeded
 	if retCode != 0:
@@ -508,6 +333,12 @@ def isBranchUpToDate(dir: str='./') -> bool:
 
 ####################### ENV FUNCTIONS #######################
 def getCurrentEnvName() -> str:
+	"""
+	### This function returns the name of the active enviroment.
+
+	#### Returns:
+	- (str): Name of the active enviroment, or an empty string if there is no active enviroment or if errors happened.
+	"""
 	# Getting conda prefix path
 	retCode, envPath = runJob("echo $CONDA_PREFIX")
 
@@ -530,77 +361,21 @@ def isScipionEnv() -> bool:
 	# Getting enviroment name
 	envPath = getCurrentEnvName()
 
-	# If enviroment's path is empty, we are in no env or an error happened
-	if not envPath:
-		return False
-	
-	# Returning result. Enviroment's path needs to be a valid path 
-	# containing binaries's directory with scipion executable inside
-	return os.path.exists(os.path.join(envPath, 'bin', 'scipion'))
-
-def updateEnviron(pathenviron:str='', path2Add:str=''):
-		"""
-		 This function updates the environment variable by adding a new path to it if it's not already present.
-
-		 Params:
-		 pathenviron (str): Name of the environment variable to be updated.
-		 path2Add (str): Path to be added to the environment variable.
-
-		 Returns:
-		 None
-		 """
-		path_collected = os.environ.get(pathenviron, '')
-		if path2Add not in path_collected.split(':'):
-				path_collected += ':' + path2Add
-		os.environ[pathenviron] = path_collected
-
-def updateXmippEnv(pos='begin', realPath=True, **kwargs):
-		""" Add/update a variable in self.env dictionary
-				pos = {'begin', 'end', 'replace'}
-		"""
-		env = readXmippEnv()
-		for key, value in kwargs.items():
-				isString = isinstance(value, str)
-				if isString and realPath:
-						value = os.path.realpath(value)
-				if key in env:
-						if env[key].find(str(value)) == -1:
-								if pos == 'begin' and isString:
-										env[key] = value + os.pathsep + env[key]
-								elif pos == 'end' and isString:
-										env[key] = env[key] + os.pathsep + value
-								elif pos == 'replace':
-										env[key] = str(value)
-				else:
-						env[key] = str(value)
-
-		writeXmippEnv(env)
-
-def readXmippEnv():
-		try:
-			with open(XMIPPENV, 'r') as f:
-					data = json.load(f)
-			return data
-		except FileNotFoundError:
-				return {}
-
-def writeXmippEnv(env):
-		with open(XMIPPENV, 'w') as f:
-				json.dump(env, f, indent=4)
-
+	# Enviroment's path needs to be a valid path containing binaries's
+	# directory with scipion executable inside
+	return envPath and os.path.exists(os.path.join(envPath, 'bin', 'scipion'))
 
 ####################### VERSION FUNCTIONS #######################
-
 def versionToNumber(strVersion: str) -> float:
 	"""
 	### This function converts the version string into a version number that can be numerically compared.
 	#### Supports any length of version numbers, but designed for three, in format X.Y.Z (mayor.minor.micro).
 
 	#### Params:
-	strVersion (str): String containing the version numbers.
+	- strVersion (str): String containing the version numbers.
 
 	#### Returns:
-	(float): Number representing the value of the version numbers combined.
+	- (float): Number representing the value of the version numbers combined.
 	"""
 	# Defining the most significant version number value
 	mayorMultiplier = 100
@@ -622,7 +397,7 @@ def versionToNumber(strVersion: str) -> float:
 	# Returning result number
 	return numberVersion
 
-def getPackageVersionCmdReturn(packageName: str) -> Union[str, None]:
+def getPackageVersionCmd(packageName: str) -> Union[str, None]:
 	"""
 	### Retrieves the version of a package or program by executing '[packageName] --version' command.
 
@@ -634,8 +409,9 @@ def getPackageVersionCmdReturn(packageName: str) -> Union[str, None]:
 	"""
 	# Running command
 	retCode, output = runJob(f'{packageName} --version')
+
 	# Check result if there were no errors
-	return output, retCode
+	return output if retCode == 0 else None
 
 def getPackageVersionCmd(packageName: str) -> Union[str, None]:
 	"""
@@ -676,158 +452,37 @@ def getPythonPackageVersion(packageName: str) -> Union[str, None]:
 				return line.split()[-1]
 
 ####################### OTHER FUNCTIONS #######################
-def printHappyEnd():
-		branch = branchName()
-		if branch == 'master':
-				branch = ''
-		else:
-				branch = 'devel'
-		strXmipp = 'Xmipp {}/{} has been installed, enjoy it!'.format(
-				XMIPP_VERSIONS['xmipp']['vername'], branch)
-		lenStr = len(strXmipp)
-		border = '*' * (lenStr + 4)
-		spaceStr = ' ' * (lenStr + 2)
-		print('\n')
-		print(border)
-		print('*' + spaceStr + '*')
-		print('* ', end='')
-		print(green(strXmipp), end='')
-		print(' *')
-		print('*' + spaceStr + '*')
-		print(border)
-		printMessage(text=strXmipp, debug=False)
-		printMessage('More about Xmipp: {}'.format(DOCUMENTATION_URL), debug=True)
-
-def branchName():
-		retCode, outputStr = runJob('git status')
-		if retCode == 0:
-			if outputStr.find('On branch') != -1:
-				branch = outputStr[outputStr.find('On branch') + len('On branch'):outputStr.find('\n')]
-				return branch
-
-def findFileInDirList(fnH, dirlist):
-	"""
-	Finds a file in a list of directories.
-
-	Params:
-	- fnH (str): File name or pattern to search for.
-	- dirlist (str or list of str): Single directory or list of directories to search in.
-
-	Returns:
-	- str: Directory containing the file if found, otherwise an empty string.
-	"""
-	if isinstance(dirlist, str):
-			dirlist = [dirlist]
-
-	for dir in dirlist:
-			validDirs = glob.glob(os.path.join(dir, fnH))
-			if len(validDirs) > 0:
-					return os.path.dirname(validDirs[0])
-	return ''
-
-def whereIsPackage(packageName):
-		"""
-		Finds the directory of a specific package or program in the system.
-
-		Params:
-		- packageName (str): Name of the package or program.
-
-		Returns:
-		- str or None: Directory containing the package or program, or None if not found.
-		"""
-		programPath = distutils.spawn.find_executable(packageName)
-		if programPath:
-				programPath = os.path.realpath(programPath)
-				return os.path.dirname(programPath)
-		else:
-				return None
-
-def existPackage(packageName, path2Find:list=None):
-		"""Return True if packageName exist, else False"""
-		if path2Find:
-			path = shutil.which(packageName, path=path2Find)
-		else:
-			path = shutil.which(packageName)
-		if path and getPackageVersionCmd(path) is not None:
-				return True
-		return False
-
-def getINCDIRFLAG():
-		return ' -I ' + os.path.join(get_paths()['data'].replace(' ', ''),  'include')
-
-def getCompatibleGCC(nvccVersion):
-		"""
-		Retrieves compatible versions of GCC based on a given NVCC (NVIDIA CUDA Compiler) version.
-
-		Params:
-		- nvccVersion (str): Version of NVCC.
-
-		Returns:
-		- tuple: A tuple containing compatible GCC versions and a boolean indicating compatibility.
-		"""
-		# https://gist.github.com/ax3l/9489132
-		for key, value in CUDA_GCC_COMPATIBILITY.items():
-				versionList = key.split('-')
-				if versionToNumber(nvccVersion) >= versionToNumber(versionList[0]) and \
-								versionToNumber(nvccVersion) <= versionToNumber(versionList[1]):
-						return value, True
-		return vGCC, False
-
-def get_Hdf5_name(libdirflags):
-		"""
-		Identifies the HDF5 library name based on the given library directory flags.
-
-		Params:
-		- libdirflags (str): Flags specifying library directories.
-
-		Returns:
-		- str: Name of the HDF5 library ('hdf5', 'hdf5_serial', or 'hdf5' as default).
-		"""
-		libdirs = ['/usr/lib',
-		'/usr/lib64']
-
-		#libdirs = libdirflags.split("-L")
-		for dir in libdirs:
-				if os.path.exists(os.path.join(dir.strip(), "libhdf5.so")):
-						return "hdf5"
-				elif os.path.exists(os.path.join(dir.strip(), "libhdf5_serial.so")):
-						return "hdf5_serial"
-		return "hdf5"
-
 def installScons() -> bool:
 	"""
 	### This function attempts to install Scons in the current enviroment.
 	"""
 	# Attempt installing/upgrading Scons
-	if networkCheck():
-		retCode, str = runJob('pip install --upgrade scons', streaming=True)
-	else:
-		retCode = 1
+	retCode = runJob('pip install --upgrade scons', streaming=True)[0]
+
 	# Obtain enviroment's name for log's message
 	envName = getCurrentEnvName()
 
 	# If command failed, show error message and exit
 	if retCode != 0:
+		instructionStr = "Please, install it manually."
+		envNameStr = f'Scons could not be installed in enviroment "{envName}".' if envName else f'Scons does not install automatically system wide by default.'
+		printError(f'{envNameStr} {instructionStr}', retCode=SCONS_INSTALL_ERROR)
+
 		return False
 	
 	# If succeeded, log message
-	printMessage(f'Succesfully installed or updated Scons on {envName} enviroment.', debug=True)
+	printMessage(f'Succesfully installed or updated Scons on {envName} enviroment.')
 	return True
 
-
 ####################### AUX FUNCTIONS (INTERNAL USE ONLY) #######################
-def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False,
-					showError: bool=False, linesCompileBar:list=None) -> Tuple[int, str]:
+def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False):
 	"""
 	### This function runs the given command and shows its output as it is being generated.
-
 	#### Params:
 	- cmd (str): Command to run.
 	- cwd (str): Optional. Path to run the command from. Default is current directory.
 	- showOutput (bool): Optional. If True, output is printed.
 	- showError (bool): Optional. If True, errors are printed.
-	- linesCompileBar(list): Optional. If !=[0,0] [#full lines compiler, #lines precompile]
-
 	#### Returns:
 	- (int): Return code.
 	- (str): Output of the command, regardless of if it is an error or regular output.
@@ -835,43 +490,38 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False,
 	# Creating writer and reader buffers in same tmp file
 	error = False
 	try:
-		with io.open(CMD_OUT_LOG_FILE, "wb") as writerOut,\
-			 io.open(CMD_OUT_LOG_FILE, "rb", 0) as readerOut,\
-			 io.open(CMD_ERR_LOG_FILE, "wb") as writerErr,\
-			 io.open(CMD_ERR_LOG_FILE, "rb", 0) as readerErr:
+		with open(CMD_OUT_LOG_FILE, "wb") as writerOut, open(CMD_OUT_LOG_FILE, "rb", 0) as readerOut,\
+			open(CMD_ERR_LOG_FILE, "wb") as writerErr, open(CMD_ERR_LOG_FILE, "rb", 0) as readerErr:
 			# Configure stdout and stderr deppending on param values
-			stdout = writerOut# if showOutput else subprocess.PIPE
-			stderr = writerErr if showError else subprocess.PIPE
+			stdout = writerOut if showOutput else PIPE
+			stderr = writerErr if showError else PIPE
 
 			# Run command and write output
-			process = subprocess.Popen(cmd, cwd=cwd, stdout=stdout, stderr=stderr, shell=True)
-			outputStr = writeProcessOutput(process, readerOut, readerErr, showError=showError,
-										   showOutput=showOutput, linesCompileBar=linesCompileBar)
+			process = Popen(cmd, cwd=cwd, stdout=stdout, stderr=stderr, shell=True)
+			outputStr = writeProcessOutput(process, readerOut, readerErr, showOutput=showOutput, showError=showError)
 	except (KeyboardInterrupt, OSError) as e:
 		error = True
 		errorText = str(e)
+
+	# Remove tmp files
+	runJob(f"rm -f {CMD_OUT_LOG_FILE} {CMD_ERR_LOG_FILE}", cwd=cwd)
 
 	# If there were errors, show them instead of returning
 	if error:
 		printError(errorText)
 
-
 	# Return result
 	return process.returncode, outputStr
 
-def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO,
-									readerErr: io.FileIO, showError: bool=False,
-									showOutput:bool=False, linesCompileBar:list=None) -> str:
+def writeProcessOutput(process: Popen, readerOut: FileIO=None, readerErr: FileIO=None, showOutput: bool=False, showError: bool=False):
 	"""
 	### This function captures the output and errors of the given process as it runs.
-
 	#### Params:
 	- process (Popen): Running process.
 	- readerOut (FileIO): Output reader.
 	- readerErr (FileIO): Error reader.
 	- showOutput (bool): Optional. If True, output is printed.
 	- showError (bool): Optional. If True, errors are printed.
-
 	#### Returns:
 	- (str): Output of the command, regardless of if it is an error or regular output.
 	"""
@@ -882,12 +532,6 @@ def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO,
 		isProcessFinished = process.poll() is not None
 		outputStr += writeReaderLine(readerOut, show=showOutput)
 		outputStr += writeReaderLine(readerErr, show=showError, err=True)
-		if linesCompileBar:
-			if outputStr.count('is up to date') > 4:
-					lines = linesCompileBar[1]
-			else:
-					lines = linesCompileBar[0]
-			progresBar(len(outputStr.split('\n')), lines)
 
 		# If process has finished, exit loop
 		if isProcessFinished:
@@ -896,32 +540,9 @@ def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO,
 		# Sleep before continuing to next iteration
 		time.sleep(OUTPUT_POLL_TIME)
 
-	if linesCompileBar:
-		print(REMOVE_LINE)
-		print(REMOVE_LINE, end='\r')
-		#print('lines: {}'.format(len(outputStr.split('\n'))))
-
 	return outputStr
 
-
-def progresBar(linesOut:int=0, lines:int=0):
-		if linesOut > lines:
-				progress = BAR_SIZE - 1
-		else:
-				progress = int((linesOut * BAR_SIZE) / lines)
-		#print(linesOut, linesCompileBar[0], progress)
-		percent = int(round(progress * 100 / BAR_SIZE, 0))
-
-		signEmpty = ' '
-		signFull = '='
-		bar = signFull * progress + '>'+ signEmpty * (BAR_SIZE - progress)
-		bar = ' [' + bar + ']'
-		print(green(bar), end='')
-		print(green(f' {percent}% '), end='\n')
-		print(f'More about the compilation: {LOG_FILE}', end=UP)
-
-
-def writeReaderLine(reader: io.FileIO, show: bool=False, err: bool=False) -> str:
+def writeReaderLine(reader: FileIO, show: bool=False, err: bool=False):
 	"""
 	### This function captures the output and errors of the given process as it runs.
 
@@ -940,16 +561,29 @@ def writeReaderLine(reader: io.FileIO, show: bool=False, err: bool=False) -> str
 	if line:
 		# The line to print has to remove the last '\n'
 		printedLine = line[:-1] if line.endswith('\n') else line
-		if err:
-				if printedLine.find('warning:') != -1 \
-								or printedLine.find('Note:') != -1\
-								or printedLine.find('Warning:') != -1\
-								or printedLine.find(f'{warningToHidden}') != -1:
-						pass
-				else:
-					printMessage(red(printedLine), debug=show)
-		else:
-			printMessage(line, debug=show, printLOG_FILE=True)
+		printMessage(red(printedLine) if err else printedLine, debug=show)
+
+	# Return line
+	return red(line) if err else line
+
+def writeReaderLine(reader: FileIO, show: bool=False, err: bool=False):
+	"""
+	### This function captures the output and errors of the given process as it runs.
+	#### Params:
+	- reader (FileIO): Process reader.
+	- show (bool): Optional. If True, reader text is printed.
+	- err (bool): Optional. If True, reader's output is treated as an error.
+	#### Returns:
+	- (str): Output of the reader.
+	"""
+	# Getting raw line
+	line = reader.read().decode()
+
+	# If line is not empty, print it
+	if line:
+		# The line to print has to remove the last '\n'
+		printedLine = line[:-1] if line.endswith('\n') else line
+		printMessage(red(printedLine) if err else printedLine, debug=show)
 
 	# Return line
 	return red(line) if err else line
@@ -966,49 +600,3 @@ def runLambda(function: Callable, args: Tuple[Any]=()):
 	- (Any): Return value/(s) of the called function.
 	"""
 	return function(*args)
-
-def createDir(path):
-	"""
-	Create a directory if it doesn't exist.
-
-	Args:
-	- path (str): The path of the directory to be created.
-	"""
-	if not os.path.exists(path):
-		os.makedirs(path)
-
-def getScipionHome():
-	""" Returns SCIPION_HOME, the directory for scipion3 or EMPTY str. """
-	return os.environ.get("SCIPION_HOME", whereis("scipion3")) or ''
-
-def whereis(program, findReal=False, env=None):
-	"""
-	Find the directory path of a specified program.
-
-	Args:
-	- program (str): The name of the program to search for.
-	- findReal (bool, optional): If True, returns the real path of the program (default: False).
-	- env (str, optional): The environment variable to use for the search (default: None).
-
-	Returns:
-	- str or None: Returns the directory path where the program is located. If not found, returns None.
-	"""
-	programPath = distutils.spawn.find_executable(program, path=env)
-	if programPath:
-		if findReal:
-			programPath = os.path.realpath(programPath)
-		return os.path.dirname(programPath)
-	else:
-		return None
-
-def networkCheck():
-	try:
-		subprocess.run(["ping", "-c", "3", HOST_TEST], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-		return True
-	except subprocess.CalledProcessError:
-		try:
-			subprocess.run(["ping", "-c", "3", HOST_TEST_2], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-			return True
-		except subprocess.CalledProcessError:
-			printWarning(text='', debug=True, warningCode=NETWORK_WARINING)
-			return False

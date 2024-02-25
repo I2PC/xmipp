@@ -21,3 +21,21 @@
 # * All comments concerning this program package may be sent to the
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
+
+"""
+Module containing all constants needed for the installation of Xmipp.
+"""
+
+from .main import *
+from .parser import *
+from .errors import *
+from .versions import *
+
+#URL's repositoreis
+cmakeInstallURL = 'https://i2pc.github.io/docs/Installation/InstallationNotes/index.html#cmake'
+urlModels = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
+remotePath = "scipionfiles/downloads/scipion/software/em"
+urlTest = "http://scipion.cnb.csic.es/downloads/scipion/data/tests"
+HOST_TEST = 'google.com'
+HOST_TEST_2 = 'https://github.com'
+warningToHidden = 'using serial compilation of 2 LTRANS jobs'

@@ -25,22 +25,14 @@
 
 # General imports
 import argparse, sys, os, multiprocessing
-from datetime import datetime
-from time import time
 
 # Installer imports
-from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,\
-	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS,\
-	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR,
-		XMIPP_MODE_ERROR,  DEFAULT_MODE_DEBUG, XMIPP_VERSIONS, LOG_FILE)
-from installer.utils import (printError, runJob, addDeepLearningModel,
-														 downloadDeepLearningModels, runTests, branchName,
-														 getCurrentEnvName, printMessage)
-from installer.config.config import config, checkGit
+from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,
+	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS, MODE_TEST, MODE_GIT,
+	MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, XMIPP_MODE_ERROR,
+	DEFAULT_MODE_DEBUG)
+from installer.utils import printError
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
-from installer.main import (cleanDeprecated, cleanSources, cleanBin, compileAndInstall)
-from installer.versions import collectAllVersions
-from installer.exit import exitXmipp
 
 
 ####################### EXECUTION MODES #######################
@@ -51,7 +43,7 @@ def modeAddModel(args: argparse.Namespace):
   #### Params:
   - args (Namespace): Command line arguments parsed by argparse library.
   """
-  addDeepLearningModel(login=args.login, modelPath=args.modelPath, update=args.update)
+  pass
 
 def modeCleanBin(args: argparse.Namespace):
   """
@@ -60,7 +52,7 @@ def modeCleanBin(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-  cleanBin()
+  pass
 
 def modeCleanAll(args: argparse.Namespace):
 	"""
@@ -69,14 +61,7 @@ def modeCleanAll(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	print("WARNING: This will DELETE ALL content from src and build. Notice that if you have unpushed changes, \n"
-		" they will be deleted.\nAre you sure you want to do this? (YeS/[No]) -case sensitive-")
-	yesno = input()
-	if yesno == "YeS":
-		cleanSources()
-		modeCleanBin(args)
-	else:
-		print("Clean mode aborted.")
+	pass
 
 def modeCleanDeprecated(args: argparse.Namespace):
 	"""
@@ -85,7 +70,7 @@ def modeCleanDeprecated(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	cleanDeprecated()
+	pass
 
 def modeCompileAndInstall(args: argparse.Namespace, dictConfig=None):
 	"""
@@ -94,11 +79,7 @@ def modeCompileAndInstall(args: argparse.Namespace, dictConfig=None):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	try:
-		os.remove(LOG_FILE)
-	except FileNotFoundError:
-			pass
-	compileAndInstall(argparse.Namespace)
+	pass
 
 def modeConfig(args: argparse.Namespace):
 	"""
@@ -107,11 +88,7 @@ def modeConfig(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	try:
-		os.remove(LOG_FILE)
-	except FileNotFoundError:
-			pass
-	return config(args.debug, scratch=True, tarAndPost=False)
+	pass
 
 def modeGetModels(args: argparse.Namespace):
 	"""
@@ -120,7 +97,7 @@ def modeGetModels(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	downloadDeepLearningModels(dest=args.directory, printLOG=False)
+	pass
 
 def modeGit(args: argparse.Namespace):
 	"""
@@ -129,30 +106,7 @@ def modeGit(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	checkGit()
-	print('\n------------------------------------')
-	print('-Repository xmippCore:\n', end='')
-	retCode, outputStr = runJob("(cd src/xmippCore; git %s)" % " ".join(args.command))
-	if retCode == 0:
-			print(outputStr)
-
-	print('\n------------------------------------')
-	print('-Repository xmipp:\n', end='')
-	retCode, outputStr = runJob("(cd src/xmipp; git %s)" % " ".join(args.command))
-	if retCode == 0:
-			print(outputStr)
-
-	print('\n------------------------------------')
-	print('-Repository xmippViz:\n', end='')
-	retCode, outputStr = runJob("(cd src/xmippViz; git %s)" % " ".join(args.command))
-	if retCode == 0:
-			print(outputStr)
-
-	print('\n------------------------------------')
-	print('-Repository scipion-em-xmipp:\n', end='')
-	retCode, outputStr = runJob("(cd src/scipion-em-xmipp; git %s)" % " ".join(args.command))
-	if retCode == 0:
-			print(outputStr)
+	pass
 
 def modeTest(parser, args=argparse.Namespace):
 	"""
@@ -162,12 +116,7 @@ def modeTest(parser, args=argparse.Namespace):
 	- parser (ErrorHandlerArgumentParser): Parser object used to parse the arguments.
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	# Check if at least either one of the two params has been used
-	if not args.show and not args.testName and not args.allPrograms and not args.allFuncs:
-		parser.error("At least one flag is required in testing mode. Run \"./xmipp test -h\" to get a list of available flags.")
-	dictPackages = config(debugP=False, tarAndPost=False)
-	runTests(testName=args.testName, show=args.show, allPrograms=args.allPrograms,
-					 allFuncs=args.allFuncs, CUDA=dictPackages['CUDA'])
+	pass
 
 def modeVersion(args: argparse.Namespace):
   """
@@ -176,35 +125,7 @@ def modeVersion(args: argparse.Namespace):
   #### Params:
   - args (Namespace): Command line arguments parsed by argparse library.
   """
-  dictPackages = config(debugP=False, tarAndPost=False)
-  dictV = collectAllVersions(dictPackages)
-  print(('----------------------------------------'))
-  print('Repositories details:')
-  currentPath = os.getcwd()
-  for key, value in XMIPP_VERSIONS.items():
-    os.chdir(currentPath)
-    if key !='xmipp':
-      os.chdir(os.path.join(currentPath, 'src/{}'.format(key)))
-    branch = branchName()
-    print('{}: '.format(key))
-    print('\t{} (Branch: {})'.format(value['vername'], branch))
-
-  print(('----------------------------------------'))
-  print('Package versions:')
-  print(('gcc version: \t{}'.format(dictV['gccV'])))
-  print(('gpp version: \t{}'.format(dictV['gppV'])))
-  print(('mpi version: \t{}'.format(dictV['mpiV'])))
-  print(('CUDA version: \t{}'.format(dictV['cudaV'])))
-  print(('opencv version:\t{}'.format(dictV['opencvV'])))
-  print(('java version: \t{}'.format(dictV['javaV'])))
-  print(('scons version: \t{}'.format(dictV['sconsV'])))
-  print(('cmake version: \t{}'.format(dictV['cmakeV'])))
-  print(('make version: \t{}'.format(dictV['makeV'])))
-  print(('rsync version: \t{}'.format(dictV['rsyncV'])))
-  print(('hdf5 version: \t{}'.format(dictV['hdf5V'])))
-  print(('tiff version: \t{}'.format(dictV['TIFFVn'])))
-  print(('fftw3 version: \t{}'.format(dictV['FFTW3V'])))
-  print('\n')
+  pass
 
 def modeAll(args: argparse.Namespace):
 	"""
@@ -213,22 +134,7 @@ def modeAll(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	try:
-		os.remove(LOG_FILE)
-	except FileNotFoundError:
-			pass
-	envName = getCurrentEnvName()
-	dateStart = time()
-	printMessage(f"Compilation date: {datetime.today()}", debug=True)
-	printMessage(f"Active enviroment: {envName}", debug=True)
-	printMessage(f'Jobs: {DEFAULT_JOBS}', debug=True)
-	dictConfig = config(debugP=False, tarAndPost=True)
-	compileAndInstall(args)
-	printMessage(f"Compilation and install time: {round((time() - dateStart) / 60.0, 1)} mins", debug=False)
-	printMessage('\n---------------------------------------\n', debug=True)
-	if args.NoModels == None:
-			downloadDeepLearningModels(args.directory, printLOG=True)
-	exitXmipp(dictPackages=dictConfig)
+	pass
 
 def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
 	"""
@@ -263,22 +169,14 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	else:
 		# If method was none of the above, exit with error
 		printError(f"Mode \"{args.mode}\" not recognized. {COMMON_USAGE_HELP_MESSAGE}")
-		exitXmipp(retCode=XMIPP_MODE_ERROR, tarPost=False)
-
+		#exitXmipp(retCode=XMIPP_MODE_ERROR, tarPost=False)
 
 ####################### MAIN EXECUTION THREAD #######################
 if __name__ == "__main__":
 	""" Calls main function when executed. """
 	# Defining default jobs
 	JOBS = multiprocessing.cpu_count()
-	if JOBS > 18:
-		DEFAULT_JOBS = 16
-	elif JOBS <= 18 and JOBS > 4:
-			DEFAULT_JOBS = JOBS - 4
-	elif JOBS <= 4 and JOBS >= 2:
-		DEFAULT_JOBS = 2
-	else:
-		DEFAULT_JOBS = 1
+
 	# Creating parser to parse the command-line arguments
 	parser = ErrorHandlerArgumentParser(formatter_class=GeneralHelpFormatter, prog="xmipp")
 
@@ -293,7 +191,7 @@ if __name__ == "__main__":
 
 	# Arguments for mode 'all'
 	allSubparser = subparsers.add_parser(MODE_ALL, formatter_class=ModeHelpFormatter)
-	allSubparser.add_argument("-j", "--jobs", type=int, default=DEFAULT_JOBS)
+	allSubparser.add_argument("-j", "--jobs", type=int, default=JOBS)
 	allSubparser.add_argument("-br", "--branch")
 	allSubparser.add_argument("-dir", "--directory", default=DEFAULT_BUILD_DIR)
 	allSubparser.add_argument("-NoModels", "--NoModels", action='store_false', default=None)
@@ -311,7 +209,7 @@ if __name__ == "__main__":
 
 	# Arguments for mode 'compileAndInstall'
 	compileAndInstallSubparser = subparsers.add_parser(MODE_COMPILE_AND_INSTALL, formatter_class=ModeHelpFormatter)
-	compileAndInstallSubparser.add_argument("-j", "--jobs", type=int, default=DEFAULT_JOBS)
+	compileAndInstallSubparser.add_argument("-j", "--jobs", type=int, default=JOBS)
 	compileAndInstallSubparser.add_argument("-br", "--branch")
 	compileAndInstallSubparser.add_argument("-dir", "--directory", default=DEFAULT_BUILD_DIR)
 

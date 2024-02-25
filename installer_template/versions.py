@@ -29,10 +29,29 @@ os, architecture, cuda, cmake, gpp, gcc and scons.
 
 # General imports
 from typing import Dict, Union
-
+import os
 # Installer imports
-from .utils import runJob, getPackageVersionCmd, getPythonPackageVersion
-from .constants import UNKNOWN_VALUE, CC, CXX, CMAKE, CUDA, MAKE
+from .utils import (runJob, getPackageVersionCmd, getPythonPackageVersion,
+										getCurrentBranch, isBranchUpToDate)
+from .constants import UNKNOWN_VALUE, CC, CXX, CMAKE, CUDA, CXX_FLAGS, MAKE
+
+def collectAllVersions(dictPackages: dict):
+  return {'branch': getCurrentBranch(),
+					'isUpdated': isBranchUpToDate(),
+					'gccV': getGCCVersion(),
+					'gppV': getGPPVersion(),
+					'cudaV': getCUDAVersion(),
+					'sconsV': getSconsVersion(dictPackages),
+					'cmakeV': getCmakeVersion(),
+                    'makeV': getmakeVersion(),
+                    'rsyncV': getRsyncVersion(),
+					'mpiV': MPIVersion(getPackageVersionCmd(dictPackages['MPI_RUN'])),
+					'javaV': JAVAVersion(getPackageVersionCmd('java')),
+					'hdf5V': HDF5Version(dictPackages['HDF5_HOME']),
+					'TIFFVn': TIFFVersion(dictPackages['TIFF_SO']),
+					'FFTW3V': FFTW3Version(dictPackages['FFTW3_SO']),
+					'opencvV': opencvVersion(dictPackages, CXX_FLAGS)}
+
 
 ####################### AUX FUNCTIONS #######################
 def parseCompilerVersion(versionCmdStr: Union[str, None]) -> Union[str, None]:
@@ -58,6 +77,7 @@ def parseCompilerVersion(versionCmdStr: Union[str, None]) -> Union[str, None]:
 
 	# Returning compiler version
 	return compilerVersion
+
 
 ####################### PACKAGE SPECIFIC FUNCTIONS #######################
 def getOSReleaseName() -> str:
@@ -190,7 +210,7 @@ def getCmakeVersion(dictPackages: Dict=None) -> str:
 	# Return cmake version
 	return cmakeVersion
 
-def getMakeVersion(dictPackages: Dict=None) -> str:
+def getmakeVersion(dictPackages: Dict=None) -> str:
 	"""
 	### Extracts the Make version from the PATH or the config file, the last one having a higher priority.
 
@@ -243,43 +263,174 @@ def getGCCVersion(dictPackages: Dict=None) -> Union[str, None]:
 	#### Returns:
 	- (str | None): gcc's version or None if there were any errors.
 	"""
+	
 	# Get the gcc to extract
 	gccExecutable = dictPackages[CC] if dictPackages is not None and CC in dictPackages else 'gcc'
 
 	# Return gcc version
 	return parseCompilerVersion(getPackageVersionCmd(gccExecutable))
 
-def getSconsVersion() -> Union[str, None]:
+def getSconsVersion(dictPackage:dict) -> Union[str, None]:
 	"""
 	### Extracts scons's version string.
 
 	#### Returns:
 	- (str | None): scons's version or None if there were any errors.
 	"""
-	# Attepmt to get Scons version through python package
-	version = getPythonPackageVersion('scons')
+	version = getPackageVersionCmd(dictPackage['SCONS'])
 
-	# If Scons is not installed via Python, try standalone method
-	if version is None:
-		version = getPackageVersionCmd('scons')
+	if version is not None:
+		# Defining text before version number
+		textBefore = 'SCons: v'
 
-		if version is not None:
-			# Defining text before version number
-			textBefore = 'SCons: v'
+		# Searching for text before version number
+		textBeforeStart = version.find(textBefore)
 
-			# Searching for text before version number
-			textBeforeStart = version.find(textBefore)
+		if textBeforeStart != -1:
+			# If text was found, we need to get the first 3 numbers
+			versionStart = textBeforeStart + len(textBefore)
+			numbers = version[versionStart:].splitlines()[0].split('.')
 
-			if textBeforeStart != -1:
-				# If text was found, we need to get the first 3 numbers
-				versionStart = textBeforeStart + len(textBefore)
-				numbers = version[versionStart:].splitlines()[0].split('.')
+			# Only extract macro, minor, and micro version numbers
+			if len(numbers) >= 3:
+				# Make sure last number stops when it shoulds
+				micro = numbers[2].split(',')[0]
+				version = f'{numbers[0]}.{numbers[1]}.{micro}'
 
-				# Only extract macro, minor, and micro version numbers
-				if len(numbers) >= 3:
-					# Make sure last number stops when it shoulds
-					micro = numbers[2].split(',')[0]
-					version = f'{numbers[0]}.{numbers[1]}.{micro}'
-				
 	# Returning extracted version
 	return version
+
+def MPIVersion(string):
+			"""
+			Extracts the MPI version information from a given string.
+
+			Params:
+			- string (str): Input string containing MPI version details.
+
+			Returns:
+			- str: Extracted MPI version information.
+			"""
+			idx = string.find('\n')
+			idx2 = string[:idx].rfind(' ')
+			return string[idx2:idx].replace(' ', '')
+
+def opencvVersion(dictPackages, CXX_FLAGS):
+		with open("xmipp_test_opencv.cpp", "w") as cppFile:
+				cppFile.write('#include <opencv2/core/version.hpp>\n')
+				cppFile.write('#include <fstream>\n')
+				cppFile.write('int main()'
+											'{std::ofstream fh;'
+											' fh.open("xmipp_test_opencv.txt");'
+											' fh << CV_MAJOR_VERSION << std::endl;'
+											' fh.close();'
+											'}\n')
+		if runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s " % (
+						dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']),
+							showError=True)[0] != 0:
+				openCV_Version = 2
+		else:
+				runJob("./xmipp_test_opencv", showError=True)
+				f = open("xmipp_test_opencv.txt")
+				versionStr = f.readline()
+				f.close()
+				version = int(versionStr.split('.', 1)[0])
+				openCV_Version = version
+		runJob("rm xmipp_test_opencv*", showError=False)
+
+		return openCV_Version
+
+def HDF5Version(pathHDF5):
+		"""
+		Extracts the HDF5 version information from a given string.
+
+		Params:
+		- string (str): Input string containing HDF5 version details.
+
+		Returns:
+		- str: Extracted HDF5 version information.
+		"""
+		cmd = '''strings {}/libhdf5.so  | grep "HDF5 library version: "'''.format(
+				pathHDF5)
+		status, output = runJob(cmd)
+		if status == 0:
+				version = output.split(' ')[-1]
+				return version
+
+def JAVAVersion(string):
+		"""
+		Extracts the JAVA version information from a given string.
+
+		Params:
+		- string (str): Input string containing JAVA version details.
+
+		Returns:
+		- str: Extracted JAVA version information.
+		"""
+		idx = string.find('\n')
+		string[:idx].split(' ')[1]
+		return string[:idx].split(' ')[1]
+
+def TIFFVersion(libtiffPathFound):
+		retCode, outputStr = runJob(
+				'strings {} | grep "LIBTIFF"'.format(libtiffPathFound))
+		if retCode == 0:
+				idx = outputStr.find('Version ')
+				if idx != -1:
+						version = outputStr[idx:].split(' ')[-1]
+				return outputStr.split(' ')[-1]
+
+def FFTW3Version(pathSO):
+		retCode, outputStr = runJob('readlink {}'.format(pathSO))
+		if retCode == 0:
+				return outputStr.split('so.')[-1]
+
+def gitVersion():
+		version = getPackageVersionCmd('git')
+		if version != None:
+				version = version.split(' ')[-1]
+		return version
+
+def getRsyncVersion():
+	"""
+	### Extracts rsync's version string.
+
+	#### Returns:
+	- (str | None): rsync's version or None if there were any errors.
+	"""
+	version = getPackageVersionCmd('rsync')
+	if version is not None:
+			textBefore = 'rsync  version '
+			textBeforeStart = version.find(textBefore)
+			if textBeforeStart != -1:
+				versionStart = textBeforeStart + len(textBefore)
+				numbers = version[versionStart:].splitlines()[0].split('.')
+				if len(numbers) >= 2:
+					version = f'{numbers[0]}.{numbers[1]}'
+	return version
+
+def getmakeVersion(dictPackages: Dict=None) -> str:
+	"""
+	### Extracts the CMake version from the PATH or the config file, the last one having a higher priority.
+
+	#### Params:
+	- dictPackages (dict): Optional. Dictionary containing packages found in the config file.
+
+	#### Returns:
+	- (str | None): CMake version, or None if there were any errors.
+	"""
+	# Initializing default version
+	makeVersion = None
+
+	# Get the cmake to extract
+	makeExecutable = dictPackages[MAKE] if dictPackages is not None and MAKE in dictPackages else 'make'
+
+	# Extracting version command string
+	versionCmdStr = getPackageVersionCmd(makeExecutable)
+
+	# Version number is the last word of the first line of the output text
+	if versionCmdStr is not None:
+		# Only extract if command output string is not empty
+		makeVersion = versionCmdStr.splitlines()[0].split()[-1]
+
+	# Return cmake version
+	return makeVersion

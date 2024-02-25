@@ -31,10 +31,11 @@ import json, re, hashlib
 from typing import Dict, Union
 
 # Self imports
-from .versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
-	getCmakeVersion, getGPPVersion, getGCCVersion, getSconsVersion)
-from .utils import runJob, runInsistentJob, getCurrentBranch, isBranchUpToDate, runParallelJobs
-from .constants import (API_URL, LOG_FILE, TAIL_LOG_NCHARS)
+from .versions import getOSReleaseName, getArchitectureName, getCUDAVersion,\
+	getCmakeVersion, getGPPVersion, getGCCVersion, getSconsVersion
+from .utils import runJob, runNetworkJob, getCurrentBranch, isBranchUpToDate, runParallelJobs
+from .constants import (API_URL, LOG_FILE, TAIL_LOG, MASTER_BRANCHNAME,
+                        XMIPP_VERSIONS, XMIPP, VERNAME_KEY)
 
 def sendApiPOST(dictPackage:Dict, retCode: int=0):
 	"""
@@ -44,12 +45,13 @@ def sendApiPOST(dictPackage:Dict, retCode: int=0):
 	- dictPackage (Dict): Dictionary containing all discovered or config variables.
 	- retCode (int): Optional. Return code for the API request.
 	"""
-	# Getting JSON data for curl command
-	jsonStr = getJSONString(dictPackage, retCode=retCode)
+	if dictPackage['ANON_DATA_COLLECT'] == 'True':
+		# Getting JSON data for curl command
+		jsonStr = getJSONString(dictPackage, retCode=retCode)
 
-	# Send API POST request if there were no errors
-	if jsonStr is not None:
-		runInsistentJob(getCurlStr(API_URL, jsonStr))
+		# Send API POST request if there were no errors
+		if jsonStr is not None:
+			runNetworkJob(getCurlStr(API_URL, jsonStr))
 	
 ####################### UTILS FUNCTIONS #######################
 def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
@@ -82,6 +84,21 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 		(getLogTail, ())
 	])
 
+	if jsonData[7] == None or jsonData[7] == MASTER_BRANCHNAME:
+		currentBranch = XMIPP_VERSIONS[XMIPP][VERNAME_KEY]
+	else:
+		currentBranch = jsonData[7]
+
+	for index, element in enumerate(jsonData):
+		if element is None:
+			jsonData[index] = 'Null'
+	#logTail manage
+	if retCode == 0:
+		logTail = 'Null'
+	else:
+		logTail = jsonData[9]
+
+
 	# Introducing data into a dictionary
 	jsonDict: Dict = {
 		"user": {
@@ -97,11 +114,11 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 			"scons": jsonData[6]
 		},
 		"xmipp": {
-			"branch": jsonData[7], # If branch is master or there is none, get release name
+			"branch": currentBranch,
 			"updated": jsonData[8]
 		},
 		"returnCode": retCode,
-		"logTail": jsonData[9] if retCode else None # Only needs log tail if something went wrong
+		"logTail": logTail
 	}
 
 	# Return JSON object with all info
@@ -191,7 +208,7 @@ def getLogTail() -> Union[str, None]:
 	- (str | None): Installation log's last lines, or None if there were any errors.
 	"""
 	# Obtaining log tail
-	retCode, output = runJob(f"tail -n {TAIL_LOG_NCHARS} {LOG_FILE}")
+	retCode, output = runJob(f"tail -n {TAIL_LOG} {LOG_FILE}")
 
 	# Return content if it went right
 	return output if retCode == 0 else None
