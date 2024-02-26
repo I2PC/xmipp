@@ -20,5 +20,5 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .compute_ctf_image_2d import compute_ctf_image_2d
+from .compute_ctf_image_2d import Ctf2dDesc, compute_ctf_image_2d
 from .wiener import wiener_2d

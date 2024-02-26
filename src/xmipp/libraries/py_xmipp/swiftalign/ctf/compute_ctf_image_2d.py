@@ -20,9 +20,22 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional
+from typing import Optional, NamedTuple
 import torch
 import math
+
+class Ctf2dDesc(NamedTuple):
+    wavelength: float
+    spherical_aberration: float
+    defocus_average: torch.Tensor
+    defocus_difference: torch.Tensor
+    astigmatism_angle: torch.Tensor
+    q0: Optional[float] = None
+    chromatic_aberration: Optional[torch.Tensor] = None
+    energy_spread_coefficient: Optional[float] = None
+    lens_inestability_coefficient: Optional[float] = None
+    phase_shift: Optional[float] = None
+    
 
 def _compute_defocus_grid_2d(frequency_angle_grid: torch.Tensor,
                              defocus_average: torch.Tensor,
@@ -59,54 +72,45 @@ def _compute_beam_energy_spread(frequency_magnitude2_grid: torch.Tensor,
     
 def compute_ctf_image_2d(frequency_magnitude2_grid: torch.Tensor,
                          frequency_angle_grid: torch.Tensor,
-                         defocus_average: torch.Tensor,
-                         defocus_difference: torch.Tensor,
-                         astigmatism_angle: torch.Tensor,
-                         wavelength: float,
-                         spherical_aberration: float,
-                         q0: Optional[float] = None,
-                         chromatic_aberration: Optional[torch.Tensor] = None,
-                         energy_spread_coefficient: Optional[float] = None,
-                         lens_inestability_coefficient: Optional[float] = None,
-                         phase_shift: Optional[float] = None,
+                         ctf_desc: Ctf2dDesc,
                          out: Optional[torch.Tensor] = None ) -> torch.Tensor:
     
-    k = 0.5 * spherical_aberration * wavelength * wavelength
+    k = 0.5 * ctf_desc.spherical_aberration * ctf_desc.wavelength * ctf_desc.wavelength
 
     out = _compute_defocus_grid_2d(
         frequency_angle_grid=frequency_angle_grid,
-        defocus_average=defocus_average,
-        defocus_difference=defocus_difference,
-        astigmatism_angle=astigmatism_angle,
+        defocus_average=ctf_desc.defocus_average,
+        defocus_difference=ctf_desc.defocus_difference,
+        astigmatism_angle=ctf_desc.astigmatism_angle,
         out=out
     )
     
     # Compute the phase
     out -= k*frequency_magnitude2_grid
-    out *= (torch.pi * wavelength) * frequency_magnitude2_grid
+    out *= (torch.pi * ctf_desc.wavelength) * frequency_magnitude2_grid
     
     # Apply the phase shift if provided
-    if phase_shift is not None: 
-        out += phase_shift
+    if ctf_desc.phase_shift is not None: 
+        out += ctf_desc.phase_shift
     
     # Compute the sin, also considering the inelastic
     # difraction factor if provided
-    if q0 is not None:
-        out = out.sin() + q0*out.cos()
+    if ctf_desc.q0 is not None:
+        out = out.sin() + ctf_desc.q0*out.cos()
     else:
         out.sin_()
     
     # Apply energy spread envelope
-    if (chromatic_aberration is not None) and \
-       (energy_spread_coefficient is not None) and \
-       (lens_inestability_coefficient is not None):
+    if (ctf_desc.chromatic_aberration is not None) and \
+       (ctf_desc.energy_spread_coefficient is not None) and \
+       (ctf_desc.lens_inestability_coefficient is not None):
            
         beam_energy_spread = _compute_beam_energy_spread(
             frequency_magnitude2_grid=frequency_magnitude2_grid,
-            chromatic_aberration=chromatic_aberration,
-            wavelength=wavelength,
-            energy_spread_coefficient=energy_spread_coefficient,
-            lens_inestability_coefficient=lens_inestability_coefficient
+            chromatic_aberration=ctf_desc.chromatic_aberration,
+            wavelength=ctf_desc.wavelength,
+            energy_spread_coefficient=ctf_desc.energy_spread_coefficient,
+            lens_inestability_coefficient=ctf_desc.lens_inestability_coefficient
         )
         out *= beam_energy_spread
         

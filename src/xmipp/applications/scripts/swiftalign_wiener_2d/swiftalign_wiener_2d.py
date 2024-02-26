@@ -138,18 +138,23 @@ def run(images_md_path: str,
             batch_images_fourier.resize_(0) # Force explicit reuse
         batch_images_fourier = torch.fft.rfft2(batch_images, out=batch_images_fourier)
         
+        # Elaborate the CTF descriptor
+        ctf_desc = ctf.Ctf2dDesc(
+            wavelength=wavelength,
+            spherical_aberration=spherical_aberration,
+            defocus_average=defocus[:,0],
+            defocus_difference=defocus[:,1],
+            astigmatism_angle=defocus[:,2],
+            q0=q0
+        )
+        
         # Compute the CTF image
         if ctf_images is not None:
             ctf_images.resize_(0) # Force explicit reuse
         ctf_images = ctf.compute_ctf_image_2d(
             frequency_magnitude2_grid=polar_frequency_grid[0],
             frequency_angle_grid=polar_frequency_grid[1],
-            defocus_average=defocus[:,0],
-            defocus_difference=defocus[:,1],
-            astigmatism_angle=defocus[:,2],
-            wavelength=wavelength,
-            spherical_aberration=spherical_aberration,
-            q0=q0,
+            ctf_desc=ctf_desc,
             out=ctf_images
         )
         
