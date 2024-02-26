@@ -31,12 +31,8 @@ class Ctf2dDesc(NamedTuple):
     defocus_difference: torch.Tensor
     astigmatism_angle: torch.Tensor
     q0: Optional[float] = None
-    chromatic_aberration: Optional[torch.Tensor] = None
-    energy_spread_coefficient: Optional[float] = None
-    lens_inestability_coefficient: Optional[float] = None
     phase_shift: Optional[float] = None
     
-
 def _compute_defocus_grid_2d(frequency_angle_grid: torch.Tensor,
                              defocus_average: torch.Tensor,
                              defocus_difference: torch.Tensor,
@@ -51,25 +47,6 @@ def _compute_defocus_grid_2d(frequency_angle_grid: torch.Tensor,
     
     return out
 
-def _compute_beam_energy_spread(frequency_magnitude2_grid: torch.Tensor,
-                                chromatic_aberration: torch.Tensor,
-                                wavelength: float, 
-                                energy_spread_coefficient: float,
-                                lens_inestability_coefficient: float,
-                                out: Optional[torch.Tensor] = None ) -> torch.Tensor:
-    
-    # http://i2pc.es/coss/Articulos/Sorzano2007a.pdf
-    # Equation 10
-    k = torch.pi / 4 * wavelength * (energy_spread_coefficient + 2*lens_inestability_coefficient)
-    x = chromatic_aberration * k
-    x.square_()
-    x *= -1.0 / math.log(2)
-    
-    out = torch.mul(x[...,None,None], frequency_magnitude2_grid.square(), out=out)
-    out.exp_()
-    
-    return out
-    
 def compute_ctf_image_2d(frequency_magnitude2_grid: torch.Tensor,
                          frequency_angle_grid: torch.Tensor,
                          ctf_desc: Ctf2dDesc,
@@ -99,22 +76,6 @@ def compute_ctf_image_2d(frequency_magnitude2_grid: torch.Tensor,
         out = out.sin() + ctf_desc.q0*out.cos()
     else:
         out.sin_()
-    
-    # Apply energy spread envelope
-    if (ctf_desc.chromatic_aberration is not None) and \
-       (ctf_desc.energy_spread_coefficient is not None) and \
-       (ctf_desc.lens_inestability_coefficient is not None):
-           
-        beam_energy_spread = _compute_beam_energy_spread(
-            frequency_magnitude2_grid=frequency_magnitude2_grid,
-            chromatic_aberration=ctf_desc.chromatic_aberration,
-            wavelength=ctf_desc.wavelength,
-            energy_spread_coefficient=ctf_desc.energy_spread_coefficient,
-            lens_inestability_coefficient=ctf_desc.lens_inestability_coefficient
-        )
-        out *= beam_energy_spread
-        
-    
     
     return out
     
