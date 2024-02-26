@@ -347,7 +347,7 @@ class TomogramReconstruction(XmippScript):
                 candidate = candidate.replace('_', '-')
         else:
             raise Exception('The selected filter presents a problem, please check the --filter')
-        candidate
+        
         return candidate, listFilters
     
     def checkFilter(self, candidate, method):
@@ -487,14 +487,7 @@ class TomogramReconstruction(XmippScript):
                 meanTi = np.mean(ti)
                 ti = (ti-meanTi)/stdTi
                 ts_aux[i,:,:] = ti
-        #TODO: Add the cosine
-        elif self.normalizeTi == 'cosine':
-            for i in range(0, self.Nimages):
-                ti = ts_aux[i,:,:]
-                stdTi = np.std(ti)
-                meanTi = np.mean(ti)
-                ti = (ti-meanTi)/stdTi
-                ts_aux[i,:,:] = ti
+
         return ts_aux.astype(np.float32)
 
 if __name__ == '__main__':
