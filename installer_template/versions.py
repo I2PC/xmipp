@@ -22,39 +22,41 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
+# TODO Oier: In general functions here do not return with the sad path
+# Nevertheless I would be explicit returning a None value
+
 """
 This module contains functions to collect the versions of
 os, architecture, cuda, cmake, gpp, gcc and scons.
 """
 
 # General imports
-from typing import Dict, Union
-import os
+from typing import Dict, Optional
 # Installer imports
 from .utils import (runJob, getPackageVersionCmd, getPythonPackageVersion,
 										getCurrentBranch, isBranchUpToDate)
 from .constants import UNKNOWN_VALUE, CC, CXX, CMAKE, CUDA, CXX_FLAGS, MAKE
 
 def collectAllVersions(dictPackages: dict):
-  return {'branch': getCurrentBranch(),
-					'isUpdated': isBranchUpToDate(),
-					'gccV': getGCCVersion(),
-					'gppV': getGPPVersion(),
-					'cudaV': getCUDAVersion(),
-					'sconsV': getSconsVersion(dictPackages),
-					'cmakeV': getCmakeVersion(),
-                    'makeV': getmakeVersion(),
-                    'rsyncV': getRsyncVersion(),
-					'mpiV': MPIVersion(getPackageVersionCmd(dictPackages['MPI_RUN'])),
-					'javaV': JAVAVersion(getPackageVersionCmd('java')),
-					'hdf5V': HDF5Version(dictPackages['HDF5_HOME']),
-					'TIFFVn': TIFFVersion(dictPackages['TIFF_SO']),
-					'FFTW3V': FFTW3Version(dictPackages['FFTW3_SO']),
-					'opencvV': opencvVersion(dictPackages, CXX_FLAGS)}
+	return {'branch': getCurrentBranch(),
+						'isUpdated': isBranchUpToDate(),
+						'gccV': getGCCVersion(),
+						'gppV': getGPPVersion(),
+						'cudaV': getCUDAVersion(),
+						'sconsV': getSconsVersion(dictPackages),
+						'cmakeV': getCmakeVersion(),
+						'makeV': getmakeVersion(),
+						'rsyncV': getRsyncVersion(),
+						'mpiV': MPIVersion(getPackageVersionCmd(dictPackages['MPI_RUN'])),
+						'javaV': JAVAVersion(getPackageVersionCmd('java')),
+						'hdf5V': HDF5Version(dictPackages['HDF5_HOME']),
+						'TIFFVn': TIFFVersion(dictPackages['TIFF_SO']),
+						'FFTW3V': FFTW3Version(dictPackages['FFTW3_SO']),
+						'opencvV': opencvVersion(dictPackages, CXX_FLAGS)}
 
 
 ####################### AUX FUNCTIONS #######################
-def parseCompilerVersion(versionCmdStr: Union[str, None]) -> Union[str, None]:
+def parseCompilerVersion(versionCmdStr: Optional[str]) -> Optional[str]:
 	"""
 	### Parses the string output of the command that extracts the version of the given compiler.
 
@@ -135,7 +137,7 @@ def getArchitectureName() -> str:
 	# Returing architecture name
 	return archName
 
-def getCUDAVersion(dictPackages: Dict=None) -> Union[str, None]:
+def getCUDAVersion(dictPackages: Dict=None) -> Optional[str]:
 	"""
 	### Extracts the NVCC (NVIDIA CUDA Compiler) version from the PATH or the config file, the last one having a higher priority.
 
@@ -237,7 +239,7 @@ def getmakeVersion(dictPackages: Dict=None) -> str:
 	# Return cmake version
 	return makeVersion
 
-def getGPPVersion(dictPackages: Dict=None) -> Union[str, None]:
+def getGPPVersion(dictPackages: Dict=None) -> Optional[str]:
 	"""
 	### Extracts g++'s version string from the PATH or the config file, the last one having a higher priority.
 
@@ -253,7 +255,7 @@ def getGPPVersion(dictPackages: Dict=None) -> Union[str, None]:
 	# Return g++ version
 	return parseCompilerVersion(getPackageVersionCmd(gppExecutable))
 
-def getGCCVersion(dictPackages: Dict=None) -> Union[str, None]:
+def getGCCVersion(dictPackages: Dict=None) -> Optional[str]:
 	"""
 	### Extracts gcc's version string from the PATH or the config file, the last one having a higher priority.
 
@@ -270,7 +272,7 @@ def getGCCVersion(dictPackages: Dict=None) -> Union[str, None]:
 	# Return gcc version
 	return parseCompilerVersion(getPackageVersionCmd(gccExecutable))
 
-def getSconsVersion(dictPackage:dict) -> Union[str, None]:
+def getSconsVersion(dictPackage:dict) -> Optional[str]:
 	"""
 	### Extracts scons's version string.
 
@@ -301,94 +303,96 @@ def getSconsVersion(dictPackage:dict) -> Union[str, None]:
 	return version
 
 def MPIVersion(string):
-			"""
-			Extracts the MPI version information from a given string.
+	"""
+	Extracts the MPI version information from a given string.
 
-			Params:
-			- string (str): Input string containing MPI version details.
+	Params:
+	- string (str): Input string containing MPI version details.
 
-			Returns:
-			- str: Extracted MPI version information.
-			"""
-			idx = string.find('\n')
-			idx2 = string[:idx].rfind(' ')
-			return string[idx2:idx].replace(' ', '')
+	Returns:
+	- str: Extracted MPI version information.
+	"""
+	idx = string.find('\n')
+	idx2 = string[:idx].rfind(' ')
+	return string[idx2:idx].replace(' ', '')
 
 def opencvVersion(dictPackages, CXX_FLAGS):
-		with open("xmipp_test_opencv.cpp", "w") as cppFile:
-				cppFile.write('#include <opencv2/core/version.hpp>\n')
-				cppFile.write('#include <fstream>\n')
-				cppFile.write('int main()'
-											'{std::ofstream fh;'
-											' fh.open("xmipp_test_opencv.txt");'
-											' fh << CV_MAJOR_VERSION << std::endl;'
-											' fh.close();'
-											'}\n')
-		if runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s " % (
-						dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']),
-							showError=True)[0] != 0:
-				openCV_Version = 2
-		else:
-				runJob("./xmipp_test_opencv", showError=True)
-				f = open("xmipp_test_opencv.txt")
-				versionStr = f.readline()
-				f.close()
-				version = int(versionStr.split('.', 1)[0])
-				openCV_Version = version
-		runJob("rm xmipp_test_opencv*", showError=False)
+	with open("xmipp_test_opencv.cpp", "w") as cppFile:
+		cppFile.write('#include <opencv2/core/version.hpp>\n')
+		cppFile.write('#include <fstream>\n')
+		cppFile.write('int main()'
+						'{std::ofstream fh;'
+						' fh.open("xmipp_test_opencv.txt");'
+						' fh << CV_MAJOR_VERSION << std::endl;'
+						' fh.close();'
+						'}\n')
+	if runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s " % (
+					dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']),
+						showError=True)[0] != 0:
+		openCV_Version = 2
+	else:
+		runJob("./xmipp_test_opencv", showError=True)
+		f = open("xmipp_test_opencv.txt")
+		versionStr = f.readline()
+		f.close()
+		version = int(versionStr.split('.', 1)[0])
+		openCV_Version = version
+	runJob("rm xmipp_test_opencv*", showError=False)
 
-		return openCV_Version
+	return openCV_Version
 
 def HDF5Version(pathHDF5):
-		"""
-		Extracts the HDF5 version information from a given string.
+	"""
+	Extracts the HDF5 version information from a given string.
 
-		Params:
-		- string (str): Input string containing HDF5 version details.
+	Params:
+	- string (str): Input string containing HDF5 version details.
 
-		Returns:
-		- str: Extracted HDF5 version information.
-		"""
-		cmd = '''strings {}/libhdf5.so  | grep "HDF5 library version: "'''.format(
-				pathHDF5)
-		status, output = runJob(cmd)
-		if status == 0:
-				version = output.split(' ')[-1]
-				return version
+	Returns:
+	- str: Extracted HDF5 version information.
+	"""
+	cmd = '''strings {}/libhdf5.so  | grep "HDF5 library version: "'''.format(
+			pathHDF5)
+	status, output = runJob(cmd)
+	if status == 0:
+		version = output.split(' ')[-1]
+		return version
 
 def JAVAVersion(string):
-		"""
-		Extracts the JAVA version information from a given string.
+	"""
+	Extracts the JAVA version information from a given string.
 
-		Params:
-		- string (str): Input string containing JAVA version details.
+	Params:
+	- string (str): Input string containing JAVA version details.
 
-		Returns:
-		- str: Extracted JAVA version information.
-		"""
-		idx = string.find('\n')
-		string[:idx].split(' ')[1]
-		return string[:idx].split(' ')[1]
+	Returns:
+	- str: Extracted JAVA version information.
+	"""
+	idx = string.find('\n')
+	string[:idx].split(' ')[1]
+	return string[:idx].split(' ')[1]
 
 def TIFFVersion(libtiffPathFound):
-		retCode, outputStr = runJob(
-				'strings {} | grep "LIBTIFF"'.format(libtiffPathFound))
-		if retCode == 0:
-				idx = outputStr.find('Version ')
-				if idx != -1:
-						version = outputStr[idx:].split(' ')[-1]
-				return outputStr.split(' ')[-1]
+	retCode, outputStr = runJob(
+			'strings {} | grep "LIBTIFF"'.format(libtiffPathFound))
+	if retCode == 0:
+		idx = outputStr.find('Version ')
+		if idx != -1:
+			version = outputStr[idx:].split(' ')[-1] 
+		return outputStr.split(' ')[-1]
+
+	# FIXME version is unused IDK the intentions here
 
 def FFTW3Version(pathSO):
-		retCode, outputStr = runJob('readlink {}'.format(pathSO))
-		if retCode == 0:
-				return outputStr.split('so.')[-1]
+	retCode, outputStr = runJob('readlink {}'.format(pathSO))
+	if retCode == 0:
+		return outputStr.split('so.')[-1]
 
 def gitVersion():
-		version = getPackageVersionCmd('git')
-		if version != None:
-				version = version.split(' ')[-1]
-		return version
+	version = getPackageVersionCmd('git')
+	if version != None:
+		version = version.split(' ')[-1]
+	return version
 
 def getRsyncVersion():
 	"""
@@ -399,13 +403,13 @@ def getRsyncVersion():
 	"""
 	version = getPackageVersionCmd('rsync')
 	if version is not None:
-			textBefore = 'rsync  version '
-			textBeforeStart = version.find(textBefore)
-			if textBeforeStart != -1:
-				versionStart = textBeforeStart + len(textBefore)
-				numbers = version[versionStart:].splitlines()[0].split('.')
-				if len(numbers) >= 2:
-					version = f'{numbers[0]}.{numbers[1]}'
+		textBefore = 'rsync  version '
+		textBeforeStart = version.find(textBefore)
+		if textBeforeStart != -1:
+			versionStart = textBeforeStart + len(textBefore)
+			numbers = version[versionStart:].splitlines()[0].split('.')
+			if len(numbers) >= 2:
+				version = f'{numbers[0]}.{numbers[1]}'
 	return version
 
 def getmakeVersion(dictPackages: Dict=None) -> str:
