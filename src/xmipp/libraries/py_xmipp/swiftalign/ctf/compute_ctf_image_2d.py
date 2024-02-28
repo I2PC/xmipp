@@ -73,7 +73,9 @@ def compute_ctf_image_2d(frequency_magnitude2_grid: torch.Tensor,
     # Compute the sin, also considering the inelastic
     # difraction factor if provided
     if ctf_desc.q0 is not None:
-        out = out.sin() + ctf_desc.q0*out.cos()
+        cos_q0 = ctf_desc.q0
+        sin_q0 = math.sqrt(1.0 - cos_q0**2)
+        out = sin_q0*out.sin() + cos_q0*out.cos()
     else:
         out.sin_()
     
