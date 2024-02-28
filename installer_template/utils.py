@@ -539,54 +539,54 @@ def isScipionEnv() -> bool:
 	return os.path.exists(os.path.join(envPath, 'bin', 'scipion'))
 
 def updateEnviron(pathenviron:str='', path2Add:str=''):
+	"""
+		This function updates the environment variable by adding a new path to it if it's not already present.
+
+		Params:
+		pathenviron (str): Name of the environment variable to be updated.
+		path2Add (str): Path to be added to the environment variable.
+
+		Returns:
+		None
 		"""
-		 This function updates the environment variable by adding a new path to it if it's not already present.
-
-		 Params:
-		 pathenviron (str): Name of the environment variable to be updated.
-		 path2Add (str): Path to be added to the environment variable.
-
-		 Returns:
-		 None
-		 """
-		path_collected = os.environ.get(pathenviron, '')
-		if path2Add not in path_collected.split(':'):
-				path_collected += ':' + path2Add
-		os.environ[pathenviron] = path_collected
+	path_collected = os.environ.get(pathenviron, '')
+	if path2Add not in path_collected.split(':'):
+		path_collected += ':' + path2Add
+	os.environ[pathenviron] = path_collected
 
 def updateXmippEnv(pos='begin', realPath=True, **kwargs):
-		""" Add/update a variable in self.env dictionary
-				pos = {'begin', 'end', 'replace'}
-		"""
-		env = readXmippEnv()
-		for key, value in kwargs.items():
-				isString = isinstance(value, str)
-				if isString and realPath:
-						value = os.path.realpath(value)
-				if key in env:
-						if env[key].find(str(value)) == -1:
-								if pos == 'begin' and isString:
-										env[key] = value + os.pathsep + env[key]
-								elif pos == 'end' and isString:
-										env[key] = env[key] + os.pathsep + value
-								elif pos == 'replace':
-										env[key] = str(value)
-				else:
-						env[key] = str(value)
+	""" Add/update a variable in self.env dictionary
+			pos = {'begin', 'end', 'replace'}
+	"""
+	env = readXmippEnv()
+	for key, value in kwargs.items():
+		isString = isinstance(value, str)
+		if isString and realPath:
+			value = os.path.realpath(value)
+		if key in env:
+			if env[key].find(str(value)) == -1:
+				if pos == 'begin' and isString:
+					env[key] = value + os.pathsep + env[key]
+				elif pos == 'end' and isString:
+					env[key] = env[key] + os.pathsep + value
+				elif pos == 'replace':
+					env[key] = str(value)
+		else:
+			env[key] = str(value)
 
-		writeXmippEnv(env)
+	writeXmippEnv(env)
 
 def readXmippEnv():
-		try:
-			with open(XMIPPENV, 'r') as f:
-					data = json.load(f)
-			return data
-		except FileNotFoundError:
-				return {}
+	try:
+		with open(XMIPPENV, 'r') as f:
+			data = json.load(f)
+		return data
+	except FileNotFoundError:
+		return {}
 
 def writeXmippEnv(env):
-		with open(XMIPPENV, 'w') as f:
-				json.dump(env, f, indent=4)
+	with open(XMIPPENV, 'w') as f:
+		json.dump(env, f, indent=4)
 
 
 ####################### VERSION FUNCTIONS #######################
@@ -677,33 +677,33 @@ def getPythonPackageVersion(packageName: str) -> Union[str, None]:
 
 ####################### OTHER FUNCTIONS #######################
 def printHappyEnd():
-		branch = branchName()
-		if branch == 'master':
-				branch = ''
-		else:
-				branch = 'devel'
-		strXmipp = 'Xmipp {}/{} has been installed, enjoy it!'.format(
-				XMIPP_VERSIONS['xmipp']['vername'], branch)
-		lenStr = len(strXmipp)
-		border = '*' * (lenStr + 4)
-		spaceStr = ' ' * (lenStr + 2)
-		print('\n')
-		print(border)
-		print('*' + spaceStr + '*')
-		print('* ', end='')
-		print(green(strXmipp), end='')
-		print(' *')
-		print('*' + spaceStr + '*')
-		print(border)
-		printMessage(text=strXmipp, debug=False)
-		printMessage('More about Xmipp: {}'.format(DOCUMENTATION_URL), debug=True)
+	branch = branchName()
+	if branch == 'master':
+			branch = ''
+	else:
+			branch = 'devel'
+	strXmipp = 'Xmipp {}/{} has been installed, enjoy it!'.format(
+			XMIPP_VERSIONS['xmipp']['vername'], branch)
+	lenStr = len(strXmipp)
+	border = '*' * (lenStr + 4)
+	spaceStr = ' ' * (lenStr + 2)
+	print('\n')
+	print(border)
+	print('*' + spaceStr + '*')
+	print('* ', end='')
+	print(green(strXmipp), end='')
+	print(' *')
+	print('*' + spaceStr + '*')
+	print(border)
+	printMessage(text=strXmipp, debug=False)
+	printMessage('More about Xmipp: {}'.format(DOCUMENTATION_URL), debug=True)
 
 def branchName():
-		retCode, outputStr = runJob('git status')
-		if retCode == 0:
-			if outputStr.find('On branch') != -1:
-				branch = outputStr[outputStr.find('On branch') + len('On branch'):outputStr.find('\n')]
-				return branch
+	retCode, outputStr = runJob('git status')
+	if retCode == 0:
+		if outputStr.find('On branch') != -1:
+			branch = outputStr[outputStr.find('On branch') + len('On branch'):outputStr.find('\n')]
+			return branch
 
 def findFileInDirList(fnH, dirlist):
 	"""
@@ -717,82 +717,82 @@ def findFileInDirList(fnH, dirlist):
 	- str: Directory containing the file if found, otherwise an empty string.
 	"""
 	if isinstance(dirlist, str):
-			dirlist = [dirlist]
+		dirlist = [dirlist]
 
 	for dir in dirlist:
-			validDirs = glob.glob(os.path.join(dir, fnH))
-			if len(validDirs) > 0:
-					return os.path.dirname(validDirs[0])
+		validDirs = glob.glob(os.path.join(dir, fnH))
+		if len(validDirs) > 0:
+			return os.path.dirname(validDirs[0])
 	return ''
 
 def whereIsPackage(packageName):
-		"""
-		Finds the directory of a specific package or program in the system.
+	"""
+	Finds the directory of a specific package or program in the system.
 
-		Params:
-		- packageName (str): Name of the package or program.
+	Params:
+	- packageName (str): Name of the package or program.
 
-		Returns:
-		- str or None: Directory containing the package or program, or None if not found.
-		"""
-		programPath = distutils.spawn.find_executable(packageName)
-		if programPath:
-				programPath = os.path.realpath(programPath)
-				return os.path.dirname(programPath)
-		else:
-				return None
+	Returns:
+	- str or None: Directory containing the package or program, or None if not found.
+	"""
+	programPath = distutils.spawn.find_executable(packageName)
+	if programPath:
+		programPath = os.path.realpath(programPath)
+		return os.path.dirname(programPath)
+	else:
+		return None
 
 def existPackage(packageName, path2Find:list=None):
-		"""Return True if packageName exist, else False"""
-		if path2Find:
-			path = shutil.which(packageName, path=path2Find)
-		else:
-			path = shutil.which(packageName)
-		if path and getPackageVersionCmd(path) is not None:
-				return True
-		return False
+	"""Return True if packageName exist, else False"""
+	if path2Find:
+		path = shutil.which(packageName, path=path2Find)
+	else:
+		path = shutil.which(packageName)
+	if path and getPackageVersionCmd(path) is not None:
+		return True
+	return False
 
 def getINCDIRFLAG():
-		return ' -I ' + os.path.join(get_paths()['data'].replace(' ', ''),  'include')
+	return ' -I ' + os.path.join(get_paths()['data'].replace(' ', ''),  'include')
 
 def getCompatibleGCC(nvccVersion):
-		"""
-		Retrieves compatible versions of GCC based on a given NVCC (NVIDIA CUDA Compiler) version.
+	"""
+	Retrieves compatible versions of GCC based on a given NVCC (NVIDIA CUDA Compiler) version.
 
-		Params:
-		- nvccVersion (str): Version of NVCC.
+	Params:
+	- nvccVersion (str): Version of NVCC.
 
-		Returns:
-		- tuple: A tuple containing compatible GCC versions and a boolean indicating compatibility.
-		"""
-		# https://gist.github.com/ax3l/9489132
-		for key, value in CUDA_GCC_COMPATIBILITY.items():
-				versionList = key.split('-')
-				if versionToNumber(nvccVersion) >= versionToNumber(versionList[0]) and \
-								versionToNumber(nvccVersion) <= versionToNumber(versionList[1]):
-						return value, True
-		return vGCC, False
+	Returns:
+	- tuple: A tuple containing compatible GCC versions and a boolean indicating compatibility.
+	"""
+	# https://gist.github.com/ax3l/9489132
+	for key, value in CUDA_GCC_COMPATIBILITY.items():
+		versionList = key.split('-')
+		if versionToNumber(nvccVersion) >= versionToNumber(versionList[0]) and \
+					versionToNumber(nvccVersion) <= versionToNumber(versionList[1]):
+			return value, True
+	return vGCC, False
 
 def get_Hdf5_name(libdirflags):
-		"""
-		Identifies the HDF5 library name based on the given library directory flags.
+	"""
+	Identifies the HDF5 library name based on the given library directory flags.
 
-		Params:
-		- libdirflags (str): Flags specifying library directories.
+	Params:
+	- libdirflags (str): Flags specifying library directories.
 
-		Returns:
-		- str: Name of the HDF5 library ('hdf5', 'hdf5_serial', or 'hdf5' as default).
-		"""
-		libdirs = ['/usr/lib',
-		'/usr/lib64']
+	Returns:
+	- str: Name of the HDF5 library ('hdf5', 'hdf5_serial', or 'hdf5' as default).
+	"""
+	libdirs = ['/usr/lib',
+	'/usr/lib64']
 
-		#libdirs = libdirflags.split("-L")
-		for dir in libdirs:
-				if os.path.exists(os.path.join(dir.strip(), "libhdf5.so")):
-						return "hdf5"
-				elif os.path.exists(os.path.join(dir.strip(), "libhdf5_serial.so")):
-						return "hdf5_serial"
-		return "hdf5"
+	#libdirs = libdirflags.split("-L")
+	for dir in libdirs:
+		if os.path.exists(os.path.join(dir.strip(), "libhdf5.so")):
+			return "hdf5"
+		elif os.path.exists(os.path.join(dir.strip(), "libhdf5_serial.so")):
+			return "hdf5_serial"
+	return "hdf5"
 
 def installScons() -> bool:
 	"""
@@ -905,20 +905,20 @@ def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO,
 
 
 def progresBar(linesOut:int=0, lines:int=0):
-		if linesOut > lines:
-				progress = BAR_SIZE - 1
-		else:
-				progress = int((linesOut * BAR_SIZE) / lines)
-		#print(linesOut, linesCompileBar[0], progress)
-		percent = int(round(progress * 100 / BAR_SIZE, 0))
+	if linesOut > lines:
+			progress = BAR_SIZE - 1
+	else:
+			progress = int((linesOut * BAR_SIZE) / lines)
+	#print(linesOut, linesCompileBar[0], progress)
+	percent = int(round(progress * 100 / BAR_SIZE, 0))
 
-		signEmpty = ' '
-		signFull = '='
-		bar = signFull * progress + '>'+ signEmpty * (BAR_SIZE - progress)
-		bar = ' [' + bar + ']'
-		print(green(bar), end='')
-		print(green(f' {percent}% '), end='\n')
-		print(f'More about the compilation: {LOG_FILE}', end=UP)
+	signEmpty = ' '
+	signFull = '='
+	bar = signFull * progress + '>'+ signEmpty * (BAR_SIZE - progress)
+	bar = ' [' + bar + ']'
+	print(green(bar), end='')
+	print(green(f' {percent}% '), end='\n')
+	print(f'More about the compilation: {LOG_FILE}', end=UP)
 
 
 def writeReaderLine(reader: io.FileIO, show: bool=False, err: bool=False) -> str:
@@ -941,13 +941,13 @@ def writeReaderLine(reader: io.FileIO, show: bool=False, err: bool=False) -> str
 		# The line to print has to remove the last '\n'
 		printedLine = line[:-1] if line.endswith('\n') else line
 		if err:
-				if printedLine.find('warning:') != -1 \
-								or printedLine.find('Note:') != -1\
-								or printedLine.find('Warning:') != -1\
-								or printedLine.find(f'{warningToHidden}') != -1:
-						pass
-				else:
-					printMessage(red(printedLine), debug=show)
+			if printedLine.find('warning:') != -1 \
+							or printedLine.find('Note:') != -1\
+							or printedLine.find('Warning:') != -1\
+							or printedLine.find(f'{warningToHidden}') != -1:
+				pass
+			else:
+				printMessage(red(printedLine), debug=show)
 		else:
 			printMessage(line, debug=show, printLOG_FILE=True)
 
