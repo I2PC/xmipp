@@ -95,201 +95,201 @@ def getSources(branch: str=None, LOG_FILE_path:str=''):
 	printMessage(text=green(DONE1), debug=True)
 
 def compileExternalSources(jobs):
-		"""
-		Compiles external sources required by Xmipp.
+	"""
+	Compiles external sources required by Xmipp.
 
-		This function orchestrates the compilation process for external sources necessary for Xmipp.
-		It compiles various components such as cuFFTAdvisor, googletest, libsvm, and libcifpp based on
-		configurations read from the package. The compilation is performed based on the provided job count.
+	This function orchestrates the compilation process for external sources necessary for Xmipp.
+	It compiles various components such as cuFFTAdvisor, googletest, libsvm, and libcifpp based on
+	configurations read from the package. The compilation is performed based on the provided job count.
 
-		Args:
-		- jobs (int): The number of jobs/threads to be used for compilation.
+	Args:
+	- jobs (int): The number of jobs/threads to be used for compilation.
 
-		Raises:
-		- RuntimeError: If any error occurs during the compilation process of external sources,
-		  it raises a RuntimeError with error details.
-		"""
-		printMessage(text=f'\n{HEADER1} Compiling external sources...', debug=True)
-		dictPackage, _ = readConfig()
-		if dictPackage['CUDA'] == 'True':
-			compile_cuFFTAdvisor()
-		compile_googletest()
-		compile_libsvm()
-		compile_libcifpp(jobs)
-		printMessage(text=green(DONE1), debug=True)
+	Raises:
+	- RuntimeError: If any error occurs during the compilation process of external sources,
+		it raises a RuntimeError with error details.
+	"""
+	printMessage(text=f'\n{HEADER1} Compiling external sources...', debug=True)
+	dictPackage, _ = readConfig()
+	if dictPackage['CUDA'] == 'True':
+		compile_cuFFTAdvisor()
+	compile_googletest()
+	compile_libsvm()
+	compile_libcifpp(jobs)
+	printMessage(text=green(DONE1), debug=True)
 
 def compile_cuFFTAdvisor():
-		"""
-		Compiles the cuFFTAdvisor library for Xmipp.
+	"""
+	Compiles the cuFFTAdvisor library for Xmipp.
 
-		This function compiles the cuFFTAdvisor library required by Xmipp by executing the necessary build commands.
-		Upon successful compilation, it copies the resulting library file to the Xmipp library directory.
+	This function compiles the cuFFTAdvisor library required by Xmipp by executing the necessary build commands.
+	Upon successful compilation, it copies the resulting library file to the Xmipp library directory.
 
-		Raises:
-		- RuntimeError: If any error occurs during the compilation and copying process of cuFFTAdvisor,
-		  it raises a RuntimeError with error details.
-		"""
-		printMessage(f'{HEADER2} Compiling cuFFTAdvisor...', debug=True)
-		advisorDir = "src/cuFFTAdvisor/"
-		currDir = os.getcwd()
-		libDir = "src/xmipp/lib/"
-		if not os.path.exists(libDir):
-				os.makedirs(libDir)
-		os.chdir(advisorDir)
-		retCode, outputStr = runJob("make all", printLOG=True, pathLOGFile=currDir)
+	Raises:
+	- RuntimeError: If any error occurs during the compilation and copying process of cuFFTAdvisor,
+		it raises a RuntimeError with error details.
+	"""
+	printMessage(f'{HEADER2} Compiling cuFFTAdvisor...', debug=True)
+	advisorDir = "src/cuFFTAdvisor/"
+	currDir = os.getcwd()
+	libDir = "src/xmipp/lib/"
+	if not os.path.exists(libDir):
+		os.makedirs(libDir)
+	os.chdir(advisorDir)
+	retCode, outputStr = runJob("make all", printLOG=True, pathLOGFile=currDir)
+	if retCode == 0:
+		os.chdir(currDir)
+		retCode, outputStr = runJob("cp " + advisorDir + "build/libcuFFTAdvisor.so" + " " + libDir)
 		if retCode == 0:
-				os.chdir(currDir)
-				retCode, outputStr = runJob("cp " + advisorDir + "build/libcuFFTAdvisor.so" + " " + libDir)
-				if retCode == 0:
-						os.chdir(currDir)
-				else:
-						os.chdir(currDir)
-						exitError(retCode=CUFFTADVSOR_ERROR, output=outputStr, pathFile=currDir)
+			os.chdir(currDir)
 		else:
-				os.chdir(currDir)
-				exitError(retCode=CUFFTADVSOR_ERROR, output=outputStr, pathFile=currDir)
-		printMessage(green(DONE2), debug=True, pathFile=currDir)
+			os.chdir(currDir)
+			exitError(retCode=CUFFTADVSOR_ERROR, output=outputStr, pathFile=currDir)
+	else:
+		os.chdir(currDir)
+		exitError(retCode=CUFFTADVSOR_ERROR, output=outputStr, pathFile=currDir)
+	printMessage(green(DONE2), debug=True, pathFile=currDir)
 
 def compile_googletest():
-		"""
-		Compiles the libsvm library for Xmipp.
+	"""
+	Compiles the libsvm library for Xmipp.
 
-		This function compiles the libsvm library required by Xmipp by executing the 'make lib' command.
-		It copies the resulting library file to the Xmipp library directory upon successful compilation.
+	This function compiles the libsvm library required by Xmipp by executing the 'make lib' command.
+	It copies the resulting library file to the Xmipp library directory upon successful compilation.
 
-		Raises:
-		- RuntimeError: If any error occurs during the compilation and copying process of libsvm,
-		  it raises a RuntimeError with error details.
-		"""
+	Raises:
+	- RuntimeError: If any error occurs during the compilation and copying process of libsvm,
+		it raises a RuntimeError with error details.
+	"""
 
-		printMessage(text=f'{HEADER2} Compiling googletest...', debug=True)
-		currDir = os.getcwd()
-		buildDir = os.path.join("src", "googletest", "build")
-		if not os.path.exists(buildDir):
-				os.makedirs(buildDir)
-		os.chdir(buildDir)
-		retCode, outputStr = runJob("cmake ..", printLOG=True, pathLOGFile=currDir)
+	printMessage(text=f'{HEADER2} Compiling googletest...', debug=True)
+	currDir = os.getcwd()
+	buildDir = os.path.join("src", "googletest", "build")
+	if not os.path.exists(buildDir):
+		os.makedirs(buildDir)
+	os.chdir(buildDir)
+	retCode, outputStr = runJob("cmake ..", printLOG=True, pathLOGFile=currDir)
+	if retCode == 0:
+		retCode, outputStr = runJob("make gtest gtest_main", printLOG=True, pathLOGFile=currDir)
 		if retCode == 0:
-				retCode, outputStr = runJob("make gtest gtest_main", printLOG=True, pathLOGFile=currDir)
-				if retCode == 0:
-						os.chdir(currDir)
-						printMessage(text=green(DONE2), debug=True, pathFile=currDir)
-				else:
-						os.chdir(currDir)
-						exitError(retCode=GOOGLETEST_ERROR, output=outputStr, pathFile=currDir)
+			os.chdir(currDir)
+			printMessage(text=green(DONE2), debug=True, pathFile=currDir)
 		else:
-				os.chdir(currDir)
-				exitError(retCode=GOOGLETEST_ERROR, output=outputStr, pathFile=currDir)
+			os.chdir(currDir)
+			exitError(retCode=GOOGLETEST_ERROR, output=outputStr, pathFile=currDir)
+	else:
+		os.chdir(currDir)
+		exitError(retCode=GOOGLETEST_ERROR, output=outputStr, pathFile=currDir)
 
 def compile_libsvm():
-		printMessage(text=f'{HEADER2} Compiling libsvm...', debug=True)
-		# if the libsvm repo is updated, remember that the repoFork/Makefile was edited to remove references to libsvm-so.2
-		currDir = os.getcwd()
-		libsvmDir = os.path.join("src", "libsvm")
-		os.chdir(libsvmDir)
-		retCode, outputStr = runJob("make lib", printLOG=True, pathLOGFile=currDir)
+	printMessage(text=f'{HEADER2} Compiling libsvm...', debug=True)
+	# if the libsvm repo is updated, remember that the repoFork/Makefile was edited to remove references to libsvm-so.2
+	currDir = os.getcwd()
+	libsvmDir = os.path.join("src", "libsvm")
+	os.chdir(libsvmDir)
+	retCode, outputStr = runJob("make lib", printLOG=True, pathLOGFile=currDir)
+	if retCode == 0:
+		libDir = "src/xmipp/lib"
+		os.chdir(currDir)
+		if not os.path.exists(libDir):
+			os.makedirs(libDir)
+		retCode, outputStr = runJob("cp " + libsvmDir + "/libsvm.so" + " " + libDir, printLOG=True, pathLOGFile=currDir)
 		if retCode == 0:
-				libDir = "src/xmipp/lib"
-				os.chdir(currDir)
-				if not os.path.exists(libDir):
-						os.makedirs(libDir)
-				retCode, outputStr = runJob("cp " + libsvmDir + "/libsvm.so" + " " + libDir, printLOG=True, pathLOGFile=currDir)
-				if retCode == 0:
-						os.chdir(currDir)
-						printMessage(text=green(DONE2), debug=True, pathFile=currDir)
-				else:
-						os.chdir(currDir)
-						exitError(retCode=LIBSVM_ERROR, output=outputStr, pathFile=currDir)
+			os.chdir(currDir)
+			printMessage(text=green(DONE2), debug=True, pathFile=currDir)
 		else:
-				os.chdir(currDir)
-				exitError(retCode=LIBSVM_ERROR, output=outputStr, pathFile=currDir)
+			os.chdir(currDir)
+			exitError(retCode=LIBSVM_ERROR, output=outputStr, pathFile=currDir)
+	else:
+		os.chdir(currDir)
+		exitError(retCode=LIBSVM_ERROR, output=outputStr, pathFile=currDir)
 
 def compile_libcifpp(jobs):
-		"""
-		Compiles the libcifpp library for Xmipp.
+	"""
+	Compiles the libcifpp library for Xmipp.
 
-		This function compiles the libcifpp library required by Xmipp using CMake. It sets up the build environment,
-		compiles the library, and installs it within the Xmipp directory.
+	This function compiles the libcifpp library required by Xmipp using CMake. It sets up the build environment,
+	compiles the library, and installs it within the Xmipp directory.
 
-		Args:
-		- jobs (int): The number of jobs/threads to be used for compilation.
+	Args:
+	- jobs (int): The number of jobs/threads to be used for compilation.
 
-		Raises:
-		- RuntimeError: If any error occurs during the compilation and installation process of libcifpp,
-		  it raises a RuntimeError with error details.
-		"""
-		printMessage(text=f'{HEADER2} Compiling libcifpp..', debug=True)
-		currDir = os.getcwd()
-		# Moving to library directory
-		libcifppDir = os.path.join("src", "libcifpp")
-		os.chdir(libcifppDir)
-		# Installing
-		fullDir = os.path.join(currDir, libcifppDir, '')
-		retCode, outputStr = runJob("cmake -S . -B build -DCMAKE_INSTALL_PREFIX=" + fullDir +
-							" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCIFPP_DOWNLOAD_CCD=OFF -DCIFPP_INSTALL_UPDATE_SCRIPT=OFF"
-																, printLOG=True, pathLOGFile=currDir)
+	Raises:
+	- RuntimeError: If any error occurs during the compilation and installation process of libcifpp,
+		it raises a RuntimeError with error details.
+	"""
+	printMessage(text=f'{HEADER2} Compiling libcifpp..', debug=True)
+	currDir = os.getcwd()
+	# Moving to library directory
+	libcifppDir = os.path.join("src", "libcifpp")
+	os.chdir(libcifppDir)
+	# Installing
+	fullDir = os.path.join(currDir, libcifppDir, '')
+	retCode, outputStr = runJob("cmake -S . -B build -DCMAKE_INSTALL_PREFIX=" + fullDir +
+						" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCIFPP_DOWNLOAD_CCD=OFF -DCIFPP_INSTALL_UPDATE_SCRIPT=OFF"
+															, printLOG=True, pathLOGFile=currDir)
+	if retCode == 0:
+		retCode, outputStr = runJob(f"cmake --build build -j {jobs}", printLOG=True, pathLOGFile=currDir)
 		if retCode == 0:
-				retCode, outputStr = runJob(f"cmake --build build -j {jobs}", printLOG=True, pathLOGFile=currDir)
+			retCode, outputStr = runJob("cmake --install build", printLOG=True, pathLOGFile=currDir)
+			if retCode == 0:
+				# Check if libcifpp created up on compiling lib or lib64 directory
+				libcifppLibDir = "lib64" if os.path.exists("lib64") else "lib"
+				# Copying .so file
+				os.chdir(currDir)
+				libDir = "src/xmipp/lib"
+				if not os.path.exists(libDir):
+					os.makedirs(libDir)
+				retCode, outputStr = runJob("cp " + os.path.join(libcifppDir, libcifppLibDir,
+											"libcifpp.so*") + " " + libDir, printLOG=True, pathLOGFile=currDir)
 				if retCode == 0:
-						retCode, outputStr = runJob("cmake --install build", printLOG=True, pathLOGFile=currDir)
-						if retCode == 0:
-								# Check if libcifpp created up on compiling lib or lib64 directory
-								libcifppLibDir = "lib64" if os.path.exists("lib64") else "lib"
-								# Copying .so file
-								os.chdir(currDir)
-								libDir = "src/xmipp/lib"
-								if not os.path.exists(libDir):
-										os.makedirs(libDir)
-								retCode, outputStr = runJob("cp " + os.path.join(libcifppDir, libcifppLibDir,
-																							 "libcifpp.so*") + " " + libDir, printLOG=True, pathLOGFile=currDir)
-								if retCode == 0:
-										printMessage(text=green(DONE2), debug=True, pathFile=currDir)
-								else:
-										exitError(retCode=LIBCIFPP_ERROR, output=outputStr, pathFile=currDir)
-
-						else:
-								os.chdir(currDir)
-								exitError(retCode=LIBCIFPP_ERROR, output=outputStr, pathFile=currDir)
-
+					printMessage(text=green(DONE2), debug=True, pathFile=currDir)
 				else:
-						os.chdir(currDir)
-						exitError(retCode=LIBCIFPP_ERROR, output=outputStr, pathFile=currDir)
+					exitError(retCode=LIBCIFPP_ERROR, output=outputStr, pathFile=currDir)
 
-		else:
+			else:
 				os.chdir(currDir)
 				exitError(retCode=LIBCIFPP_ERROR, output=outputStr, pathFile=currDir)
 
+		else:
+			os.chdir(currDir)
+			exitError(retCode=LIBCIFPP_ERROR, output=outputStr, pathFile=currDir)
+
+	else:
+		os.chdir(currDir)
+		exitError(retCode=LIBCIFPP_ERROR, output=outputStr, pathFile=currDir)
+
 def compileSources(jobs, sconsPath:str):
-		"""
-		Compiles Xmipp source code.
+	"""
+	Compiles Xmipp source code.
 
-		This function compiles the Xmipp core, Xmipp, and Xmipp Viz from their respective source directories.
-		It utilizes the SCons build system with specified job parallelism to compile the source code.
+	This function compiles the Xmipp core, Xmipp, and Xmipp Viz from their respective source directories.
+	It utilizes the SCons build system with specified job parallelism to compile the source code.
 
-		Args:
-		- jobs (int): The number of jobs/threads to be used for compilation.
+	Args:
+	- jobs (int): The number of jobs/threads to be used for compilation.
 
-		Raises:
-		- RuntimeError: If any error occurs during the compilation process for Xmipp components,
-		  it raises an appropriate RuntimeError with error details.
-		"""
-		sources = [[XMIPP_CORE, XMIPPCORE_COMPILATION_ERROR, XMIPP_CORE_COMPILE_LINES],
-						   [XMIPP, XMIPP_COMPILATION_ERROR, XMIPP_COMPILE_LINES],
-							 [XMIPP_VIZ, XMIPPVIZ_COMPILATION_ERROR, XMIPP_VIZ_COMPILE_LINES]]
-		dictPackage, _ = readConfig()
-		for source in sources:
-				compileXmippRun(source=source[0], sourceError=source[1], compileLines=source[2], sconsPath=sconsPath, jobs=jobs)
+	Raises:
+	- RuntimeError: If any error occurs during the compilation process for Xmipp components,
+		it raises an appropriate RuntimeError with error details.
+	"""
+	sources = [[XMIPP_CORE, XMIPPCORE_COMPILATION_ERROR, XMIPP_CORE_COMPILE_LINES],
+				[XMIPP, XMIPP_COMPILATION_ERROR, XMIPP_COMPILE_LINES],
+							[XMIPP_VIZ, XMIPPVIZ_COMPILATION_ERROR, XMIPP_VIZ_COMPILE_LINES]]
+	dictPackage, _ = readConfig()
+	for source in sources:
+		compileXmippRun(source=source[0], sourceError=source[1], compileLines=source[2], sconsPath=sconsPath, jobs=jobs)
 
 def compileXmippRun(source:str, sourceError:str, compileLines:list, sconsPath:str, jobs:int):
-		printMessage(text=f'\n{HEADER1} Compiling {source}...', debug=True)
-		retCode, outputStr = runJob(
-								f"/usr/bin/env python3 -u {sconsPath} -j{jobs}",
-								f"src/{source}",
-								streaming=True, showOutput=False, showError=True,
-								linesCompileBar=compileLines)
-		if retCode != 0:
-				exitError(retCode=sourceError, output=outputStr)
-		printMessage(text=green('{}'.format(DONE1)), debug=True)
+	printMessage(text=f'\n{HEADER1} Compiling {source}...', debug=True)
+	retCode, outputStr = runJob(
+							f"/usr/bin/env python3 -u {sconsPath} -j{jobs}",
+							f"src/{source}",
+							streaming=True, showOutput=False, showError=True,
+							linesCompileBar=compileLines)
+	if retCode != 0:
+			exitError(retCode=sourceError, output=outputStr)
+	printMessage(text=green('{}'.format(DONE1)), debug=True)
 
 def compileAndInstall(args):
 	# Get sources
