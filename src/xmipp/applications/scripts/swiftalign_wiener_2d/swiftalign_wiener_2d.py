@@ -65,6 +65,7 @@ def run(images_md_path: str,
         voltage: float,
         phase_flipped: bool,
         q0: float,
+        padding: int,
         batch_size: int,
         device_names: list ):
     
@@ -90,6 +91,7 @@ def run(images_md_path: str,
         num_workers=1
     )
     image_size = md.get_image2d_size(images_md)
+    padded_size = (image_size[0]*padding, image_size[1]*padding)
     
     # Create a MMAPed output file
     output_images_path = str(pathlib.Path(output_md_path).with_suffix('.mrc'))
@@ -109,7 +111,7 @@ def run(images_md_path: str,
     
     # Compute frequency grid
     cartesian_frequency_grid = fourier.rfftnfreq(
-        image_size,
+        padded_size,
         d=pixel_size,
         device=transform_device
     )
@@ -120,6 +122,7 @@ def run(images_md_path: str,
     batch_images_fourier = None
     ctf_images = None
     wiener_filters = None
+    padded_images = None
     for batch_images in images_loader:
         batch_images = batch_images[0] # Due to the BatchSampler
         end = start + len(batch_images)
@@ -127,16 +130,25 @@ def run(images_md_path: str,
         batch_slice = slice(start, end)
         batch_images_md = images_md.iloc[batch_slice]
         
+
         # Obtain defocus
         defocus = torch.from_numpy(batch_images_md[[md.CTF_DEFOCUS_U, md.CTF_DEFOCUS_V, md.CTF_DEFOCUS_ANGLE]].to_numpy())
         _compute_differential_defocus_inplace(defocus[:,:2])
         defocus[:,2].deg2rad_()
         defocus = defocus.to(transform_device, non_blocking=True)
         
+        # Zero pad images if necessary
+        padded_images = fourier.zero_pad(
+            batch_images,
+            dim=(-2, -1),
+            factor=padding,
+            out=padded_images
+        )
+        
         # Perform the FFT of the images
         if batch_images_fourier is not None:
             batch_images_fourier.resize_(0) # Force explicit reuse
-        batch_images_fourier = torch.fft.rfft2(batch_images, out=batch_images_fourier)
+        batch_images_fourier = torch.fft.rfft2(padded_images, out=batch_images_fourier)
         
         # Elaborate the CTF descriptor
         ctf_desc = ctf.Ctf2dDesc(
@@ -170,11 +182,15 @@ def run(images_md_path: str,
         batch_images_fourier *= wiener_filters
 
         # Perform the inverse FFT computaion
-        torch.fft.irfft2(batch_images_fourier, out=batch_images)
-
-        # Store the result
-        output_images[batch_slice] = batch_images.to('cpu', non_blocking=True)
+        torch.fft.irfft2(batch_images_fourier, out=padded_images)
         
+        # Undo padding and store
+        if padded_images is batch_images:
+            output_images[batch_slice] = batch_images.to('cpu', non_blocking=True)
+        else:
+            read_slice = tuple(map(slice, batch_images.shape))
+            output_images[batch_slice] = padded_images[read_slice].to('cpu', non_blocking=True)
+            
         # Prepare for the next batch
         utils.progress_bar(end, len(images_md))
         start = end
@@ -203,6 +219,7 @@ if __name__ == '__main__':
     parser.add_argument('--voltage', type=float, required=True)
     parser.add_argument('--q0', type=float, default=0.1)
     parser.add_argument('--phase_flipped', action='store_true')
+    parser.add_argument('--padding', type=int, default=1)
     parser.add_argument('--batch', type=int, default=1024)
     parser.add_argument('--device', nargs='*')
 
@@ -216,8 +233,9 @@ if __name__ == '__main__':
         pixel_size=args.pixel_size,
         spherical_aberration=args.spherical_aberration,
         voltage=args.voltage,
-        phase_flipped=args.phase_flipped,
         q0=args.q0,
+        phase_flipped=args.phase_flipped,
+        padding=args.padding,
         batch_size = args.batch,
         device_names = args.device
     )
