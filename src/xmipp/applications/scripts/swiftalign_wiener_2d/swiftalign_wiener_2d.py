@@ -201,7 +201,6 @@ def run(images_md_path: str,
     if transform_device.type == 'cuda':
         torch.cuda.synchronize(transform_device)
 
-
     # Update metadata
     images_md[md.IMAGE] = (images_md.index + 1).map(('{:06d}@' + output_images_path).format)
     md.write(images_md, output_md_path)
