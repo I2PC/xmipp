@@ -35,6 +35,7 @@ from subprocess import Popen, PIPE
 # Installer imports
 from .constants import (MODES, TAB_SIZE, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,
 	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, XMIPP_VERSIONS, SCONS_INSTALL_ERROR)
+from .logger import blue, yellow, red
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
@@ -62,11 +63,12 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 		retCode, outputStr = runStreamingJob(cmd, cwd=cwd, showOutput=showOutput, showError=showError)
 	else:
 		process = Popen(cmd, cwd=cwd, env=os.environ, stdout=PIPE, stderr=PIPE, shell=True)
+		process.wait()
 		
 		# Defining output string
 		retCode = process.returncode
 		output, err = process.communicate()
-		outputStr = output.decode() if retCode else err.decode()
+		outputStr = err.decode() if retCode else output.decode()
 
 	# Printing output if specified
 	if not streaming and showOutput:
