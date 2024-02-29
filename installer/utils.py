@@ -306,36 +306,17 @@ def isScipionEnv() -> bool:
 	return envPath and os.path.exists(os.path.join(envPath, 'bin', 'scipion'))
 
 ####################### VERSION FUNCTIONS #######################
-def versionToNumber(strVersion: str) -> float:
+def splitVersionNumber(strVersion: str) -> Tuple:
 	"""
-	### This function converts the version string into a version number that can be numerically compared.
-	#### Supports any length of version numbers, but designed for three, in format X.Y.Z (mayor.minor.micro).
+	### This function converts the version string into a ordered tuple
 
 	#### Params:
 	- strVersion (str): String containing the version numbers.
 
 	#### Returns:
-	- (float): Number representing the value of the version numbers combined.
+	- (Tuple): Tuple representing the version
 	"""
-	# Defining the most significant version number value
-	mayorMultiplier = 100
-
-	# Getting version numbers separated by dots
-	listVersion = strVersion.split('.')
-
-	# Getting the numeric version for each element
-	numberVersion = 0
-	for i in range(len(listVersion)):
-		try:
-			# Multiply each next number by the mayor multiplier divided by 10 in each iteration
-			# That way, mayor * 100, minor * 10, micro * 1, next * 0.1, ...
-			numberVersion += int(listVersion[i]) * (mayorMultiplier / (10 ** i))
-		except Exception:
-			# If there is some error, exit the loop
-			break
-	
-	# Returning result number
-	return numberVersion
+	return tuple(strVersion.split('.'))
 
 def getPackageVersionCmd(packageName: str) -> Optional[str]:
 	"""
