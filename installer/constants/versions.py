@@ -81,6 +81,7 @@ RSYNC_MINIMUM = '3.0'								#	#3.0 - 2008
 #####################################
 
 # CUDA-gcc compatibility table
+# https://stackoverflow.com/a/46380601/9769768
 CUDA_GCC_COMPATIBILITY = {
 	'10.1-10.2': vGCC[vGCC.index('8.5'):],
 	'11.0-11.0': vGCC[vGCC.index('9.4'):],
