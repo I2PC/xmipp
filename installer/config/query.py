@@ -1,6 +1,7 @@
 # ***************************************************************************
 # * Authors:		Alberto García (alberto.garcia@cnb.csic.es)
-# *					Martín Salinas (martin.salinas@cnb.csic.es)
+# *							Martín Salinas (martin.salinas@cnb.csic.es)
+# *							Oier Lauzirika Zarrabeitia (olauzirika@cnb.csic.es)
 # *
 # *
 # * This program is free software; you can redistribute it and/or modify
@@ -22,6 +23,4 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
-"""
-This module contains the necessary functions to run the config command.
-"""
+
