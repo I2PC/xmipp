@@ -32,7 +32,8 @@ from typing import List, Tuple
 
 # Installer imports
 from .constants import MODES, MODE_ARGS, TAB_SIZE, MODE_EXAMPLES, MODE_ALL
-from .utils import getFormattingTabs, yellow, red
+from .utils import getFormattingTabs
+from .logger import yellow, red
 
 # File specific constants
 SECTION_N_DASH = 40
