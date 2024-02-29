@@ -32,7 +32,7 @@ from typing import Dict, Optional
 
 # Self imports
 from .versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
-	getCmakeVersion, getGPPVersion, getGCCVersion, getSconsVersion)
+	getCmakeVersion, getGXXVersion, getGCCVersion, getSconsVersion)
 from .utils import runJob, runInsistentJob, getCurrentBranch, isBranchUpToDate, runParallelJobs
 from .constants import (API_URL, LOG_FILE, TAIL_LOG_NCHARS)
 
@@ -75,7 +75,7 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Optional[str]:
 		(getCUDAVersion, (dictPackage,)),
 		(getCmakeVersion, ()),
 		(getGCCVersion, (dictPackage,)),
-		(getGPPVersion, (dictPackage,)),
+		(getGXXVersion, (dictPackage,)),
 		(getSconsVersion, (dictPackage,)),
 		(getCurrentBranch, ()),
 		(isBranchUpToDate, ()),

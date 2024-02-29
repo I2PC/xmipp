@@ -24,7 +24,7 @@
 
 """
 This module contains functions to collect the versions of
-os, architecture, cuda, cmake, gpp, gcc and scons.
+os, architecture, cuda, cmake, g++, gcc and scons.
 """
 
 # General imports
@@ -217,7 +217,7 @@ def getMakeVersion(dictPackages: Dict=None) -> str:
 	# Return cmake version
 	return makeVersion
 
-def getGPPVersion(dictPackages: Dict=None) -> Optional[str]:
+def getGXXVersion(dictPackages: Dict=None) -> Optional[str]:
 	"""
 	### Extracts g++'s version string from the PATH or the config file, the last one having a higher priority.
 
@@ -228,10 +228,10 @@ def getGPPVersion(dictPackages: Dict=None) -> Optional[str]:
 	- (str | None): g++'s version or None if there were any errors.
 	"""
 	# Get the g++ to extract
-	gppExecutable = dictPackages[CXX] if dictPackages is not None and CXX in dictPackages else 'g++'
+	gxxExecutable = dictPackages[CXX] if dictPackages is not None and CXX in dictPackages else 'g++'
 
 	# Return g++ version
-	return parseCompilerVersion(getPackageVersionCmd(gppExecutable))
+	return parseCompilerVersion(getPackageVersionCmd(gxxExecutable))
 
 def getGCCVersion(dictPackages: Dict=None) -> Optional[str]:
 	"""
