@@ -23,4 +23,57 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
+from typing import Dict, Any, Callable
+import os
+import shutil
+
+from ..constants import CC, CXX
+
+def _getFunctionSkeleton(packages: Dict[str, Any], 
+                         key: str,
+                         finder: Callable[[]]):
+  result = packages.get(key)
+  if not result:
+    result = finder()
+    packages[key] = result
+  return result
+ 
+ 
+  
+def findCC() -> str:
+  result = os.environ.get('CC')
+  if not result:
+    result = shutil.which('gcc')
+  return result
+    
+def getCC(packages: Dict[str, Any]):
+  """
+  Retrieves information about the CC (GCC) package and updates the dictionary accordingly.
+
+  Params:
+  - packages (dict): Dictionary containing package information.
+
+  Modifies:
+  - dictPackages: Updates the 'CC' key based on the availability of 'gcc'.
+  """
+  return _getFunctionSkeleton(packages, key=CC, finder=findCC)
+	
+def findCXX() -> str:
+  result = os.environ.get('CXX')
+  if not result:
+    result = shutil.which('g++')
+  return result
+    
+def getCXX(packages: Dict[str, Any]):
+  """
+  Retrieves information about the g++ package and updates the dictionary accordingly.
+
+  Params:
+  - packages (dict): Dictionary containing package information.
+
+  Modifies:
+  - dictPackages: Updates the 'CXX' key based on the availability of 'g++'.
+  """
+  return _getFunctionSkeleton(packages, key=CXX, finder=findCXX)
+
 
