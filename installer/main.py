@@ -32,7 +32,7 @@ from typing import Tuple
 # Module imports
 from .utils import runJob
 from .logger import logger
-from .constants import SCONS_INSTALL_ERROR
+from .constants import SCONS_INSTALL_ERROR, CLONNING_XMIPP_SOURCE_ERROR, DOWNLOADING_XMIPP_SOURCE_ERROR
 
 ####################### COMMAND FUNCTIONS #######################
 def getSources(branch: str=None):
@@ -50,36 +50,50 @@ def installScons():
 	### Generates an error if something goes wrong.
 	"""
 	retCode, output = runJob("pip install scons")
-	logger(output)
 
 	if retCode:
 		logger.logError(output, retCode=SCONS_INSTALL_ERROR)
+		#TODO: Exit
+	logger(output)
 	
-	#TODO: Exit
 
 ####################### AUX FUNCTIONS #######################
 def downloadSourceTag(source: str) -> Tuple[bool, str]:
 	"""
-	### This function downloads the given source as a tag.
+	### Downloads the given source as a tag.
 	
 	#### Params:
 	- source (str): Source to download.
 	
 	#### Returns:
-	(int): Return code of the command.
-	(str): Output data from the command if it worked or error if it failed.
+	- (int): Return code of the command.
+	- (str): Output data from the command if it worked or error if it failed.
 	"""
-	pass
+	# Getting destination file name and downloading
+	fileName = source.split("/")[-1]
+	retCode, output = runJob(f"wget -O {fileName} {source}")
+	
+	if retCode:
+		logger.logError(output, retCode=DOWNLOADING_XMIPP_SOURCE_ERROR)
+		#TODO: Exit
+	logger(output)
 
 def cloneSourceRepo(repo: str, branch: str=None) -> Tuple[bool, str]:
 	"""
-	### This function clones the given source as a repository in the given branch.
+	### Clones the given source as a repository in the given branch.
 	
 	#### Params:
 	- source (str): Source to clone.
+	- branch (branch): Optional. Branch to clone repo from.
 	
 	#### Returns:
-	(int): 0 if everything worked, or else the return code of the command that failed.
-	(str): Output data from the command if it worked or error if it failed.
+	- (int): 0 if everything worked, or else the return code of the command that failed.
+	- (str): Output data from the command if it worked or error if it failed.
 	"""
-	pass
+	branchStr = f" --branch {branch} " if branch else ''
+	retCode, output = runJob(f"git clone{branchStr}{repo}")
+
+	if retCode:
+		logger.logError(output, retCode=CLONNING_XMIPP_SOURCE_ERROR)
+		#TODO: Exit
+	logger(output)
