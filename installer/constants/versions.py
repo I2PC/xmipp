@@ -55,6 +55,7 @@ XMIPP_VERSIONS = {									#
 #####################################
 
 # Supported gcc versions
+# NOTE evaluate if 12.3 to 8.4 is enough
 vGCC = [
 	'12.3', '12.2', '12.1',
 	'11.3', '11.2', '11.1', '11',
