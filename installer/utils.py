@@ -28,7 +28,7 @@ Module containing useful functions used by the installation process.
 
 # General imports
 import sys, os, time, multiprocessing
-from typing import List, Tuple, Union, Callable, Any
+from typing import List, Tuple, Callable, Any, Optional
 from io import FileIO
 from subprocess import Popen, PIPE
 
@@ -268,7 +268,7 @@ def bold(text: str) -> str:
 	return f"\033[1m{text}\033[0m"
 
 ####################### GIT FUNCTIONS #######################
-def getCurrentBranch(dir: str='./') -> Union[str, None]:
+def getCurrentBranch(dir: str='./') -> Optional[str]:
 	"""
 	### This function returns the current branch of the repository of the given directory or None if it is not a repository.
 	
@@ -397,7 +397,7 @@ def versionToNumber(strVersion: str) -> float:
 	# Returning result number
 	return numberVersion
 
-def getPackageVersionCmd(packageName: str) -> Union[str, None]:
+def getPackageVersionCmd(packageName: str) -> Optional[str]:
 	"""
 	### Retrieves the version of a package or program by executing '[packageName] --version' command.
 
@@ -413,7 +413,7 @@ def getPackageVersionCmd(packageName: str) -> Union[str, None]:
 	# Check result if there were no errors
 	return output if retCode == 0 else None
 
-def getPackageVersionCmd(packageName: str) -> Union[str, None]:
+def getPackageVersionCmd(packageName: str) -> Optional[str]:
 	"""
 	### Retrieves the version of a package or program by executing '[packageName] --version' command.
 
@@ -428,7 +428,7 @@ def getPackageVersionCmd(packageName: str) -> Union[str, None]:
 	# Check result if there were no errors
 	return output if retCode == 0 else None
 
-def getPythonPackageVersion(packageName: str) -> Union[str, None]:
+def getPythonPackageVersion(packageName: str) -> Optional[str]:
 	"""
 	### Retrieves the version of a Python package.
 

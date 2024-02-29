@@ -28,7 +28,7 @@ Module containing all functions needed for the metric's API request.
 
 # General imports
 import json, re, hashlib
-from typing import Dict, Union
+from typing import Dict, Optional
 
 # Self imports
 from .versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
@@ -52,7 +52,7 @@ def sendApiPOST(dictPackage:Dict, retCode: int=0):
 		runInsistentJob(getCurlStr(API_URL, jsonStr))
 	
 ####################### UTILS FUNCTIONS #######################
-def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
+def getJSONString(dictPackage: Dict, retCode: int=0) -> Optional[str]:
 	"""
 	### Creates a JSON string with the necessary data for the API POST message.
 	
@@ -123,7 +123,7 @@ def getCurlStr(url: str, jsonStr: str) -> str:
 	cmd += f" --data \'{jsonStr}\' --request POST {url}"
 	return cmd
 
-def getMACAddress() -> Union[str, None]:
+def getMACAddress() -> Optional[str]:
 	"""
 	### This function returns a physical MAC address for this machine. It prioritizes ethernet over wireless.
 	
@@ -160,7 +160,7 @@ def getMACAddress() -> Union[str, None]:
 	
 	return macAddress
 
-def getUserId() -> Union[str, None]:
+def getUserId() -> Optional[str]:
 	"""
 	### This function returns the unique user id for this machine.
 	
@@ -183,7 +183,7 @@ def getUserId() -> Union[str, None]:
 	# Return hexadecimal representation of the hash
 	return sha256.hexdigest()
 
-def getLogTail() -> Union[str, None]:
+def getLogTail() -> Optional[str]:
 	"""
 	### This function returns the last lines of the installation log.
 	

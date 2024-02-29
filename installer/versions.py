@@ -28,14 +28,14 @@ os, architecture, cuda, cmake, gpp, gcc and scons.
 """
 
 # General imports
-from typing import Dict, Union
+from typing import Dict, Optional
 
 # Installer imports
 from .utils import runJob, getPackageVersionCmd, getPythonPackageVersion
 from .constants import UNKNOWN_VALUE, CC, CXX, CMAKE, CUDA, MAKE
 
 ####################### AUX FUNCTIONS #######################
-def parseCompilerVersion(versionCmdStr: Union[str, None]) -> Union[str, None]:
+def parseCompilerVersion(versionCmdStr: Optional[str]) -> Optional[str]:
 	"""
 	### Parses the string output of the command that extracts the version of the given compiler.
 
@@ -115,7 +115,7 @@ def getArchitectureName() -> str:
 	# Returing architecture name
 	return archName
 
-def getCUDAVersion(dictPackages: Dict=None) -> Union[str, None]:
+def getCUDAVersion(dictPackages: Dict=None) -> Optional[str]:
 	"""
 	### Extracts the NVCC (NVIDIA CUDA Compiler) version from the PATH or the config file, the last one having a higher priority.
 
@@ -217,7 +217,7 @@ def getMakeVersion(dictPackages: Dict=None) -> str:
 	# Return cmake version
 	return makeVersion
 
-def getGPPVersion(dictPackages: Dict=None) -> Union[str, None]:
+def getGPPVersion(dictPackages: Dict=None) -> Optional[str]:
 	"""
 	### Extracts g++'s version string from the PATH or the config file, the last one having a higher priority.
 
@@ -233,7 +233,7 @@ def getGPPVersion(dictPackages: Dict=None) -> Union[str, None]:
 	# Return g++ version
 	return parseCompilerVersion(getPackageVersionCmd(gppExecutable))
 
-def getGCCVersion(dictPackages: Dict=None) -> Union[str, None]:
+def getGCCVersion(dictPackages: Dict=None) -> Optional[str]:
 	"""
 	### Extracts gcc's version string from the PATH or the config file, the last one having a higher priority.
 
@@ -249,7 +249,7 @@ def getGCCVersion(dictPackages: Dict=None) -> Union[str, None]:
 	# Return gcc version
 	return parseCompilerVersion(getPackageVersionCmd(gccExecutable))
 
-def getSconsVersion() -> Union[str, None]:
+def getSconsVersion() -> Optional[str]:
 	"""
 	### Extracts scons's version string.
 
