@@ -145,7 +145,7 @@ class TomogramReconstruction(XmippScript):
         self.addParamsLine(' [--filter <filterToApply> ]          : List of filters for FDK or FBP: *ram_lak  (default). * shepp_logan. * cosine. * hamming. *hann. The choice of filter will modify the noise and some discreatization errors, depending on which is chosen.')
         self.addParamsLine(' [--normalize <normalizeTi>]          : Preprocess the set of images to present zero mean and unit standard deviation')
         self.addParamsLine(' -o <fnOut>                           : Output filename of the tomogram.')
-        self.addParamsLine(' --gpu <gpuId>                        : GPU Ids to be use in the image processing') 
+        self.addParamsLine(' [--gpu <gpuId>]                      : GPU Ids to be use in the image processing. (by default gpu 0) If this parameter is not set, the gpu 0 will be used') 
         
         # Examples       
         self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method wbp --filter ram_lak')
@@ -301,10 +301,10 @@ class TomogramReconstruction(XmippScript):
 
     def astraReconstruction(self, ts_orig, tiltAngles, recAlgorithm):
         
-        Nangles = len(tiltAngles)
-        ts = np.zeros((self.xdim, Nangles, self.ydim))
+        nangles = len(tiltAngles)
+        ts = np.zeros((self.xdim, nangles, self.ydim))
 
-        for i in range(0, Nangles):
+        for i in range(0, nangles):
             ts[:,i,:] = ts_orig[i,:,:]
         
         proj_geom = astra.create_proj_geom('parallel3d', 1.0, 1.0, self.xdim, self.ydim, tiltAngles)
@@ -356,7 +356,7 @@ class TomogramReconstruction(XmippScript):
         if candidate in listFilters:
             self.filterToApply = listFilters[listFilters.index(candidate)]
         else:
-            raise Exception('The selected filter does not exist check the --filter flag')
+            raise Exception('The selected filter does not exist, please check the --filter flag')
         print(self.filterToApply)
     
     def tigreReconstruction(self, ts, tiltAngles):
@@ -474,14 +474,12 @@ class TomogramReconstruction(XmippScript):
         dims = np.shape(ts_aux)
         self.xdim = dims[2]
         self.ydim = dims[1]
-        self.Nimages = dims[0]
-        
-        print(self.Nimages)
+        self.nimages = dims[0]
         
         stdTi = []
         meanTi = []
         if self.normalizeTi == 'standard':
-            for i in range(0, self.Nimages):
+            for i in range(0, self.nimages):
                 ti = ts_aux[i,:,:]
                 stdTi = np.std(ti)
                 meanTi = np.mean(ti)
