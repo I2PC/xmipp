@@ -138,7 +138,7 @@ class Logger:
 		- text (str): Message to be logged. Supports fancy formatting
 		"""
 		print(removeTextFormatting(text), file=self.logFile, flush=True)
-		if self.printToConsole or forceConsoleOutput:
+		if self.outputToConsole or forceConsoleOutput:
 			print(text, flush=True)
 	 
 	def logError(self, errorMsg: str, retCode: int=1):
