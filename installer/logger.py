@@ -29,7 +29,7 @@ Provides a global logger
 
 import re
 
-from .constants import LOG_FILE
+from .constants import LOG_FILE, ERROR_CODE, DOCUMENTATION_URL
 
 ####################### TEXT MODE #######################
 def green(text: str) -> str:
@@ -92,7 +92,7 @@ def bold(text: str) -> str:
 	"""
 	return f"\033[1m{text}\033[0m"
 
-def remove_text_formatting(text: str) -> str:
+def removeTextFormatting(text: str) -> str:
 	"""
 	### This function returns the given text without fancy formatting
 
@@ -102,8 +102,8 @@ def remove_text_formatting(text: str) -> str:
 	#### Returns:
 	- (str): Text without format
 	"""
-	ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
-	return ansi_escape.sub('', text)
+	ansiEscape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
+	return ansiEscape.sub('', text)
 
 class Logger:
 	"""
@@ -130,17 +130,31 @@ class Logger:
 		"""
 		self.outputToConsole = outputToConsole
  
-	def __call__(self, text: str):
+	def __call__(self, text: str, forceConsoleOutput: bool = False):
 		"""
 		### Log a message
 		
 		#### Params:
 		- text (str): Message to be logged. Supports fancy formatting
 		"""
-		print(remove_text_formatting(text), file=self.logFile, flush=True)
-		if self.printToConsole:
+		print(removeTextFormatting(text), file=self.logFile, flush=True)
+		if self.printToConsole or forceConsoleOutput:
 			print(text, flush=True)
-	
+	 
+	def logError(self, errorMsg: str, retCode: int=1):
+		"""
+		### This function prints an error message.
+
+		#### Params:
+		- errorMsg (str): Error message to show.
+		- retCode (int): Optional. Return code to end the exection with.
+		"""
+		errorStr = errorMsg + '\n\n'
+		errorStr += f'Error {retCode}: {ERROR_CODE[retCode][0]}\n'
+		errorStr += ERROR_CODE[retCode][1]
+		errorStr += f'More details on the Xmipp documentation portal: {DOCUMENTATION_URL}'
+
+		self.__call__(red(errorStr), forceConsoleOutput=True)
 
 """
 ### Global logger
