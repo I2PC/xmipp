@@ -29,6 +29,11 @@ This module contains the necessary functions to run most installer commands.
 # General imports
 from typing import Tuple
 
+# Module imports
+from .utils import runJob
+from .logger import logger
+from .constants import SCONS_INSTALL_ERROR
+
 ####################### COMMAND FUNCTIONS #######################
 def getSources(branch: str=None):
 	"""
@@ -38,6 +43,19 @@ def getSources(branch: str=None):
 	- branch (str): Optional. Branch to clone the sources from.
 	"""
 	pass
+
+def installScons():
+	"""
+	### Tries to install scons in current env.
+	### Generates an error if something goes wrong.
+	"""
+	retCode, output = runJob("pip install scons")
+	logger(output)
+
+	if retCode:
+		logger.logError(output, retCode=SCONS_INSTALL_ERROR)
+	
+	#TODO: Exit
 
 ####################### AUX FUNCTIONS #######################
 def downloadSourceTag(source: str) -> Tuple[bool, str]:
