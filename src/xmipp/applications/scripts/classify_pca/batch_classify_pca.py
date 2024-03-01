@@ -216,7 +216,7 @@ if __name__=="__main__":
                             init = 0
                             batch_projExp = batch_projExp_cpu
                             
-                        matches = bnb.match_batch(batch_projExp, batch_projRef, init, matches, rot, nShift)    
+                        matches = bnb.match_batch_correlation(batch_projExp, batch_projRef, init, matches, rot, nShift)    
                         del(batch_projExp)
                         count+=1    
                 del(batch_projRef)    
