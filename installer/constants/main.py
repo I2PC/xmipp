@@ -44,10 +44,10 @@ LIBSVM = 'libsvm'
 LIBCIFPP = 'libcifpp'
 
 REPOSITORIES = {
-	XMIPP: ['https://github.com/I2PC/xmipp.git', ''],
-	XMIPP_CORE: ['https://github.com/I2PC/xmippCore.git', ''],
-	XMIPP_VIZ: ['https://github.com/I2PC/xmippViz.git', ''],
-	XMIPP_PLUGIN: ['https://github.com/I2PC/scipion-em-xmipp.git', ''],
+	XMIPP: ['https://github.com/I2PC/xmipp.git', None],
+	XMIPP_CORE: ['https://github.com/I2PC/xmippCore.git', None],
+	XMIPP_VIZ: ['https://github.com/I2PC/xmippViz.git', None],
+	XMIPP_PLUGIN: ['https://github.com/I2PC/scipion-em-xmipp.git', None],
 	CUFFTADVISOR: ['https://github.com/DStrelak/cuFFTAdvisor.git', 'master'],
 	CTPL: ['https://github.com/vit-vit/CTPL.git', 'master'],
 	GTEST: ['https://github.com/google/googletest', 'v1.13.x'],

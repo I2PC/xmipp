@@ -30,8 +30,8 @@ This module contains the necessary functions to run most installer commands.
 from typing import Tuple
 
 # Module imports
-from .utils import runJob
-from .logger import logger
+from .utils import runJob, getCurrentBranch
+from .logger import logger, yellow
 from .constants import SCONS_INSTALL_ERROR, CLONNING_XMIPP_SOURCE_ERROR, DOWNLOADING_XMIPP_SOURCE_ERROR
 
 ####################### COMMAND FUNCTIONS #######################
@@ -42,23 +42,40 @@ def getSources(branch: str=None):
 	#### Params:
 	- branch (str): Optional. Branch to clone the sources from.
 	"""
-	pass
+	currentBranch = getCurrentBranch()
+	if currentBranch:
 
-def installScons():
+		pass
+	# If curent dir is repo, check git
+		# if not git or below version, fallback to wget
+		# else attempt clone
+			# 
+	if not currentBranch:
+		# Download latest version from github tags with wget
+		pass
+
+def installScons(update: bool=False) -> Tuple[int, str]:
 	"""
-	### Tries to install scons in current env.
+	### Tries to install or update scons in current env.
 	### Generates an error if something goes wrong.
+
+	#### Params:
+	- update (bool): If True, it will try to update scons instead of installing from scratch.
+
+	#### Returns:
+	- (int): Return code of the command.
+	- (str): Output data from the command if it worked or error if it failed.
 	"""
-	retCode, output = runJob("pip install scons")
+	updateStr = ' --update' if update else ''
+	retCode, output = runJob(f"pip install scons{updateStr}")
 
 	if retCode:
 		logger.logError(output, retCode=SCONS_INSTALL_ERROR)
 		#TODO: Exit
 	logger(output)
 	
-
 ####################### AUX FUNCTIONS #######################
-def downloadSourceTag(source: str) -> Tuple[bool, str]:
+def downloadSourceTag(source: str) -> Tuple[int, str]:
 	"""
 	### Downloads the given source as a tag.
 	
@@ -71,16 +88,11 @@ def downloadSourceTag(source: str) -> Tuple[bool, str]:
 	"""
 	# Getting destination file name and downloading
 	fileName = source.split("/")[-1]
-	retCode, output = runJob(f"wget -O {fileName} {source}")
+	return runJob(f"wget -O {fileName} {source}")
 	
-	if retCode:
-		logger.logError(output, retCode=DOWNLOADING_XMIPP_SOURCE_ERROR)
-		#TODO: Exit
-	logger(output)
-
-def cloneSourceRepo(repo: str, branch: str=None) -> Tuple[bool, str]:
+def cloneSourceRepo(repo: str, branch: str=None) -> Tuple[int, str]:
 	"""
-	### Clones the given source as a repository in the given branch.
+	### Clones the given source as a repository in the given branch if exists. Defaults to default branch.
 	
 	#### Params:
 	- source (str): Source to clone.
@@ -90,10 +102,16 @@ def cloneSourceRepo(repo: str, branch: str=None) -> Tuple[bool, str]:
 	- (int): 0 if everything worked, or else the return code of the command that failed.
 	- (str): Output data from the command if it worked or error if it failed.
 	"""
-	branchStr = f" --branch {branch} " if branch else ''
-	retCode, output = runJob(f"git clone{branchStr}{repo}")
+	# If branch is provided, check if exists
+	if branch:
+		retCode, _ = runJob(f"git ls-remote --heads {repo} {branch} | grep -q refs/heads/{branch}")
+		branchExists = not retCode
+		# If does not exist, show warning
+		if not branchExists:
+			warningStr = f"Warning: branch \'{branch}\' does not exist for repository with url {repo}.\n"
+			warningStr += "Falling back to repository's default branch."
+			logger(yellow(warningStr), forceConsoleOutput=True)
+			branch = None
 
-	if retCode:
-		logger.logError(output, retCode=CLONNING_XMIPP_SOURCE_ERROR)
-		#TODO: Exit
-	logger(output)
+	branchStr = f" --branch {branch}" if branch else ''
+	return runJob(f"git clone{branchStr} {repo}")
