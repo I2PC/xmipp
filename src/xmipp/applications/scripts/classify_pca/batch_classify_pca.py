@@ -102,7 +102,7 @@ if __name__=="__main__":
     if mask and sigma is None:
         sigma = dim/3
     
-    initSubset = min(30000, nExp)
+    initSubset = min(100000, nExp)
     refClas = torch.zeros(nExp)
     translation_vector = torch.zeros(nExp, 2)
     angles_deg = np.zeros(nExp)
@@ -216,7 +216,7 @@ if __name__=="__main__":
                             init = 0
                             batch_projExp = batch_projExp_cpu
                             
-                        matches = bnb.match_batch_correlation(batch_projExp, batch_projRef, init, matches, rot, nShift)    
+                        matches = bnb.match_batch(batch_projExp, batch_projRef, init, matches, rot, nShift)    
                         del(batch_projExp)
                         count+=1    
                 del(batch_projRef)    
