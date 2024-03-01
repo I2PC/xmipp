@@ -5,7 +5,9 @@ name: Build Xmipp
 on:
   pull_request:
     branches: [devel, master]
-
+# annonymous data variable 
+env:
+    ANON_DATA_COLLECT: False
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
@@ -53,4 +55,4 @@ jobs:
           BRANCH_NAME: ${{ github.head_ref }}
           CIBuild: 1
           BUILD_TESTS: True
-        run: ./xmipp all br=$BRANCH_NAME noAsk || (cat compileLOG.txt && false)
+        run: ./xmipp all -br=$BRANCH_NAME -NoModels || (cat compileLOG.txt && false)

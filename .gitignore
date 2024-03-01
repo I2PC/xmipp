@@ -72,6 +72,8 @@ compile_commands.json
 compileLOG.txt
 reportInstallation.tar.gz
 xmipp_version.txt
+commandError.log
+commandOutput.log
 
 # Compilation database
 compile_commands.json

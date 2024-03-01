@@ -130,6 +130,12 @@ def appendUnique(elist, element):
 #  *                            Extra options                             *
 #  *                                                                      *
 #  ************************************************************************
+
+
+CUDA = 'CUDA_HOME'
+NVCC_LINKFLAGS = 'LINKFLAGS_NVCC'
+MATLAB_DIR = 'MATLAB_HOME'
+
 cf = ConfigParser()
 cf.optionxform = str  # keep case (stackoverflow.com/questions/1611799)
 try:
@@ -138,9 +144,25 @@ except OSError:
     sys.exit("Config file not found.")
 except ParsingError:
     sys.exit("%s\nError while parsing the config file." % sys.exc_info()[1])
-if not 'BUILD' in cf.sections():
-    print("Cannot find section BUILD in the config file.")
-os.environ.update(dict(cf.items('BUILD')))
+if not 'USER FLAGS' in cf.sections():
+    try:
+        cf.read_file(open("../../xmipp_old.conf"))
+    except OSError:
+        sys.exit("Config file old not found.")
+    if not 'BUILD' in cf.sections():
+        print("Cannot find section BUILD in the old config file.")
+    else:
+        CUDA = 'NVCC'
+        NVCC_LINKFLAGS = 'NVCC_LINKFLAGS'
+        MATLAB_DIR = 'MATLAB_DIR'
+        os.environ.update(dict(cf.items('BUILD')))
+    print("Cannot find section USER FLAGS in the config file.")
+else:
+    os.environ.update(dict(cf.items('USER FLAGS')))
+if not 'INTERNAL FLAGS' in cf.sections():
+    print("Cannot find section INTERNAL FLAGS in the config file.")
+else:
+    os.environ.update(dict(cf.items('INTERNAL FLAGS')))
 
 env['CPPPATH'] = os.environ.get('CPPPATH', [])
 env['CC'] = os.environ.get('CC')
@@ -151,19 +173,18 @@ cxxFlags = os.environ.get('CXXFLAGS', '')
 env['CXXFLAGS'] = cxxFlags.split()
 os.environ['CXXFLAGS'] = cxxFlags # FIXME use only env or os.environ in the rest of the code
 env['LINKFLAGS'] = os.environ.get('LINKFLAGS', '').split()
+env['INCDIRFLAGS'] = os.environ.get('INCDIRFLAGS')
 
 
 env['XMIPP_BUNDLE'] = os.environ.get('XMIPP_BUNDLE')
 env['MPI_CC'] = os.environ.get('MPI_CC')
 env['MPI_CXX'] = os.environ.get('MPI_CXX')
 env['MPI_LINKERFORPROGRAMS'] = os.environ.get('MPI_LINKERFORPROGRAMS')
-env['MPI_CXXFLAGS'] = os.environ.get('MPI_CXXFLAGS').split()
-env['MPI_LINKFLAGS'] = os.environ['MPI_LINKFLAGS'].split()
-env['MATLAB_DIR'] = os.environ.get('MATLAB_DIR')
+env[MATLAB_DIR] = os.environ.get(MATLAB_DIR)
 env['CUDA'] = os.environ.get('CUDA')
-env['NVCC'] = os.environ.get('NVCC')
+env[CUDA] = os.environ.get(CUDA)
+env[NVCC_LINKFLAGS] = os.environ.get(NVCC_LINKFLAGS).split()
 env['NVCC_CXXFLAGS'] = os.environ.get('NVCC_CXXFLAGS').split()
-env['NVCC_LINKFLAGS'] = os.environ.get('NVCC_LINKFLAGS').split()
 
 xmippPath = Dir('.').abspath
 env['PACKAGE'] = {'NAME': 'xmipp',
@@ -239,11 +260,11 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
     # build system FIXME David Strelak
     env2 = Environment()
     env2['ENV']['PATH'] = env['ENV']['PATH']
-    env2['CXXFLAGS']=list(env['CXXFLAGS']) # list(.) causes a true copy and not just a pointer 
+    env2['CXXFLAGS']=list(env['CXXFLAGS']) # list(.) causes a true copy and not just a pointer
     env2['LINKFLAGS']=list(env['LINKFLAGS'])
     env2['CXX'] = env['CXX']
     if "Cuda" in name or nvcc:
-        env2['LINKFLAGS']+=env['NVCC_LINKFLAGS']
+        env2['LINKFLAGS']+=env[NVCC_LINKFLAGS]
 
     extraArgs = {}
     if mpi:
@@ -251,8 +272,6 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
             env2['CXXFLAGS']=[]
         if not 'LINKFLAGS' in env2:
             env2['LINKFLAGS']=[]
-        env2['CXXFLAGS']+=env['MPI_CXXFLAGS']
-        env2['LINKFLAGS']+=env['MPI_LINKFLAGS']
         extraArgs = {'CC': env['MPI_CC'], 'CXX': env['MPI_CXX'], 'LINK': env['MPI_LINKERFORPROGRAMS']}
     if nvcc:
         if not 'CXXFLAGS' in env2:
@@ -261,7 +280,7 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
             env2['LINKFLAGS']=[]
         env2['CXXFLAGS'] = env['NVCC_CXXFLAGS']
         _libs.append(['cudart', 'cufft', 'cuFFTAdvisor'])
-        extraArgs = {'CC': env['NVCC'], 'CXX': env['NVCC'], 'LINK': env['LINKERFORPROGRAMS']}
+        extraArgs = {'CC': env[CUDA], 'CXX': env[CUDA], 'LINK': env['LINKERFORPROGRAMS']}
 
     _incs.append(env['CPPPATH'])
 
@@ -416,14 +435,12 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
         ccCopy = str(env['MPI_CC'])
         cxxCopy = str(env['MPI_CXX'])
         linkCopy = env['MPI_LINKERFORPROGRAMS']
-        cxxflagsCopy += env['MPI_CXXFLAGS']
-        linkflagsCopy += env['MPI_LINKFLAGS']
     elif nvcc:
-        ccCopy = str(env['NVCC'])
-        cxxCopy = str(env['NVCC'])
-        linkCopy = env['NVCC']
+        ccCopy = str(env[CUDA])
+        cxxCopy = str(env[CUDA])
+        linkCopy = env[CUDA]
         cxxflagsCopy += env['NVCC_CXXFLAGS']
-        linkflagsCopy += env['NVCC_LINKFLAGS']
+        linkflagsCopy += env[NVCC_LINKFLAGS]
     else:
         ccCopy = str(env['CC'])
         cxxCopy = str(env['CXX'])
@@ -431,7 +448,7 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
         linkflagsCopy += env['LINKFLAGS']
 
     if cuda:
-        linkflagsCopy += env['NVCC_LINKFLAGS']
+        linkflagsCopy += env[NVCC_LINKFLAGS]
 
     incsCopy += env['CPPPATH']+external_incdirs
     libsCopy = libs
