@@ -27,7 +27,7 @@ from typing import Dict, Any, Callable
 import os
 import shutil
 
-from ..constants import CC, CXX
+from ..constants import CC, CXX, SCONS
 
 def _getFunctionSkeleton(packages: Dict[str, Any], 
                          key: str,
@@ -76,4 +76,38 @@ def getCXX(packages: Dict[str, Any]):
   """
   return _getFunctionSkeleton(packages, key=CXX, finder=findCXX)
 
+def findJava():
+  """
+  Retrieves information about the Java package.
+  """
+  # Find javac program
+  javaBinPath = whereIsPackage('javac')
+  if not javaBinPath:
+      javaBinPath = findFileInDirs('javac', ['/usr/lib/jvm/java-*/bin'])
+    
+  javaHome = None
+  if javaBinPath:
+      javaHome = os.path.join(os.path.split(javaBinPath)[:-1])
 
+  return javaHome
+    
+def getJavaHome(packages: Dict[str, Any]):
+  """
+  Retrieves information about the java package and updates the dictionary accordingly.
+
+  Params:
+  - packages (dict): Dictionary containing package information.
+
+  Modifies:
+  - dictPackages: Updates the 'JAVA_HOME' key based on the availability of java.
+  """
+  return _getFunctionSkeleton(packages, key='JAVA_HOME', finder=findJava)
+
+def findScons():
+  """
+  Retrieves information about the Scons package.
+  """
+  return shutil.which('scons')
+
+def getScons(packages: Dict[str, Any]):
+  return _getFunctionSkeleton(packages, key=SCONS, finder=findScons)
