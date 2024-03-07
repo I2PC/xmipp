@@ -44,16 +44,18 @@ LIBSVM = 'libsvm'
 LIBCIFPP = 'libcifpp'
 
 REPOSITORIES = {
-	XMIPP: ['https://github.com/I2PC/xmipp.git', None],
-	XMIPP_CORE: ['https://github.com/I2PC/xmippCore.git', None],
-	XMIPP_VIZ: ['https://github.com/I2PC/xmippViz.git', None],
-	XMIPP_PLUGIN: ['https://github.com/I2PC/scipion-em-xmipp.git', None],
-	CUFFTADVISOR: ['https://github.com/DStrelak/cuFFTAdvisor.git', 'master'],
-	CTPL: ['https://github.com/vit-vit/CTPL.git', 'master'],
+	XMIPP: ['https://github.com/I2PC/xmipp', None],
+	XMIPP_CORE: ['https://github.com/I2PC/xmippCore', None],
+	XMIPP_VIZ: ['https://github.com/I2PC/xmippViz', None],
+	XMIPP_PLUGIN: ['https://github.com/I2PC/scipion-em-xmipp', None],
+	CUFFTADVISOR: ['https://github.com/DStrelak/cuFFTAdvisor', 'master'],
+	CTPL: ['https://github.com/vit-vit/CTPL', 'master'],
 	GTEST: ['https://github.com/google/googletest', 'v1.13.x'],
-	LIBSVM: ['https://github.com/cossorzano/libsvm.git', 'master'],
+	LIBSVM: ['https://github.com/cossorzano/libsvm', 'master'],
 	LIBCIFPP: ['https://github.com/MartinSalinas98/libcifpp', 'ms_feature_ciflibrary'],
 }
+XMIPP_SOURCES = [XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN]
+EXTERNAL_SOURCES = [CUFFTADVISOR, CTPL, GTEST, LIBSVM, LIBCIFPP]
 
 # Source repositories
 ORGANIZATION_NAME = 'I2PC'
