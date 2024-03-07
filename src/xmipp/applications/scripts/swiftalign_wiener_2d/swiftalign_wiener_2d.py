@@ -186,20 +186,16 @@ def run(images_md_path: str,
         
         # Undo padding and store
         if padded_images is batch_images:
-            output_images[batch_slice] = batch_images.to('cpu', non_blocking=True)
+            output_images[batch_slice] = batch_images.to('cpu')
         else:
             read_slice = tuple(map(slice, batch_images.shape))
-            output_images[batch_slice] = padded_images[read_slice].to('cpu', non_blocking=True)
+            output_images[batch_slice] = padded_images[read_slice].to('cpu')
             
         # Prepare for the next batch
         utils.progress_bar(end, len(images_md))
         start = end
         
     assert(end == len(images_md))
-
-    # Wait for transfers to finish
-    if transform_device.type == 'cuda':
-        torch.cuda.synchronize(transform_device)
 
     # Update metadata
     images_md[md.IMAGE] = (images_md.index + 1).map(('{:06d}@' + output_images_path).format)
