@@ -28,14 +28,15 @@ os, architecture, cuda, cmake, g++, gcc and scons.
 """
 
 # General imports
-from typing import Dict, Optional
+from typing import Optional
+import re
 
 # Installer imports
-from .utils import runJob, getPackageVersionCmd, getPythonPackageVersion
-from .constants import UNKNOWN_VALUE, CC, CXX, CMAKE, CUDA, MAKE
+from ..utils import runJob, getPackageVersionCmd, getPythonPackageVersion
+from ..constants import UNKNOWN_VALUE
 
 ####################### AUX FUNCTIONS #######################
-def parseCompilerVersion(versionCmdStr: Optional[str]) -> Optional[str]:
+def _parseCompilerVersion(versionCmdStr: Optional[str]) -> Optional[str]:
 	"""
 	### Parses the string output of the command that extracts the version of the given compiler.
 
@@ -115,7 +116,7 @@ def getArchitectureName() -> str:
 	# Returing architecture name
 	return archName
 
-def getCUDAVersion(dictPackages: Dict=None) -> Optional[str]:
+def getCUDAVersion(nvccExecutable: Optional[str]) -> Optional[str]:
 	"""
 	### Extracts the NVCC (NVIDIA CUDA Compiler) version from the PATH or the config file, the last one having a higher priority.
 
@@ -125,45 +126,25 @@ def getCUDAVersion(dictPackages: Dict=None) -> Optional[str]:
 	#### Returns:
 	- (str | None): CUDA version or None if there were any errors.
 	"""
-	# Initializing default version
-	nvccVersion = None
-
-	# If CUDA is set to False, don't fetch version
-	if dictPackages is not None and CUDA in dictPackages and dictPackages[CUDA] == 'False':
+	if not nvccExecutable:
 		return None
-
-	# Get the nvcc to extract
-	nvccExecutable = dictPackages['CUDA_HOME'] if dictPackages is not None and CUDA in dictPackages else 'nvcc'
 
 	# Extracting version command string
 	versionCmdStr = getPackageVersionCmd(nvccExecutable)
 
 	# Check if there were any errors
-	if versionCmdStr is None:
+	if not versionCmdStr:
 		return None
 
-	# Defining text around version number
-	textBefore = 'release '
-	textAfter = ','
+	r = re.compile(r'release (\d+\.\d+)\,')
+	match = r.search(versionCmdStr)
+  
+	if not match:
+		return None
 
-	# Finding the text before the version to obtain its starting index
-	textBeforeStart = versionCmdStr.find(textBefore)
-	if textBeforeStart != -1:
-		# Calculating location of version string start
-		# if the text before was found
-		versionStart = textBeforeStart + len(textBefore)
+	return match.group(0)
 
-		# If exists, getting location of text after version
-		versionEnd = versionCmdStr[versionStart:].find(textAfter)
-
-		if versionEnd != -1 and versionStart != versionEnd:
-			# If everything was found and string is not empty, extracting version
-			nvccVersion = versionCmdStr[versionStart:versionStart + versionEnd]
-	
-	# Returning resulting version
-	return nvccVersion
-
-def getCmakeVersion(dictPackages: Dict=None) -> str:
+def getCmakeVersion(cmakeExecutable: str) -> Optional[str]:
 	"""
 	### Extracts the CMake version from the PATH or the config file, the last one having a higher priority.
 
@@ -173,24 +154,25 @@ def getCmakeVersion(dictPackages: Dict=None) -> str:
 	#### Returns:
 	- (str | None): CMake version, or None if there were any errors.
 	"""
-	# Initializing default version
-	cmakeVersion = None
-
-	# Get the cmake to extract
-	cmakeExecutable = dictPackages[CMAKE] if dictPackages is not None and CMAKE in dictPackages else 'cmake'
+	if not cmakeExecutable:
+		return None
 
 	# Extracting version command string
 	versionCmdStr = getPackageVersionCmd(cmakeExecutable)
 
-	# Version number is the last word of the first line of the output text
-	if versionCmdStr is not None:
-		# Only extract if command output string is not empty
-		cmakeVersion = versionCmdStr.splitlines()[0].split()[-1]
+	# Check if there were any errors
+	if not versionCmdStr:
+		return None
 
-	# Return cmake version
-	return cmakeVersion
+	r = re.compile(r'cmake version (\d+\.\d+\.\d+)\,')
+	match = r.search(versionCmdStr)
+  
+	if not match:
+		return None
 
-def getMakeVersion(dictPackages: Dict=None) -> str:
+	return match.group(0)
+
+def getMakeVersion(makeExecutable: str) -> Optional[str]:
 	"""
 	### Extracts the Make version from the PATH or the config file, the last one having a higher priority.
 
@@ -200,24 +182,26 @@ def getMakeVersion(dictPackages: Dict=None) -> str:
 	#### Returns:
 	- (str | None): Make version, or None if there were any errors.
 	"""
-	# Initializing default version
-	makeVersion = None
-
-	# Get the cmake to extract
-	makeExecutable = dictPackages[MAKE] if dictPackages is not None and MAKE in dictPackages else 'make'
+	if not makeExecutable:
+		return None
 
 	# Extracting version command string
 	versionCmdStr = getPackageVersionCmd(makeExecutable)
 
-	# Version number is the last word of the first line of the output text
-	if versionCmdStr is not None:
-		# Only extract if command output string is not empty
-		makeVersion = versionCmdStr.splitlines()[0].split()[-1]
+	# Check if there were any errors
+	if not versionCmdStr:
+		return None
 
-	# Return cmake version
-	return makeVersion
+	r = re.compile(r'Make (\d+\.\d+)\,')
+	match = r.search(versionCmdStr)
+  
+	if not match:
+		return None
 
-def getGXXVersion(dictPackages: Dict=None) -> Optional[str]:
+	return match.group(0)
+
+
+def getGXXVersion(gxxExecutable: str) -> Optional[str]:
 	"""
 	### Extracts g++'s version string from the PATH or the config file, the last one having a higher priority.
 
@@ -227,13 +211,10 @@ def getGXXVersion(dictPackages: Dict=None) -> Optional[str]:
 	#### Returns:
 	- (str | None): g++'s version or None if there were any errors.
 	"""
-	# Get the g++ to extract
-	gxxExecutable = dictPackages[CXX] if dictPackages is not None and CXX in dictPackages else 'g++'
-
 	# Return g++ version
-	return parseCompilerVersion(getPackageVersionCmd(gxxExecutable))
+	return _parseCompilerVersion(getPackageVersionCmd(gxxExecutable))
 
-def getGCCVersion(dictPackages: Dict=None) -> Optional[str]:
+def getGCCVersion(gccExecutable: str) -> Optional[str]:
 	"""
 	### Extracts gcc's version string from the PATH or the config file, the last one having a higher priority.
 
@@ -243,11 +224,8 @@ def getGCCVersion(dictPackages: Dict=None) -> Optional[str]:
 	#### Returns:
 	- (str | None): gcc's version or None if there were any errors.
 	"""
-	# Get the gcc to extract
-	gccExecutable = dictPackages[CC] if dictPackages is not None and CC in dictPackages else 'gcc'
-
 	# Return gcc version
-	return parseCompilerVersion(getPackageVersionCmd(gccExecutable))
+	return _parseCompilerVersion(getPackageVersionCmd(gccExecutable))
 
 def getSconsVersion() -> Optional[str]:
 	"""

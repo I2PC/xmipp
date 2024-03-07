@@ -1,5 +1,5 @@
 # ***************************************************************************
-# * Authors:		Oier Lauzirika Zarrabeitia (oierlauzi@bizkaia.eu)
+# * Authors:		Oier Lauzirika Zarrabeitia (olauzirika@cnb.csic.es)
 # *
 # *
 # * This program is free software; you can redistribute it and/or modify
@@ -21,5 +21,24 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
-from .file import readConfig, writeConfig
-from .versions import *
+from typing import Dict, Any
+
+from .query import *
+
+def checkCC(packages: Dict[str, Any]):
+  path = getCC(packages)
+  if not path:
+    return -1 # TODO
+  
+  # TODO check
+  
+  return 0
+
+def checkCXX(packages: Dict[str, Any]):
+  path = getCXX(packages)
+  if not path:
+    return -1 # TODO
+	
+	# TODO check
+ 
+  return 0
