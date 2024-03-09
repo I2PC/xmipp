@@ -44,7 +44,7 @@ MODEL_TRAIN_TYPELIST    = ["From scratch", "Existing model", "Previous run"]
 
 NN_TRAINWORDS           = ["train", "training", "t"]
 NN_SCOREWORDS           = ["score", "scoring", "s", "predict"]
-NN_NAME            = "dpc_nn.h5"
+NN_NAME                 = "dpc_nn.h5"
 
 DEFAULT_MP              = 8
 
