@@ -291,36 +291,36 @@ void ProgTomoDetectLandmarks::detectInterpolationEdges(MultidimArray<double> &ti
 	interpolationLimits.push_back(limitIgnoreRow); // Limit to ignore last row
 	interpolationLimitsVector.push_back(interpolationLimits);
 
-	// // Apply DS factor to interpolation limits
-	// std::vector<Point2D<int>> interpolationLimits_ds;
+	// Apply DS factor to interpolation limits
+	std::vector<Point2D<int>> interpolationLimits_ds;
 
-	// double meanXmin;
-	// double meanXmax;
+	double meanXmin;
+	double meanXmax;
 
-	// int windowSize = (int)(1/ds_factor);
-	// int windowSizeCounter = windowSize;
+	int windowSize = (int)(1/ds_factor);
+	int windowSizeCounter = windowSize;
 
-	// for (size_t i = 0; i < interpolationLimits.size(); i++)
-	// {
-	// 	meanXmax += interpolationLimits[i].x * ds_factor;
-	// 	meanXmin += interpolationLimits[i].y * ds_factor;
+	for (size_t i = 0; i < interpolationLimits.size(); i++)
+	{
+		meanXmax += interpolationLimits[i].x * ds_factor;
+		meanXmin += interpolationLimits[i].y * ds_factor;
 
-	// 	windowSizeCounter -= 1;
+		windowSizeCounter -= 1;
 		
-	// 	if (windowSizeCounter == 0)
-	// 	{
-	// 		Point2D<int> limit ((int) (meanXmax / windowSize), 
-	// 							(int) (meanXmin / windowSize));
+		if (windowSizeCounter == 0)
+		{
+			Point2D<int> limit ((int) (meanXmax / windowSize), 
+								(int) (meanXmin / windowSize));
 
-	// 		interpolationLimits_ds.push_back(limit);
+			interpolationLimits_ds.push_back(limit);
 
-	// 		windowSizeCounter = windowSize;
-	// 		meanXmax = 0;
-	// 		meanXmin = 0;
-	// 	}
-	// }
+			windowSizeCounter = windowSize;
+			meanXmax = 0;
+			meanXmin = 0;
+		}
+	}
 
-	// interpolationLimitsVector_ds.push_back(interpolationLimits_ds);
+	interpolationLimitsVector_ds.push_back(interpolationLimits_ds);
 }
 
 
@@ -470,17 +470,21 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 	equalizedMap.initZeros(nSize, zSize, ySize_d, xSize_d);
 
 	for(size_t k = 0; k < nSize; ++k)
-	{
+	{	
 		#ifdef DEBUG_HCC
 		std::cout <<  "Searching for high contrast coordinates in tilt-image " << k << std::endl;
 		#endif
+
+		std::vector<Point2D<int>> interLim = interpolationLimitsVector_ds[k];
 
 		// Z-SCORE THRESHOLDING ----------------------------------------------
 		std::vector<int> sliceVector;
 
 		for (size_t i = 0; i < ySize_d; i++)
 		{
-			for (size_t j = 0; j < xSize_d; j++)
+			Point2D<int> il = interLim[i];
+
+			for (size_t j = il.x; j < il.y; ++j)
 			{
 				sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j));
 			}
@@ -534,7 +538,9 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 		// Save max-pooled tilt-series  
 		for(size_t i = 0; i < ySize_d; i++)
         {
-            for(size_t j = 0; j < xSize_d; ++j)
+ 			Point2D<int> il = interLim[i];
+
+            for(size_t j = il.x; j < il.y; ++j)
             {
 				DIRECT_NZYX_ELEM(equalizedMap, k, 0, i, j) = DIRECT_A2D_ELEM(tiltImage, i, j);
             }
@@ -573,9 +579,11 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
 		for(size_t i = 0; i < ySize_d; i++)
         {
-            for(size_t j = 0; j < xSize_d; ++j)
+ 			Point2D<int> il = interLim[i];
+
+            for(size_t j = il.x; j < il.y; ++j)
             {
-				if (DIRECT_A2D_ELEM(tiltImage, i, j) > 0)
+				if (DIRECT_A2D_ELEM(tiltImage, i, j) > 3)
 				{
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
 				}
@@ -600,7 +608,9 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
         for(size_t i = 0; i < ySize_d; i++)
         {
-            for(size_t j = 0; j < xSize_d; ++j)
+ 			Point2D<int> il = interLim[i];
+
+            for(size_t j = il.x; j < il.y; ++j)
             {
                 int value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
 
@@ -1132,9 +1142,11 @@ void ProgTomoDetectLandmarks::run()
         // sobelFiler(tiltImage_ds, counter);
         enhanceLandmarks(tiltImage_ds);
 
+		std::vector<Point2D<int>> interLim = interpolationLimitsVector_ds[counter];
         for (size_t i = 0; i < ySize_d; ++i)
         {
-            for (size_t j = 0; j < xSize_d; ++j)
+			Point2D<int> il = interLim[i];
+            for (size_t j = il.x; j < il.y; ++j)
             {
 				DIRECT_NZYX_ELEM(filteredTiltSeries, counter, 0, i, j) = DIRECT_A2D_ELEM(tiltImage_ds, i, j);
 			}
@@ -1556,17 +1568,17 @@ void ProgTomoDetectLandmarks::filterFourierDirections(MultidimArray<double> &ima
 	imageOut.resizeNoCopy(image);
 	imageOut.initConstant(1);
 	
-	size_t numberOfDirections = 8;
+	size_t numberOfDirections = 4;
 	double angleStep = PI / numberOfDirections;
 
 	for (size_t n = 0; n < numberOfDirections; n++)
 	{
 	 	imageTmp = image;
 		// std::cout << "xdir= " << cos(n*angleStep) << ", ydir=" << sin(n*angleStep) << std::endl;
-		directionalFilterFourier(imageTmp, cos(n*angleStep), sin(n*angleStep));
 		
+		directionalFilterFourier(imageTmp, cos(n*angleStep), sin(n*angleStep));
 		imageTmp.statisticsAdjust(0.0, 1.0);
-		imageTmp.binarize(0);
+		// imageTmp.binarize(0.0);
 
 		// FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY1D(imageTmp)
 		// {
@@ -1576,10 +1588,11 @@ void ProgTomoDetectLandmarks::filterFourierDirections(MultidimArray<double> &ima
 		// 	}
 		// }
 
-		imageOut = imageOut * imageTmp;
+		imageOut = imageOut + imageTmp;
 	}
 
-	image = imageOut;
+	image = image * imageOut;
+	image.statisticsAdjust(0.0, 1.0);
 	
 	// std::cout << "Discrete sumation mode" << std::endl;
 	// MultidimArray<double> imageDirX;
