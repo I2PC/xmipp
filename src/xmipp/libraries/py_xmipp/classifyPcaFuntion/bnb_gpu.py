@@ -258,13 +258,15 @@ class BnBgpu:
     def split_classes_for_range(self, classes, matches, percent=0.7):
         thr = torch.zeros(classes)
         for n in range(classes):
-            vmin = torch.min(matches[matches[:, 1] == n, 2])
-            vmax = torch.max(matches[matches[:, 1] == n, 2])
-            # percentileTrash = (vmax - vmin) * percentTrash
-            percentile = (vmax - vmin) * percent
-            thr[n] = vmax - percentile
+            if len(matches[matches[:, 1] == n, 2]) > 2: 
+                vmin = torch.min(matches[matches[:, 1] == n, 2])
+                vmax = torch.max(matches[matches[:, 1] == n, 2])
+                # percentileTrash = (vmax - vmin) * percentTrash
+                percentile = (vmax - vmin) * percent
+                thr[n] = vmax - percentile
             # thr[n] = torch.tensor([vmax - percentileTrash, vmax - percentile]) 
-            
+            else:
+               thr[n] = 0 
             # conteo_total = torch.sum((matches[:, 1] == n))
             # conteo_positivo = torch.sum((matches[:, 1] == n) & (matches[:, 2] < thr[n]))
             # conteo_negativo = torch.sum((matches[:, 1] == n) & (matches[:, 2] >= thr[n]))
