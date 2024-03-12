@@ -132,8 +132,8 @@ if __name__=="__main__":
         initStep = int(min(numFirstBatch, np.ceil(nExp/expBatchSize)))
         cl = bnb.init_ramdon_classes(int(final_classes/2), mmap, initSubset)    
     
-    # file = output+"_0.mrcs"    
-    # save_images(cl.cpu().numpy(), file)
+    file = output+"_0.mrcs"    
+    save_images(cl.cpu().numpy(), file)
     
     
     if refImages:
