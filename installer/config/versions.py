@@ -36,7 +36,7 @@ from ..utils import runJob, getPackageVersionCmd, getPythonPackageVersion
 from ..constants import UNKNOWN_VALUE
 
 ####################### AUX FUNCTIONS #######################
-def _parseCompilerVersion(versionCmdStr: Optional[str]) -> Optional[str]:
+def __parseCompilerVersion(versionCmdStr: Optional[str]) -> Optional[str]:
 	"""
 	### Parses the string output of the command that extracts the version of the given compiler.
 
@@ -142,7 +142,7 @@ def getCUDAVersion(nvccExecutable: Optional[str]) -> Optional[str]:
 	if not match:
 		return None
 
-	return match.group(0)
+	return match.group(1)
 
 def getCmakeVersion(cmakeExecutable: str) -> Optional[str]:
 	"""
@@ -164,13 +164,13 @@ def getCmakeVersion(cmakeExecutable: str) -> Optional[str]:
 	if not versionCmdStr:
 		return None
 
-	r = re.compile(r'cmake version (\d+\.\d+\.\d+)\,')
+	r = re.compile(r'cmake version (\d+\.\d+\.\d+)')
 	match = r.search(versionCmdStr)
   
 	if not match:
 		return None
 
-	return match.group(0)
+	return match.group(1)
 
 def getMakeVersion(makeExecutable: str) -> Optional[str]:
 	"""
@@ -192,14 +192,13 @@ def getMakeVersion(makeExecutable: str) -> Optional[str]:
 	if not versionCmdStr:
 		return None
 
-	r = re.compile(r'Make (\d+\.\d+)\,')
+	r = re.compile(r'Make (\d+\.\d+)')
 	match = r.search(versionCmdStr)
   
 	if not match:
 		return None
 
-	return match.group(0)
-
+	return match.group(1)
 
 def getGXXVersion(gxxExecutable: str) -> Optional[str]:
 	"""
@@ -212,7 +211,7 @@ def getGXXVersion(gxxExecutable: str) -> Optional[str]:
 	- (str | None): g++'s version or None if there were any errors.
 	"""
 	# Return g++ version
-	return _parseCompilerVersion(getPackageVersionCmd(gxxExecutable))
+	return __parseCompilerVersion(getPackageVersionCmd(gxxExecutable))
 
 def getGCCVersion(gccExecutable: str) -> Optional[str]:
 	"""
@@ -225,7 +224,7 @@ def getGCCVersion(gccExecutable: str) -> Optional[str]:
 	- (str | None): gcc's version or None if there were any errors.
 	"""
 	# Return gcc version
-	return _parseCompilerVersion(getPackageVersionCmd(gccExecutable))
+	return __parseCompilerVersion(getPackageVersionCmd(gccExecutable))
 
 def getSconsVersion() -> Optional[str]:
 	"""
