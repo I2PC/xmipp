@@ -27,11 +27,11 @@ from typing import Dict, Any, Callable
 import os
 import shutil
 
-from ..constants import CC, CXX, SCONS
+from ..constants import *
 
-def _getFunctionSkeleton(packages: Dict[str, Any], 
-                         key: str,
-                         finder: Callable[[]]):
+def __getFunctionSkeleton(packages: Dict[str, Any], 
+                          key: str,
+                          finder: Callable[[]]):
   result = packages.get(key)
   if not result:
     result = finder()
@@ -56,7 +56,7 @@ def getCC(packages: Dict[str, Any]):
   Modifies:
   - dictPackages: Updates the 'CC' key based on the availability of 'gcc'.
   """
-  return _getFunctionSkeleton(packages, key=CC, finder=findCC)
+  return __getFunctionSkeleton(packages, key=CC, finder=findCC)
 	
 def findCXX() -> str:
   result = os.environ.get('CXX')
@@ -74,9 +74,39 @@ def getCXX(packages: Dict[str, Any]):
   Modifies:
   - dictPackages: Updates the 'CXX' key based on the availability of 'g++'.
   """
-  return _getFunctionSkeleton(packages, key=CXX, finder=findCXX)
+  return __getFunctionSkeleton(packages, key=CXX, finder=findCXX)
 
-def findJava():
+def findMpiCC() -> str:
+  return shutil.which('mpicc')
+
+def getMpiCC(packages: Dict[str, Any]):
+  return __getFunctionSkeleton(packages, key=MPI_CC, finder=findMpiCC)
+  
+def findMpiCXX() -> str:
+  return shutil.which('mpicxx')
+
+def getMpiCXX(packages: Dict[str, Any]):
+  return __getFunctionSkeleton(packages, key=MPI_CXX, finder=findMpiCXX)
+  
+def findMpiRun() -> str:
+  return shutil.which('mpirun')
+
+def getMpiRun(packages: Dict[str, Any]):
+  return __getFunctionSkeleton(packages, key=MPI_RUN, finder=findMpiRun)
+
+def defaultIncludeFlags() -> str:
+  return ''
+
+def getIncludeFlags(packages: Dict[str, Any]):
+  return __getFunctionSkeleton(packages, key=INC_PATH, finder=defaultIncludeFlags)
+
+def defaultLinkFlags() -> str:
+  return ''
+
+def getLinkFlags(packages: Dict[str, Any]):
+  return __getFunctionSkeleton(packages, key=LINKFLAGS, finder=defaultLinkFlags)
+
+def findJavaHome():
   """
   Retrieves information about the Java package.
   """
@@ -91,7 +121,7 @@ def findJava():
 
   return javaHome
     
-def getJavaHome(packages: Dict[str, Any]):
+def getJavaHome(packages: Dict[str, Any]) -> str:
   """
   Retrieves information about the java package and updates the dictionary accordingly.
 
@@ -101,7 +131,7 @@ def getJavaHome(packages: Dict[str, Any]):
   Modifies:
   - dictPackages: Updates the 'JAVA_HOME' key based on the availability of java.
   """
-  return _getFunctionSkeleton(packages, key='JAVA_HOME', finder=findJava)
+  return __getFunctionSkeleton(packages, key='JAVA_HOME', finder=findJavaHome)
 
 def findScons():
   """
@@ -110,4 +140,38 @@ def findScons():
   return shutil.which('scons')
 
 def getScons(packages: Dict[str, Any]):
-  return _getFunctionSkeleton(packages, key=SCONS, finder=findScons)
+  return __getFunctionSkeleton(packages, key=SCONS, finder=findScons)
+
+def defaultDataCollect() -> bool:
+  return True
+
+def getDataCollect(packages: Dict[str, Any]) -> str:
+  return __getFunctionSkeleton(packages, key=ANON_DATA, finder=defaultDataCollect)
+
+def getCudaCxx(packages: Dict[str, Any])-> str:
+  return __getFunctionSkeleton(packages, key=CUDA_CXX, finder=findCXX)
+
+"""
+	'OPENCV': '',
+	'OPENCVCUDASUPPORTS': '',
+ 
+	'CUDA': '',
+	'CUDA_HOME': '',
+ 
+	'STARPU': '',
+	'STARPU_HOME': '',
+	'STARPU_INCLUDE': '',
+	'STARPU_LIB': '',
+	'STARPU_LIBRARY': '',
+ 
+	'MATLAB': '',
+	'MATLAB_HOME': '',
+ 
+	'HDF5_HOME': '',
+ 
+	'TIFF_SO': '',
+	'TIFF_H': '',
+
+	'FFTW3_SO': '',
+	'FFTW3_H': '',
+"""
