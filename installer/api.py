@@ -27,44 +27,68 @@ Module containing all functions needed for the metric's API request.
 """
 
 # General imports
-import json, re, hashlib
+import re, hashlib, http.client, json, ssl
 from typing import Dict, Optional
 
 # Self imports
 from .config.versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
 	getCmakeVersion, getGXXVersion, getGCCVersion, getSconsVersion)
-from .utils import runJob, runInsistentJob, getCurrentBranch, isBranchUpToDate, runParallelJobs
-from .constants import (API_URL, LOG_FILE, TAIL_LOG_NCHARS)
+from .utils import runJob, getCurrentBranch, isBranchUpToDate, runParallelJobs
+from .constants import API_URL, LOG_FILE, TAIL_LOG_NCHARS, CMAKE, CUDA_HOME, CC, CXX
 
-def sendApiPOST(dictPackage:Dict, retCode: int=0):
+def sendApiPOST(configDict:Dict, retCode: int=0):
 	"""
 	### Sends a POST request to Xmipp's metrics's API.
 	
 	#### Params:
-	- dictPackage (Dict): Dictionary containing all discovered or config variables.
+	- configDict (Dict): Dictionary containing all discovered or config variables.
 	- retCode (int): Optional. Return code for the API request.
 	"""
 	# Getting JSON data for curl command
-	jsonStr = getJSONString(dictPackage, retCode=retCode)
+	bodyParams = __getJSON(configDict, retCode=retCode)
 
 	# Send API POST request if there were no errors
-	if jsonStr is not None:
-		runInsistentJob(getCurlStr(API_URL, jsonStr))
+	if bodyParams is not None:
+		# Define the parameters for the POST request
+		params = json.dumps(bodyParams)
+
+		# Set up the headers
+		headers = {"Content-type": "application/json"}
+
+		# Establish a connection
+		url = API_URL.split("/", maxsplit=1)
+		path = f"/{url[1]}"
+		url = url[0]
+		conn = http.client.HTTPSConnection(url, context=ssl._create_unverified_context()) # Unverified context because url does not have an ssl certificate
+
+		# Send the POST request
+		conn.request("POST", path, params, headers)
+
+		# DEBUG START
+		# Get the response
+		response = conn.getresponse()
+		# Print the response
+		print(response.status, response.reason)
+		print(response.read().decode())
+		# DEBUG END
+
+		# Close the connection
+		conn.close()
 	
 ####################### UTILS FUNCTIONS #######################
-def getJSONString(dictPackage: Dict, retCode: int=0) -> Optional[str]:
+def __getJSON(configDict: Dict, retCode: int=0) -> Optional[Dict]:
 	"""
-	### Creates a JSON string with the necessary data for the API POST message.
+	### Creates a JSON with the necessary data for the API POST message.
 	
 	#### Params:
-	- dictPackage (Dict): Dictionary containing all discovered or config variables.
+	- configDict (Dict): Dictionary containing all discovered or config variables.
 	- retCode (int): Optional. Return code for the API request.
 	
 	#### Return:
-	- (str | None): JSON string with the required info or None if user id could not be produced.
+	- (dict | None): JSON with the required info or None if user id could not be produced.
 	"""
 	# Getting user id and checking if it exists
-	userId = getUserId()
+	userId = __getUserId()
 	if userId is None:
 		return
 	
@@ -72,18 +96,18 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Optional[str]:
 	jsonData = runParallelJobs([
 		(getOSReleaseName, ()),
 		(getArchitectureName, ()),
-		(getCUDAVersion, (dictPackage,)),
-		(getCmakeVersion, ()),
-		(getGCCVersion, (dictPackage,)),
-		(getGXXVersion, (dictPackage,)),
-		(getSconsVersion, (dictPackage,)),
+		(getCUDAVersion, (configDict[CUDA_HOME],)),
+		(getCmakeVersion, (configDict[CMAKE],)),
+		(getGCCVersion, (configDict[CC],)),
+		(getGXXVersion, (configDict[CXX],)),
+		(getSconsVersion, ()),
 		(getCurrentBranch, ()),
 		(isBranchUpToDate, ()),
-		(getLogTail, ())
+		(__getLogTail, ())
 	])
 
 	# Introducing data into a dictionary
-	jsonDict: Dict = {
+	return {
 		"user": {
 			"userId": userId
 		},
@@ -104,26 +128,7 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Optional[str]:
 		"logTail": jsonData[9] if retCode else None # Only needs log tail if something went wrong
 	}
 
-	# Return JSON object with all info
-	return json.dumps(jsonDict)
-
-def getCurlStr(url: str, jsonStr: str) -> str:
-	"""
-	### Creates a curl command string to send a POST message to metrics's API.
-	
-	#### Params:
-	- url (str): Ulr to send the POST message to.
-	- jsonStr (str): JSON in a string format containing all the data for the curl command.
-	
-	#### Return:
-	- (str): Curl command string.
-	"""
-	# Creating and returning command string
-	cmd = "curl --header \"Content-Type: application/json\" -X POST"
-	cmd += f" --data \'{jsonStr}\' --request POST {url}"
-	return cmd
-
-def getMACAddress() -> Optional[str]:
+def __getMACAddress() -> Optional[str]:
 	"""
 	### This function returns a physical MAC address for this machine. It prioritizes ethernet over wireless.
 	
@@ -139,7 +144,7 @@ def getMACAddress() -> Optional[str]:
 	
 	# Regular expression to match the MAC address and interface names
 	macRegex = r"link/ether ([0-9a-f:]{17})"
-	interfaceRegex = r"^\d+: (enp|wlp)\w+"
+	interfaceRegex = r"^\d+: (enp|wlp|eth)\w+"
 
 	# Split the output into lines
 	lines = output.split('\n')
@@ -152,15 +157,15 @@ def getMACAddress() -> Optional[str]:
 			# Extract the interface name
 			interfaceName = re.match(interfaceRegex, line).group(1)
 			
-			# If the interface name starts with 'enp' or 'wlp'
-			if interfaceName.startswith(('enp', 'wlp')):
+			# If the interface name starts with 'enp', 'wlp', or 'eth
+			if interfaceName.startswith(('enp', 'wlp', 'eth')):
 				# Extract the MAC address from the next line and exit
 				macAddress = re.search(macRegex, lines[lines.index(line) + 1]).group(1)
 				break
 	
 	return macAddress
 
-def getUserId() -> Optional[str]:
+def __getUserId() -> Optional[str]:
 	"""
 	### This function returns the unique user id for this machine.
 	
@@ -168,7 +173,7 @@ def getUserId() -> Optional[str]:
 	- (str | None): User id, or None if there were any errors.
 	"""
 	# Obtaining user's MAC address
-	macAddress = getMACAddress()
+	macAddress = __getMACAddress()
 
 	# If no physical MAC address was found, user id cannot be created
 	if macAddress is None or not macAddress:
@@ -183,7 +188,7 @@ def getUserId() -> Optional[str]:
 	# Return hexadecimal representation of the hash
 	return sha256.hexdigest()
 
-def getLogTail() -> Optional[str]:
+def __getLogTail() -> Optional[str]:
 	"""
 	### This function returns the last lines of the installation log.
 	
