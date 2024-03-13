@@ -61,12 +61,11 @@ EXTERNAL_SOURCES = [CUFFTADVISOR, CTPL, GTEST, LIBSVM, LIBCIFPP]
 ORGANIZATION_NAME = 'I2PC'
 TAGS_SUBPAGE = 'archive/refs/tags/'
 
-# API URL
-API_URL = 'xmipp.i2pc.es/api/attempts/' #temporal url
-# documentation xmipp
+# Internal URLs
+API_URL = 'xmipp.i2pc.es/api/attempts/'
 DOCUMENTATION_URL = 'https://i2pc.github.io/docs/'
 
-# URLs
+# External URLs
 CMAKE_INSTALL_DOCS_URL = 'https://i2pc.github.io/docs/Installation/InstallationNotes/index.html#cmake'
 MODELS_URL = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
 SCIPION_FILES_REMOTE_PATH = "scipionfiles/downloads/scipion/software/em"
