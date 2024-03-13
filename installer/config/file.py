@@ -27,7 +27,7 @@ from datetime import datetime
 ASSIGNMENT_SEPARATOR = '='
 COMMENT_ESCAPE = '#'
 
-def _parseConfigLine(i: int, line: str) -> Optional[Tuple[str, str]]:
+def __parseConfigLine(i: int, line: str) -> Optional[Tuple[str, str]]:
   # Skip if comments
   line = line.split(COMMENT_ESCAPE, maxsplit=2)[0]
   
@@ -39,7 +39,7 @@ def _parseConfigLine(i: int, line: str) -> Optional[Tuple[str, str]]:
     return None
   
   # Try to parse the line
-  tokens = line.split(ASSIGNMENT_SEPARATOR, maxsplit=2)
+  tokens = line.split(ASSIGNMENT_SEPARATOR, maxsplit=1)
   if len(tokens) != 2:
     raise RuntimeError(f'Unable to parse line {i+1}: {line}')
   
@@ -47,7 +47,7 @@ def _parseConfigLine(i: int, line: str) -> Optional[Tuple[str, str]]:
   value = tokens[1].strip()
   return key, value
   
-def _makeConfigLine(key: str, value: str) -> str:
+def __makeConfigLine(key: str, value: str) -> str:
   return key + ASSIGNMENT_SEPARATOR + value
 
 def readConfig(path: str) -> Dict[str, str]:
@@ -55,7 +55,7 @@ def readConfig(path: str) -> Dict[str, str]:
   
   with open(path, 'r') as file:
     for i, line in enumerate(file):
-      keyval = _parseConfigLine(i, line)
+      keyval = __parseConfigLine(i, line)
       if keyval is not None:
         key, value = keyval
         result[key] = value
@@ -72,4 +72,4 @@ def writeConfig(config: Dict[str, str], path: str):
     )
     
     for key, value in config.items():
-      print(_makeConfigLine(key, value), file=file)
+      print(__makeConfigLine(key, value), file=file)
