@@ -26,14 +26,14 @@ This module contains the necessary functions to run most installer commands.
 """
 
 # General imports
-from typing import Tuple
-from os.path import join
+import os
+from typing import Tuple, Optional
 
 # Module imports
-from .utils import runJob, getCurrentBranch
+from .utils import runJob, getCurrentBranch, isProductionMode, isTag
 from .logger import logger, yellow
-from .constants import (TAGS_SUBPAGE, SCONS_INSTALL_ERROR, XMIPP_VERSIONS, VERNAME_KEY, REPOSITORIES, XMIPP_SOURCES, EXTERNAL_SOURCES,
-												CLONNING_XMIPP_SOURCE_ERROR, DOWNLOADING_XMIPP_SOURCE_ERROR)
+from .constants import (TAGS_SUBPAGE, BRANCHES_SUBPAGE, XMIPP_VERSIONS, VERNAME_KEY, REPOSITORIES, XMIPP_SOURCES, EXTERNAL_SOURCES,
+												SOURCES_PATH, SCONS_INSTALL_ERROR, CLONNING_XMIPP_SOURCE_ERROR, DOWNLOADING_XMIPP_SOURCE_ERROR, OK)
 
 ####################### COMMAND FUNCTIONS #######################
 def getSources(branch: str=None):
@@ -43,15 +43,18 @@ def getSources(branch: str=None):
 	#### Params:
 	- branch (str): Optional. Branch to clone the sources from.
 	"""
+	# Check if it is a tag or a branch
+	tag = isTag()
+
 	# Clone external sources
-	retCode, output = __getExternalSources()
+	retCode, output = __getExternalSources(path=SOURCES_PATH, tag=tag)
 	if retCode:
-		logger.logError(f"Error cloning external sources:\n{output}", retCode=retCode)
+		logger.logError(f"Error getting external sources ({retCode}):\n{output}", retCode=retCode)
 	
 	# Clone or download internal sources
-	retCode, output = __getXmippSources(branch=branch)
+	retCode, output = __getXmippSources(branch=branch, path=SOURCES_PATH, tag=tag)
 	if retCode:
-		logger.logError(f"Error cloning xmipp sources:\n{output}", retCode=retCode)
+		logger.logError(f"Error getting xmipp sources ({retCode}):\n{output}", retCode=retCode)
 
 def installScons(update: bool=False) -> Tuple[int, str]:
 	"""
@@ -73,40 +76,57 @@ def installScons(update: bool=False) -> Tuple[int, str]:
 	logger(output)
 	
 ####################### AUX FUNCTIONS #######################
-def __getXmippSources(branch: str=None):
+def __getXmippSources(branch: str='', path: str='', tag: bool=False):
 	"""
 	### Gets all of the xmipp repository sources, either downloads or clones them.
 
 	#### Params:
 	- branch (str): Optional. Branch to clone the sources from.
+	- path (str): Optional. Path to clone the sources into.
+	- tag (bool): Optional. If True, it is a tag, otherwise, it is a branch.
 	
 	#### Returns:
 	- (int): 0 if all commands executed correctly or an error code otherwise.
 	- (str): Empty string if all commands executed correctly or an error otherwise.
 	"""
-	currentBranch = getCurrentBranch()
-	pass
+	# Define clone function deppending on if it is a tag or a branch
+	cloneFunc = __downloadSourceTag if tag else __cloneSourceRepo
 
-def __getExternalSources() -> Tuple[int, str]:
+	# Getting sources
+	for source in XMIPP_SOURCES:
+		retCode, output = cloneFunc(REPOSITORIES[source][0], path=path, branch=branch)
+		if retCode:
+			break
+	return retCode, output
+	
+def __getExternalSources(path: str='', tag: bool=False) -> Tuple[int, str]:
 	"""
 	### Clones all of the external sources.
+
+	#### Params:
+	- path (str): Optional. Path to clone the sources into.
+	- tag (bool): Optional. If True, it is a tag, otherwise, it is a branch.
 	
 	#### Returns:
 	- (int): 0 if all commands executed correctly or an error code otherwise.
 	- (str): Empty string if all commands executed correctly or an error otherwise.
 	"""
+	# Define clone function deppending on if it is a tag or a branch
+	cloneFunc = __downloadSourceTag if tag else __cloneSourceRepo
+
+	# Getting sources
 	for source in EXTERNAL_SOURCES:
-		retCode, output = __cloneSourceRepo(REPOSITORIES[source][0], branch=REPOSITORIES[source][1])
+		retCode, output = cloneFunc(REPOSITORIES[source][0], branch=REPOSITORIES[source][1], path=path)
 		if retCode:
-			return retCode, output
-	return 0, ''
+			break
+	return retCode, output
 
 def __getTagURL(repo: str) -> str:
 	"""
 	### Returns the full URL to a tag given the repositorie's main URL.
 	
 	#### Params:
-	- repo (str): Repositorie's main URL.
+	- repo (str): Repository's main URL.
 	
 	#### Returns:
 	- (str): Full URL to the tag.
@@ -114,36 +134,56 @@ def __getTagURL(repo: str) -> str:
 	# Getting repository and tag name
 	sourceName = repo.split("/")[-1]
 	tagName = XMIPP_VERSIONS[sourceName][VERNAME_KEY]
-	return join(repo, TAGS_SUBPAGE, f"{tagName}.zip")
+	return os.path.join(repo, TAGS_SUBPAGE, f"{tagName}.zip")
 
-def __downloadSourceTag(source: str) -> Tuple[int, str]:
+def __getBranchURL(repo: str, branch: str='') -> Optional[str]:
 	"""
-	### Downloads the given source as a tag.
+	### Returns the full URL to a branch given the repositorie's main URL and the branch name. If no branch is received, falls back to default branch.
+	
+	#### Params:
+	- repo (str): Repository's main URL.
+	- branch (str): Optional. Branch name.
+	
+	#### Returns:
+	- (str | None): Full URL to the branch or None if something went wrong.
+	"""
+	if not branch:
+		retCode, output = runJob("git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'")
+		if not retCode:
+			branch = output
+	return os.path.join(repo, BRANCHES_SUBPAGE, f"{branch}.zip") if branch else None
+
+def __downloadSourceTag(source: str, branch: str='', path: str='') -> Tuple[int, str]:
+	"""
+	### Downloads the given source as a tag or branch.
 	
 	#### Params:
 	- source (str): Source to download.
+	- branch (str): Optional. If provided, the source to download is a branch from such branch. If False, it is a tag.
+	- path (str): Optional. Path to download the file into.
 	
 	#### Returns:
 	- (int): Return code of the command.
 	- (str): Output data from the command if it worked or error if it failed.
 	"""
 	# Getting source name, full URL, and file name
-	sourceName = source.split("/")[-1]
-	source = __getTagURL(source)
+	sourceName = os.path.join(path, source.split("/")[-1])
+	source = __getTagURL(source) if not branch else __getBranchURL(source)
 	fileName = source.split("/")[-1]
+	fullPath = os.path.join(path, fileName)
 
 	# Getting version name and extracted folder name
 	versionName = fileName.replace(".zip", "")
 	if versionName.startswith("v"):
 		versionName = versionName[1:]
-	extractedFolderName = f"{sourceName}-{versionName}"
+	extractedFolderName =f"{sourceName}-{versionName}"
 
 	# Generating list of commands
 	commands = [
-		f"wget -O {fileName} {source}",
-		f"unzip {fileName}",
+		f"wget -O {fullPath} {source}",
+		f"unzip {fullPath}",
 		f"mv {extractedFolderName} {sourceName}",
-		f"rm -f {fileName}"
+		f"rm -f {fullPath}"
 	]
 
 	# Running all commands checking output
@@ -151,15 +191,16 @@ def __downloadSourceTag(source: str) -> Tuple[int, str]:
 		retCode, output = runJob(command)
 		if retCode:
 			return retCode, output
-	return 0, ''
+	return OK, ''
 	
-def __cloneSourceRepo(repo: str, branch: str=None) -> Tuple[int, str]:
+def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str]:
 	"""
 	### Clones the given source as a repository in the given branch if exists. Defaults to default branch.
 	
 	#### Params:
 	- source (str): Source to clone.
 	- branch (branch): Optional. Branch to clone repo from.
+	- path (str): Optional. Path to clone the repository into.
 	
 	#### Returns:
 	- (int): 0 if everything worked, or else the return code of the command that failed.
@@ -177,4 +218,17 @@ def __cloneSourceRepo(repo: str, branch: str=None) -> Tuple[int, str]:
 			branch = None
 
 	branchStr = f" --branch {branch}" if branch else ''
-	return runJob(f"git clone{branchStr} {repo}.git")
+	# Move to defined path to clone
+	currentPath = os.getcwd()
+	os.chdir(path)
+
+	# Check if repo already exists. As we do not assume it has been correctly cloned,
+	# if exists, delete it and re-clone
+	clonedFolder = repo.split("/")[-1]
+	if os.path.isdir(clonedFolder):
+		runJob(f"rm -rf {clonedFolder}")
+	retCode, output = runJob(f"git clone{branchStr} {repo}.git")
+
+	# Go back to previous path
+	os.chdir(currentPath)
+	return retCode, output

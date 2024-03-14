@@ -35,7 +35,7 @@ from subprocess import Popen, PIPE
 # Installer imports
 from .constants import (MODES, TAB_SIZE, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,
 	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, XMIPP_VERSIONS, SCONS_INSTALL_ERROR)
-from .logger import blue, yellow, red
+from .logger import blue, red
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
@@ -208,50 +208,70 @@ def getAllModes() -> List[str]:
 	# Return full mode list
 	return modes
 
-
 ####################### GIT FUNCTIONS #######################
-def getCurrentBranch(dir: str='./') -> Optional[str]:
+def getCurrentBranch(dir: str='./') -> str:
 	"""
-	### This function returns the current branch of the repository of the given directory or None if it is not a repository.
+	### This function returns the current branch of the repository of the given directory or empty string if it is not a repository or a recognizable tag.
 	
 	#### Params:
 	- dir (str): Optional. Directory of the repository to get current branch from. Default is current directory.
 	
 	#### Returns:
-	- (str | None): The name of the branch, or None if given directory is not a repository.
+	- (str): The name of the branch, or empty string if given directory is not a repository or a recognizable tag.
 	"""
 	# Getting current branch name
 	retcode, branchName = runJob("git rev-parse --abbrev-ref HEAD", cwd=dir)
 
 	# If there was an error, we are in no branch
-	if retcode:
-		return
+	return branchName if not retcode else ''
 	
-	# Check if name is a branch
-	if branchName != "HEAD":
-		return branchName
+def isProductionMode(dir: str='./') -> bool:
+	"""
+	### This function returns True if the current Xmipp repository is in production mode.
 	
+	#### Params:
+	- dir (str): Optional. Directory of the repository where the check will happen. Default is current directory.
+	
+	#### Returns:
+	- (bool): True if the repository is in production mode. False otherwise.
+	"""
+	currentBranch = getCurrentBranch(dir=dir)
+	return currentBranch is None or currentBranch == XMIPP_VERSIONS[XMIPP][VERNAME_KEY]
+
+def isTag(dir: str='./') -> bool:
+	"""
+	### This function returns True if the current Xmipp repository is in a tag.
+
+	#### Params:
+	- dir (str): Optional. Directory of the repository where the check will happen. Default is current directory.
+	
+	#### Returns:
+	- (bool): True if the repository is a tag. False otherwise.
+	"""
+	currentBranch = getCurrentBranch(dir=dir)
+	return not currentBranch or currentBranch == "HEAD"
+
+def getTagName(dir: str='./') -> str:
+	"""
+	### This function returns the tag name of the given directory.
+
+	#### Params:
+	- dir (str): Optional. Directory of the repository where the check will happen. Default is current directory.
+	
+	#### Returns:
+	- (bool): Tag name, or empty string if it is not a repository.
+	"""
 	# Get current branches
 	retcode, output = runJob("git branch", cwd=dir)
 
 	# If there was an error, assume we are in no branch or tag
 	if retcode:
-		return
-	
+		return ''
+
 	# Extract tag name
 	pattern = r'\* \(HEAD detached at (.*?)\)'
 	match = re.search(pattern, output)
-	return match.group(1) if match else None
-
-def isProductionMode() -> bool:
-	"""
-	### This function returns True if the current Xmipp repository is in production mode.
-	
-	#### Returns:
-	- (bool): True if the repository is in production mode. False otherwise.
-	"""
-	currentBranch = getCurrentBranch()
-	return currentBranch is None or currentBranch == XMIPP_VERSIONS[XMIPP][VERNAME_KEY]
+	return match.group(1) if match else ''
 
 def isBranchUpToDate(dir: str='./') -> bool:
 	"""
