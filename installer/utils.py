@@ -27,7 +27,7 @@ Module containing useful functions used by the installation process.
 """
 
 # General imports
-import sys, os, time, multiprocessing
+import sys, os, time, multiprocessing, re
 from typing import List, Tuple, Callable, Any, Optional
 from io import FileIO
 from subprocess import Popen, PIPE
@@ -221,10 +221,27 @@ def getCurrentBranch(dir: str='./') -> Optional[str]:
 	- (str | None): The name of the branch, or None if given directory is not a repository.
 	"""
 	# Getting current branch name
-	retcode, output = runJob("git rev-parse --abbrev-ref HEAD", cwd=dir)
+	retcode, branchName = runJob("git rev-parse --abbrev-ref HEAD", cwd=dir)
 
-	# Return branch name or None if command failed
-	return output if retcode == 0 else None
+	# If there was an error, we are in no branch
+	if retcode:
+		return
+	
+	# Check if name is a branch
+	if branchName != "HEAD":
+		return branchName
+	
+	# Get current branches
+	retcode, output = runJob("git branch", cwd=dir)
+
+	# If there was an error, assume we are in no branch or tag
+	if retcode:
+		return
+	
+	# Extract tag name
+	pattern = r'\* \(HEAD detached at (.*?)\)'
+	match = re.search(pattern, output)
+	return match.group(1) if match else None
 
 def isProductionMode() -> bool:
 	"""
