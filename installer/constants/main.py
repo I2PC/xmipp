@@ -56,10 +56,12 @@ REPOSITORIES = {
 }
 XMIPP_SOURCES = [XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN]
 EXTERNAL_SOURCES = [CUFFTADVISOR, CTPL, GTEST, LIBSVM, LIBCIFPP]
+SOURCES_PATH = "src/"
 
 # Source repositories
 ORGANIZATION_NAME = 'I2PC'
 TAGS_SUBPAGE = 'archive/refs/tags/'
+BRANCHES_SUBPAGE = 'archive/refs/heads/'
 
 # Internal URLs
 API_URL = 'xmipp.i2pc.es/api/attempts/'
