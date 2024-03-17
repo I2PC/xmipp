@@ -32,7 +32,7 @@
 
 void ProgTomoDetectMisalignmentResiduals::readParams()
 {
-	fnInputTS = getParam("-i");
+	// fnInputTS = getParam("-i");
 	fnResidualInfo = getParam("--inputResInfo");
     fnOut = getParam("-o");
 
@@ -47,8 +47,8 @@ void ProgTomoDetectMisalignmentResiduals::readParams()
 void ProgTomoDetectMisalignmentResiduals::defineParams()
 {
 	addUsageLine("This function determines the location of high contrast features in a volume.");
-	addParamsLine("  -i <mrcs_file=\"\">                   					: Input tilt-series.");
-	addParamsLine("  --inputResInfo <input=\"\">								: Input file containing residual information of the detected landmarks.");
+	// addParamsLine("  -i <mrcs_file=\"\">                   					: Input tilt-series.");
+	addParamsLine("  --inputResInfo <input=\"\">							: Input file containing residual information of the detected landmarks.");
 
 	addParamsLine("  [-o <output=\"./alignemntReport.xmd\">]       			: Output file containing the alignemnt report.");
 
@@ -65,12 +65,6 @@ void ProgTomoDetectMisalignmentResiduals::generateSideInfo()
 	std::cout << "Generating side info..." << std::endl;
 	#endif
 
-
-	// Initialize local alignment vector (depends on the number of acquisition angles)
-	localAlignment.resize(nSize, true);
-	avgMahalanobisDistanceV.resize(nSize, 0.0);
-	stdMahalanobisDistanceV.resize(nSize, 0.0);
-	
 	// Update thresholds depending on input tilt-series sampling rate
 	fiducialSizePx = fiducialSize / samplingRate; 
 
@@ -97,6 +91,27 @@ void ProgTomoDetectMisalignmentResiduals::generateSideInfo()
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Number of input coordinates: " << numberOfInputCoords << std::endl;
 	#endif
+
+	// Get number of tilt images from input residuals
+	nSize = 0;
+	for (size_t i = 0; i < vResMod.size(); i++)
+	{
+		if (vResMod[i].landmarkCoord.z > nSize)
+		{
+			nSize = vResMod[i].landmarkCoord.z;
+		}
+	}
+
+	nSize += 1;
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Number of tilt-images: " << nSize << std::endl;
+	#endif
+
+	// Initialize local alignment vector (depends on the number of acquisition angles)
+	localAlignment.resize(nSize, true);
+	avgMahalanobisDistanceV.resize(nSize, 0.0);
+	stdMahalanobisDistanceV.resize(nSize, 0.0);
 
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Side info generated succesfully!" << std::endl;
@@ -556,22 +571,19 @@ void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 	size_t lastindex = fnOut.find_last_of("\\/");
 	std::string rawname = fnOut.substr(0, lastindex);
 
-	std::string fnResMod;
 	std::string fnStats;
-
-    fnResMod = rawname + "/vResMod.xmd";
 	fnStats = rawname + "/residualStatistics.xmd";
 
 	std::string cmd;
 
 	#ifdef DEBUG_RESIDUAL_STATISTICS_FILE
 	// Debug command
-	cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnResMod + " -o " + fnStats + " --debug ";
-	// cmd = "python3 /home/fdeisidro/data/xmipp/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnResMod + " -o " + fnStats + " --debug";
+	cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnResidualInfo + " -o " + fnStats + " --debug ";
+	// cmd = "python3 /home/fdeisidro/data/xmipp/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnResidualInfo + " -o " + fnStats + " --debug";
 	#else
 	// No debug command
-	cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnResMod + " -o " + fnStats;
-	// cmd = "python3 /home/fdeisidro/data/xmipp/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnResMod + " -o " + fnStats;
+	cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnResidualInfo + " -o " + fnStats;
+	// cmd = "python3 /home/fdeisidro/data/xmipp/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnResidualInfo + " -o " + fnStats;
 	#endif
 	
 	std::cout << cmd << std::endl;
@@ -1024,11 +1036,7 @@ void ProgTomoDetectMisalignmentResiduals::writeWeightedResiduals()
 
 void ProgTomoDetectMisalignmentResiduals::writeOutputAlignmentReport()
 {
-	size_t lastindexInputTS = fnInputTS.find_last_of(":");
-	std::string rawnameTS = fnInputTS.substr(0, lastindexInputTS);
-	
 	MetaDataVec md;
-	FileName fn;
 	size_t id;
 
 
@@ -1036,11 +1044,10 @@ void ProgTomoDetectMisalignmentResiduals::writeOutputAlignmentReport()
 	{
 		for(size_t i = 0; i < nSize; i++)
 		{
-			fn.compose(i + FIRST_IMAGE, rawnameTS);
 			id = md.addObject();
 
 			// Tilt-image			
-			md.setValue(MDL_IMAGE, fn, id);
+			md.setValue(MDL_IDX, i, id);
 
 			// Alignment
 			md.setValue(MDL_ENABLED, -1, id);
@@ -1054,11 +1061,10 @@ void ProgTomoDetectMisalignmentResiduals::writeOutputAlignmentReport()
 	{
 		for(size_t i = 0; i < localAlignment.size(); i++)
 		{
-			fn.compose(i + FIRST_IMAGE, rawnameTS);
 			id = md.addObject();
 
 			// Tilt-image			
-			md.setValue(MDL_IMAGE, fn, id);
+			md.setValue(MDL_IDX, i, id);
 
 			// Alignment
 			if(localAlignment[i])
@@ -1099,41 +1105,41 @@ void ProgTomoDetectMisalignmentResiduals::run()
 	size_t Xdim, Ydim;
 
 	MetaDataVec tiltseriesmd;
-    ImageGeneric tiltSeriesImages;
+    // ImageGeneric tiltSeriesImages;
 
-    if (fnInputTS.isMetaData())
-    {
-        tiltseriesmd.read(fnInputTS);
-    }
-    else
-    {
-        tiltSeriesImages.read(fnInputTS, HEADER);
+    // if (fnInputTS.isMetaData())
+    // {
+    //     tiltseriesmd.read(fnInputTS);
+    // }
+    // else
+    // {
+    //     tiltSeriesImages.read(fnInputTS, HEADER);
 
-        size_t Zdim, Ndim;
-        tiltSeriesImages.getDimensions(Xdim, Ydim, Zdim, Ndim);
+    //     size_t Zdim, Ndim;
+    //     tiltSeriesImages.getDimensions(Xdim, Ydim, Zdim, Ndim);
 
-        if (fnInputTS.getExtension() == "mrc" and Ndim == 1)
-            Ndim = Zdim;
+    //     if (fnInputTS.getExtension() == "mrc" and Ndim == 1)
+    //         Ndim = Zdim;
 
-        size_t id;
-        FileName fn;
-        for (size_t i = 0; i < Ndim; i++) 
-        {
-            id = tiltseriesmd.addObject();
-            fn.compose(i + FIRST_IMAGE, fnInputTS);
-            tiltseriesmd.setValue(MDL_IMAGE, fn, id);
-        }
-    }
+    //     size_t id;
+    //     FileName fn;
+    //     for (size_t i = 0; i < Ndim; i++) 
+    //     {
+    //         id = tiltseriesmd.addObject();
+    //         fn.compose(i + FIRST_IMAGE, fnInputTS);
+    //         tiltseriesmd.setValue(MDL_IMAGE, fn, id);
+    //     }
+    // }
 
-	tiltSeriesImages.getDimensions(xSize, ySize, zSize, nSize);
+	// tiltSeriesImages.getDimensions(xSize, ySize, zSize, nSize);
 
-	#ifdef DEBUG_DIM
-	std::cout << "Input tilt-series dimensions:" << std::endl;
-	std::cout << "x " << xSize << std::endl;
-	std::cout << "y " << ySize << std::endl;
-	std::cout << "z " << zSize << std::endl;
-	std::cout << "n " << nSize << std::endl;
-	#endif
+	// #ifdef DEBUG_DIM
+	// std::cout << "Input tilt-series dimensions:" << std::endl;
+	// std::cout << "x " << xSize << std::endl;
+	// std::cout << "y " << ySize << std::endl;
+	// std::cout << "z " << zSize << std::endl;
+	// std::cout << "n " << nSize << std::endl;
+	// #endif
 
 	generateSideInfo();
 

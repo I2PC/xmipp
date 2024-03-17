@@ -48,7 +48,7 @@
 #include <fstream>
 
 #define VERBOSE_OUTPUT
-// #define GENERATE_RESIDUAL_STATISTICS
+#define GENERATE_RESIDUAL_STATISTICS
 
 // #define DEBUG_DIM
 // #define DEBUG_RESID
@@ -60,7 +60,7 @@ class ProgTomoDetectMisalignmentResiduals : public XmippProgram
 
 public:
     /** Filenames */
-    FileName fnInputTS;
+    // FileName fnInputTS;
     FileName fnResidualInfo;
     FileName fnOut;
 
@@ -72,10 +72,9 @@ public:
     /** Thresholds */
     float thrFiducialDistance;   // Maximum distance of a detected landmark to consider it belongs to a chain
 
-
-    // Coordinate model structure
+    /** Coordinate model structure */
     struct resMod {
-        Point3D<double> landmarkCoord;     // Coordinate detected in each tilt-image
+        Point3D<double> landmarkCoord;          // Coordinate detected in each tilt-image
         Point3D<double> coordinate3d;           // 3D coordinate whose porjection is the closest
         Point2D<double> residuals;              // Residual vector from detected to projected
         size_t id;                              // ID common for all the CM belonging to the same coordinate 3D
