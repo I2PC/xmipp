@@ -48,7 +48,7 @@
 #include <fstream>
 
 #define VERBOSE_OUTPUT
-#define GENERATE_RESIDUAL_STATISTICS
+// #define GENERATE_RESIDUAL_STATISTICS
 
 // #define DEBUG_DIM
 // #define DEBUG_RESID
