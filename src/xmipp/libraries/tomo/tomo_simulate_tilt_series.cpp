@@ -134,15 +134,8 @@ void ProgTomoSimulateTiltseries::createSphere(MultidimArray<int> &mask, int boxs
 			{
 				int j2 = (j-halfbox)*(j-halfbox);
 
-				if (i2k2+j2>halfbox2)
-				{
-
-					A3D_ELEM(mask, k, i, j) = 0;
-				}
-				else
-				{
-					A3D_ELEM(mask, k, i, j) = 1;
-				}
+				const bool inside = i2k2+j2 <= halfbox2;
+				A3D_ELEM(mask, k, i, j) = static_cast<int>(inside);
 				n++;
 			}
 		}
