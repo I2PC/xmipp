@@ -1015,7 +1015,7 @@ void ProgTomoDetectLandmarks::run()
 	size_t Xdim, Ydim;
 
 	MetaDataVec tiltseriesmd;
-    ImageGeneric tiltSeriesImages;
+    Image<double> tiltSeriesImages;
 
     if (fnVol.isMetaData())
     {
@@ -1023,7 +1023,7 @@ void ProgTomoDetectLandmarks::run()
     }
     else
     {
-        tiltSeriesImages.read(fnVol, HEADER);
+        tiltSeriesImages.read(fnVol);
 
         size_t Zdim, Ndim;
         tiltSeriesImages.getDimensions(Xdim, Ydim, Zdim, Ndim);
