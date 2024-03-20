@@ -30,7 +30,7 @@ import os
 from typing import Tuple, Optional
 
 # Module imports
-from .utils import runJob, getCurrentBranch, isProductionMode, isTag
+from .utils import runJob, isProductionMode, isTag
 from .logger import logger, yellow
 from .constants import (TAGS_SUBPAGE, BRANCHES_SUBPAGE, XMIPP_VERSIONS, VERNAME_KEY, REPOSITORIES, XMIPP_SOURCES, EXTERNAL_SOURCES,
 												SOURCES_PATH, SCONS_INSTALL_ERROR, CLONNING_XMIPP_SOURCE_ERROR, DOWNLOADING_XMIPP_SOURCE_ERROR, OK)
@@ -222,8 +222,8 @@ def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str
 	currentPath = os.getcwd()
 	os.chdir(path)
 
-	# Check if repo already exists. As we do not assume it has been correctly cloned,
-	# if exists, delete it and re-clone
+	# Check if repo already exists. As we do not assume it has been
+	# correctly cloned, if exists, delete it and re-clone
 	clonedFolder = repo.split("/")[-1]
 	if os.path.isdir(clonedFolder):
 		runJob(f"rm -rf {clonedFolder}")
