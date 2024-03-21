@@ -22,6 +22,7 @@
 
 cmake_minimum_required(VERSION 3.16)
 
+find_package(Python3 COMPONENTS Interpreter Development NumPy REQUIRED)
 find_package(MPI COMPONENTS C CXX)
 find_package(CUDAToolkit 10.2)
 
@@ -66,6 +67,11 @@ file(
 
 
 add_library(xmippLib SHARED ${SOURCES})
+set_target_properties(
+	xmippLib PROPERTIES 
+	SOVERSION ${PROJECT_VERSION}
+	CXX_STANDARD 17
+)
 target_include_directories(
 	xmippLib
 	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
@@ -80,6 +86,8 @@ target_link_libraries(
 	PUBLIC
 		xmippCore
 		xmippExternal
+		Python3::Python
+		Python3::NumPy
 		cifpp::cifpp
 		ctpl
 		libsvm
