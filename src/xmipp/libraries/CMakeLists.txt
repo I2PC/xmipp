@@ -22,6 +22,8 @@
 
 cmake_minimum_required(VERSION 3.16)
 
+find_package(CUDAToolkit 10.2)
+
 file(
 	GLOB_RECURSE 
 	SOURCES 
@@ -41,20 +43,48 @@ file(
 		${CMAKE_CURRENT_SOURCE_DIR}/interface/*.h
 		${CMAKE_CURRENT_SOURCE_DIR}/reconstruction/*.h
 		${CMAKE_CURRENT_SOURCE_DIR}/tomo/*.h
+)	
+
+file(
+	GLOB_RECURSE 
+	CUDA_SOURCES
+		${CMAKE_CURRENT_SOURCE_DIR}/reconstruction_cuda/*.cu
+		${CMAKE_CURRENT_SOURCE_DIR}/reconstruction_cuda/*.cpp
 )
+
 
 add_library(xmippLib SHARED ${SOURCES})
 target_include_directories(
 	xmippLib
 	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
 )
-target_precompile_headers(
-	xmippLib
-	PRIVATE
-		${HEADERS}
-)
+#target_precompile_headers(
+#	xmippLib
+#	PRIVATE
+#		${HEADERS}
+#)
 target_link_libraries(
 	xmippLib
 	PUBLIC
 		xmippCore
+		xmippExternal
+		cifpp
+		ctpl
 )
+
+# Register CUDA sources
+if(CUDAToolkit_Found)
+	target_sources(
+		xmippLib
+		PRIVATE ${CUDA_SOURCES}
+	)
+	set_target_properties( 
+		xmippLib
+    PROPERTIES CUDA_SEPARABLE_COMPILATION ON
+	)
+	target_link_libraries(
+		xmippLib
+		PUBLIC
+			CUDA::cufft
+	)
+endif()

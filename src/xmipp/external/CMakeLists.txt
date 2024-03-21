@@ -22,6 +22,32 @@
 
 cmake_minimum_required(VERSION 3.16)
 
-add_subdirectory(external)
-add_subdirectory(libraries)
-add_subdirectory(applications)
+find_package(Python COMPONENTS Development NumPy REQUIRED)
+
+file(
+	GLOB_RECURSE 
+	SOURCES 
+		${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+)
+file(
+	GLOB_RECURSE 
+	HEADERS 
+		${CMAKE_CURRENT_SOURCE_DIR}/*.h
+)
+
+add_library(xmippExternal SHARED ${SOURCES})
+target_include_directories(
+	xmippExternal
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+)
+#target_precompile_headers(
+#	xmippExternal
+#	PRIVATE
+#		${HEADERS}
+#)
+target_link_libraries(
+	xmippExternal
+	PUBLIC
+		Python::Module
+		Python::NumPy
+)
