@@ -53,6 +53,7 @@ gmon.out
 /src/*
 # except xmipp folder
 !/src/xmipp/
+!/src/CMakeLists.txt
 
 /src/xmipp/bin
 /src/xmipp/lib
