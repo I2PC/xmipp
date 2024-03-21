@@ -22,8 +22,10 @@
 
 cmake_minimum_required(VERSION 3.16)
 
+find_package(MPI COMPONENTS C CXX)
 find_package(CUDAToolkit 10.2)
 
+# Find source files
 file(
 	GLOB_RECURSE 
 	SOURCES 
@@ -44,12 +46,22 @@ file(
 		${CMAKE_CURRENT_SOURCE_DIR}/reconstruction/*.h
 		${CMAKE_CURRENT_SOURCE_DIR}/tomo/*.h
 )	
-
 file(
 	GLOB_RECURSE 
 	CUDA_SOURCES
 		${CMAKE_CURRENT_SOURCE_DIR}/reconstruction_cuda/*.cu
 		${CMAKE_CURRENT_SOURCE_DIR}/reconstruction_cuda/*.cpp
+)
+file(
+	GLOB_RECURSE 
+	PARALLEL_SOURCES
+		${CMAKE_CURRENT_SOURCE_DIR}/parallel/*.cpp
+)
+file(
+	GLOB_RECURSE 
+	PARALLEL_CUDA_SOURCES
+		${CMAKE_CURRENT_SOURCE_DIR}/parallel_adapt_cuda/*.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/reconstruction_adapt_cuda/*.cpp
 )
 
 
@@ -73,7 +85,7 @@ target_link_libraries(
 )
 
 # Register CUDA sources
-if(CUDAToolkit_Found)
+if(CUDAToolkit_FOUND)
 	target_sources(
 		xmippLib
 		PRIVATE ${CUDA_SOURCES}
@@ -85,6 +97,28 @@ if(CUDAToolkit_Found)
 	target_link_libraries(
 		xmippLib
 		PUBLIC
+			CUDA::cudart
 			CUDA::cufft
+	)
+endif()
+
+# Register MPI sources
+if(MPI_FOUND)
+	target_sources(
+		xmippLib
+		PRIVATE ${PARALLEL_SOURCES}
+	)
+	target_link_libraries(
+		xmippLib
+		PUBLIC
+			MPI::MPI_C
+	)
+endif()
+
+# Register combined MPI and CUDA sources
+if(MPI_FOUND AND CUDAToolkit_FOUND)
+	target_sources(
+		xmippLib
+		PRIVATE ${PARALLEL_CUDA_SOURCES}
 	)
 endif()
