@@ -80,27 +80,28 @@ target_link_libraries(
 	PUBLIC
 		xmippCore
 		xmippExternal
-		cifpp
+		cifpp::cifpp
 		ctpl
+		libsvm
 )
 
 # Register CUDA sources
-if(CUDAToolkit_FOUND)
-	target_sources(
-		xmippLib
-		PRIVATE ${CUDA_SOURCES}
-	)
-	set_target_properties( 
-		xmippLib
-    PROPERTIES CUDA_SEPARABLE_COMPILATION ON
-	)
-	target_link_libraries(
-		xmippLib
-		PUBLIC
-			CUDA::cudart
-			CUDA::cufft
-	)
-endif()
+#if(CUDAToolkit_FOUND)
+#	target_sources(
+#		xmippLib
+#		PRIVATE ${CUDA_SOURCES}
+#	)
+#	set_target_properties( 
+#		xmippLib
+#    PROPERTIES CUDA_SEPARABLE_COMPILATION ON
+#	)
+#	target_link_libraries(
+#		xmippLib
+#		PUBLIC
+#			CUDA::cudart
+#			CUDA::cufft
+#	)
+#endif()
 
 # Register MPI sources
 if(MPI_FOUND)
@@ -112,13 +113,14 @@ if(MPI_FOUND)
 		xmippLib
 		PUBLIC
 			MPI::MPI_C
+			MPI::MPI_CXX
 	)
 endif()
 
 # Register combined MPI and CUDA sources
-if(MPI_FOUND AND CUDAToolkit_FOUND)
-	target_sources(
-		xmippLib
-		PRIVATE ${PARALLEL_CUDA_SOURCES}
-	)
-endif()
+#if(MPI_FOUND AND CUDAToolkit_FOUND)
+#	target_sources(
+#		xmippLib
+#		PRIVATE ${PARALLEL_CUDA_SOURCES}
+#	)
+#endif()
