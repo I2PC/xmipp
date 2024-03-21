@@ -23,6 +23,23 @@
 from typing import Iterable, Tuple
 import torch
 
+def _correct_amplitude(samples: torch.Tensor,
+                       average: torch.Tensor ):
+
+    ata = torch.empty((2, 2), dtype=average.dtype, device=average.device)
+    ata[0,0] = average.square().sum()
+    ata[1,0] = ata[0,1] = average.sum()
+    ata[1,1] = len(average)
+    
+    pseudoinverse = torch.lianlg.inverse(ata)
+    correlation = torch.matmul(samples, average)
+    total = samples.sum(axis=-1)
+    a = pseudoinverse[0,0]*correlation + pseudoinverse[0,1]*total
+    b = pseudoinverse[1,0]*correlation + pseudoinverse[1,1]*total
+    
+    samples -= b[:,None]
+    samples /= a[:,None]
+
 def _mean_centered_pca(samples: torch.Tensor,
                        k: int) -> Tuple[torch.Tensor, torch.Tensor]:
     if len(samples.shape) != 2:
@@ -75,6 +92,7 @@ def aligned_2d_classification(dataset: Iterable[torch.Tensor],
         
     # Perform the PCA analysis
     avg = scratch.mean(dim=0)
+    _correct_amplitude(scratch, avg)
     scratch -= avg
     _, v = _mean_centered_pca(scratch, k=1)
     direction = v[:,0]
