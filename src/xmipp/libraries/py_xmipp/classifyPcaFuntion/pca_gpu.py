@@ -233,8 +233,9 @@ class PCAgpu:
             #Using truncation and no error
             # trunc = self.Bvecs[0].size(dim=1)*per_eig
             # self.Bvecs[n] = self.Bvecs[n][:,:(int(trunc+1))]
-            # print("eigenvector %s ---- percentage %s" %(int(self.eigs[n]+1), "{:.2f}".format(self.perc[n])))
+            
             #Reshaping Eigenvectors
+            print("eigenvector %s ---- percentage %s" %(int(self.eigs[n]+1), "{:.2f}".format(self.perc[n])))
             self.Bvecs[n] = self.Bvecs[n][:,:(int(self.eigs[n]+1))]
             print(self.Bvecs[n].shape)
 
