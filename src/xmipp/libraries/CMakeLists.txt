@@ -23,8 +23,13 @@
 cmake_minimum_required(VERSION 3.16)
 
 find_package(Python3 COMPONENTS Interpreter Development NumPy REQUIRED)
-find_package(MPI COMPONENTS C CXX)
-find_package(CUDAToolkit 10.2)
+if(${XMIPP_USE_CUDA})
+	find_package(CUDAToolkit 10.2 REQUIRED)
+endif()
+if(${XMIPP_USE_MPI})
+	find_package(MPI COMPONENTS C CXX REQUIRED)
+endif()
+
 
 # Find source files
 file(
@@ -67,11 +72,6 @@ file(
 
 
 add_library(xmippLib SHARED ${SOURCES})
-set_target_properties(
-	xmippLib PROPERTIES 
-	SOVERSION ${PROJECT_VERSION}
-	CXX_STANDARD 17
-)
 target_include_directories(
 	xmippLib
 	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
@@ -94,25 +94,25 @@ target_link_libraries(
 )
 
 # Register CUDA sources
-#if(CUDAToolkit_FOUND)
-#	target_sources(
-#		xmippLib
-#		PRIVATE ${CUDA_SOURCES}
-#	)
-#	set_target_properties( 
-#		xmippLib
-#    PROPERTIES CUDA_SEPARABLE_COMPILATION ON
-#	)
-#	target_link_libraries(
-#		xmippLib
-#		PUBLIC
-#			CUDA::cudart
-#			CUDA::cufft
-#	)
-#endif()
+if(${XMIPP_USE_CUDA})
+	target_sources(
+		xmippLib
+		PRIVATE ${CUDA_SOURCES}
+	)
+	set_target_properties( 
+		xmippLib
+    PROPERTIES CUDA_SEPARABLE_COMPILATION ON
+	)
+	target_link_libraries(
+		xmippLib
+		PUBLIC
+			CUDA::cudart
+			CUDA::cufft
+	)
+endif()
 
 # Register MPI sources
-if(MPI_FOUND)
+if(${XMIPP_USE_MPI})
 	target_sources(
 		xmippLib
 		PRIVATE ${PARALLEL_SOURCES}
@@ -126,9 +126,9 @@ if(MPI_FOUND)
 endif()
 
 # Register combined MPI and CUDA sources
-#if(MPI_FOUND AND CUDAToolkit_FOUND)
-#	target_sources(
-#		xmippLib
-#		PRIVATE ${PARALLEL_CUDA_SOURCES}
-#	)
-#endif()
+if(${XMIPP_USE_CUDA} AND ${XMIPP_USE_MPI})
+	target_sources(
+		xmippLib
+		PRIVATE ${PARALLEL_CUDA_SOURCES}
+	)
+endif()

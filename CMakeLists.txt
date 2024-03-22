@@ -29,4 +29,13 @@ project(
 	LANGUAGES C CXX
 )
 
+# Set compile options
+option(XMIPP_USE_CUDA "Compile CUDA programs" OFF)
+option(XMIPP_USE_MPI "Compile MPI programs" ON)
+
+# Set C++ 17
+if(NOT "${CMAKE_CXX_STANDARD}")
+  set(CMAKE_CXX_STANDARD 17)
+endif()
+
 add_subdirectory(src)

@@ -86,7 +86,7 @@ function(fetch_ctpl)
 		BUILD_IN_SOURCE TRUE
 	)
 
-	add_library(ctpl SHARED IMPORTED)
+	add_library(ctpl INTERFACE IMPORTED)
 	target_include_directories(ctpl INTERFACE ${SOURCE_DIR})
 	add_dependencies(ctpl download_ctpl)
 endfunction()
