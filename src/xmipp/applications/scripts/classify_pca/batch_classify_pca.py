@@ -132,8 +132,8 @@ if __name__=="__main__":
         initStep = int(min(numFirstBatch, np.ceil(nExp/expBatchSize)))
         cl = bnb.init_ramdon_classes(int(final_classes/2), mmap, initSubset)    
     
-    file = output+"_0.mrcs"    
-    save_images(cl.cpu().numpy(), file)
+    # file = output+"_0.mrcs"    
+    # save_images(cl.cpu().numpy(), file)
     
     
     if refImages:
@@ -230,8 +230,8 @@ if __name__=="__main__":
                     cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(mmap.data[initBatch:endBatch], cl, tMatrix, iter, initBatch, subset, matches, vectorshift, classes, freqBn, coef, cvecs, sampling, mask, sigma)
 
                 #save classes
-                file = output+"_%s_%s.mrcs"%(initBatch,iter+1)
-                save_images(cl.cpu().detach().numpy(), file)
+                # file = output+"_%s_%s.mrcs"%(initBatch,iter+1)
+                # save_images(cl.cpu().detach().numpy(), file)
                 
                 
                 # if mode == "create_classes" and iter == 14:
