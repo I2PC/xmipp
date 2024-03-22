@@ -20,29 +20,12 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional, Sequence
-import torch
-
-def wiener_2d( direct_filter: torch.Tensor,
-               inverse_ssnr: Optional[torch.Tensor] = None,
-               out: Optional[torch.Tensor] = None) -> torch.Tensor:
-    
-    # Compute the filter power (|H|²) at the output
-    if torch.is_complex(direct_filter):
-        out = torch.abs(direct_filter, out=out)
-        out.square_()
-    else:
-        out = torch.square(direct_filter, out=out)
-    
-    # Compute the default value for inverse SSNR if not
-    # provided
-    if inverse_ssnr is None:
-        inverse_ssnr = torch.mean(out, dim=(-2, -1))
-        inverse_ssnr *= 0.1
-        inverse_ssnr = inverse_ssnr[...,None,None]
-    
-    # H* / (|H|² + N/S)
-    out.add_(inverse_ssnr)
-    torch.div(torch.conj(direct_filter), out, out=out)
-
-    return out
+from .affine_2d import affine_2d
+from .affine_matrix_2d import affine_matrix_2d, make_affine_matrix_2d
+from .rotation_matrix_2d import rotation_matrix_2d
+from .euler_to_quaternion import euler_to_quaternion
+from .euler_to_matrix import euler_to_matrix
+from .quaternion_to_matrix import quaternion_to_matrix
+from .matrix_to_euler import matrix_to_euler
+from .quaternion_arithmetic import quaternion_conj, quaternion_product
+from .twist_swing_decomposition import twist_decomposition, swing_decomposition

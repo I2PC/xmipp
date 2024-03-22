@@ -20,4 +20,24 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .rfftnfreq import rfftnfreq
+from typing import Optional
+
+import torch
+import kornia
+
+def affine_2d(images: torch.Tensor,
+              matrices: torch.Tensor,
+              interpolation: str = 'bilinear',
+              padding: str = 'zeros',
+              out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+    
+    images = images[:,None,:,:]
+    out = kornia.geometry.transform.affine(
+        images,
+        matrix=matrices,
+        mode=interpolation,
+        padding_mode=padding
+    )
+    out = out[:,0,:,:]
+    return out
+    

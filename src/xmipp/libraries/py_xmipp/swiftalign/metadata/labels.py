@@ -30,6 +30,7 @@ RESOLUTION_FREQ = 'resolutionFreq'
 SIGMANOISE = 'sigmaNoise'
 
 COST = 'cost'
+SCORE_BY_PCA_RESIDUAL = 'scoreByPcaResidual'
 
 ANGLE_PSI = 'anglePsi'
 ANGLE_PSI2 = 'anglePsi2'

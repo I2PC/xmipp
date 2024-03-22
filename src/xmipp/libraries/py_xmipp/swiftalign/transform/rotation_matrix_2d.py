@@ -20,10 +20,20 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from . import alignment
-from . import classification
-from . import image
-from . import metadata
-from . import operators
-from . import transform
-from . import utils
+from typing import Optional
+import torch
+
+def rotation_matrix_2d(angles: torch.Tensor,
+                       out: Optional[torch.Tensor] = None):
+
+    out = torch.empty((len(angles), 2, 2), out=out)
+    
+    # The 2D rotation matrix is defined as:
+    #|c -s|
+    #|s  c|
+    out[:,0,0] = torch.cos(angles, out=out[:,0,0]) #c
+    out[:,1,0] = torch.sin(angles, out=out[:,0,1]) #s
+    out[:,0,1] = -out[:,1,0] #-s
+    out[:,1,1] = out[:,0,0] #c
+
+    return out

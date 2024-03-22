@@ -20,37 +20,46 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Sequence, Optional
+from typing import Optional
+
 import torch
 
-def rfftnfreq(dim: Sequence[int], 
-              d: float = 1.0,
-              dtype: Optional[type] = None,
-              device: Optional[torch.device] = None) -> torch.Tensor:
-    """Creates a multidimensional Fourier frequency grid
+def euler_to_quaternion(rot: torch.Tensor,
+                        tilt: torch.Tensor,
+                        psi: torch.Tensor,
+                        out: Optional[torch.Tensor] = None) -> torch.Tensor:
+    
+    # Create the output
+    batch_shape = torch.broadcast_shapes(rot.shape, tilt.shape, psi.shape)
+    result_shape = batch_shape + (4, )
+    dtype = rot.dtype
+    device = rot.device
+    out = torch.empty(result_shape, dtype=dtype, device=device, out=out)
+    
+    # Use halves
+    ai = psi / 2
+    aj = -tilt / 2
+    ak = rot / 2
+    
+    # Obtain sin and cos of the half angles
+    ci = torch.cos(ai)
+    si = torch.sin(ai)
+    cj = torch.cos(aj)
+    sj = torch.sin(aj)
+    ck = torch.cos(ak)
+    sk = torch.sin(ak)
+    
+    # Obtain the combinations
+    ci_ck = ci * ck
+    ci_sk = ci * sk
+    si_ck = si * ck
+    si_sk = si * sk
 
-    Args:
-        dim (Sequence[int]): Image size
-        d (float, optional): Normalization. Defaults to 1.0.
-        dtype (Optional[type], optional): Element type. Defaults to float32.
-        device (Optional[torch.device], optional): Device. Defaults to CPU.
-
-    Returns:
-        torch.Tensor: _description_
-    """
+    # Compute the quaternion values
+    # WXYZ
+    out[...,0] = +cj * (ci_ck - si_sk)
+    out[...,1] = +sj * (ci_sk - si_ck)
+    out[...,2] = -sj * (ci_ck + si_sk)
+    out[...,3] = +cj * (ci_sk + si_ck)
     
-    def fftfreq(dim: int) -> torch.Tensor:
-        return torch.fft.fftfreq(dim, d=d, dtype=dtype, device=device)
-    
-    def rfftfreq(dim: int) -> torch.Tensor:
-        return torch.fft.rfftfreq(dim, d=d, dtype=dtype, device=device)
-    
-    # Compute the frequencies for each axis.
-    # For the last axis use rfft
-    axis_freq = list(map(fftfreq, dim[:-1]))
-    axis_freq.append(rfftfreq(dim[-1]))
-    
-    mesh = torch.meshgrid(*reversed(axis_freq), indexing='xy')
-    return torch.stack(mesh)
-    
-    
+    return out
