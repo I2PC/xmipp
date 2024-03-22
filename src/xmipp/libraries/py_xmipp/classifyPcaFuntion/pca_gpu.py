@@ -228,13 +228,16 @@ class PCAgpu:
                 self.Bvecs = self.vecs_update
    
     
-        # self.error(self.Bvals, self.Bvar, per_eig)
+        self.error(self.Bvals, self.Bvar, per_eig)
         for n in range(self.nBand):
-            trunc = self.Bvecs[0].size(dim=1)*per_eig
+            #Using truncation and no error
+            # trunc = self.Bvecs[0].size(dim=1)*per_eig
+            # self.Bvecs[n] = self.Bvecs[n][:,:(int(trunc+1))]
             # print("eigenvector %s ---- percentage %s" %(int(self.eigs[n]+1), "{:.2f}".format(self.perc[n])))
             #Reshaping Eigenvectors
-            # self.Bvecs[n] = self.Bvecs[n][:,:(int(self.eigs[n]+1))]
-            self.Bvecs[n] = self.Bvecs[n][:,:(int(trunc+1))]
+            self.Bvecs[n] = self.Bvecs[n][:,:(int(self.eigs[n]+1))]
             print(self.Bvecs[n].shape)
 
         return(self.Bmean, self.Bvals, self.Bvecs)
+    
+    
