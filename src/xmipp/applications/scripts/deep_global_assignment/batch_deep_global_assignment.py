@@ -2,7 +2,7 @@
 
 import math
 import numpy as np
-from scipy.ndimage import shift
+from scipy.ndimage import shift, rotate
 import os
 import sys
 import xmippLib
@@ -74,12 +74,17 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
                 # Read all data in memory
                 Nimgs=len(self.angles)
-
-                self.X = np.zeros((Nimgs, self.dim, self.dim, 1), dtype=np.float64)
                 if self.mode=="shift":
-                    self.y = np.zeros((Nimgs, 2), dtype=np.float64)
+                    augNimgs = Nimgs
                 else:
-                    self.y = np.zeros((Nimgs, 6), dtype=np.float64)
+                    augNimgs = Nimgs*4
+
+                self.X = np.zeros((augNimgs, self.dim, self.dim, 1), dtype=np.float64)
+                if self.mode=="shift":
+                    self.y = np.zeros((augNimgs, 2), dtype=np.float64)
+                else:
+                    self.y = np.zeros((augNimgs, 6), dtype=np.float64)
+                augi = 0
                 for i in range(Nimgs):
                     I = xmippLib.Image(self.fnImgs[i]).getData()
                     I = (I - np.mean(I)) / np.std(I)
@@ -88,9 +93,18 @@ class ScriptDeepGlobalAssignment(XmippScript):
                     else:
                         # print(self.fnImgs[i], np.max(I), "shift", -self.shifts[i])
                         I = shift(I, -self.shifts[i], mode='wrap')
-                        self.y[i] = euler_to_rotation6d(self.angles[i])
+                        self.y[augi] = euler_to_rotation6d(self.angles[i])
                     I *= self.mask
-                    self.X[i] = np.reshape(I, (self.dim, self.dim, 1))
+                    self.X[augi] = np.reshape(I, (self.dim, self.dim, 1))
+                    augi+=1
+                    if self.mode == "angles":
+                        for angle in [90, 180, 270]:
+                            rotI = rotate(I, angle, reshape=False)
+                            self.X[augi] = np.reshape(rotI, (self.dim, self.dim, 1))
+                            aux = self.angles[i]
+                            aux[2]+=-angle
+                            self.y[augi] = euler_to_rotation6d(aux)
+                            augi+=1
 
         def get_labels(fnXmd):
             """Returns dimensions, images, angles and shifts values from images files"""
