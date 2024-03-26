@@ -146,6 +146,10 @@ try:
         dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
 
         mask = dist_from_center <= radius
+        return mask
+
+    def create_circular_mask_tf(h, w, center=None, radius=None):
+        mask = create_circular_mask(h, w, center, radius)
         return tf.constant(mask.astype(np.float32).reshape(1, *mask.shape, 1))
 
 
@@ -155,7 +159,7 @@ try:
         # filters = create_blur_filters(16, 16, int(Xdim/2))
         # blurred_images = tf.nn.depthwise_conv2d(input_tensor, filters, strides=[1, 1, 1, 1], padding='SAME')
 
-        mask = create_circular_mask(Xdim, Xdim)
+        mask = create_circular_mask_tf(Xdim, Xdim)
         # masked_blurred_images = blurred_images * mask
         masked_blurred_images = input_tensor * mask
 
