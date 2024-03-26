@@ -89,6 +89,7 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
         itemIds = mdIn.getColumnValues(xmippLib.MDL_ITEM_ID)
         x = mdIn.getColumnValues(xmippLib.MDL_SHIFT_X)
         y = mdIn.getColumnValues(xmippLib.MDL_SHIFT_Y)
+        mask = deepGlobal.create_circular_mask(Xdim, Xdim)
 
         numImgs = len(fnImgs)
         numBatches = numImgs // maxSize
@@ -118,6 +119,7 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
                     if mode=="angles":
                         # print(fnImgs[k], np.max(I), "shift", np.array([-x[k],-y[k]]))
                         I = shift(I, np.array([-x[k],-y[k]]), mode='wrap')
+                    I *= mask
                     X[j, ] =  np.reshape(I, (Xdim, Xdim, 1))
                     k += 1
                 ypred = model.predict(X)

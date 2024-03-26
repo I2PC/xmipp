@@ -64,6 +64,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 self.batch_size = batch_size
                 self.dim = dim
                 self.mode = mode
+                self.mask = deepGlobal.create_circular_mask(dim, dim)
                 self.loadData()
 
             def loadData(self):
@@ -88,6 +89,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
                         # print(self.fnImgs[i], np.max(I), "shift", -self.shifts[i])
                         I = shift(I, -self.shifts[i], mode='wrap')
                         self.y[i] = euler_to_rotation6d(self.angles[i])
+                    I *= self.mask
                     self.X[i] = np.reshape(I, (self.dim, self.dim, 1))
 
         def get_labels(fnXmd):
