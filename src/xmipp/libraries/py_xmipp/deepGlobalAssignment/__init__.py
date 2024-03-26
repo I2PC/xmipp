@@ -156,12 +156,12 @@ try:
     def constructAnglesModel(Xdim):
         input_tensor = Input(shape=(Xdim, Xdim, 1))
 
-        # filters = create_blur_filters(16, 16, int(Xdim/2))
-        # blurred_images = tf.nn.depthwise_conv2d(input_tensor, filters, strides=[1, 1, 1, 1], padding='SAME')
+        filters = create_blur_filters(16, 16, int(Xdim/2))
+        blurred_images = tf.nn.depthwise_conv2d(input_tensor, filters, strides=[1, 1, 1, 1], padding='SAME')
 
         mask = create_circular_mask_tf(Xdim, Xdim)
-        # masked_blurred_images = blurred_images * mask
-        masked_blurred_images = input_tensor * mask
+        masked_blurred_images = blurred_images * mask
+        # masked_blurred_images = input_tensor * mask
 
         kernelSize=11
         x = Conv2D(256, kernelSize, padding='same', strides=2, activation='relu')(masked_blurred_images)
