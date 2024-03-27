@@ -5,8 +5,10 @@ import numpy as np
 from scipy.ndimage import shift, rotate
 import os
 import sys
-import xmippLib
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time
+
+import xmippLib
 from xmipp_base import *
 
 def euler_to_rotation6d(angles):
@@ -30,6 +32,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
         self.addParamsLine('[--precision <s=0.5>]         : Alignment precision measured in pixels')
         self.addParamsLine('[--Nimgs <n=1000>]            : Subset size for training')
         self.addParamsLine('[--mode <mode>]               : Mode: shift, angles')
+        self.addParamsLine('[--numThreads <n=8>]          : Number of threads')
 
     def run(self):
         fnXmd = self.getParam("-i")
@@ -42,6 +45,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
         precision = float(self.getParam("--precision"))
         mode = self.getParam("--mode")
         Nimgs = int(self.getParam('--Nimgs'))
+        numThreads = int(self.getParam('--numThreads'))
 
         from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
 
@@ -108,12 +112,35 @@ class ScriptDeepGlobalAssignment(XmippScript):
             return Xdim, fnImg, angles, img_shift
 
         class AngleGenerator(XmippTrainingSequence):
-            def __init__(self, dataLoader, batch_size, maxSize, randomize):
+            def __init__(self, dataLoader, batch_size, maxSize, randomize, numThreads):
                 self.dataLoader = dataLoader
                 self.batch_size = batch_size
                 self.maxSize = maxSize
                 self.randomize = randomize
-                self.newAugmentation()
+                self.numThreads = numThreads
+                self.newAugmentationParallel()
+
+            def augment_single_image(self, i):
+                sigmaShift = 2
+                shift_x, shift_y = np.random.normal(0, sigmaShift, 2)
+                I = shift(self.dataLoader.X[i], [shift_x, shift_y, 0], mode='wrap')
+                angle = np.random.uniform(0, 360)
+                X = rotate(I, angle, reshape=False)
+                aux = np.copy(self.dataLoader.angles[i])
+                aux[2] += angle
+                y = euler_to_rotation6d(aux)  # Assuming this function is defined elsewhere
+                return X, y
+
+            def newAugmentationParallel(self):
+                Nimgs = len(self.dataLoader.angles)
+                X = np.zeros(self.dataLoader.X.shape)
+                y = np.zeros(self.dataLoader.y.shape)
+
+                with ThreadPoolExecutor(max_workers=self.numThreads) as executor:
+                    futures = [executor.submit(self.augment_single_image, i) for i in range(Nimgs)]
+                    for i, future in enumerate(as_completed(futures)):
+                        X[i], y[i] = future.result()
+                super().__init__(X, y, batch_size, maxSize=self.maxSize, randomize=self.randomize)
 
             def newAugmentation(self):
                 X = np.zeros(self.dataLoader.X.shape)
@@ -138,7 +165,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 np.set_printoptions(threshold=sys.maxsize)
                 print(ypred[i])
 
-        def trainModel(model, dataLoader, Nimgs, mode, modeprec, fnThisModel, lossFunction):
+        def trainModel(model, dataLoader, Nimgs, mode, modeprec, fnThisModel, lossFunction, numThreads=1):
             adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
             sys.stdout.flush()
             if lossFunction is not None:
@@ -147,7 +174,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
             if mode=="shift":
                 generator = XmippTrainingSequence(dataLoader.X, dataLoader.y, batch_size, maxSize=Nimgs, randomize=True)
             else:
-                generator = AngleGenerator(dataLoader, batch_size, maxSize=Nimgs, randomize=False)
+                generator = AngleGenerator(dataLoader, batch_size, maxSize=Nimgs, randomize=True, numThreads=numThreads)
 
             # generator.shuffle_data()
 
@@ -167,7 +194,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 loss = history.history['loss'][-1]
                 print("Epoch %d loss=%f trainingTime=%d" % (epoch, loss, int(end_time-start_time)), flush=True)
                 if mode=="angles":
-                    generator.newAugmentation()
+                    generator.newAugmentationParallel()
                 # testModel(model, training_generator.X, training_generator.y)
                 if loss < modeprec:
                     break
@@ -194,7 +221,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
                     print("Learning angular assignment")
                     model = deepGlobal.constructAnglesModel(Xdim)
                     model.summary()
-                    trainModel(model, dataLoader, Nimgs, mode, precision, fnModelIndex, angularLoss)
+                    trainModel(model, dataLoader, Nimgs, mode, precision, fnModelIndex, angularLoss, numThreads)
         except Exception as e:
             print(e)
             sys.exit(1)
