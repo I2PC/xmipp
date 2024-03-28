@@ -164,12 +164,12 @@ try:
         # masked_blurred_images = input_tensor * mask
 
         kernelSize=11
-        x = Conv2D(256, kernelSize, padding='same', strides=2, activation='relu')(masked_blurred_images)
+        x = Conv2D(16, kernelSize, padding='same', strides=2, activation='relu')(masked_blurred_images)
         x = Conv2D(16, 1, padding='same', activation='relu')(x)
-        x = MaxPooling2D(pool_size=(2, 2))(x)
-        x = Conv2D(128, kernelSize, padding='same', strides=2, activation='relu')(x)
+        # x = MaxPooling2D(pool_size=(2, 2))(x)
+        x = Conv2D(16, kernelSize, padding='same', strides=2, activation='relu')(x)
         x = Conv2D(16, 1, padding='same', activation='relu')(x)
-        x = MaxPooling2D(pool_size=(2, 2))(x)
+        # x = MaxPooling2D(pool_size=(2, 2))(x)
         x = Flatten()(x)
         x = Dense(256, activation='relu')(x)
         x = Dense(64, activation='relu')(x)
