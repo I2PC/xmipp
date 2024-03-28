@@ -73,7 +73,7 @@ def modeCleanDeprecated(args: argparse.Namespace):
 	"""
 	pass
 
-def modeCompileAndInstall(args: argparse.Namespace, configDict={}):
+def modeCompileAndInstall(args: argparse.Namespace):
 	"""
 	### Checks the params for execution mode "compileAndInstall" and then runs it.
 	
@@ -151,7 +151,7 @@ def modeAll(args: argparse.Namespace):
 		logger.logError("There were errors configuring with CMake. Errors are shown above.", retCode=retCode)
 
 	# Compile and install
-	modeCompileAndInstall(args, configDict=configDict)
+	modeCompileAndInstall(args)
 
 
 def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
