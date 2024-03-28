@@ -27,12 +27,12 @@ This module contains the necessary functions to run most installer commands.
 
 # General imports
 import os
-from typing import Tuple
+from typing import Tuple, Dict
 
 # Module imports
 from .utils import runJob
 from .logger import logger, yellow
-from .constants import REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH
+from .constants import REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH, CONFIG_DEFAULT_VALUES
 
 ####################### COMMAND FUNCTIONS #######################
 def getSources(branch: str=None):
@@ -48,6 +48,19 @@ def getSources(branch: str=None):
 		if retCode:
 			logger.logError(f"Error getting xmipp sources ({retCode}):\n{output}", retCode=retCode)
 			break
+
+def getCMakeVarsStr(configDict: Dict) -> str:
+	"""
+	### This function converts the variables in the config dictionary into a string as CMake args.
+	
+	#### Params:
+	- configDict (dict): Dictionary to obtain the parameters from.
+	"""
+	cmakeParams = []
+	for variable in CONFIG_DEFAULT_VALUES.keys():
+		if variable in configDict and configDict[variable] != '':
+			cmakeParams.append(f"-D{variable}={configDict[variable]}")
+	return ' '.join(cmakeParams)
 
 ####################### AUX FUNCTIONS #######################
 def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str]:

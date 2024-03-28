@@ -30,9 +30,11 @@ import argparse, sys, os, multiprocessing
 from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,
 	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS, MODE_TEST, MODE_GIT,
 	MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, CONFIG_FILE)
-from installer.utils import printError
+from installer.utils import printError, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
 from installer.config import readConfig, writeConfig
+from installer.main import getCMakeVarsStr, getSources
+from installer.logger import logger
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
@@ -71,14 +73,15 @@ def modeCleanDeprecated(args: argparse.Namespace):
 	"""
 	pass
 
-def modeCompileAndInstall(args: argparse.Namespace, dictConfig=None):
+def modeCompileAndInstall(args: argparse.Namespace, configDict={}):
 	"""
 	### Checks the params for execution mode "compileAndInstall" and then runs it.
 	
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	pass
+	# Configure with CMake
+	retCode, output = runJob(f"cmake --build build/ --config Release -j {args.jobs}", showCommand=True, showOutput=True, showError=True, streaming=True)
 
 def modeConfig():
 	"""
@@ -136,7 +139,20 @@ def modeAll(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	pass
+	# Read and/or write variables from config file
+	configDict = modeConfig()
+
+	# Clone sources from specified branch
+	getSources(branch=args.branch)
+
+	# Configure with CMake
+	retCode, _ = runJob(f"cmake -S . -B build/ -DCMAKE_BUILD_TYPE=Release {getCMakeVarsStr(configDict)}", showCommand=True, showOutput=True, showError=True, streaming=True)
+	if retCode:
+		logger.logError("There were errors configuring with CMake. Errors are shown above.", retCode=retCode)
+
+	# Compile and install
+	modeCompileAndInstall(args, configDict=configDict)
+
 
 def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
 	"""
