@@ -61,7 +61,7 @@ MODES = {
 		MODE_ALL: 'Default param. Runs config, and compileAndInstall.'
 	},
 	GROUP_CONFIG: {
-		MODE_CONFIG: 'Generates and check the config file based on system information.',
+		MODE_CONFIG: 'Generates a config file template with default values.',
 	},
 	GROUP_DOWNLOADS: {
 		MODE_GET_MODELS: f'Download the DeepLearning Models at dir/models ({DEFAULT_MODELS_DIR} by default).'

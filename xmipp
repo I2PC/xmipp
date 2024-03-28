@@ -80,7 +80,7 @@ def modeCompileAndInstall(args: argparse.Namespace, dictConfig=None):
 	"""
 	pass
 
-def modeConfig(args: argparse.Namespace):
+def modeConfig():
 	"""
 	### Checks the params for execution mode "config" and then runs it.
 	
@@ -159,7 +159,7 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	elif args.mode == MODE_COMPILE_AND_INSTALL:
 		modeCompileAndInstall(args)
 	elif args.mode == MODE_CONFIG:
-		modeConfig(args)
+		modeConfig()
 	elif args.mode == MODE_GET_MODELS:
 		modeGetModels(args)
 	elif args.mode == MODE_GIT:

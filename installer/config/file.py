@@ -109,4 +109,6 @@ def writeConfig(path: str):
     lines.append("# If left empty, CMake will search for those packages within your system.\n")
     for location in CONFIG_VARIABLES[LOCATIONS]:
       lines.append(__makeConfigLine(location, CONFIG_DEFAULT_VALUES[location]) + '\n')
+
+    lines.append(f"\n# Config file automatically generated on {datetime.today()}\n")
     configFile.writelines(lines)
