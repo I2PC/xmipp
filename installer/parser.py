@@ -193,12 +193,13 @@ def textWithLimits(previousText: str, text: str) -> str:
 	return previousText + fillInSpace + formattedHelp + '\n'
 
 ####################### HELP FUNCTIONS #######################
-def getModeHelp(mode: str) -> str:
+def getModeHelp(mode: str, general: bool=True) -> str:
 	"""
 	### This method returns the help message of a given mode.
 
 	### Params:
 	- mode (str): Mode to get help text for.
+	- general (bool). Optional. If True, only the general help message is displayed.
 
 	### Returns:
 	(str): Help of the mode (empty if mode not found).
@@ -206,7 +207,11 @@ def getModeHelp(mode: str) -> str:
 	# Find mode group containing current mode
 	for group in list(MODES.keys()):
 		if mode in list(MODES[group].keys()):
-			return MODES[group][mode]
+			messageList = MODES[group][mode]
+			if general:
+				return messageList[0]
+			else:
+				return '\n'.join(messageList)
 	
 	# If it was not found, return empty string
 	return ''
@@ -345,7 +350,7 @@ class ModeHelpFormatter(argparse.HelpFormatter):
 		mode = self._prog.split(' ')[-1]
 
 		# Initialize the help message
-		helpMessage = getModeHelp(mode) + '\n\n'
+		helpMessage = getModeHelp(mode, general=False) + '\n\n'
 
 		# Get mode args
 		args = list(MODE_ARGS[mode].keys())
