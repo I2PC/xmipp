@@ -479,9 +479,7 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
 		// Z-SCORE THRESHOLDING ----------------------------------------------
 		std::vector<int> sliceVector;
-		std::vector<int> sliceVectorL;
-		std::vector<int> sliceVectorR;
-
+		
 		for (size_t i = 0; i < ySize_d; i++)
 		{
 			Point2D<int> il = interLim[i];
@@ -512,90 +510,11 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
         double thresholdU = average + thrSD * standardDeviation;
 
-		// for (size_t i = 0; i < ySize_d; i++)
-		// {
-		// 	Point2D<int> il = interLim[i];
-
-		// 	for (size_t j = il.x; j < il.y; ++j)
-		// 	{
-		// 		if (j<xSize_d/2)
-		// 		{
-		// 			sliceVectorL.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j));
-		// 		}
-		// 		else
-		// 		{
-		// 			sliceVectorR.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j));
-		// 		}
-				
-		// 	}
-		// }
-
-        // double sum = 0;
-		// double sum2 = 0;
-        // int Nelems = 0;
-        // double average = 0;
-        // double standardDeviation = 0;
-        // double sliceVectorSize = sliceVector.size();
-
-        // for(size_t e = 0; e < sliceVectorSize; e++)
-        // {
-        //     int value = sliceVector[e];
-        //     sum += value;
-        //     sum2 += value*value;
-        //     ++Nelems;
-        // }
-
-		// double sum = 0;
-		// double sum2 = 0;
-        // int Nelems = 0;
-        // double average = 0;
-        // double standardDeviation = 0;
-        // double sliceVectorSizeL = sliceVectorL.size();
-
-        // for(size_t e = 0; e < sliceVectorSizeL; e++)
-        // {
-        //     int value = sliceVectorL[e];
-        //     sum += value;
-        //     sum2 += value*value;
-        //     ++Nelems;
-        // }
-
-        // average = sum / sliceVectorSizeL;
-        // standardDeviation = sqrt(sum2/Nelems - average*average);
-
-        // double thresholdUL= average + thrSD * standardDeviation;
-
-		// #ifdef DEBUG_HCC
-		// std::cout << "------------------------------------------------------" << std::endl;
-		// std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << std::endl;
-		// std::cout << "thresholdUL: " << thresholdUL << std::endl;
-        // #endif
-
-		// sum = 0;
-		// sum2 = 0;
-        // Nelems = 0;
-        // average = 0;
-        // standardDeviation = 0;
-        // double sliceVectorSizeR = sliceVectorR.size();
-
-        // for(size_t e = 0; e < sliceVectorSizeR; e++)
-        // {
-        //     int value = sliceVectorR[e];
-        //     sum += value;
-        //     sum2 += value*value;
-        //     ++Nelems;
-        // }
-
-        // average = sum / sliceVectorSizeR;
-        // standardDeviation = sqrt(sum2/Nelems - average*average);
-
-        // double thresholdUR= average + thrSD * standardDeviation;
-
-        // #ifdef DEBUG_HCC
-		// std::cout << "------------------------------------------------------" << std::endl;
-		// std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << std::endl;
-		// std::cout << "thresholdUR: " << thresholdUR << std::endl;
-        // #endif
+		#ifdef DEBUG_HCC
+		std::cout << "------------------------------------------------------" << std::endl;
+		std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << std::endl;
+		std::cout << "thresholdU: " << thresholdU << std::endl;
+        #endif
 
 		tiltImage.initZeros(ySize_d, xSize_d);
 
@@ -612,25 +531,7 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
             }
         }
 
-		// for(size_t i = 0; i < ySize_d; i++)
-        // {
-        //     for(size_t j = 0; j < xSize_d; ++j)
-        //     {
-        //         double value = DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j);
-
-        //         if (value > thresholdUL && j < xSize_d)
-        //         {
-		// 			DIRECT_A2D_ELEM(tiltImage, i, j) = value;
-        //         }
-
-		// 		if (value > thresholdUR && j > xSize_d)
-        //         {
-		// 			DIRECT_A2D_ELEM(tiltImage, i, j) = value;
-        //         }
-        //     }
-        // }
-
-		// MAX POOLING ------------------------------------------------
+				// MAX POOLING ------------------------------------------------
 		maxPooling(tiltImage, targetFS);
 		filterFourierDirections(tiltImage);
 
@@ -752,6 +653,8 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
                 }
             }
         }
+
+		computeAvgStddev
 
         size_t numberOfCoordinatesPerValue;
 
