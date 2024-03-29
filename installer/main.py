@@ -32,7 +32,9 @@ from typing import Tuple, Dict
 # Module imports
 from .utils import runJob
 from .logger import logger, yellow
-from .constants import REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH, CONFIG_DEFAULT_VALUES, SOURCE_CLONE_ERROR
+from .constants import REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH, CONFIG_DEFAULT_VALUES, SOURCE_CLONE_ERROR, CONFIG_FILE, INTERNAL_LOGIC_VARS
+from .api import sendApiPOST
+from .config import readConfig
 
 ####################### COMMAND FUNCTIONS #######################
 def getSources(branch: str=None):
@@ -58,7 +60,7 @@ def getCMakeVarsStr(configDict: Dict) -> str:
 	"""
 	cmakeParams = []
 	for variable in CONFIG_DEFAULT_VALUES.keys():
-		if variable in configDict and configDict[variable] != '':
+		if variable in configDict and variable not in INTERNAL_LOGIC_VARS and configDict[variable] != '':
 			cmakeParams.append(f"-D{variable}={configDict[variable]}")
 	return ' '.join(cmakeParams)
 
@@ -75,7 +77,8 @@ def exitWithError(message: str="", retCode: int=1, sendAPI: bool=False):
 	logger.logError(message, retCode=retCode)
 	
 	# Send API message
-
+	if sendAPI:
+		sendApiPOST(readConfig(CONFIG_FILE), retCode=retCode)
 
 	# End execution
 	sys.exit(retCode)

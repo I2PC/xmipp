@@ -22,6 +22,7 @@
 # ***************************************************************************/
 
 # Variable names
+SEND_INSTALLATION_STATISTICS = 'SEND_INSTALLATION_STATISTICS'
 GCC_HOME = 'CMAKE_C_COMPILER'
 GXX_HOME = 'CMAKE_CXX_COMPILER'
 CUDA = 'XMIPP_USE_CUDA'
@@ -39,7 +40,7 @@ TOGGLES = 'toggles'
 LOCATIONS = 'locations'
 CONFIG_VARIABLES = {
 	TOGGLES: [
-		CUDA, MPI
+		SEND_INSTALLATION_STATISTICS, CUDA, MPI
 	],
 	LOCATIONS: [
 		GCC_HOME, GXX_HOME, MPI_HOME, PYTHON_HOME, FFTW_HOME,
@@ -50,6 +51,7 @@ CONFIG_VARIABLES = {
 ON = 'ON'
 OFF = 'OFF'
 CONFIG_DEFAULT_VALUES = {
+	SEND_INSTALLATION_STATISTICS: ON,
 	CUDA: ON,
 	MPI: ON,
 	GCC_HOME: None,
@@ -63,16 +65,5 @@ CONFIG_DEFAULT_VALUES = {
 	SQLITE_HOME: None
 }
 
-"""
-[-D XMIPP_USE_CUDA=ON/OFF] # Por defecto ON
-[-D XMIPP_USE_MPI=ON/OFF] # Por defecto ON
-[-D CMAKE_C_COMPILER=/path/to/gcc]
-[-D CMAKE_CXX_COMPILER=/path/to/g++]
-[-D Python3_ROOT_DIR=/path/to/python/root] # No al ejecutable
-[-D MPI_HOME=/path/to/mpi/root] 
-[-D FFTW_ROOT=/path/to/fftw/root]
-[-D TIFF_ROOT=/path/to/tiff/root]
-[-D HDF5_ROOT=/path/to/hdf5/root]
-[-D JPEG_ROOT=/path/to/jpeg/root]
-[-D SQLite_ROOT=/path/to/sqlite/root]
-"""
+# Do not pass this variables to CMake, only for installer logic
+INTERNAL_LOGIC_VARS = [SEND_INSTALLATION_STATISTICS]

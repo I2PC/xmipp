@@ -35,7 +35,6 @@ from installer.utils import printError, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
 from installer.config import readConfig, writeConfig
 from installer.main import getCMakeVarsStr, getSources, exitWithError
-from installer.logger import logger
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
@@ -91,14 +90,14 @@ def modeCompileAndInstall(args: argparse.Namespace):
 	if retCode:
 		exitWithError(retCode=CMAKE_INSTALL_ERROR, sendAPI=True)
 
-def modeConfig():
+def modeConfig(overwrite: bool=False):
 	"""
 	### Checks the params for execution mode "config" and then runs it.
 	
 	#### Params:
-	- args (Namespace): Command line arguments parsed by argparse library.
+	- overwrite (bool): If True, file is created from scratch with default values.
 	"""
-	if not os.path.exists(CONFIG_FILE):
+	if overwrite or not os.path.exists(CONFIG_FILE):
 		writeConfig(CONFIG_FILE)
 	
 	return readConfig(CONFIG_FILE)
@@ -182,7 +181,7 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	elif args.mode == MODE_COMPILE_AND_INSTALL:
 		modeCompileAndInstall(args)
 	elif args.mode == MODE_CONFIG:
-		modeConfig()
+		modeConfig(overwrite=True)
 	elif args.mode == MODE_GET_MODELS:
 		modeGetModels(args)
 	elif args.mode == MODE_GIT:
