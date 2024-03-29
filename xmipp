@@ -29,11 +29,12 @@ import argparse, sys, os, multiprocessing
 # Installer imports
 from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,
 	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS, MODE_TEST, MODE_GIT,
-	MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, CONFIG_FILE)
+	MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, CONFIG_FILE,
+	CMAKE_CONFIGURE_ERROR, CMAKE_COMPILE_ERROR, CMAKE_INSTALL_ERROR)
 from installer.utils import printError, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
 from installer.config import readConfig, writeConfig
-from installer.main import getCMakeVarsStr, getSources
+from installer.main import getCMakeVarsStr, getSources, exitWithError
 from installer.logger import logger
 
 ####################### EXECUTION MODES #######################
@@ -80,8 +81,15 @@ def modeCompileAndInstall(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	# Configure with CMake
-	retCode, output = runJob(f"cmake --build build/ --config Release -j {args.jobs}", showCommand=True, showOutput=True, showError=True, streaming=True)
+	# Compile with CMake
+	retCode, _ = runJob(f"cmake --build build/ --config Release -j {args.jobs}", showCommand=True, showOutput=True, showError=True, streaming=True)
+	if retCode:
+		exitWithError(retCode=CMAKE_COMPILE_ERROR, sendAPI=True)
+	
+	# Install with CMake
+	retCode, _ = runJob("cmake --install build/ --config Debug --prefix dist/", showCommand=True, showOutput=True, showError=True, streaming=True)
+	if retCode:
+		exitWithError(retCode=CMAKE_INSTALL_ERROR, sendAPI=True)
 
 def modeConfig():
 	"""
@@ -148,11 +156,10 @@ def modeAll(args: argparse.Namespace):
 	# Configure with CMake
 	retCode, _ = runJob(f"cmake -S . -B build/ -DCMAKE_BUILD_TYPE=Release {getCMakeVarsStr(configDict)}", showCommand=True, showOutput=True, showError=True, streaming=True)
 	if retCode:
-		logger.logError("There were errors configuring with CMake. Errors are shown above.", retCode=retCode)
+		exitWithError(retCode=CMAKE_CONFIGURE_ERROR, sendAPI=True)
 
 	# Compile and install
 	modeCompileAndInstall(args)
-
 
 def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
 	"""

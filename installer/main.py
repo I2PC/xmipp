@@ -26,13 +26,13 @@ This module contains the necessary functions to run most installer commands.
 """
 
 # General imports
-import os
+import os, sys
 from typing import Tuple, Dict
 
 # Module imports
 from .utils import runJob
 from .logger import logger, yellow
-from .constants import REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH, CONFIG_DEFAULT_VALUES
+from .constants import REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH, CONFIG_DEFAULT_VALUES, SOURCE_CLONE_ERROR
 
 ####################### COMMAND FUNCTIONS #######################
 def getSources(branch: str=None):
@@ -46,7 +46,7 @@ def getSources(branch: str=None):
 	for source in XMIPP_SOURCES:
 		retCode, output = __cloneSourceRepo(REPOSITORIES[source][0], path=SOURCES_PATH, branch=branch)
 		if retCode:
-			logger.logError(f"Error getting xmipp sources ({retCode}):\n{output}", retCode=retCode)
+			logger.logError(f"Error getting xmipp sources ({retCode}):\n{output}", retCode=SOURCE_CLONE_ERROR)
 			break
 
 def getCMakeVarsStr(configDict: Dict) -> str:
@@ -61,6 +61,24 @@ def getCMakeVarsStr(configDict: Dict) -> str:
 		if variable in configDict and configDict[variable] != '':
 			cmakeParams.append(f"-D{variable}={configDict[variable]}")
 	return ' '.join(cmakeParams)
+
+def exitWithError(message: str="", retCode: int=1, sendAPI: bool=False):
+	"""
+	### This function converts the variables in the config dictionary into a string as CMake args.
+	
+	#### Params:
+	- message (str): Optional. Error message to display. If the return code is known, can be left empty.
+	- retCode (int): Optional. Error code.
+	- sendAPI (bool): Optional. If True, an API message is sent to collect statistics.
+	"""
+	# Show error
+	logger.logError(message, retCode=retCode)
+	
+	# Send API message
+
+
+	# End execution
+	sys.exit(retCode)
 
 ####################### AUX FUNCTIONS #######################
 def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str]:

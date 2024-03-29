@@ -31,6 +31,13 @@ from .main import CMAKE_INSTALL_DOCS_URL
 # Error codes
 OK = 0
 UNKOW_ERROR = 1
+SOURCE_CLONE_ERROR = 2
+CMAKE_ERROR = 3
+CMAKE_CONFIGURE_ERROR = 4
+CMAKE_COMPILE_ERROR = 5
+CMAKE_INSTALL_ERROR = 6
+IO_ERROR = 7
+"""
 GCC_VERSION_ERROR = 4
 CC_NO_EXIST_ERROR = 5
 CXX_NO_EXIST_ERROR = 6
@@ -80,19 +87,13 @@ INSTALLATION_ERROR = 48
 XMIPP_MODE_ERROR = 50
 MAKE_ERROR = 51
 MAKE_VERSION_ERROR = 52
+"""
 
 # Warning codes
 MATLAB_WARNING = 1
 MATLAB_HOME_WARNING = 2
 CUDA_VERSION_WARNING = 3
 CUDA_WARNING = 4
-OPENCV_WARNING = 5
-OPENCV_CUDA_WARNING = 6
-STARPU_INCLUDE_WARNING = 7
-STARPU_LIB_WARNING = 8
-STARPU_LIBRARY_WARNING = 9
-STARPU_RUN_WARNING = 10
-STARPU_CUDA_WARNING = 11
 GIT_PULL_WARNING = 12
 SCIPION_LINK_WARNING = 13
 CLEANING_SOURCES_WARNING = 14
@@ -101,7 +102,17 @@ NETWORK_WARINING = 17
 CUDA_NOT_IN_PATH_WARNING = 18
 
 # Error messages
-#TODO review the messages spelling, maybe more links to the documentation?
+CHECK_ABOVE_MESSAGE = 'Check the error displayed above.'
+ERROR_CODE = {
+	UNKOW_ERROR: ['Unkonw error.', ''],
+	SOURCE_CLONE_ERROR: ['Error cloning xmipp repository with git.', 'Please review the internet connection and the git package.'],
+	CMAKE_ERROR: ['', f'Please install or review your CMake version by following the instructions at {CMAKE_INSTALL_DOCS_URL}\033[0m'],
+	CMAKE_CONFIGURE_ERROR: ['Error configuring with CMake.', CHECK_ABOVE_MESSAGE],
+	CMAKE_COMPILE_ERROR: ['Error compiling with CMake.', CHECK_ABOVE_MESSAGE],
+	CMAKE_INSTALL_ERROR: ['Error installing with CMake.', CHECK_ABOVE_MESSAGE],
+	IO_ERROR: ['Input/output error.', 'This error can be caused by the installer not being able to read/write/create/delete a file. Check your permissions on this directory.']
+}
+"""
 ERROR_CODE = {
 	UNKOW_ERROR: ['Unkonw error.', ''],
 	GCC_VERSION_ERROR: ['gcc version not valid.', 'The version of gcc is lower than minimum, please review the requirements.'],
@@ -151,6 +162,7 @@ ERROR_CODE = {
 	MAKE_VERSION_ERROR: ['Version of make not valid', 'Please update your Make version by following the instructions'],
 	MAKE_ERROR: ['make package not found','Please install or review your Make version']
 }
+"""
 
 # Warning messages
 WARNING_CODE = {
@@ -158,17 +170,6 @@ WARNING_CODE = {
 	MATLAB_HOME_WARNING: ['MATLAB_HOME path not found.', 'Please review the MATLAB_HOME path.MATLAB flag set to False on the xmipp.conf file.'],
 	CUDA_VERSION_WARNING: ['CUDA version not compatible with your g++ compiler.', 'Please update CUDA or update the compiler. CUDA flag set to False on xmipp.conf.'],
 	CUDA_WARNING: ['CUDA not found.', 'Please review the CUDA_HOME flag on your xmipp.conf file.'],
-	OPENCV_WARNING: ['OpenCV does not work.',
-									 'OPENCV flag was set to False and will not be used inside Xmipp.',
-									 'Please review your Opencv installation.'],
-	OPENCV_CUDA_WARNING: ['OpenCV CUDA support does not work.',
-													'OPENCVCUDASUPPORTS flag set to False and will not be used inside Xmipp.',
-													'Please review your Opencv installation.'],
-	STARPU_CUDA_WARNING: ['CUDA must be enabled together with STARPU.', 'Set STARPU flag to False on xmipp.conf'],
-	STARPU_INCLUDE_WARNING: ['', 'Set STARPU flag to False on xmipp.conf'],
-	STARPU_LIB_WARNING: ['', 'Set STARPU flag to False on xmipp.conf'],
-	STARPU_LIBRARY_WARNING: ["STARPU_LIBRARY must be specified (link library name).", 'Set STARPU flag to False on xmipp.conf'],
-	STARPU_RUN_WARNING: ["Check STARPU_* settings.", 'Set STARPU flag to False on xmipp.conf'],
 	GIT_PULL_WARNING: ['git pull command fail, pull not runned.', 'Please review your internet connection and git package'],
 	SCIPION_LINK_WARNING: ['No scipion3 found.', 'If you intended to use Xmipp in the Scipion framework, compile Xmipp with Scipion "./scipion3 run ./xmipp" or check the binding at SCIPION_HOME/software/bindings...'],
 	CLEANING_SOURCES_WARNING: ['Cleaning source warning', ''],
