@@ -36,9 +36,6 @@
 .idea
 .vscode
 
-# Scons auxiliary files
-.sconsign.dblite
-
 # Other
 gmon.out
 *~
@@ -49,8 +46,10 @@ gmon.out
 .settings
 
 # ignore everything in src folder
-/build/*
-/src/*
+/build
+/src
+/dist
+
 # except xmipp folder
 !/src/xmipp/
 !/src/CMakeLists.txt
@@ -73,6 +72,3 @@ compile_commands.json
 compileLOG.txt
 reportInstallation.tar.gz
 xmipp_version.txt
-
-# Compilation database
-compile_commands.json
