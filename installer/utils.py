@@ -33,7 +33,7 @@ from io import FileIO
 from subprocess import Popen, PIPE
 
 # Installer imports
-from .constants import (MODES, XMIPP, VERNAME_KEY, CMD_OUT_LOG_FILE,
+from .constants import (XMIPP, VERNAME_KEY, CMD_OUT_LOG_FILE,
 	CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, XMIPP_VERSIONS)
 from .logger import blue, red, logger
 
@@ -133,35 +133,6 @@ def runParallelJobs(funcs: List[Tuple[Callable, Tuple[Any]]], nJobs: int=multipr
 	
 	# Return obtained result list
 	return results
-
-####################### EXECUTION MODE FUNCTIONS #######################
-def getModeGroups() -> List[str]:
-	"""
-	### Returns all the group names of all the available execution modes.
-	
-	#### Returns:
-	- (List[str]): List of all mode groups.
-	"""
-	return list(MODES.keys())
-
-def getAllModes() -> List[str]:
-	"""
-	### Returns all the available execution modes.
-	
-	#### Returns:
-	- (List[str]): List of all available modes.
-	"""
-	# Defining empty list to store modes
-	modes = []
-
-	# For each mode group, obtain mode names
-	for modeGroup in getModeGroups():
-		for mode in list(MODES[modeGroup].keys()):
-			# Add mode to list
-			modes.append(mode)
-	
-	# Return full mode list
-	return modes
 
 ####################### GIT FUNCTIONS #######################
 def getCurrentBranch(dir: str='./') -> str:
