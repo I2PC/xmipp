@@ -479,6 +479,8 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
 		// Z-SCORE THRESHOLDING ----------------------------------------------
 		std::vector<int> sliceVector;
+		std::vector<int> sliceVectorL;
+		std::vector<int> sliceVectorR;
 
 		for (size_t i = 0; i < ySize_d; i++)
 		{
@@ -510,11 +512,90 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
         double thresholdU = average + thrSD * standardDeviation;
 
-        #ifdef DEBUG_HCC
-		std::cout << "------------------------------------------------------" << std::endl;
-		std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << std::endl;
-		std::cout << "thresholdU: " << thresholdU << std::endl;
-        #endif
+		// for (size_t i = 0; i < ySize_d; i++)
+		// {
+		// 	Point2D<int> il = interLim[i];
+
+		// 	for (size_t j = il.x; j < il.y; ++j)
+		// 	{
+		// 		if (j<xSize_d/2)
+		// 		{
+		// 			sliceVectorL.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j));
+		// 		}
+		// 		else
+		// 		{
+		// 			sliceVectorR.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j));
+		// 		}
+				
+		// 	}
+		// }
+
+        // double sum = 0;
+		// double sum2 = 0;
+        // int Nelems = 0;
+        // double average = 0;
+        // double standardDeviation = 0;
+        // double sliceVectorSize = sliceVector.size();
+
+        // for(size_t e = 0; e < sliceVectorSize; e++)
+        // {
+        //     int value = sliceVector[e];
+        //     sum += value;
+        //     sum2 += value*value;
+        //     ++Nelems;
+        // }
+
+		// double sum = 0;
+		// double sum2 = 0;
+        // int Nelems = 0;
+        // double average = 0;
+        // double standardDeviation = 0;
+        // double sliceVectorSizeL = sliceVectorL.size();
+
+        // for(size_t e = 0; e < sliceVectorSizeL; e++)
+        // {
+        //     int value = sliceVectorL[e];
+        //     sum += value;
+        //     sum2 += value*value;
+        //     ++Nelems;
+        // }
+
+        // average = sum / sliceVectorSizeL;
+        // standardDeviation = sqrt(sum2/Nelems - average*average);
+
+        // double thresholdUL= average + thrSD * standardDeviation;
+
+		// #ifdef DEBUG_HCC
+		// std::cout << "------------------------------------------------------" << std::endl;
+		// std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << std::endl;
+		// std::cout << "thresholdUL: " << thresholdUL << std::endl;
+        // #endif
+
+		// sum = 0;
+		// sum2 = 0;
+        // Nelems = 0;
+        // average = 0;
+        // standardDeviation = 0;
+        // double sliceVectorSizeR = sliceVectorR.size();
+
+        // for(size_t e = 0; e < sliceVectorSizeR; e++)
+        // {
+        //     int value = sliceVectorR[e];
+        //     sum += value;
+        //     sum2 += value*value;
+        //     ++Nelems;
+        // }
+
+        // average = sum / sliceVectorSizeR;
+        // standardDeviation = sqrt(sum2/Nelems - average*average);
+
+        // double thresholdUR= average + thrSD * standardDeviation;
+
+        // #ifdef DEBUG_HCC
+		// std::cout << "------------------------------------------------------" << std::endl;
+		// std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << std::endl;
+		// std::cout << "thresholdUR: " << thresholdUR << std::endl;
+        // #endif
 
 		tiltImage.initZeros(ySize_d, xSize_d);
 
@@ -531,11 +612,34 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
             }
         }
 
+		// for(size_t i = 0; i < ySize_d; i++)
+        // {
+        //     for(size_t j = 0; j < xSize_d; ++j)
+        //     {
+        //         double value = DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j);
+
+        //         if (value > thresholdUL && j < xSize_d)
+        //         {
+		// 			DIRECT_A2D_ELEM(tiltImage, i, j) = value;
+        //         }
+
+		// 		if (value > thresholdUR && j > xSize_d)
+        //         {
+		// 			DIRECT_A2D_ELEM(tiltImage, i, j) = value;
+        //         }
+        //     }
+        // }
+
 		// MAX POOLING ------------------------------------------------
 		maxPooling(tiltImage, targetFS);
 		filterFourierDirections(tiltImage);
 
-		// Save max-pooled tilt-series  
+		CorrelationAux aux;
+		MultidimArray<double> imageTmp;
+		imageTmp = tiltImage;
+		correlation_matrix(imageTmp, landmarkReference_FTdir, tiltImage, aux, true);
+
+		// Save equalized tilt-series  
 		for(size_t i = 0; i < ySize_d; i++)
         {
  			Point2D<int> il = interLim[i];
@@ -577,13 +681,40 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 		// LABELLING --------------------------------------------------------------------
 		binaryCoordinatesMapSlice.initZeros(ySize_d, xSize_d);
 
+		double avg;
+		double std;
+
+		sum = 0;
+		sum2 = 0;
+        Nelems = 0;
+        average = 0;
+        standardDeviation = 0;
+
 		for(size_t i = 0; i < ySize_d; i++)
         {
  			Point2D<int> il = interLim[i];
 
             for(size_t j = il.x; j < il.y; ++j)
             {
-				if (DIRECT_A2D_ELEM(tiltImage, i, j) > 3)
+				int value = DIRECT_A2D_ELEM(tiltImage, i, j);
+				sum += value;
+				sum2 += value*value;
+				++Nelems;
+            }
+        }
+
+        average = sum / sliceVectorSize;
+        standardDeviation = sqrt(sum2/Nelems - average*average);
+		
+		std::vector<int> dataVector;
+
+		for(size_t i = 0; i < ySize_d; i++)
+        {
+ 			Point2D<int> il = interLim[i];
+
+            for(size_t j = il.x; j < il.y; ++j)
+            {
+				if (DIRECT_A2D_ELEM(tiltImage, i, j) > average + thrSD * standardDeviation)
 				{
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
 				}
@@ -1078,6 +1209,7 @@ void ProgTomoDetectLandmarks::run()
 	// Create phantom for landmark reference
     createLandmarkTemplate();
 	createLandmarkTemplate_Gaussian();
+	createLandmarkTemplate_FTdir();
 
 	for(size_t objId : tiltseriesmd.ids())
 	{
@@ -1299,7 +1431,7 @@ void ProgTomoDetectLandmarks::createLandmarkTemplate()
     size_t li = fnOut.find_last_of("\\/");
 	std::string rn = fnOut.substr(0, li);
 	std::string outFN;
-    outFN = rn + "/landmarkReference.mrcs";
+    outFN = rn + "/landmarkReference.mrc";
 
 	Image<double> si;
 	si() = landmarkReference;
@@ -1312,22 +1444,24 @@ void ProgTomoDetectLandmarks::createLandmarkTemplate_Gaussian()
 	// Generate first reference
     int targetFS_half = 1.1*(targetFS/2);
     int targetFS_half_sq = targetFS_half*targetFS_half;
+	int targetFS_sq = targetFS * targetFS;
 
     landmarkReference_Gaussian.initZeros(ySize_d, xSize_d);
     landmarkReference_Gaussian.initConstant(1);
 
-	double sigma = targetFS_half/3;
+	// double sigma = targetFS_half/3;
+	double sigma = targetFS/3;
 
     // Create tilt-image with a single landamrk
-    for (int k = -targetFS_half; k <= targetFS_half; ++k)
+    for (int k = 0; k < ySize_d; ++k)
     {
-        for (int l = -targetFS_half; l <= targetFS_half; ++l)
+        for (int l = 0; l < xSize_d; ++l)
         {
-            if ((k*k+l*l) < targetFS_half_sq)
-            {
-				double mod2 = (k*k + l*l);
-				A2D_ELEM(landmarkReference_Gaussian, ySize_d/2 + k, xSize_d/2 + l) = 1 - exp(-mod2 /(2*sigma*sigma))/(sigma*sqrt(2*PI));
-            }
+			int k_p = k-ySize_d/2;
+			int l_p = l-xSize_d/2;
+
+			double mod2 = (k_p*k_p + l_p*l_p);
+			A2D_ELEM(landmarkReference_Gaussian, k, l) = 1 - exp(-mod2 /(2*sigma*sigma))/(sigma*sqrt(2*PI));
         }
     }
 
@@ -1339,10 +1473,51 @@ void ProgTomoDetectLandmarks::createLandmarkTemplate_Gaussian()
     size_t li = fnOut.find_last_of("\\/");
 	std::string rn = fnOut.substr(0, li);
 	std::string outFN;
-    outFN = rn + "/landmarkReference_Gaussian.mrcs";
+    outFN = rn + "/landmarkReference_Gaussian.mrc";
 
 	Image<double> si;
 	si() = landmarkReference_Gaussian;
+	si.write(outFN);
+    #endif
+}
+
+
+void ProgTomoDetectLandmarks::createLandmarkTemplate_FTdir()
+{
+	// Generate first reference
+    landmarkReference_FTdir.initZeros(ySize_d, xSize_d);
+
+    // Create tilt-image with a single landamrk
+    for (int k = 0; k < ySize_d; ++k)
+    {
+        for (int l = 0; l < xSize_d; ++l)
+        {
+			int k_p = k-ySize_d/2;
+			int l_p = l-xSize_d/2;
+
+			double mod = sqrt(k_p*k_p+l_p*l_p);
+
+            if (mod < targetFS)
+            {
+                A2D_ELEM(landmarkReference_FTdir, k, l) = 1;
+            }
+			else if (mod < targetFS + 10)
+			{
+				A2D_ELEM(landmarkReference_FTdir, k, l) = -1 + (mod - targetFS) * 0.1;
+			}
+        }
+    }
+
+	
+    // Save reference
+    #ifdef DEBUG_REFERENCE
+    size_t li = fnOut.find_last_of("\\/");
+	std::string rn = fnOut.substr(0, li);
+	std::string outFN;
+    outFN = rn + "/landmarkReference_FTdir.mrc";
+
+	Image<double> si;
+	si() = landmarkReference_FTdir;
 	si.write(outFN);
     #endif
 }
@@ -1568,7 +1743,7 @@ void ProgTomoDetectLandmarks::filterFourierDirections(MultidimArray<double> &ima
 	imageOut.resizeNoCopy(image);
 	imageOut.initConstant(1);
 	
-	size_t numberOfDirections = 4;
+	size_t numberOfDirections = 8;
 	double angleStep = PI / numberOfDirections;
 
 	for (size_t n = 0; n < numberOfDirections; n++)
@@ -1689,9 +1864,15 @@ void ProgTomoDetectLandmarks::directionalFilterFourier(MultidimArray<double> &im
 	// img() = freqMap;
 	// img.write("freqMap.mrc");
 	double cosAngle;
-	cosAngle = 1.0/sqrt(2);
+	// cosAngle = 1.0/sqrt(2);
+	cosAngle = 0.9397;  // 20º cosine
 	auto aux = (8.0/((cosAngle -1)*(cosAngle -1)));
 	//cosine = expf( -((cosine -1)*(cosine -1))*aux); 
+
+	double lowerBound, upperBound;
+
+	lowerBound = 1/targetFS-0.1;
+	upperBound = 1/targetFS+0.1;
 
 	n = 0;
 	for (int i=0; i<YdimFT; i++)
@@ -1703,25 +1884,35 @@ void ProgTomoDetectLandmarks::directionalFilterFourier(MultidimArray<double> &im
 
 			double iun = DIRECT_MULTIDIM_ELEM(freqMap,n);
 
-			auto ux_norm = ux*iun;
-			auto uy_norm = uy*iun;
 
-			double cosine = fabs(xdir*ux_norm + ydir*uy_norm);
-
-			if (cosine >= cosAngle)	
+			if (1/iun<upperBound && 1/iun>lowerBound)
 			{
-				//------
-				cosine = exp( -((cosine -1)*(cosine -1))*aux); 
-				DIRECT_MULTIDIM_ELEM(fftImg, n) *= cosine;
-				//------
-				
-				// DIRECT_MULTIDIM_ELEM(fftImg, n) = 0.0;
+				// Si nos queremos y nos amamos porque no nos besamos por donde meamos
+				auto ux_norm = ux*iun;
+				auto uy_norm = uy*iun;
+				double cosine = fabs(xdir*ux_norm + ydir*uy_norm);
+
+				if (cosine >= cosAngle)	
+				{
+					//------
+
+					cosine = exp( -((cosine -1)*(cosine -1))*aux); 
+					DIRECT_MULTIDIM_ELEM(fftImg, n) *= cosine;
+					//------
+					
+					// DIRECT_MULTIDIM_ELEM(fftImg, n) = 0.0;
+				}
+				else
+				{
+					DIRECT_MULTIDIM_ELEM(fftImg, n) = 0.0;
+				}
 			}
-			//------
+
+			// ------
 			else{
 				DIRECT_MULTIDIM_ELEM(fftImg, n) = 0.0;
 			}
-			//------
+			// ------
 			n++;
 		}
 	}
@@ -1788,4 +1979,4 @@ void ProgTomoDetectLandmarks::directionalFilterFourier(MultidimArray<double> &im
 // 	// transformer1.inverseFourierTransform(fftImgTmp, imageDirYX);
 
 // 	image = imageDirX * imageDirY;
-// }
+// 

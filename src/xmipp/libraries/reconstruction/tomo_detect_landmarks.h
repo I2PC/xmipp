@@ -59,7 +59,7 @@
 // #define DEBUG_CLOSING
 // #define DEBUG_FILTERLABEL
 // #define DEBUG_HCC
-// #define DEBUG_REFERENCE
+#define DEBUG_REFERENCE
 // #define DEBUG_CENTER_COORDINATES
 #define DEBUG_OUTPUT_FILES
 
@@ -127,6 +127,7 @@ public:
     // Landmark reference for enhancement
     MultidimArray<double> landmarkReference;
     MultidimArray<double> landmarkReference_Gaussian;
+    MultidimArray<double> landmarkReference_FTdir;
 
     // Centralized Fourier transofrmer
     FourierTransformer transformer;
@@ -214,6 +215,7 @@ public:
     */
     void createLandmarkTemplate();
     void createLandmarkTemplate_Gaussian();
+    void createLandmarkTemplate_FTdir();
     // void histogramEqualization(MultidimArray<double> &data);
     void adaptiveHistogramEqualization(MultidimArray<double> &image, size_t windowSize);
     void maxPooling(MultidimArray<double> &image, size_t windowSize);
