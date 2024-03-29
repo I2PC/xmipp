@@ -23,7 +23,7 @@
 
 from typing import Dict, Tuple, Optional
 from datetime import datetime
-from ..constants import CONFIG_VARIABLES, CONFIG_DEFAULT_VALUES, TOGGLES, LOCATIONS
+from ..constants import CONFIG_VARIABLES, CONFIG_DEFAULT_VALUES, TOGGLES, LOCATIONS, ON, OFF
 
 ASSIGNMENT_SEPARATOR = '='
 COMMENT_ESCAPE = '#'
@@ -100,7 +100,7 @@ def writeConfig(path: str):
   lines = []
   with open(path, 'w') as configFile:
     lines.append("##### TOGGLE SECTION #####\n")
-    lines.append("# Activate or deactivate this features using values ON/OFF\n")
+    lines.append(f"# Activate or deactivate this features using values {ON}/{OFF}\n")
     for toggle in CONFIG_VARIABLES[TOGGLES]:
       lines.append(__makeConfigLine(toggle, CONFIG_DEFAULT_VALUES[toggle]) + '\n')
 

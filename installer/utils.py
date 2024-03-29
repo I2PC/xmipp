@@ -27,15 +27,15 @@ Module containing useful functions used by the installation process.
 """
 
 # General imports
-import sys, os, time, multiprocessing
+import os, time, multiprocessing
 from typing import List, Tuple, Callable, Any, Optional
 from io import FileIO
 from subprocess import Popen, PIPE
 
 # Installer imports
-from .constants import (MODES, TAB_SIZE, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,
-	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, XMIPP_VERSIONS)
-from .logger import blue, red
+from .constants import (MODES, XMIPP, VERNAME_KEY, CMD_OUT_LOG_FILE,
+	CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, XMIPP_VERSIONS)
+from .logger import blue, red, logger
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
@@ -133,51 +133,6 @@ def runParallelJobs(funcs: List[Tuple[Callable, Tuple[Any]]], nJobs: int=multipr
 	
 	# Return obtained result list
 	return results
-
-####################### PRINT FUNCTIONS #######################
-def getFormattingTabs(text: str) -> str:
-	"""
-	### This method returns the given text, formatted to expand tabs into a fixed tab size.
-
-	### Params:
-	- text (str): The text to be formatted.
-
-	### Returns:
-	- (str): Formatted text.
-	"""
-	return text.expandtabs(TAB_SIZE)
-
-def printError(errorMsg: str, retCode: int=1):
-	"""
-	### This function prints an error message and exits with the given return code.
-
-	#### Params:
-	- errorMsg (str): Error message to show.
-	- retCode (int): Optional. Return code to end the exection with.
-	"""
-	# Print the error message in red color
-	print(red(errorMsg))
-	sys.exit(retCode) # TODO: Try API POST. Remove responsibility?
-
-def printMessage(text: str, debug: bool=False):
-	"""
-	### This method prints the given text into the log file, and, if debug mode is active, also through terminal.
-
-	### Params:
-	- text (str): The text to be printed.
-	- debug (bool): Indicates if debug mode is active.
-	"""
-	# If debug mode is active, print through terminal
-	if debug:
-		print(text, flush=True)
-	
-	# Open the file to add text
-	try:
-		with open(LOG_FILE, mode="a") as file:
-			file.write(f"{text}\n")
-	# If there was an error during the process, show error and exit
-	except OSError:
-		printError(f"Could not open log file to add info.\n{ERROR_CODE[IO_ERROR]}", retCode=IO_ERROR)
 
 ####################### EXECUTION MODE FUNCTIONS #######################
 def getModeGroups() -> List[str]:
@@ -339,7 +294,7 @@ def __runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError
 
 	# If there were errors, show them instead of returning
 	if error:
-		printError(errorText)
+		logger(red(errorText))
 
 	# Return result
 	return process.returncode, outputStr
@@ -392,7 +347,7 @@ def __writeReaderLine(reader: FileIO, show: bool=False, err: bool=False):
 	if line:
 		# The line to print has to remove the last '\n'
 		printedLine = line[:-1] if line.endswith('\n') else line
-		printMessage(red(printedLine) if err else printedLine, debug=show)
+		logger(red(printedLine) if err else printedLine, forceConsoleOutput=show)
 
 	# Return line
 	return red(line) if err else line

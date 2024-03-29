@@ -27,8 +27,10 @@
 Provides a global logger
 """
 
+# General imports
 import re
 
+# Installer imports
 from .constants import LOG_FILE, ERROR_CODE, DOCUMENTATION_URL
 
 ####################### TEXT MODE #######################

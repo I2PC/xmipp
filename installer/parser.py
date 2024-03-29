@@ -1,6 +1,5 @@
 # ***************************************************************************
-# * Authors:		Alberto García (alberto.garcia@cnb.csic.es)
-# *							Martín Salinas (martin.salinas@cnb.csic.es)
+# * Authors:		Martín Salinas (martin.salinas@cnb.csic.es)
 # *
 # *
 # * This program is free software; you can redistribute it and/or modify
@@ -32,7 +31,6 @@ from typing import List, Tuple
 
 # Installer imports
 from .constants import MODES, MODE_ARGS, TAB_SIZE, MODE_EXAMPLES, MODE_ALL
-from .utils import getFormattingTabs
 from .logger import yellow, red
 
 # File specific constants
@@ -42,7 +40,7 @@ SECTION_HELP_START = TAB_SIZE + SECTION_N_DASH + SECTION_SPACE_MODE_HELP
 LINE_SIZE_LOWER_LIMIT = int(SECTION_HELP_START * 1.5)
 
 ####################### AUX FUNCTIONS #######################
-def getLineSize() -> int:
+def __getLineSize() -> int:
 	"""
 	### This function returns the maximum size for a line.
 
@@ -55,17 +53,7 @@ def getLineSize() -> int:
 	# Return size with lower limit
 	return LINE_SIZE_LOWER_LIMIT if size < LINE_SIZE_LOWER_LIMIT else size
 
-def helpSeparator() -> str:
-	"""
-	### This function returns the line that separates sections inside the help message.
-
-	### Returns:
-	(str): Line that separates sections inside the help message.
-	"""
-	dashes = ['-' for _ in range(SECTION_N_DASH)]
-	return getFormattingTabs(f"\t{''.join(dashes)}\n")
-
-def fitWordsInLine(words: List[str], sizeLimit: int) -> Tuple[str, List[str]]:
+def __fitWordsInLine(words: List[str], sizeLimit: int) -> Tuple[str, List[str]]:
 	"""
 	### This function returns a tuple containig a line with the words from the given list that could fit given the size limit, and the list with the remaining words.
 
@@ -105,7 +93,7 @@ def fitWordsInLine(words: List[str], sizeLimit: int) -> Tuple[str, List[str]]:
 	# If we exited the loop, it means all words were introduced in the line
 	return line, []
 
-def multiLineHelpText(text: str, sizeLimit: int, leftFill: str) -> str:
+def __multiLineHelpText(text: str, sizeLimit: int, leftFill: str) -> str:
 	"""
 	### This function returns the given text, formatted in several lines so that it does not exceed the given character limit.
 
@@ -132,7 +120,7 @@ def multiLineHelpText(text: str, sizeLimit: int, leftFill: str) -> str:
 		# While there are still words outside of a line, parse them into one.
 		while textWords:
 			# Getting new line and removing fitted words in such line
-			line, textWords = fitWordsInLine(textWords, sizeLimit)
+			line, textWords = __fitWordsInLine(textWords, sizeLimit)
 
 			# Add line to list
 			if line:
@@ -145,6 +133,28 @@ def multiLineHelpText(text: str, sizeLimit: int, leftFill: str) -> str:
 	
 	# Return resulting text
 	return formattedText
+
+def getFormattingTabs(text: str) -> str:
+	"""
+	### This method returns the given text, formatted to expand tabs into a fixed tab size.
+
+	### Params:
+	- text (str): The text to be formatted.
+
+	### Returns:
+	- (str): Formatted text.
+	"""
+	return text.expandtabs(TAB_SIZE)
+
+def helpSeparator() -> str:
+	"""
+	### This function returns the line that separates sections inside the help message.
+
+	### Returns:
+	(str): Line that separates sections inside the help message.
+	"""
+	dashes = ['-' for _ in range(SECTION_N_DASH)]
+	return getFormattingTabs(f"\t{''.join(dashes)}\n")
 
 def textWithLimits(previousText: str, text: str) -> str:
 	"""
@@ -165,42 +175,24 @@ def textWithLimits(previousText: str, text: str) -> str:
 		# If so, it means that section space for modes and params 
 		# is too low and should be set to a higher number, but for now we need to print anyways, 
 		# so we reduce space from the one reserved for mode help
-		remainingSpace = getLineSize() - previousLength
+		remainingSpace = __getLineSize() - previousLength
 
 		# Add minimum fill in space possible
 		fillInSpace = ' '
 	else:
 		# If such section is within the expected size range, calculate remaining size
 		# based on the expected help section beginning
-		remainingSpace = getLineSize() - SECTION_HELP_START
+		remainingSpace = __getLineSize() - SECTION_HELP_START
 
 		# Add fill in space
 		fillInSpace = ''.join([' ' for _ in range(SECTION_HELP_START - previousLength)])
 	
 	# Format string so it does not exceed size limit
-	formattedHelp = multiLineHelpText(text, remainingSpace, ''.join([' ' for _ in range(SECTION_HELP_START)]))
+	formattedHelp = __multiLineHelpText(text, remainingSpace, ''.join([' ' for _ in range(SECTION_HELP_START)]))
 
 	return previousText + fillInSpace + formattedHelp + '\n'
 
 ####################### HELP FUNCTIONS #######################
-def argsContainOptional(argNames: List[str]) -> bool:
-	"""
-	### This method returns True if the param name list contains at least one optional param.
-
-	### Params:
-	- argNames (List[str]): List containing the param names.
-
-	### Returns:
-	(bool): True if there is at least one optional param. False otherwise.
-	"""
-	# For every param name, check if starts with '-'
-	for name in argNames:
-		if name.startswith('-'):
-			return True
-	
-	# If execution gets here, there were no optional params
-	return False
-
 def getModeHelp(mode: str) -> str:
 	"""
 	### This method returns the help message of a given mode.
@@ -218,46 +210,6 @@ def getModeHelp(mode: str) -> str:
 	
 	# If it was not found, return empty string
 	return ''
-
-def getModeArgsStr(mode: str) -> str:
-	"""
-	### This method returns the args text for a given mode.
-
-	### Params:
-	- mode (str): Mode to get args text for.
-
-	### Returns:
-	(str): Args text for given mode.
-	"""
-	# Getting argument dictionary for the mode  
-	argDict = MODE_ARGS[mode]
-
-	# Formatting every element
-	paramNames = [f'[{paramName}]' for paramName in list(argDict.keys())]
-
-	# Returning all formatted param names as a string
-	return ' '.join(paramNames)
-
-def getModeArgsAndHelpStr(previousText: str, mode: str) -> str:
-	"""
-	### This method returns the args and help text for a given mode.
-
-	### Params:
-	- previousText (str): Text inserted before the one to be returned.
-	- mode (str): Mode to get help text for.
-
-	### Returns:
-	(str): Args and help text for given mode.
-	"""
-	# Initializing help string to format
-	modeHelpStr = ''
-
-	# Find mode group containing current mode
-	modeHelpStr = getModeHelp(mode)
-
-	# Return formatted text formed by the previous text, 
-	# the args for the mode, and its help text
-	return textWithLimits(previousText + getModeArgsStr(mode), modeHelpStr)
 
 ####################### PARSER CLASS #######################
 class ErrorHandlerArgumentParser(argparse.ArgumentParser):
@@ -294,6 +246,46 @@ class GeneralHelpFormatter(argparse.HelpFormatter):
 	"""
 	This class overrides the default help formatter to display a custom help message.
 	"""
+	def __getModeArgsStr(self, mode: str) -> str:
+		"""
+		### This method returns the args text for a given mode.
+
+		### Params:
+		- mode (str): Mode to get args text for.
+
+		### Returns:
+		(str): Args text for given mode.
+		"""
+		# Getting argument dictionary for the mode  
+		argDict = MODE_ARGS[mode]
+
+		# Formatting every element
+		paramNames = [f'[{paramName}]' for paramName in list(argDict.keys())]
+
+		# Returning all formatted param names as a string
+		return ' '.join(paramNames)
+
+	def __getModeArgsAndHelpStr(self, previousText: str, mode: str) -> str:
+		"""
+		### This method returns the args and help text for a given mode.
+
+		### Params:
+		- previousText (str): Text inserted before the one to be returned.
+		- mode (str): Mode to get help text for.
+
+		### Returns:
+		(str): Args and help text for given mode.
+		"""
+		# Initializing help string to format
+		modeHelpStr = ''
+
+		# Find mode group containing current mode
+		modeHelpStr = getModeHelp(mode)
+
+		# Return formatted text formed by the previous text, 
+		# the args for the mode, and its help text
+		return textWithLimits(previousText + self.__getModeArgsStr(mode), modeHelpStr)
+
 	def format_help(self):
 		"""
 		### This method prints the help message of the argument parser.
@@ -308,7 +300,7 @@ class GeneralHelpFormatter(argparse.HelpFormatter):
 
 			# Adding help text for every mode in each section
 			for mode in list(MODES[section].keys()):
-				helpMessage += getModeArgsAndHelpStr(f"\t{mode} ", mode)
+				helpMessage += self.__getModeArgsAndHelpStr(f"\t{mode} ", mode)
 
 		# Adding epilog and returning to print
 		epilog = "Example 1: ./xmipp\n"
@@ -325,6 +317,24 @@ class ModeHelpFormatter(argparse.HelpFormatter):
 	"""
 	This class overrides the default help formatter to display a custom help message deppending on the mode selected.
 	"""
+	def __argsContainOptional(self, argNames: List[str]) -> bool:
+		"""
+		### This method returns True if the param name list contains at least one optional param.
+
+		### Params:
+		- argNames (List[str]): List containing the param names.
+
+		### Returns:
+		(bool): True if there is at least one optional param. False otherwise.
+		"""
+		# For every param name, check if starts with '-'
+		for name in argNames:
+			if name.startswith('-'):
+				return True
+		
+		# If execution gets here, there were no optional params
+		return False
+
 	def format_help(self):
 		"""
 		### This method prints the help message of the argument parser.
@@ -344,7 +354,7 @@ class ModeHelpFormatter(argparse.HelpFormatter):
 		optionsStr = ''
 		separator = ''
 		if len(args) > 0:
-			if argsContainOptional(args):
+			if self.__argsContainOptional(args):
 				helpMessage += yellow("Note: only params starting with '-' are optional. The rest are required.\n")
 			optionsStr = ' [options]'
 			separator = helpSeparator() + '\t# Options #\n\n'

@@ -29,14 +29,11 @@ Submodule containing all the general constants needed for Xmipp's installation.
 XMIPP = 'xmipp'
 XMIPP_CORE = 'xmippCore'
 XMIPP_VIZ = 'xmippViz'
-XMIPP_COMPILE_LINES = [860, 244] #[full # lines compiler, lines # precompiled] 8/02/2024
-XMIPP_CORE_COMPILE_LINES = [130, 10]
-XMIPP_VIZ_COMPILE_LINES = [60, 20]
-BAR_SIZE = 30
+XMIPP_PLUGIN = 'scipion-em-xmipp'
+
 UP = "\x1B[1A\r"
 REMOVE_LINE = '\033[K'
 
-XMIPP_PLUGIN = 'scipion-em-xmipp'
 CUFFTADVISOR = 'cuFFTAdvisor'
 CTPL = 'CTPL'
 GTEST = 'googletest'
@@ -74,8 +71,6 @@ SCIPION_FILES_REMOTE_PATH = "scipionfiles/downloads/scipion/software/em"
 SCIPION_TESTS_URLS = "http://scipion.cnb.csic.es/downloads/scipion/data/tests"
 
 # Other variables
-CXX_FLAGS = ' -mtune=native -march=native -flto=auto -std=c++17 '
-LINKFLAGS = '-flto=auto'
 TAB_SIZE = 4
 INC_PATH = [
 	'/usr/local/include/',
@@ -106,41 +101,3 @@ CMD_OUT_LOG_FILE = 'commandOutput.log'
 CMD_ERR_LOG_FILE = 'commandError.log'
 OUTPUT_POLL_TIME = 0.5 # Seconds between each output refresh
 TAIL_LOG_NCHARS = 300
-
-INTERNAL_FLAGS = {
-	'CCFLAGS': '',
-	'CXXFLAGS': '',
-	'PYTHONINCFLAGS': '',
-	'LINKERFORPROGRAMS': '',
-	'MPI_LINKERFORPROGRAMS': '',
-	'NVCC_CXXFLAGS': '',
-	'LINKFLAGS_NVCC': '',
-	'PYTHON_LIB': '',
-	'JAVA_BINDIR': '',
-	'JAVAC': '',
-	'JAR': '',
-	'JNI_CPPPATH': '',
-	'LINKFLAGS': '',
-}
-
-CONFIG_DICT = {
-	'INCDIRFLAGS': '',
-	'CC': '',
-	'CXX': '',
-	'MPI_CC': '',
-	'MPI_CXX': '',
-	'MPI_RUN': '',
-	'JAVA_HOME': '',
-	'CUDA': '',
-	'CUDA_HOME': '',
-	'CUDACXX': '',
-	'MATLAB': '',
-	'MATLAB_HOME': '',
-	'LIBDIRFLAGS': '',
-	'HDF5_HOME': '',
-	'TIFF_SO': '',
-	'FFTW3_SO': '',
-	'TIFF_H': '',
-	'FFTW3_H': '',
-	'ANON_DATA_COLLECT': ''
-}

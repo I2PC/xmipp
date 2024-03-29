@@ -121,7 +121,7 @@ def getCUDAVersion(nvccExecutable: Optional[str]) -> Optional[str]:
 	### Extracts the NVCC (NVIDIA CUDA Compiler) version from the PATH or the config file, the last one having a higher priority.
 
 	#### Params:
-	- dictPackages (dict): Optional. Dictionary containing packages found in the config file.
+	- nvccExecutable (str): Optional. Dictionary containing packages found in the config file.
 
 	#### Returns:
 	- (str | None): CUDA version or None if there were any errors.

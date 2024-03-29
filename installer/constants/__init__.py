@@ -30,4 +30,4 @@ from .main import *
 from .errors import *
 from .parser import *
 from .versions import *
-from .config import CONFIG_VARIABLES, CONFIG_DEFAULT_VALUES, TOGGLES, LOCATIONS, INTERNAL_LOGIC_VARS
+from .config import *

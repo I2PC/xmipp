@@ -31,10 +31,11 @@ import re, hashlib, http.client, json, ssl
 from typing import Dict, Optional
 
 # Self imports
-from .config.versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
+from .config import (getOSReleaseName, getArchitectureName, getCUDAVersion,
 	getCmakeVersion, getGXXVersion, getGCCVersion)
 from .utils import runJob, getCurrentBranch, isBranchUpToDate, runParallelJobs
-from .constants import API_URL, LOG_FILE, TAIL_LOG_NCHARS, CMAKE, CUDA_HOME, CC, CXX
+from .constants import (API_URL, LOG_FILE, TAIL_LOG_NCHARS, CUDA_HOME, CMAKE_HOME, GCC_HOME, GXX_HOME,
+	XMIPP_VERSIONS, XMIPP, VERSION_KEY, MASTER_BRANCHNAME)
 
 def sendApiPOST(configDict:Dict, retCode: int=0):
 	"""
@@ -97,13 +98,16 @@ def __getJSON(configDict: Dict, retCode: int=0) -> Optional[Dict]:
 		(getOSReleaseName, ()),
 		(getArchitectureName, ()),
 		(getCUDAVersion, (configDict[CUDA_HOME],)),
-		(getCmakeVersion, (configDict[CMAKE],)),
-		(getGCCVersion, (configDict[CC],)),
-		(getGXXVersion, (configDict[CXX],)),
+		(getCmakeVersion, (configDict[CMAKE_HOME],)),
+		(getGCCVersion, (configDict[GCC_HOME],)),
+		(getGXXVersion, (configDict[GXX_HOME],)),
 		(getCurrentBranch, ()),
 		(isBranchUpToDate, ()),
 		(__getLogTail, ())
 	])
+
+	# If branch is master or there is none, get release name
+	branchName = XMIPP_VERSIONS[XMIPP][VERSION_KEY] if not jsonData[6] or jsonData[6] == MASTER_BRANCHNAME else jsonData[6]
 
 	# Introducing data into a dictionary
 	return {
@@ -120,7 +124,7 @@ def __getJSON(configDict: Dict, retCode: int=0) -> Optional[Dict]:
 			"scons": None
 		},
 		"xmipp": {
-			"branch": jsonData[6], # If branch is master or there is none, get release name
+			"branch": branchName,
 			"updated": jsonData[7]
 		},
 		"returnCode": retCode,

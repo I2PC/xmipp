@@ -28,30 +28,32 @@ Submodule containing all version info required for Xmipp's installation process.
 from .main import XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN
 
 # Xmipp's current versions
+__LATEST_RELEASE_NUMBER = '3.23.11.0'
+__LATEST_RELEASE_NAME = 'v3.23.11-Nereus'
 #####################################
-DEVEL_BRANCHNAME = 'devel'					#
-MASTER_BRANCHNAME = 'master'				#
-																		#
-VERSION_KEY = 'version'							#
-VERNAME_KEY = 'vername'							#
-XMIPP_VERSIONS = {									#
-	XMIPP: {													#
-		VERSION_KEY: '3.23.11.0',				#
-		VERNAME_KEY: 'v3.23.11-Nereus'  #
-	},																#
-	XMIPP_CORE: {											#
-		VERSION_KEY: '3.23.11.0',				#
-		VERNAME_KEY: 'v3.23.11-Nereus'  #
-	},																#
-	XMIPP_VIZ: {											#
-		VERSION_KEY: '3.23.11.0',				#
-		VERNAME_KEY: 'v3.23.11-Nereus'  #
-	},																#
-	XMIPP_PLUGIN: {										#
-		VERSION_KEY: '3.23.11.0',				#
-		VERNAME_KEY: 'v3.23.11-Nereus'  #
-	}																	#
-}																		#
+DEVEL_BRANCHNAME = 'devel'					
+MASTER_BRANCHNAME = 'master'				
+																		
+VERSION_KEY = 'version'							
+VERNAME_KEY = 'vername'							
+XMIPP_VERSIONS = {									
+	XMIPP: {													
+		VERSION_KEY: __LATEST_RELEASE_NUMBER,				
+		VERNAME_KEY: __LATEST_RELEASE_NAME  
+	},																
+	XMIPP_CORE: {											
+		VERSION_KEY: __LATEST_RELEASE_NUMBER,				
+		VERNAME_KEY: __LATEST_RELEASE_NAME  
+	},																
+	XMIPP_VIZ: {											
+		VERSION_KEY: __LATEST_RELEASE_NUMBER,				
+		VERNAME_KEY: __LATEST_RELEASE_NAME  
+	},																
+	XMIPP_PLUGIN: {										
+		VERSION_KEY: __LATEST_RELEASE_NUMBER,				
+		VERNAME_KEY: __LATEST_RELEASE_NAME  
+	}																	
+}																		
 #####################################
 
 # Supported gcc versions
@@ -80,7 +82,7 @@ RSYNC_MINIMUM = '3.0'								#	#3.0 - 2008
 #####################################
 
 # CUDA-gcc compatibility table
-# https://stackoverflow.com/a/46380601/9769768
+# https://gist.github.com/ax3l/9489132
 CUDA_GCC_COMPATIBILITY = {
 	'10.1-10.2': vGCC[vGCC.index('8.5'):],
 	'11.0-11.0': vGCC[vGCC.index('9.4'):],
@@ -88,21 +90,6 @@ CUDA_GCC_COMPATIBILITY = {
 	'11.4-11.8': vGCC[vGCC.index('11.3'):],
 	'12.0-12.3': vGCC[vGCC.index('12.3'):]
 }
-
-# Config variable names
-CC = 'CC'
-CXX = 'CXX'
-MPI_CC = 'MPI_CC'
-MPI_CXX = 'MPI_CXX'
-MPI_RUN = 'MPI_RUN'
-JAVA = 'JAVA'
-MATLAB = 'MATLAB'
-CUDA = 'CUDA'
-CUDA_HOME = 'CUDA_HOME'
-HDF5 = 'HDF5'
-CMAKE = 'CMAKE'
-MAKE = 'MAKE'
-TIFF = 'TIFF'
 
 # Other variables
 UNKNOWN_VALUE = 'Unknown'

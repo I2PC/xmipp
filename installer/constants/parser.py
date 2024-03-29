@@ -30,7 +30,6 @@ Submodule containing all constants needed for the argument parsing part of Xmipp
 COMMON_USAGE_HELP_MESSAGE = 'Run \"./xmipp -h\" for usage help.'
 DEFAULT_BUILD_DIR = './build'
 DEFAULT_MODELS_DIR = 'build'
-DEFAULT_MODE_DEBUG = False
 
 # Mode list (alphabetical order)
 MODE_ADD_MODEL = 'addModel'
@@ -45,56 +44,45 @@ MODE_GIT = 'git'
 MODE_TEST = 'test'
 MODE_VERSION = 'version'
 
-# Group list
-GROUP_GENERAL = 'General'
-GROUP_CONFIG = 'Config'
-GROUP_DOWNLOADS = 'Downloads'
-GROUP_CLEAN = 'Clean'
-GROUP_TEST = 'Test'
-GROUP_DEVELOPERS = 'Developers'
-
 # Modes with help message
 MODES = {
-	GROUP_GENERAL: {
+	'General': {
 		MODE_VERSION: 'Returns the version information. Add \'--short\' to print only the version number.',
 		MODE_COMPILE_AND_INSTALL: 'Compiles and installs Xmipp based on already obtained sources.',
 		MODE_ALL: 'Default param. Runs config, and compileAndInstall.'
 	},
-	GROUP_CONFIG: {
+	'Config': {
 		MODE_CONFIG: 'Generates a config file template with default values.',
 	},
-	GROUP_DOWNLOADS: {
+	'Downloads': {
 		MODE_GET_MODELS: f'Download the DeepLearning Models at dir/models ({DEFAULT_MODELS_DIR} by default).'
 	},
-	GROUP_CLEAN: {
+	'Clean': {
 		MODE_CLEAN_BIN: 'Removes all compiled binaries.',
 		MODE_CLEAN_DEPRECATED: 'Removes all deprecated binaries from src/xmipp/bin.',
 		MODE_CLEAN_ALL: 'Removes all compiled binaries and sources, leaves the repository as if freshly cloned (without pulling).'
 	},
-	GROUP_TEST: {
+	'Test': {
 		MODE_TEST: 'Runs a given test.'
 	},
-	GROUP_DEVELOPERS: {
+	'Developers': {
 		MODE_GIT: 'Runs the given git action for all source repositories.',
 		MODE_ADD_MODEL:
-		'Takes a DeepLearning model from the modelPath, makes a tgz of it and uploads the .tgz according to the <login>.'
-		
-    
-    "Takes a DeepLearning model from the modelPath, makes a tgz of it and uploads the .tgz according to the <login>."
-    "This mode is used to upload a model folder to the Scipion/Xmipp server."
-    "Usually the model folder contains big files used to fed deep learning procedures"
-    "with pretrained data. All the models stored in the server will be downloads"
-    "using the 'get_models' mode or during the compilation/installation time"
-    "or with scipion3 installb deepLearningToolkit"
-    "modelsPath must be the absolute path"
-    "Usage: -> ./xmipp addModel <usr@server> <modelsPath> [--update]"
-    "Steps:	0. modelName = basename(modelsPath) <- Please, check the folders name!"
-    "        1. Packing in 'xmipp_model_modelName.tgz'"
-    "        2. Check if that model already exists (use --update to override an existing model)"
-    "        3. Upload the model to the server."
-    "        4. Update the MANIFEST file."
-    "The model name will be the folder name in <modelsPath>"
-    "Must have write permisions to such machine."
+			"Takes a DeepLearning model from the modelPath, makes a tgz of it and uploads the .tgz according to the <login>."
+			"This mode is used to upload a model folder to the Scipion/Xmipp server."
+			"Usually the model folder contains big files used to fed deep learning procedures"
+			"with pretrained data. All the models stored in the server will be downloads"
+			"using the 'get_models' mode or during the compilation/installation time"
+			"or with scipion3 installb deepLearningToolkit"
+			"modelsPath must be the absolute path"
+			"Usage: -> ./xmipp addModel <usr@server> <modelsPath> [--update]"
+			"Steps:	0. modelName = basename(modelsPath) <- Please, check the folders name!"
+			"        1. Packing in 'xmipp_model_modelName.tgz'"
+			"        2. Check if that model already exists (use --update to override an existing model)"
+			"        3. Upload the model to the server."
+			"        4. Update the MANIFEST file."
+			"The model name will be the folder name in <modelsPath>"
+			"Must have write permisions to such machine."
 	}
 }
 

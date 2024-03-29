@@ -32,9 +32,9 @@ from typing import Tuple, Dict
 # Module imports
 from .utils import runJob
 from .logger import logger, yellow
-from .constants import REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH, CONFIG_DEFAULT_VALUES, SOURCE_CLONE_ERROR, CONFIG_FILE, INTERNAL_LOGIC_VARS
+from .constants import (REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH,
+	CONFIG_DEFAULT_VALUES, SOURCE_CLONE_ERROR, INTERNAL_LOGIC_VARS)
 from .api import sendApiPOST
-from .config import readConfig
 
 ####################### COMMAND FUNCTIONS #######################
 def getSources(branch: str=None):
@@ -61,24 +61,24 @@ def getCMakeVarsStr(configDict: Dict) -> str:
 	cmakeParams = []
 	for variable in CONFIG_DEFAULT_VALUES.keys():
 		if variable in configDict and variable not in INTERNAL_LOGIC_VARS and configDict[variable] != '':
-			cmakeParams.append(f"-D{variable}={configDict[variable]}")
+			cmakeParams.append(f"-D {variable}={configDict[variable]}")
 	return ' '.join(cmakeParams)
 
-def exitWithError(message: str="", retCode: int=1, sendAPI: bool=False):
+def exitWithError(message: str="", retCode: int=1, configDict: Dict={}):
 	"""
 	### This function converts the variables in the config dictionary into a string as CMake args.
 	
 	#### Params:
 	- message (str): Optional. Error message to display. If the return code is known, can be left empty.
 	- retCode (int): Optional. Error code.
-	- sendAPI (bool): Optional. If True, an API message is sent to collect statistics.
+	- configDict (dict): Optional. Dictionary containing all config variables. If not empty, an API message is sent.
 	"""
 	# Show error
 	logger.logError(message, retCode=retCode)
 	
 	# Send API message
-	if sendAPI:
-		sendApiPOST(readConfig(CONFIG_FILE), retCode=retCode)
+	if configDict:
+		sendApiPOST(configDict, retCode=retCode)
 
 	# End execution
 	sys.exit(retCode)
