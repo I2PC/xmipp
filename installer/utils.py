@@ -27,7 +27,7 @@ Module containing useful functions used by the installation process.
 """
 
 # General imports
-import sys, os, time, multiprocessing, re
+import sys, os, time, multiprocessing
 from typing import List, Tuple, Callable, Any, Optional
 from io import FileIO
 from subprocess import Popen, PIPE
