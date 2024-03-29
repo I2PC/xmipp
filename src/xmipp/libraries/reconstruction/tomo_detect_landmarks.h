@@ -226,6 +226,7 @@ public:
     // void houghTransform(MultidimArray<double> &image, int minRadius, int maxRadius);
     void bandpassFilter(MultidimArray<double> &tiltImage);
 
+    void computeAvgAndStdevFromMiltidimArray(MultidimArray<double> &tiltImage, double& avg, double& stddev, std::vector<Point2D<int>> interLim);
 
 };
 

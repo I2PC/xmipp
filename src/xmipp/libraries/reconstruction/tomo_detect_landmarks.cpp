@@ -476,39 +476,25 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 		#endif
 
 		std::vector<Point2D<int>> interLim = interpolationLimitsVector_ds[k];
+		tiltImage.initZeros(ySize_d, xSize_d);
 
-		// Z-SCORE THRESHOLDING ----------------------------------------------
-		std::vector<int> sliceVector;
-		
 		for (size_t i = 0; i < ySize_d; i++)
 		{
 			Point2D<int> il = interLim[i];
 
 			for (size_t j = il.x; j < il.y; ++j)
 			{
-				sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j));
+				DIRECT_A2D_ELEM(tiltImage, i, j) = DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j);
 			}
 		}
 
-        double sum = 0;
-		double sum2 = 0;
-        int Nelems = 0;
+		// Z-SCORE THRESHOLDING ----------------------------------------------
         double average = 0;
         double standardDeviation = 0;
-        double sliceVectorSize = sliceVector.size();
 
-        for(size_t e = 0; e < sliceVectorSize; e++)
-        {
-            int value = sliceVector[e];
-            sum += value;
-            sum2 += value*value;
-            ++Nelems;
-        }
+		computeAvgAndStdevFromMiltidimArray(tiltImage, average, standardDeviation, interLim);
 
-        average = sum / sliceVectorSize;
-        standardDeviation = sqrt(sum2/Nelems - average*average);
-
-        double thresholdU = average + thrSD * standardDeviation;
+		double thresholdU = average + thrSD * standardDeviation;
 
 		#ifdef DEBUG_HCC
 		std::cout << "------------------------------------------------------" << std::endl;
@@ -531,7 +517,7 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
             }
         }
 
-				// MAX POOLING ------------------------------------------------
+		// MAX POOLING ------------------------------------------------
 		maxPooling(tiltImage, targetFS);
 		filterFourierDirections(tiltImage);
 
@@ -551,63 +537,12 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
             }
         }
 
-		// OTSU THRESHOLDING ----------------------------------------------
-		// std::vector<double> otsuVector;
-
-        // for(size_t i = 0; i < ySize_d; i++)
-        // {
-        //     for(size_t j = 0; j < xSize_d; ++j)
-        //     {
-        //         double value = DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j);
-
-        //         if (value > thresholdU)
-        //         {
-		// 			otsuVector.push_back(DIRECT_A2D_ELEM(tiltImage, i, j));
-        //         }
-        //     }
-        // }
-
-		// MultidimArray<double> otsuMultidim;
-		// otsuMultidim.initZeros(otsuVector.size());
-
-		// for (size_t i =0; i<otsuVector.size(); i++)
-		// {
-		// 	DIRECT_MULTIDIM_ELEM(otsuMultidim, i) = otsuVector[i];
-		// }
-
-		// double otsuThr = OtsuSegmentation(otsuMultidim);
-
-		// std::cout << "otsu thr ---------------------------------------------------------------> " << otsuThr << std::endl;
-
 		// LABELLING --------------------------------------------------------------------
 		binaryCoordinatesMapSlice.initZeros(ySize_d, xSize_d);
 
-		double avg;
-		double std;
-
-		sum = 0;
-		sum2 = 0;
-        Nelems = 0;
         average = 0;
         standardDeviation = 0;
-
-		for(size_t i = 0; i < ySize_d; i++)
-        {
- 			Point2D<int> il = interLim[i];
-
-            for(size_t j = il.x; j < il.y; ++j)
-            {
-				int value = DIRECT_A2D_ELEM(tiltImage, i, j);
-				sum += value;
-				sum2 += value*value;
-				++Nelems;
-            }
-        }
-
-        average = sum / sliceVectorSize;
-        standardDeviation = sqrt(sum2/Nelems - average*average);
-		
-		std::vector<int> dataVector;
+		computeAvgAndStdevFromMiltidimArray(tiltImage, average, standardDeviation, interLim);
 
 		for(size_t i = 0; i < ySize_d; i++)
         {
@@ -653,8 +588,6 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
                 }
             }
         }
-
-		computeAvgStddev
 
         size_t numberOfCoordinatesPerValue;
 
@@ -1230,6 +1163,31 @@ void ProgTomoDetectLandmarks::run()
 
 
 // --------------------------- UTILS functions ----------------------------
+void ProgTomoDetectLandmarks::computeAvgAndStdevFromMiltidimArray(MultidimArray<double> &tiltImage, double& avg, double& stddev, std::vector<Point2D<int>> interLim)
+{
+	double sum = 0;
+	double sum2 = 0;
+	int Nelems = 0;
+
+	for (size_t i = 0; i < ySize_d; i++)
+	{
+		Point2D<int> il = interLim[i];
+
+		for (size_t j = il.x; j < il.y; ++j)
+		{
+			double value = DIRECT_A2D_ELEM(tiltImage, i, j);
+			sum += value;
+			sum2 += value*value;
+			++Nelems;
+		}
+	}
+
+	avg = sum / Nelems;
+	stddev = sqrt(sum2/Nelems - avg*avg);
+}
+
+
+
 bool ProgTomoDetectLandmarks::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
 {
 	// Calculate the furthest point of the region from the centroid
@@ -1883,3 +1841,33 @@ void ProgTomoDetectLandmarks::directionalFilterFourier(MultidimArray<double> &im
 
 // 	image = imageDirX * imageDirY;
 // 
+
+
+
+// OTSU THRESHOLDING ----------------------------------------------
+// std::vector<double> otsuVector;
+
+// for(size_t i = 0; i < ySize_d; i++)
+// {
+//     for(size_t j = 0; j < xSize_d; ++j)
+//     {
+//         double value = DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j);
+
+//         if (value > thresholdU)
+//         {
+// 			otsuVector.push_back(DIRECT_A2D_ELEM(tiltImage, i, j));
+//         }
+//     }
+// }
+
+// MultidimArray<double> otsuMultidim;
+// otsuMultidim.initZeros(otsuVector.size());
+
+// for (size_t i =0; i<otsuVector.size(); i++)
+// {
+// 	DIRECT_MULTIDIM_ELEM(otsuMultidim, i) = otsuVector[i];
+// }
+
+// double otsuThr = OtsuSegmentation(otsuMultidim);
+
+// std::cout << "otsu thr ---------------------------------------------------------------> " << otsuThr << std::endl;
