@@ -151,7 +151,7 @@ class Logger:
 		"""
 		errorStr = errorMsg + '\n\n'
 		errorStr += f'Error {retCode}: {ERROR_CODE[retCode][0]}\n'
-		errorStr += ERROR_CODE[retCode][1]
+		errorStr += f"{ERROR_CODE[retCode][1]} " if ERROR_CODE[retCode][1] else ''
 		errorStr += f'More details on the Xmipp documentation portal: {DOCUMENTATION_URL}'
 
 		self.__call__(red(errorStr), forceConsoleOutput=True)
