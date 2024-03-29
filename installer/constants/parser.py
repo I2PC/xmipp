@@ -121,7 +121,7 @@ MODE_ARGS = {
 	MODE_ADD_MODEL: {
 		'login': "Login (usr@server) for Nolan machine to upload the model with. Must have write permisions to such machine.",
 		'modelPath': "Path to the model to upload to Nolan.",
-		'update': "Flag to update an existing model"
+		'--update': "Flag to update an existing model"
 	}
 }
 

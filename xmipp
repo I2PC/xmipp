@@ -228,7 +228,7 @@ if __name__ == "__main__":
 	addModelSubparser = subparsers.add_parser(MODE_ADD_MODEL, formatter_class=ModeHelpFormatter)
 	addModelSubparser.add_argument("login")
 	addModelSubparser.add_argument("modelPath")
-	addModelSubparser.add_argument("update")
+	addModelSubparser.add_argument("--update", action='store_true')
 
 	# Arguments for mode 'all'
 	allSubparser = subparsers.add_parser(MODE_ALL, formatter_class=ModeHelpFormatter)
