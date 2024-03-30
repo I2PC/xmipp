@@ -30,7 +30,8 @@ import argparse, shutil
 from typing import List, Tuple
 
 # Installer imports
-from .constants import MODES, MODE_ARGS, TAB_SIZE, MODE_EXAMPLES, MODE_ALL
+from .constants import (MODES, MODE_ARGS, TAB_SIZE, MODE_EXAMPLES,
+	MODE_ALL, PARAMS, SHORT_VERSION, LONG_VERSION, DESCRIPTION)
 from .logger import yellow, red
 
 # File specific constants
@@ -45,7 +46,7 @@ def __getLineSize() -> int:
 	### This function returns the maximum size for a line.
 
 	### Returns:
-	(int): Maximum line size.
+	- (int): Maximum line size.
 	"""
 	# Getting column size in characters
 	size = shutil.get_terminal_size().columns
@@ -62,8 +63,8 @@ def __fitWordsInLine(words: List[str], sizeLimit: int) -> Tuple[str, List[str]]:
 	- sizeLimit (int): Size limit for the text.
 
 	### Returns:
-	(str): Line with the words that were able to fit in it.
-	(List[str]): List containing the words that could not fit in the line.
+	- (str): Line with the words that were able to fit in it.
+	- (List[str]): List containing the words that could not fit in the line.
 	"""
 	# Initializing line and creating copy of word list
 	# The copy is made because original list cannot be edited mid iteration
@@ -103,7 +104,7 @@ def __multiLineHelpText(text: str, sizeLimit: int, leftFill: str) -> str:
 	- leftFill (str): String to add at the left of each new line.
 
 	### Returns:
-	(str): Formatted text.
+	- (str): Formatted text.
 	"""
 	if len(text) <= sizeLimit:
 		# If its size is within the limits, return as is
@@ -151,7 +152,7 @@ def helpSeparator() -> str:
 	### This function returns the line that separates sections inside the help message.
 
 	### Returns:
-	(str): Line that separates sections inside the help message.
+	- (str): Line that separates sections inside the help message.
 	"""
 	dashes = ['-' for _ in range(SECTION_N_DASH)]
 	return getFormattingTabs(f"\t{''.join(dashes)}\n")
@@ -165,7 +166,7 @@ def textWithLimits(previousText: str, text: str) -> str:
 	- text (str): The text to be formatted.
 
 	### Returns:
-	(str): Formatted text.
+	- (str): Formatted text.
 	"""
 	# Obtain previous text length
 	previousLength = len(getFormattingTabs(previousText))
@@ -192,6 +193,18 @@ def textWithLimits(previousText: str, text: str) -> str:
 
 	return previousText + fillInSpace + formattedHelp + '\n'
 
+def getParamFirstName(paramKey: str) -> str:
+	"""
+	### This function returns the first name of the given param key. Short name has priority over long name.
+
+	### Params:
+	- paramKey (str): Key to identify the param.
+
+	### Returns:
+	- (str): Formatted text.
+	"""
+	return PARAMS[paramKey].get(SHORT_VERSION, PARAMS[paramKey].get(LONG_VERSION, ''))
+
 ####################### HELP FUNCTIONS #######################
 def getModeHelp(mode: str, general: bool=True) -> str:
 	"""
@@ -202,7 +215,7 @@ def getModeHelp(mode: str, general: bool=True) -> str:
 	- general (bool). Optional. If True, only the general help message is displayed.
 
 	### Returns:
-	(str): Help of the mode (empty if mode not found).
+	- (str): Help of the mode (empty if mode not found).
 	"""
 	# Find mode group containing current mode
 	for group in list(MODES.keys()):
@@ -215,6 +228,19 @@ def getModeHelp(mode: str, general: bool=True) -> str:
 	
 	# If it was not found, return empty string
 	return ''
+
+def getParamNames(paramKey: str) -> List[str]:
+	"""
+	### This method returns the list of possible names a given param has.
+
+	### Params:
+	- paramKey (str): Key to find the param.
+
+	### Returns:
+	- (List[str]): List of all the names of the given param.
+	"""
+	nameList = [PARAMS[paramKey].get(SHORT_VERSION, ''), PARAMS[paramKey].get(LONG_VERSION, '')]
+	return [name for name in nameList if name]
 
 ####################### PARSER CLASS #######################
 class ErrorHandlerArgumentParser(argparse.ArgumentParser):
@@ -259,13 +285,17 @@ class GeneralHelpFormatter(argparse.HelpFormatter):
 		- mode (str): Mode to get args text for.
 
 		### Returns:
-		(str): Args text for given mode.
+		- (str): Args text for given mode.
 		"""
-		# Getting argument dictionary for the mode  
-		argDict = MODE_ARGS[mode]
+		# Getting argument list for the mode  
+		argList = MODE_ARGS[mode]
 
 		# Formatting every element
-		paramNames = [f'[{paramName}]' for paramName in list(argDict.keys())]
+		paramNames = []
+		for param in argList:
+			paramName = getParamFirstName(param)
+			if paramName:
+				paramNames.append(f'[{paramName}]')
 
 		# Returning all formatted param names as a string
 		return ' '.join(paramNames)
@@ -279,7 +309,7 @@ class GeneralHelpFormatter(argparse.HelpFormatter):
 		- mode (str): Mode to get help text for.
 
 		### Returns:
-		(str): Args and help text for given mode.
+		- (str): Args and help text for given mode.
 		"""
 		# Initializing help string to format
 		modeHelpStr = ''
@@ -330,7 +360,7 @@ class ModeHelpFormatter(argparse.HelpFormatter):
 		- argNames (List[str]): List containing the param names.
 
 		### Returns:
-		(bool): True if there is at least one optional param. False otherwise.
+		- (bool): True if there is at least one optional param. False otherwise.
 		"""
 		# For every param name, check if starts with '-'
 		for name in argNames:
@@ -353,13 +383,14 @@ class ModeHelpFormatter(argparse.HelpFormatter):
 		helpMessage = getModeHelp(mode, general=False) + '\n\n'
 
 		# Get mode args
-		args = list(MODE_ARGS[mode].keys())
+		args = MODE_ARGS[mode]
 
 		# Add extra messages deppending on if there are args
 		optionsStr = ''
 		separator = ''
 		if len(args) > 0:
-			if self.__argsContainOptional(args):
+			argNames = [getParamFirstName(argName) for argName in args]
+			if self.__argsContainOptional(argNames):
 				helpMessage += yellow("Note: only params starting with '-' are optional. The rest are required.\n")
 			optionsStr = ' [options]'
 			separator = helpSeparator() + '\t# Options #\n\n'
@@ -367,7 +398,7 @@ class ModeHelpFormatter(argparse.HelpFormatter):
 
 		# Adding arg info
 		for arg in args:
-			helpMessage += textWithLimits('\t' + arg, MODE_ARGS[mode][arg])
+			helpMessage += textWithLimits('\t' + ', '.join(getParamNames(arg)), PARAMS[arg][DESCRIPTION])
 
 		# Adding a few examples
 		examples = MODE_EXAMPLES[mode]

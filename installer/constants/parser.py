@@ -88,41 +88,86 @@ MODES = {
 	}
 }
 
-# Arguments of each mode, sorted by group, with their respective help message
-MODE_ARGS = {
-	MODE_VERSION: {
-		'-d': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\".",
-		'--short': "If set, only version number is shown."
+# Definition of all params found in the
+SHORT_VERSION = 'short'
+LONG_VERSION = 'long'
+DESCRIPTION = 'description'
+# Possible param list
+PARAM_XMIPP_DIRECTORY = 'xmipp-directory'
+PARAM_SHORT = 'short'
+PARAM_JOBS = 'jobs'
+PARAM_BRANCH = 'branch'
+PARAM_MODELS_DIRECTORY = 'models-directory'
+PARAM_TEST_NAME = 'test-name'
+PARAM_SHOW_TESTS = 'show-tests'
+PARAM_GIT_COMMAND = 'git-command'
+PARAM_LOGIN = 'login'
+PARAM_MODEL_PATH = 'model-path'
+PARAM_UPDATE = 'update'
+PARAMS = {
+	PARAM_XMIPP_DIRECTORY: {
+		SHORT_VERSION: "-d",
+		LONG_VERSION: "--directory",
+		DESCRIPTION: f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\"."
 	},
-	MODE_COMPILE_AND_INSTALL: {
-		'-j': f"Number of jobs. Defaults to all available.",
-		'-b': "Branch for the source repositories.",
-		'-d': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\"."
+	PARAM_SHORT: {
+		LONG_VERSION: "--short",
+		DESCRIPTION: "If set, only version number is shown."
 	},
-	MODE_ALL: {
-		'-j': f"Number of jobs. Defaults to all available.",
-		'-b': "Branch for the source repositories.",
-		'-d': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\"."
+	PARAM_JOBS: {
+		SHORT_VERSION: "-j",
+		LONG_VERSION: "--jobs",
+		DESCRIPTION: f"Number of jobs. Defaults to all available."
 	},
-	MODE_CONFIG: {},
-	MODE_GET_MODELS: {
-		'-d': f"Directory where the Deep Learning Models will be downloaded. Default is \"{DEFAULT_MODELS_DIR}\"."
+	PARAM_BRANCH: {
+		SHORT_VERSION: "-b",
+		LONG_VERSION: "--branch",
+		DESCRIPTION: "Branch for the source repositories."
 	},
-	MODE_CLEAN_BIN: {},
-	MODE_CLEAN_DEPRECATED: {},
-	MODE_CLEAN_ALL: {},
-	MODE_TEST: {
-		'testName': "Run certain test. If combined with --show, greps the test name from the test list.",
-		'--show': "Shows the tests available and how to invoke those."
+	PARAM_MODELS_DIRECTORY: {
+		SHORT_VERSION: "-d",
+		LONG_VERSION: "--directory",
+		DESCRIPTION: f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\"."
 	},
-	MODE_GIT: {
-		'command': "Git command to run on all source repositories."
+	PARAM_TEST_NAME: {
+		SHORT_VERSION: "testName",
+		DESCRIPTION: "Run certain test. If combined with --show, greps the test name from the test list."
 	},
-	MODE_ADD_MODEL: {
-		'login': "Login (usr@server) for Nolan machine to upload the model with. Must have write permisions to such machine.",
-		'modelPath': "Path to the model to upload to Nolan.",
-		'--update': "Flag to update an existing model"
+	PARAM_SHOW_TESTS: {
+		LONG_VERSION: "--show",
+		DESCRIPTION: "Shows the tests available and how to invoke those."
+	},
+	PARAM_GIT_COMMAND: {
+		SHORT_VERSION: "command",
+		DESCRIPTION: "Git command to run on all source repositories."
+	},
+	PARAM_LOGIN: {
+		SHORT_VERSION: "login",
+		DESCRIPTION: "Login (usr@server) for Nolan machine to upload the model with. Must have write permisions to such machine."
+	},
+	PARAM_MODEL_PATH: {
+		SHORT_VERSION: "modelPath",
+		DESCRIPTION: "Path to the model to upload to Nolan."
+	},
+	PARAM_UPDATE: {
+		LONG_VERSION: "--update",
+		DESCRIPTION: "Flag to update an existing model"
 	}
+}
+
+# Arguments of each mode, sorted by group
+MODE_ARGS = {
+	MODE_VERSION: [PARAM_XMIPP_DIRECTORY, PARAM_SHORT],
+	MODE_COMPILE_AND_INSTALL: [PARAM_JOBS, PARAM_BRANCH, PARAM_XMIPP_DIRECTORY],
+	MODE_ALL: [PARAM_JOBS, PARAM_BRANCH, PARAM_XMIPP_DIRECTORY],
+	MODE_CONFIG: [],
+	MODE_GET_MODELS: [PARAM_MODELS_DIRECTORY],
+	MODE_CLEAN_BIN: [],
+	MODE_CLEAN_DEPRECATED: [],
+	MODE_CLEAN_ALL: [],
+	MODE_TEST: [PARAM_TEST_NAME, PARAM_SHOW_TESTS],
+	MODE_GIT: [PARAM_GIT_COMMAND],
+	MODE_ADD_MODEL: [PARAM_LOGIN, PARAM_MODEL_PATH, PARAM_UPDATE]
 }
 
 # Examples for the help message of each mode

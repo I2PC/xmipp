@@ -31,12 +31,15 @@ from typing import Dict
 from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,
 	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS, MODE_TEST, MODE_GIT,
 	MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, CONFIG_FILE,
-	CMAKE_CONFIGURE_ERROR, CMAKE_COMPILE_ERROR, CMAKE_INSTALL_ERROR)
+	CMAKE_CONFIGURE_ERROR, CMAKE_COMPILE_ERROR, CMAKE_INSTALL_ERROR, PARAM_LOGIN, PARAM_SHORT,
+	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_MODEL_PATH, PARAM_MODELS_DIRECTORY,
+	PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE, PARAM_XMIPP_DIRECTORY)
 from installer.utils import runJob
-from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
+from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
 from installer.config import readConfig, writeConfig
 from installer.main import getCMakeVarsStr, getSources, exitWithError
 from installer.api import sendApiPOST
+from installer.logger import logger
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
@@ -226,15 +229,15 @@ if __name__ == "__main__":
 
 	# Arguments for mode 'addModel'
 	addModelSubparser = subparsers.add_parser(MODE_ADD_MODEL, formatter_class=ModeHelpFormatter)
-	addModelSubparser.add_argument("login")
-	addModelSubparser.add_argument("modelPath")
-	addModelSubparser.add_argument("--update", action='store_true')
+	addModelSubparser.add_argument(*getParamNames(PARAM_LOGIN))
+	addModelSubparser.add_argument(*getParamNames(PARAM_MODEL_PATH))
+	addModelSubparser.add_argument(*getParamNames(PARAM_UPDATE), action='store_true')
 
 	# Arguments for mode 'all'
 	allSubparser = subparsers.add_parser(MODE_ALL, formatter_class=ModeHelpFormatter)
-	allSubparser.add_argument("-j", "--jobs", type=int, default=JOBS)
-	allSubparser.add_argument("-b", "--branch")
-	allSubparser.add_argument("-d", "--directory", default=DEFAULT_BUILD_DIR)
+	allSubparser.add_argument(*getParamNames(PARAM_JOBS), type=int, default=JOBS)
+	allSubparser.add_argument(*getParamNames(PARAM_BRANCH))
+	allSubparser.add_argument(*getParamNames(PARAM_XMIPP_DIRECTORY), default=DEFAULT_BUILD_DIR)
 
 	# Arguments for mode 'cleanAll'
 	cleanAllSubparser = subparsers.add_parser(MODE_CLEAN_ALL, formatter_class=ModeHelpFormatter)
@@ -247,29 +250,29 @@ if __name__ == "__main__":
 
 	# Arguments for mode 'compileAndInstall'
 	compileAndInstallSubparser = subparsers.add_parser(MODE_COMPILE_AND_INSTALL, formatter_class=ModeHelpFormatter)
-	compileAndInstallSubparser.add_argument("-j", "--jobs", type=int, default=JOBS)
-	compileAndInstallSubparser.add_argument("-b", "--branch")
-	compileAndInstallSubparser.add_argument("-d", "--directory", default=DEFAULT_BUILD_DIR)
+	compileAndInstallSubparser.add_argument(*getParamNames(PARAM_JOBS), type=int, default=JOBS)
+	compileAndInstallSubparser.add_argument(*getParamNames(PARAM_BRANCH))
+	compileAndInstallSubparser.add_argument(*getParamNames(PARAM_XMIPP_DIRECTORY), default=DEFAULT_BUILD_DIR)
 
 	# Arguments for mode 'config'
 	configSubparser = subparsers.add_parser(MODE_CONFIG, formatter_class=ModeHelpFormatter)
 
 	# Arguments for mode 'getModels'
 	getModelsSubparser = subparsers.add_parser(MODE_GET_MODELS, formatter_class=ModeHelpFormatter)
-	getModelsSubparser.add_argument("-d", "--directory", default=DEFAULT_MODELS_DIR)
+	getModelsSubparser.add_argument(*getParamNames(PARAM_MODELS_DIRECTORY), default=DEFAULT_MODELS_DIR)
 
 	# Arguments for mode 'git'
 	gitSubparser = subparsers.add_parser(MODE_GIT, formatter_class=ModeHelpFormatter)
-	gitSubparser.add_argument("command", nargs='+')
+	gitSubparser.add_argument(*getParamNames(PARAM_GIT_COMMAND), nargs='+')
 
 	# Arguments for mode 'test'
 	testSubparser = subparsers.add_parser(MODE_TEST, formatter_class=ModeHelpFormatter)
-	testSubparser.add_argument("testName", nargs='?', default=None)
-	testSubparser.add_argument("--show", action='store_true')
+	testSubparser.add_argument(*getParamNames(PARAM_TEST_NAME), nargs='?', default=None)
+	testSubparser.add_argument(*getParamNames(PARAM_SHOW_TESTS), action='store_true')
 
 	# Arguments for mode 'version'
 	versionSubparser = subparsers.add_parser(MODE_VERSION, formatter_class=ModeHelpFormatter)
-	versionSubparser.add_argument("--short", action='store_true')
+	versionSubparser.add_argument(*getParamNames(PARAM_SHORT), action='store_true')
 
 	# Applying default mode value if needed
 	if len(sys.argv) == 1 or (
