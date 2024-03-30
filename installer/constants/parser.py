@@ -117,7 +117,7 @@ PARAMS = {
 	PARAM_JOBS: {
 		SHORT_VERSION: "-j",
 		LONG_VERSION: "--jobs",
-		DESCRIPTION: f"Number of jobs. Defaults to all available."
+		DESCRIPTION: "Number of jobs. Defaults to all available."
 	},
 	PARAM_BRANCH: {
 		SHORT_VERSION: "-b",
