@@ -136,7 +136,7 @@ def __getSuccessMessage() -> str:
 	return '\n'.join([
 		topBottomBorder,
 		marginLine,
-		f"*  {green("Xmipp devel has been successfully installed, enjoy it!")} *",
+		f"*  {green('Xmipp devel has been successfully installed, enjoy it!')} *",
 		marginLine,
 		topBottomBorder
 	])
