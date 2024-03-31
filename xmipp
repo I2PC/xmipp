@@ -37,7 +37,7 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 from installer.utils import runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
 from installer.config import readConfig, writeConfig
-from installer.main import getCMakeVarsStr, getSources, exitWithError
+from installer.main import getCMakeVarsStr, getSources, exitXmipp
 from installer.api import sendApiPOST
 from installer.logger import logger
 
@@ -96,12 +96,12 @@ def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}) -> Dict
 	# Compile with CMake
 	retCode, _ = runJob(f"cmake --build {BUILD_PATH} --config {BUILD_TYPE} -j {args.jobs}", showCommand=True, showOutput=True, showError=True, streaming=True)
 	if retCode:
-		exitWithError(retCode=CMAKE_COMPILE_ERROR, configDict=configDict)
+		exitXmipp(retCode=CMAKE_COMPILE_ERROR, configDict=configDict)
 	
 	# Install with CMake
 	retCode, _ = runJob(f"cmake --install {BUILD_PATH} --config {BUILD_TYPE} --prefix {INSTALL_PATH}", showCommand=True, showOutput=True, showError=True, streaming=True)
 	if retCode:
-		exitWithError(retCode=CMAKE_INSTALL_ERROR, configDict=configDict)
+		exitXmipp(retCode=CMAKE_INSTALL_ERROR, configDict=configDict)
 	
 	return configDict
 
@@ -177,7 +177,7 @@ def modeAll(args: argparse.Namespace) -> Dict:
 	retCode, _ = runJob(f"cmake -S . -B {BUILD_PATH} -D CMAKE_INSTALL_PREFIX={INSTALL_PATH} -D CMAKE_BUILD_TYPE=Release {getCMakeVarsStr(configDict)}",
 		showCommand=True, showOutput=True, showError=True, streaming=True)
 	if retCode:
-		exitWithError(retCode=CMAKE_CONFIGURE_ERROR, configDict=configDict)
+		exitXmipp(retCode=CMAKE_CONFIGURE_ERROR, configDict=configDict)
 
 	# Compile and install
 	return modeCompileAndInstall(args, configDict=configDict)
@@ -190,10 +190,11 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	- parser (ErrorHandlerArgumentParser): Parser object used to parse the arguments.
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
+	configDict = {}
 	if args.mode == MODE_ADD_MODEL:
 		modeAddModel(args)
 	elif args.mode == MODE_ALL:
-		sendApiPOST(modeAll(args))
+		configDict = modeAll(args)
 	elif args.mode == MODE_CLEAN_ALL:
 		modeCleanAll(args)
 	elif args.mode == MODE_CLEAN_BIN:
@@ -201,7 +202,7 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	elif args.mode == MODE_CLEAN_DEPRECATED:
 		modeCleanDeprecated(args)
 	elif args.mode == MODE_COMPILE_AND_INSTALL:
-		sendApiPOST(modeCompileAndInstall(args))
+		configDict = modeCompileAndInstall(args)
 	elif args.mode == MODE_CONFIG:
 		modeConfig(overwrite=True)
 	elif args.mode == MODE_GET_MODELS:
@@ -214,7 +215,9 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 		modeVersion(args)
 	else:
 		# If method was none of the above, exit with error
-		exitWithError(f"Mode \"{args.mode}\" not recognized. {COMMON_USAGE_HELP_MESSAGE}")
+		logger.logError(f"Mode \"{args.mode}\" not recognized. {COMMON_USAGE_HELP_MESSAGE}")
+		exitXmipp(retCode=1, configDict=configDict)
+	exitXmipp(configDict=configDict)
 	
 ####################### MAIN EXECUTION THREAD #######################
 if __name__ == "__main__":

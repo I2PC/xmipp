@@ -31,7 +31,7 @@ from typing import Tuple, Dict
 
 # Module imports
 from .utils import runJob
-from .logger import logger, yellow
+from .logger import logger, yellow, green
 from .constants import (REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH,
 	CONFIG_DEFAULT_VALUES, SOURCE_CLONE_ERROR, INTERNAL_LOGIC_VARS)
 from .api import sendApiPOST
@@ -64,21 +64,21 @@ def getCMakeVarsStr(configDict: Dict) -> str:
 			cmakeParams.append(f"-D {variable}={configDict[variable]}")
 	return ' '.join(cmakeParams)
 
-def exitWithError(message: str="", retCode: int=1, configDict: Dict={}):
+def exitXmipp(retCode: int=0, configDict: Dict={}):
 	"""
-	### This function converts the variables in the config dictionary into a string as CMake args.
+	### This function exits Xmipp with the given return code, processing it as a success or an error.
 	
 	#### Params:
-	- message (str): Optional. Error message to display. If the return code is known, can be left empty.
 	- retCode (int): Optional. Error code.
 	- configDict (dict): Optional. Dictionary containing all config variables. If not empty, an API message is sent.
 	"""
-	# Show error
-	logger.logError(message, retCode=retCode)
-	
 	# Send API message
 	if configDict:
 		sendApiPOST(configDict, retCode=retCode)
+	
+	# If it was a success, print success message
+	if not retCode:
+		logger(__getSuccessMessage())
 
 	# End execution
 	sys.exit(retCode)
@@ -123,3 +123,20 @@ def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str
 	# Go back to previous path
 	os.chdir(currentPath)
 	return retCode, output
+
+def __getSuccessMessage() -> str:
+	"""
+	### This function returns the message shown when Xmipp is compiled successfully.
+	
+	#### Returms:
+	- (str): Success message.
+	"""
+	topBottomBorder = "***********************************************************"
+	marginLine = "*                                                         *"
+	return '\n'.join([
+		topBottomBorder,
+		marginLine,
+		f"*  {green("Xmipp devel has been successfully installed, enjoy it!")} *",
+		marginLine,
+		topBottomBorder
+	])
