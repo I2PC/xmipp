@@ -54,6 +54,7 @@ REPOSITORIES = {
 XMIPP_SOURCES = [XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN]
 EXTERNAL_SOURCES = [CUFFTADVISOR, CTPL, GTEST, LIBSVM, LIBCIFPP]
 SOURCES_PATH = "src/"
+BUILD_PATH = "build/"
 
 # Source repositories
 ORGANIZATION_NAME = 'I2PC'
@@ -72,23 +73,6 @@ SCIPION_TESTS_URLS = "http://scipion.cnb.csic.es/downloads/scipion/data/tests"
 
 # Other variables
 TAB_SIZE = 4
-INC_PATH = [
-	'/usr/local/include/',
-	'/usr/include'
-]
-INC_HDF5_PATH = INC_PATH + [
-	"/usr/include/hdf5/serial",
-	"/usr/local/include/hdf5/serial"
-]
-PATH_TO_FIND = [
-	"/usr/lib",
-	"/usr/lib/x86_64-linux-gnu/hdf5/serial",
-	"/usr/lib/x86_64-linux-gnu",
-  "/usr/local/lib",
-  "/lib"
-]
-
-PATH_TO_FIND_H = ['/usr/include', '/usr/local/include']
 
 # File names
 CONFIG_FILE = 'xmipp.conf'
