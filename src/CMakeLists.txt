@@ -24,6 +24,7 @@ cmake_minimum_required(VERSION 3.16)
 
 include(FetchContent)
 include(ExternalProject)
+include(GNUInstallDirs)
 
 function(fetch_cifpp)
 	# Set options
@@ -69,6 +70,10 @@ function(fetch_libsvm)
 	set_target_properties(libsvm PROPERTIES IMPORTED_LOCATION ${SOURCE_DIR}/libsvm.so)
 	target_include_directories(libsvm INTERFACE ${SOURCE_DIR})
 	add_dependencies(libsvm build_libsvm)
+	install(
+		FILES ${SOURCE_DIR}/libsvm.so
+ 		DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	)
 endfunction()
 
 
@@ -91,11 +96,40 @@ function(fetch_ctpl)
 	add_dependencies(ctpl download_ctpl)
 endfunction()
 
+function(fetch_cuFFTAdvisor)
+	set(SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/cuFFTAdvisor)
+
+	ExternalProject_Add(
+		build_cuFFTAdvisor
+		GIT_REPOSITORY https://github.com/HiPerCoRe/cuFFTAdvisor.git
+		GIT_TAG master
+		SOURCE_DIR ${SOURCE_DIR}
+		UPDATE_COMMAND ""
+		CONFIGURE_COMMAND ""
+		BUILD_COMMAND make -C <SOURCE_DIR> libcuFFTAdvisor.so
+		INSTALL_COMMAND ""
+		BUILD_IN_SOURCE TRUE
+	)
+
+	add_library(cuFFTAdvisor SHARED IMPORTED)
+	set_target_properties(cuFFTAdvisor PROPERTIES IMPORTED_LOCATION ${SOURCE_DIR}/build/libcuFFTAdvisor.so)
+	target_include_directories(cuFFTAdvisor INTERFACE ${SOURCE_DIR})
+	add_dependencies(cuFFTAdvisor build_cuFFTAdvisor)
+	install(
+		FILES ${SOURCE_DIR}/build/libcuFFTAdvisor.so
+ 		DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	)
+endfunction()
+
 # Fetch dependencies
 fetch_cifpp()
 fetch_libsvm()
 fetch_ctpl()
 fetch_googletest()
+
+if(${XMIPP_USE_CUDA})
+	fetch_cuFFTAdvisor()	
+endif()
 
 add_subdirectory(xmippCore)
 add_subdirectory(xmipp)

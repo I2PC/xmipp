@@ -46,9 +46,22 @@ foreach(PROGRAM_DIRECTORY ${PROGRAM_DIRECTORIES})
 			${PROGRAM_NAME}
 			${PROGRAM_SOURCES}
 		)
-		target_link_libraries( #TODO
+		target_link_libraries(
 			${PROGRAM_NAME}
-			xmippLib
+			Xmipp
 		)
+
+		if(${IS_MPI_PROGRAM})
+			target_link_libraries(
+				${PROGRAM_NAME}
+				XmippParallel
+			)
+		endif()
+
+		install(
+			TARGETS ${PROGRAM_NAME}
+			RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+		)
+
 	endif()
 endforeach()

@@ -30,12 +30,29 @@ project(
 )
 
 # Set compile options
-option(XMIPP_USE_CUDA "Compile CUDA programs" OFF)
+option(XMIPP_USE_CUDA "Compile CUDA programs" ON)
 option(XMIPP_USE_MPI "Compile MPI programs" ON)
 
 # Set C++ 17
-if(NOT "${CMAKE_CXX_STANDARD}")
+if(NOT DEFINED CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+endif()
+
+# Find CUDA and MPI
+if(${XMIPP_USE_CUDA})
+  enable_language(CUDA)
+  find_package(CUDAToolkit 10.2 REQUIRED)
+
+  set(CMAKE_CUDA_FLAGS "--x cu -D_FORCE_INLINES -Xcompiler -fPIC -std=c++14 --expt-extended-lambda --expt-relaxed-constexpr")
+  
+  if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+    set(CMAKE_CUDA_ARCHITECTURES 75)
+  endif()
+endif()
+
+if(${XMIPP_USE_MPI})
+	find_package(MPI COMPONENTS C CXX REQUIRED)
 endif()
 
 add_subdirectory(src)

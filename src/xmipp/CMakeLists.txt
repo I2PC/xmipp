@@ -22,6 +22,133 @@
 
 cmake_minimum_required(VERSION 3.16)
 
-add_subdirectory(external)
-add_subdirectory(libraries)
+include(GNUInstallDirs)
+
+# Find dependencies
+find_package(Python3 COMPONENTS Interpreter Development NumPy REQUIRED)
+
+# Find source files
+file(
+	GLOB_RECURSE 
+	SOURCES 
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/classification/*.cpp 
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/data/*.cpp 
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/dimred/*.cpp 
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/interface/*.cpp 
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/reconstruction/*.cpp 
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/tomo/*.cpp 
+		${CMAKE_CURRENT_SOURCE_DIR}/external/*.cpp 
+)
+file(
+	GLOB_RECURSE 
+	HEADERS 
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/classification/*.h
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/data/*.h
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/dimred/*.h
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/interface/*.h
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/reconstruction/*.h
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/tomo/*.h
+		${CMAKE_CURRENT_SOURCE_DIR}/external/*.h
+)	
+file(
+	GLOB_RECURSE 
+	PARALLEL_SOURCES
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/parallel/*.cpp
+)
+file(
+	GLOB_RECURSE 
+	CUDA_SOURCES
+		#${CMAKE_CURRENT_SOURCE_DIR}/libraries/reconstruction_cuda/*.cu
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/reconstruction_cuda/*.cpp
+)
+file(
+	GLOB_RECURSE 
+	PARALLEL_CUDA_SOURCES
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/parallel_adapt_cuda/*.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/reconstruction_adapt_cuda/*.cpp
+)
+
+# Create the shared library
+add_library(Xmipp SHARED ${SOURCES})
+target_include_directories(
+	Xmipp
+	PUBLIC 
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries
+		${CMAKE_CURRENT_SOURCE_DIR}/external
+)
+#target_precompile_headers(
+#	xmippLib
+#	PRIVATE
+#		${HEADERS}
+#)
+target_link_libraries(
+	Xmipp
+	PUBLIC
+		XmippCore
+		Python3::Python
+		Python3::NumPy
+		cifpp::cifpp
+		ctpl
+		libsvm
+)
+install(
+	TARGETS Xmipp
+ 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+# Register CUDA sources
+if(${XMIPP_USE_CUDA})
+	#target_sources(
+	#	xmippLib
+	#	PRIVATE ${CUDA_SOURCES}
+	#)
+	#set_target_properties(
+	#	xmippLib
+	#	PROPERTIES CUDA_SEPARABLE_COMPILATION ON
+	#)
+	#set_source_files_properties(
+ 	#	${CUDA_SOURCES}
+	#	PROPERTIES LANGUAGE CUDA
+	#)
+	#set_target_properties( 
+	#	xmippLib
+  #  PROPERTIES CUDA_SEPARABLE_COMPILATION ON
+	#)
+	#target_link_libraries(
+	#	xmippLib
+	#	PUBLIC
+	#		CUDA::cudart
+	#		CUDA::cufft
+	#)
+endif()
+
+# Register MPI sources
+if(${XMIPP_USE_MPI})
+	add_library(XmippParallel SHARED ${PARALLEL_SOURCES})
+	target_link_libraries(
+		XmippParallel
+		PUBLIC
+			Xmipp
+			MPI::MPI_C
+			MPI::MPI_CXX
+	)
+	install(
+		TARGETS XmippParallel
+		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	)
+endif()
+
+# Register combined MPI and CUDA sources
+if(${XMIPP_USE_CUDA} AND ${XMIPP_USE_MPI})
+	#target_sources(
+	#	xmippLib
+	#	PRIVATE ${PARALLEL_CUDA_SOURCES}
+	#)
+	#set_source_files_properties(
+ 	#	${PARALLEL_CUDA_SOURCES}
+	#	PROPERTIES LANGUAGE CUDA
+	#)
+endif()
+
+# Add applications
 add_subdirectory(applications)
