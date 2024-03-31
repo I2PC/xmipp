@@ -42,9 +42,8 @@ endif()
 # Find CUDA and MPI
 if(${XMIPP_USE_CUDA})
   enable_language(CUDA)
-  find_package(CUDAToolkit 10.2 REQUIRED)
 
-  set(CMAKE_CUDA_FLAGS "--x cu -D_FORCE_INLINES -Xcompiler -fPIC -std=c++14 --expt-extended-lambda --expt-relaxed-constexpr")
+  set(CMAKE_CUDA_FLAGS "--x cu -D_FORCE_INLINES -Xcompiler -fPIC -std=c++14 --expt-extended-lambda")
   
   if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
     set(CMAKE_CUDA_ARCHITECTURES 75)

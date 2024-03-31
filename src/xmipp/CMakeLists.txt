@@ -58,8 +58,12 @@ file(
 file(
 	GLOB_RECURSE 
 	CUDA_SOURCES
-		#${CMAKE_CURRENT_SOURCE_DIR}/libraries/reconstruction_cuda/*.cu
 		${CMAKE_CURRENT_SOURCE_DIR}/libraries/reconstruction_cuda/*.cpp
+)
+file(
+	GLOB_RECURSE 
+	CUDA_INTERFACE_SOURCES
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/reconstruction_adapt_cuda/*.cpp
 )
 file(
 	GLOB_RECURSE 
@@ -96,32 +100,6 @@ install(
  	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
-# Register CUDA sources
-if(${XMIPP_USE_CUDA})
-	#target_sources(
-	#	xmippLib
-	#	PRIVATE ${CUDA_SOURCES}
-	#)
-	#set_target_properties(
-	#	xmippLib
-	#	PROPERTIES CUDA_SEPARABLE_COMPILATION ON
-	#)
-	#set_source_files_properties(
- 	#	${CUDA_SOURCES}
-	#	PROPERTIES LANGUAGE CUDA
-	#)
-	#set_target_properties( 
-	#	xmippLib
-  #  PROPERTIES CUDA_SEPARABLE_COMPILATION ON
-	#)
-	#target_link_libraries(
-	#	xmippLib
-	#	PUBLIC
-	#		CUDA::cudart
-	#		CUDA::cufft
-	#)
-endif()
-
 # Register MPI sources
 if(${XMIPP_USE_MPI})
 	add_library(XmippParallel SHARED ${PARALLEL_SOURCES})
@@ -138,16 +116,62 @@ if(${XMIPP_USE_MPI})
 	)
 endif()
 
+# Register CUDA sources
+if(${XMIPP_USE_CUDA})
+  find_package(CUDAToolkit 10.2 REQUIRED)
+
+	set_source_files_properties(
+ 		${CUDA_SOURCES}
+		PROPERTIES LANGUAGE CUDA
+	)
+	add_library(XmippCuda STATIC ${CUDA_SOURCES})
+	#set_target_properties( 
+	#	xmippLib
+  #  PROPERTIES CUDA_SEPARABLE_COMPILATION ON
+	#)
+	target_link_libraries(
+		XmippCuda
+		PUBLIC
+			Xmipp
+			CUDA::cudart
+			CUDA::cufft
+			CUDA::nvml
+			cuFFTAdvisor
+	)
+	install(
+		TARGETS XmippCuda
+		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	)
+
+	add_library(XmippInterfaceCuda SHARED ${CUDA_INTERFACE_SOURCES})
+	target_link_libraries(
+		XmippInterfaceCuda
+		PUBLIC
+			Xmipp
+			XmippCuda
+	)
+	install(
+		TARGETS XmippInterfaceCuda
+		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	)
+
+
+
+endif()
+
 # Register combined MPI and CUDA sources
 if(${XMIPP_USE_CUDA} AND ${XMIPP_USE_MPI})
-	#target_sources(
-	#	xmippLib
-	#	PRIVATE ${PARALLEL_CUDA_SOURCES}
-	#)
-	#set_source_files_properties(
- 	#	${PARALLEL_CUDA_SOURCES}
-	#	PROPERTIES LANGUAGE CUDA
-	#)
+	add_library(XmippParallelCuda SHARED ${PARALLEL_CUDA_SOURCES})
+	target_link_libraries(
+		XmippParallelCuda
+		PUBLIC
+			XmippParallel
+			XmippCuda
+	)
+	install(
+		TARGETS XmippParallelCuda
+		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	)
 endif()
 
 # Add applications

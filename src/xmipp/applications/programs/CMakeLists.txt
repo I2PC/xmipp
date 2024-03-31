@@ -57,6 +57,20 @@ foreach(PROGRAM_DIRECTORY ${PROGRAM_DIRECTORIES})
 				XmippParallel
 			)
 		endif()
+		
+		if(${IS_CUDA_PROGRAM})
+			target_link_libraries(
+				${PROGRAM_NAME}
+				XmippInterfaceCuda
+			)
+		endif()
+		
+		if(${IS_MPI_PROGRAM} AND ${IS_CUDA_PROGRAM})
+			target_link_libraries(
+				${PROGRAM_NAME}
+				XmippParallelCuda
+			)
+		endif()
 
 		install(
 			TARGETS ${PROGRAM_NAME}
