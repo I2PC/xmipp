@@ -52,6 +52,11 @@ file(
 )	
 file(
 	GLOB_RECURSE 
+	PYTHON_BINDING_SOURCES
+		${CMAKE_CURRENT_SOURCE_DIR}/bindings/python/*.cpp 
+)
+file(
+	GLOB_RECURSE 
 	PARALLEL_SOURCES
 		${CMAKE_CURRENT_SOURCE_DIR}/libraries/parallel/*.cpp
 )
@@ -90,7 +95,6 @@ target_link_libraries(
 	PUBLIC
 		XmippCore
 		Python3::Python
-		Python3::NumPy
 		cifpp::cifpp
 		ctpl
 		libsvm
@@ -98,6 +102,20 @@ target_link_libraries(
 install(
 	TARGETS Xmipp
  	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+add_library(xmippLib SHARED ${PYTHON_BINDING_SOURCES})
+    set_target_properties(xmippLib PROPERTIES PREFIX "")
+target_link_libraries(
+	xmippLib
+	PUBLIC
+		Xmipp
+		Python3::Python
+		Python3::NumPy
+)
+install(
+	TARGETS xmippLib
+	LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/bindings/python
 )
 
 # Register MPI sources
