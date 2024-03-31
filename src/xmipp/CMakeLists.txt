@@ -125,10 +125,6 @@ if(${XMIPP_USE_CUDA})
 		PROPERTIES LANGUAGE CUDA
 	)
 	add_library(XmippCuda STATIC ${CUDA_SOURCES})
-	#set_target_properties( 
-	#	xmippLib
-  #  PROPERTIES CUDA_SEPARABLE_COMPILATION ON
-	#)
 	target_link_libraries(
 		XmippCuda
 		PUBLIC
@@ -137,10 +133,6 @@ if(${XMIPP_USE_CUDA})
 			CUDA::cufft
 			CUDA::nvml
 			cuFFTAdvisor
-	)
-	install(
-		TARGETS XmippCuda
-		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	)
 
 	add_library(XmippInterfaceCuda SHARED ${CUDA_INTERFACE_SOURCES})
@@ -154,9 +146,6 @@ if(${XMIPP_USE_CUDA})
 		TARGETS XmippInterfaceCuda
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	)
-
-
-
 endif()
 
 # Register combined MPI and CUDA sources
