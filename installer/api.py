@@ -32,7 +32,7 @@ from typing import Dict, Optional
 
 # Self imports
 from .config import (getOSReleaseName, getArchitectureName, getCUDAVersion,
-	getCmakeVersion, getGXXVersion, getGCCVersion)
+	getCmakeVersion, getGXXVersion, getGCCVersion, getCC, getCXX, getNVCC, getCMake)
 from .utils import runJob, getCurrentBranch, isBranchUpToDate, runParallelJobs
 from .constants import (API_URL, LOG_FILE, TAIL_LOG_NCHARS, CUDA_HOME, CMAKE_HOME, GCC_HOME, GXX_HOME,
 	XMIPP_VERSIONS, XMIPP, VERSION_KEY, MASTER_BRANCHNAME)
@@ -52,6 +52,7 @@ def sendApiPOST(configDict:Dict, retCode: int=0):
 	if bodyParams is not None:
 		# Define the parameters for the POST request
 		params = json.dumps(bodyParams)
+		params = params.replace("null", "\"null\"") # TEMPORARY, REMOVE WHEN BACK END ALLOWS REAL NULLS
 
 		# Set up the headers
 		headers = {"Content-type": "application/json"}
@@ -64,14 +65,6 @@ def sendApiPOST(configDict:Dict, retCode: int=0):
 
 		# Send the POST request
 		conn.request("POST", path, params, headers)
-
-		# DEBUG START
-		# Get the response
-		response = conn.getresponse()
-		# Print the response
-		print(response.status, response.reason)
-		print(response.read().decode())
-		# DEBUG END
 
 		# Close the connection
 		conn.close()
@@ -97,10 +90,10 @@ def __getJSON(configDict: Dict, retCode: int=0) -> Optional[Dict]:
 	jsonData = runParallelJobs([
 		(getOSReleaseName, ()),
 		(getArchitectureName, ()),
-		(getCUDAVersion, (configDict[CUDA_HOME],)),
-		(getCmakeVersion, (configDict[CMAKE_HOME],)),
-		(getGCCVersion, (configDict[GCC_HOME],)),
-		(getGXXVersion, (configDict[GXX_HOME],)),
+		(getCUDAVersion, (getNVCC(configDict),)),
+		(getCmakeVersion, (getCMake(configDict),)),
+		(getGCCVersion, (getCC(configDict),)),
+		(getGXXVersion, (getCXX(configDict),)),
 		(getCurrentBranch, ()),
 		(isBranchUpToDate, ()),
 		(__getLogTail, ())

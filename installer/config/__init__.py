@@ -23,3 +23,4 @@
 
 from .file import readConfig, writeConfig
 from .versions import *
+from .query import *

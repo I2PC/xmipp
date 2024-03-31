@@ -33,7 +33,7 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 	MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, CONFIG_FILE,
 	CMAKE_CONFIGURE_ERROR, CMAKE_COMPILE_ERROR, CMAKE_INSTALL_ERROR, PARAM_LOGIN, PARAM_SHORT,
 	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_MODEL_PATH, PARAM_MODELS_DIRECTORY,
-	PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE, PARAM_XMIPP_DIRECTORY, BUILD_PATH)
+	PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE, PARAM_XMIPP_DIRECTORY, BUILD_PATH, INSTALL_PATH, BUILD_TYPE)
 from installer.utils import runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
 from installer.config import readConfig, writeConfig
@@ -94,12 +94,12 @@ def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}) -> Dict
 		configDict = readConfig(CONFIG_FILE)
 
 	# Compile with CMake
-	retCode, _ = runJob(f"cmake --build {BUILD_PATH} --config Release -j {args.jobs}", showCommand=True, showOutput=True, showError=True, streaming=True)
+	retCode, _ = runJob(f"cmake --build {BUILD_PATH} --config {BUILD_TYPE} -j {args.jobs}", showCommand=True, showOutput=True, showError=True, streaming=True)
 	if retCode:
 		exitWithError(retCode=CMAKE_COMPILE_ERROR, configDict=configDict)
 	
 	# Install with CMake
-	retCode, _ = runJob(f"cmake --install {BUILD_PATH} --config Debug --prefix dist/", showCommand=True, showOutput=True, showError=True, streaming=True)
+	retCode, _ = runJob(f"cmake --install {BUILD_PATH} --config {BUILD_TYPE} --prefix {INSTALL_PATH}", showCommand=True, showOutput=True, showError=True, streaming=True)
 	if retCode:
 		exitWithError(retCode=CMAKE_INSTALL_ERROR, configDict=configDict)
 	
@@ -174,7 +174,8 @@ def modeAll(args: argparse.Namespace) -> Dict:
 	getSources(branch=args.branch)
 
 	# Configure with CMake
-	retCode, _ = runJob(f"cmake -S . -B build/ -DCMAKE_BUILD_TYPE=Release {getCMakeVarsStr(configDict)}", showCommand=True, showOutput=True, showError=True, streaming=True)
+	retCode, _ = runJob(f"cmake -S . -B {BUILD_PATH} -D CMAKE_INSTALL_PREFIX={INSTALL_PATH} -D CMAKE_BUILD_TYPE=Release {getCMakeVarsStr(configDict)}",
+		showCommand=True, showOutput=True, showError=True, streaming=True)
 	if retCode:
 		exitWithError(retCode=CMAKE_CONFIGURE_ERROR, configDict=configDict)
 
