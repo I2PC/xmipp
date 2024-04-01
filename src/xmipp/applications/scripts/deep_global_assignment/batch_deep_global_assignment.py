@@ -132,29 +132,14 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 return X, y
 
             def newAugmentationParallel(self):
-                Nimgs = len(self.dataLoader.angles)
-                X = np.zeros(self.dataLoader.X.shape)
-                y = np.zeros(self.dataLoader.y.shape)
+                dim = self.dataLoader.X.shape[1]
+                X = np.zeros((self.maxSize,dim,dim,1))
+                y = np.zeros((self.maxSize,self.dataLoader.y.shape[1]))
 
                 with ThreadPoolExecutor(max_workers=self.numThreads) as executor:
-                    futures = [executor.submit(self.augment_single_image, i) for i in range(Nimgs)]
+                    futures = [executor.submit(self.augment_single_image, i) for i in range(self.maxSize)]
                     for i, future in enumerate(as_completed(futures)):
                         X[i], y[i] = future.result()
-                super().__init__(X, y, batch_size, maxSize=self.maxSize, randomize=self.randomize)
-
-            def newAugmentation(self):
-                X = np.zeros(self.dataLoader.X.shape)
-                y = np.zeros(self.dataLoader.y.shape)
-                Nimgs = len(self.dataLoader.angles)
-                sigmaShift=2
-                for i in range(Nimgs):
-                    shift_x, shift_y = np.random.normal(0, sigmaShift, 2)
-                    I = shift(self.dataLoader.X[i], [shift_x, shift_y, 0], mode='wrap')
-                    angle = np.random.uniform(0,360)
-                    X[i] = rotate(I, angle, reshape=False)
-                    aux = np.copy(dataLoader.angles[i])
-                    aux[2]+=angle
-                    y[i] = euler_to_rotation6d(aux)
                 super().__init__(X, y, batch_size, maxSize=self.maxSize, randomize=self.randomize)
 
         def testModel(model, X, y):
@@ -171,13 +156,6 @@ class ScriptDeepGlobalAssignment(XmippScript):
             if lossFunction is not None:
                 model.compile(loss=lossFunction, optimizer=adam_opt)
 
-            if mode=="shift":
-                generator = XmippTrainingSequence(dataLoader.X, dataLoader.y, batch_size, maxSize=Nimgs, randomize=True)
-            else:
-                generator = AngleGenerator(dataLoader, batch_size, maxSize=Nimgs, randomize=True, numThreads=numThreads)
-
-            # generator.shuffle_data()
-
             reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(
                 monitor='loss',  # Metric to be monitored
                 factor=0.1,  # Factor by which the learning rate will be reduced. new_lr = lr * factor
@@ -185,20 +163,30 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 min_lr=1e-8,  # Lower bound on the learning rate
             )
 
-            epoch = 0
-            for i in range(maxEpochs):
-                start_time = time()
-                history = model.fit(generator, epochs=1, verbose=0, callbacks=[reduce_lr])
-                end_time = time()
-                epoch += 1
-                loss = history.history['loss'][-1]
-                print("Epoch %d loss=%f trainingTime=%d" % (epoch, loss, int(end_time-start_time)), flush=True)
-                if mode=="angles":
-                    generator.newAugmentationParallel()
-                # testModel(model, training_generator.X, training_generator.y)
-                if loss < modeprec:
-                    break
-            model.save(fnThisModel, save_format="tf")
+            sizeStep = round(Nimgs/100)
+            for maxSize in range(100, Nimgs, sizeStep):
+                print("Num. imgs=%d"%maxSize)
+                if mode=="shift":
+                    generator = XmippTrainingSequence(dataLoader.X, dataLoader.y, batch_size, maxSize=maxSize, randomize=True)
+                else:
+                    generator = AngleGenerator(dataLoader, batch_size, maxSize=maxSize, randomize=True, numThreads=numThreads)
+
+                # generator.shuffle_data()
+
+                epoch = 0
+                for i in range(maxEpochs):
+                    start_time = time()
+                    history = model.fit(generator, epochs=1, verbose=0, callbacks=[reduce_lr])
+                    end_time = time()
+                    epoch += 1
+                    loss = history.history['loss'][-1]
+                    print("Epoch %d loss=%f trainingTime=%d" % (epoch, loss, int(end_time-start_time)), flush=True)
+                    if mode=="angles":
+                        generator.newAugmentationParallel()
+                    # testModel(model, training_generator.X, training_generator.y)
+                    if loss < modeprec:
+                        break
+                model.save(fnThisModel, save_format="tf")
 
         SL = xmippLib.SymList()
         listSymmetryMatrices = SL.getSymmetryMatrices('c1')
