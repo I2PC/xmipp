@@ -36,6 +36,7 @@ __TIFF_HOME = 'TIFF_ROOT'
 __HDF5_HOME = 'HDF5_ROOT'
 __JPEG_HOME = 'JPEG_ROOT'
 __SQLITE_HOME = 'SQLite_ROOT'
+__CUDA_CXX_HOME = 'CMAKE_CUDA_HOST_COMPILER'
 
 # Config file variable structure
 TOGGLES = 'toggles'
@@ -46,7 +47,7 @@ CONFIG_VARIABLES = {
 	],
 	LOCATIONS: [
 		CMAKE_HOME, GCC_HOME, GXX_HOME, __MPI_HOME, CUDA_HOME, __PYTHON_HOME,
-		__FFTW_HOME, __TIFF_HOME, __HDF5_HOME, __JPEG_HOME, __SQLITE_HOME
+		__FFTW_HOME, __TIFF_HOME, __HDF5_HOME, __JPEG_HOME, __SQLITE_HOME, __CUDA_CXX_HOME
 	]
 }
 
@@ -66,7 +67,8 @@ CONFIG_DEFAULT_VALUES = {
 	__TIFF_HOME: None,
 	__HDF5_HOME: None,
 	__JPEG_HOME: None,
-	__SQLITE_HOME: None
+	__SQLITE_HOME: None,
+	__CUDA_CXX_HOME: None
 }
 
 # Do not pass this variables to CMake, only for installer logic
