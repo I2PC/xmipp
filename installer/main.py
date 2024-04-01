@@ -30,10 +30,11 @@ import os, sys
 from typing import Tuple, Dict
 
 # Module imports
-from .utils import runJob
+from .utils import runJob, getCurrentBranch
 from .logger import logger, yellow, green
-from .constants import (REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH,
-	CONFIG_DEFAULT_VALUES, SOURCE_CLONE_ERROR, INTERNAL_LOGIC_VARS, INTERRUPTED_ERROR)
+from .constants import (REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH, MASTER_BRANCHNAME,
+	CONFIG_DEFAULT_VALUES, SOURCE_CLONE_ERROR, INTERNAL_LOGIC_VARS,
+	INTERRUPTED_ERROR, XMIPP_VERSIONS, XMIPP, VERSION_KEY)
 from .api import sendApiPOST
 
 ####################### COMMAND FUNCTIONS #######################
@@ -143,12 +144,22 @@ def __getSuccessMessage() -> str:
 	#### Returms:
 	- (str): Success message.
 	"""
-	topBottomBorder = "***********************************************************"
-	marginLine = "*                                                         *"
-	return '\n'.join([
-		topBottomBorder,
-		marginLine,
-		f"*  {green('Xmipp devel has been successfully installed, enjoy it!')} *",
-		marginLine,
-		topBottomBorder
-	])
+	# Getting release name
+	branchName = getCurrentBranch()
+	releaseName = branchName
+	if branchName is None or branchName == MASTER_BRANCHNAME:
+		releaseName = XMIPP_VERSIONS[XMIPP][VERSION_KEY]
+
+	# Creating message line
+	releaseMessage = 'Xmipp {} has been successfully installed, enjoy it!'.format(releaseName)
+	releaseMessageWrapper = '*  *'
+	messageLine = releaseMessageWrapper[:int(len(releaseMessageWrapper)/2)]
+	messageLine += green(f'Xmipp {releaseName} has been successfully installed, enjoy it!')
+	messageLine += releaseMessageWrapper[int(len(releaseMessageWrapper)/2):]
+
+	# Creating box around message line
+	totalLen = len(releaseMessage) + len(releaseMessageWrapper)
+	topBottomBorder = ''.join(['*' for _ in range(totalLen)])
+	marginLine = f"*{''.join([' ' for _ in range(totalLen - 2)])}*"
+
+	return '\n'.join([topBottomBorder, marginLine, messageLine, marginLine, topBottomBorder])
