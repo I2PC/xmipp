@@ -80,7 +80,7 @@ def exitXmipp(retCode: int=0, configDict: Dict={}):
 	
 	# If it was a success, print success message
 	if not retCode:
-		logger(__getSuccessMessage())
+		logger(f"\n{__getSuccessMessage()}", forceConsoleOutput=True)
 
 	# End execution
 	sys.exit(retCode)
