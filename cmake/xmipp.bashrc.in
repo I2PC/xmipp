@@ -1,0 +1,13 @@
+# This script is valid for bash and zsh
+
+export XMIPP_HOME=@XMIPP_HOME@
+export PATH=@XMIPP_HOME@/bin:$PATH
+export LD_LIBRARY_PATH=@XMIPP_HOME@/lib:@XMIPP_HOME@/bindings/python:$LD_LIBRARY_PATH
+export PYTHONPATH=@XMIPP_HOME@/bindings/python:@XMIPP_HOME@/pylib:$PYTHONPATH
+
+alias x='xmipp'
+alias xsj='xmipp_showj'
+alias xio='xmipp_image_operate'
+alias xis='xmipp_image_statistics'
+alias xih='xmipp_image_header'
+alias xmu='xmipp_metadata_utilities'

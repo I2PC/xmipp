@@ -83,3 +83,9 @@ if(${XMIPP_USE_MATLAB})
 endif()
 
 add_subdirectory(src)
+
+set(XMIPP_HOME ${CMAKE_INSTALL_PREFIX})
+configure_file(
+	${CMAKE_CURRENT_SOURCE_DIR}/cmake/xmipp.bashrc.in
+	${CMAKE_INSTALL_PREFIX}/xmipp.bashrc
+)
