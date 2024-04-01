@@ -22,14 +22,15 @@
 
 cmake_minimum_required(VERSION 3.16)
 
-include(CheckLanguage)
-
 # Define the project
 project(
   xmipp
 	VERSION 3.23.11
 	LANGUAGES C CXX
 )
+
+include(CheckLanguage)
+include(CTest)
 
 # Set compile options
 option(XMIPP_USE_CUDA "Compile CUDA programs" ON)

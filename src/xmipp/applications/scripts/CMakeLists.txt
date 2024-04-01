@@ -20,11 +20,29 @@
 #  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************
 
-cmake_minimum_required(VERSION 3.16)
+file(
+	GLOB 
+	SCRIPT_DIRECTORIES
+	RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*
+)
 
-add_subdirectory(programs)
-add_subdirectory(scripts)
+foreach(SCRIPT_DIRECTORY ${SCRIPT_DIRECTORIES})
+	if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${SCRIPT_DIRECTORY})
+		set(PROGRAM_NAME xmipp_${SCRIPT_DIRECTORY})
 
-if (BUILD_TESTING)
-	add_subdirectory(tests)
-endif()
+		file(
+			GLOB 
+			SCRIPT_PATH
+				${CMAKE_CURRENT_SOURCE_DIR}/${SCRIPT_DIRECTORY}/*.py
+				${CMAKE_CURRENT_SOURCE_DIR}/${SCRIPT_DIRECTORY}/*.sh
+		)	
+		
+		message(${SCRIPT_PATH})
+		install(
+			PROGRAMS ${SCRIPT_PATH}
+			DESTINATION ${CMAKE_INSTALL_BINDIR}
+			RENAME ${PROGRAM_NAME}.py
+		)
+
+	endif()
+endforeach()
