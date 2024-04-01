@@ -472,7 +472,7 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 
 		size_t numberResMod = resMod_image.size();
 
-		if (numberResMod > 0)
+		if (numberResMod > 1)
 		{
 			sumMahaDist = 0;
 			sumMahaDist2 = 0;
@@ -504,7 +504,7 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 		}
 		else
 		{
-			std::cout << "ERROR: impossible to study misalignment in tilt-image " << n << ". No residuals calculated for this image" << std::endl;
+			std::cout << "ERROR: impossible to study misalignment in tilt-image " << n << ". Number of residuals for this image: " << numberResMod << std::endl;
 			localAlignment[n] = false;
 		}
 	}
