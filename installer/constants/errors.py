@@ -37,15 +37,16 @@ CMAKE_CONFIGURE_ERROR = 4
 CMAKE_COMPILE_ERROR = 5
 CMAKE_INSTALL_ERROR = 6
 IO_ERROR = 7
+INTERRUPTED_ERROR = 8
 
 # Error messages
 CHECK_ABOVE_MESSAGE = 'Check the error displayed above.'
 ERROR_CODE = {
-	UNKOW_ERROR: ['Unkonw error.', ''],
 	SOURCE_CLONE_ERROR: ['Error cloning xmipp repository with git.', 'Please review the internet connection and the git package.'],
 	CMAKE_ERROR: ['', f'Please install or review your CMake version by following the instructions at {CMAKE_INSTALL_DOCS_URL}\033[0m'],
 	CMAKE_CONFIGURE_ERROR: ['Error configuring with CMake.', CHECK_ABOVE_MESSAGE],
 	CMAKE_COMPILE_ERROR: ['Error compiling with CMake.', CHECK_ABOVE_MESSAGE],
 	CMAKE_INSTALL_ERROR: ['Error installing with CMake.', CHECK_ABOVE_MESSAGE],
-	IO_ERROR: ['Input/output error.', 'This error can be caused by the installer not being able to read/write/create/delete a file. Check your permissions on this directory.']
+	IO_ERROR: ['Input/output error.', 'This error can be caused by the installer not being able to read/write/create/delete a file. Check your permissions on this directory.'],
+	INTERRUPTED_ERROR: ['Process was interrupted by the user.', '']
 }

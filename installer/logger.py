@@ -143,18 +143,20 @@ class Logger:
 		if self.outputToConsole or forceConsoleOutput:
 			print(text, flush=True)
 	 
-	def logError(self, errorMsg: str, retCode: int=1):
+	def logError(self, errorMsg: str, retCode: int=1, addPortalLink: bool=True):
 		"""
 		### This function prints an error message.
 
 		#### Params:
 		- errorMsg (str): Error message to show.
 		- retCode (int): Optional. Return code to end the exection with.
+		- addPortalLink (bool): If True, a message linking the documentation portal is shown.
 		"""
 		errorStr = errorMsg + '\n\n'
-		errorStr += f'Error {retCode}: {ERROR_CODE[retCode][0]}\n'
-		errorStr += f"{ERROR_CODE[retCode][1]} " if ERROR_CODE[retCode][1] else ''
-		errorStr += f'More details on the Xmipp documentation portal: {DOCUMENTATION_URL}'
+		errorStr += f'Error {retCode}: {ERROR_CODE[retCode][0]}'
+		errorStr += f"\n{ERROR_CODE[retCode][1]} " if ERROR_CODE[retCode][1] else ''
+		if addPortalLink:
+			errorStr += f'\nMore details on the Xmipp documentation portal: {DOCUMENTATION_URL}'
 
 		self.__call__(red(errorStr), forceConsoleOutput=True)
 
