@@ -34,7 +34,7 @@ from .utils import runJob, getCurrentBranch
 from .logger import logger, yellow, green
 from .constants import (REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH, MASTER_BRANCHNAME,
 	CONFIG_DEFAULT_VALUES, SOURCE_CLONE_ERROR, INTERNAL_LOGIC_VARS,
-	INTERRUPTED_ERROR, XMIPP_VERSIONS, XMIPP, VERSION_KEY)
+	INTERRUPTED_ERROR, XMIPP_VERSIONS, XMIPP, VERSION_KEY, REMOVE_LINE, UP)
 from .api import sendApiPOST
 
 ####################### COMMAND FUNCTIONS #######################
@@ -46,13 +46,11 @@ def getSources(branch: str=None):
 	- branch (str): Optional. Branch to clone the sources from.
 	"""
 	# Clone or download internal sources
+	logger("Getting Xmipp sources ------------------------------------", forceConsoleOutput=True)
 	for source in XMIPP_SOURCES:
+		logger(f"Cloning {source}...", forceConsoleOutput=True)
 		retCode, output = __cloneSourceRepo(REPOSITORIES[source][0], path=SOURCES_PATH, branch=branch)
-		if retCode:
-			resultCode = getPredefinedError(realRetCode=retCode, desiredRetCode=SOURCE_CLONE_ERROR)
-			message = f"Error getting xmipp sources ({retCode}):\n{output}" if resultCode != retCode else ""
-			logger.logError(message, retCode=resultCode, addPortalLink=bool(message))
-			exitXmipp(retCode=resultCode)
+		handleRetCode(retCode, predefinedErrorCode=SOURCE_CLONE_ERROR, message=output)
 
 def getCMakeVarsStr(configDict: Dict) -> str:
 	"""
@@ -86,15 +84,22 @@ def exitXmipp(retCode: int=0, configDict: Dict={}):
 	# End execution
 	sys.exit(retCode)
 
-def getPredefinedError(realRetCode: int=0, desiredRetCode: int=0) -> int:
+def handleRetCode(realRetCode: int, predefinedErrorCode: int=0, configDict: Dict={}, message: str=''):
 	"""
-	### This function returns the corresponding predefined error for a caller piece of code.
-	
+	### This function checks the given return code and handles the appropiate actions.
+
 	#### Params:
-	- realRetCode (int): Optional. Real error code obtained from the process.
-	- desiredRetCode (int): Optional. Predefined code corresponding to caller code.
+	- realRetCode (int): Real return code of the called function.
+	- predefinedErrorCode (int): Optional. Predefined error code for the caller code block in case of error.
+	- configDict (dict): Optional. Dictionary containing all variables in the config file.
+	- message (str): Optional. Message that will be displayed if there is an error th
 	"""
-	return realRetCode if realRetCode == INTERRUPTED_ERROR else desiredRetCode
+	if realRetCode:
+		resultCode = __getPredefinedError(realRetCode=realRetCode, desiredRetCode=predefinedErrorCode)
+		message = message if resultCode != realRetCode else ''
+		logger.logError(message, retCode=resultCode, addPortalLink=resultCode != realRetCode)
+		exitXmipp(retCode=resultCode, configDict=configDict)
+	logger("\n", forceConsoleOutput=True)
 
 ####################### AUX FUNCTIONS #######################
 def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str]:
@@ -111,15 +116,17 @@ def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str
 	- (str): Output data from the command if it worked or error if it failed.
 	"""
 	# If branch is provided, check if exists
+	logger(yellow("Working..."), forceConsoleOutput=True)
 	if branch:
 		retCode, _ = runJob(f"git ls-remote --heads {repo}.git {branch} | grep -q refs/heads/{branch}")
 		branchExists = not retCode
 		# If does not exist, show warning
 		if not branchExists:
-			warningStr = f"Warning: branch \'{branch}\' does not exist for repository with url {repo}.\n"
+			warningStr = f"{UP}{REMOVE_LINE}Warning: branch \'{branch}\' does not exist for repository with url {repo}.\n"
 			warningStr += "Falling back to repository's default branch."
 			logger(yellow(warningStr), forceConsoleOutput=True)
 			branch = None
+			logger(yellow("Working..."), forceConsoleOutput=True)
 
 	branchStr = f" --branch {branch}" if branch else ''
 	# Move to defined path to clone
@@ -132,9 +139,13 @@ def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str
 	if os.path.isdir(clonedFolder):
 		runJob(f"rm -rf {clonedFolder}")
 	retCode, output = runJob(f"git clone{branchStr} {repo}.git")
+	logger(output)
 
 	# Go back to previous path
 	os.chdir(currentPath)
+
+	if not retCode:
+		logger(green(f"{UP}{REMOVE_LINE}Done"), forceConsoleOutput=True)
 	return retCode, output
 
 def __getSuccessMessage() -> str:
@@ -163,3 +174,13 @@ def __getSuccessMessage() -> str:
 	marginLine = f"*{''.join([' ' for _ in range(totalLen - 2)])}*"
 
 	return '\n'.join([topBottomBorder, marginLine, messageLine, marginLine, topBottomBorder])
+
+def __getPredefinedError(realRetCode: int=0, desiredRetCode: int=0) -> int:
+	"""
+	### This function returns the corresponding predefined error for a caller piece of code.
+	
+	#### Params:
+	- realRetCode (int): Optional. Real error code obtained from the process.
+	- desiredRetCode (int): Optional. Predefined code corresponding to caller code.
+	"""
+	return realRetCode if realRetCode == INTERRUPTED_ERROR else desiredRetCode
