@@ -95,6 +95,7 @@ target_link_libraries(
 	PUBLIC
 		XmippCore
 		Python3::Python
+		Python3::NumPy
 		cifpp::cifpp
 		ctpl
 		libsvm
@@ -105,7 +106,7 @@ install(
 )
 
 add_library(xmippLib SHARED ${PYTHON_BINDING_SOURCES})
-    set_target_properties(xmippLib PROPERTIES PREFIX "")
+set_target_properties(xmippLib PROPERTIES PREFIX "")
 target_link_libraries(
 	xmippLib
 	PUBLIC
