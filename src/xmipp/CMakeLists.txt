@@ -57,6 +57,11 @@ file(
 )
 file(
 	GLOB_RECURSE 
+	MATLAB_BINDING_SOURCES
+		${CMAKE_CURRENT_SOURCE_DIR}/bindings/matlab/*.cpp 
+)
+file(
+	GLOB_RECURSE 
 	PARALLEL_SOURCES
 		${CMAKE_CURRENT_SOURCE_DIR}/libraries/parallel/*.cpp
 )
@@ -180,6 +185,17 @@ if(${XMIPP_USE_CUDA} AND ${XMIPP_USE_MPI})
 	install(
 		TARGETS XmippParallelCuda
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	)
+endif()
+
+# Add MATLAB binding
+if(${XMIPP_USE_MATLAB})
+	find_package(Matlab REQUIRED)
+	
+	matlab_add_mex(
+		NAME XMIPP_USE_MATLAB
+		SRC ${MATLAB_BINDING_SOURCES}
+		LINK_TO Xmipp
 	)
 endif()
 

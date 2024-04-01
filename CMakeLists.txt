@@ -22,6 +22,8 @@
 
 cmake_minimum_required(VERSION 3.16)
 
+include(CheckLanguage)
+
 # Define the project
 project(
   xmipp
@@ -32,6 +34,7 @@ project(
 # Set compile options
 option(XMIPP_USE_CUDA "Compile CUDA programs" ON)
 option(XMIPP_USE_MPI "Compile MPI programs" ON)
+option(XMIPP_USE_MATLAB "Compile MATLAB binding" ON)
 
 # Set C++ 17
 if(NOT DEFINED CMAKE_CXX_STANDARD)
@@ -41,22 +44,41 @@ endif()
 
 # Find CUDA and MPI
 if(${XMIPP_USE_CUDA})
-  enable_language(CUDA)
+  check_language(CUDA)
+  if (CMAKE_CUDA_COMPILER)
+    enable_language(CUDA)
 
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --x cu")
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -D_FORCE_INLINES")
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler")
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -fPIC")
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -std=c++14")
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda")
-  
-  if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-    set(CMAKE_CUDA_ARCHITECTURES 75)
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --x cu")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -D_FORCE_INLINES")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -fPIC")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -std=c++14")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda")
+    
+    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+      set(CMAKE_CUDA_ARCHITECTURES 75)
+    endif()
+  else()
+    set(XMIPP_USE_CUDA OFF)
+    message("CUDA was requested but nvcc was not found. Compiling without CUDA")
   endif()
 endif()
 
 if(${XMIPP_USE_MPI})
-	find_package(MPI COMPONENTS C CXX REQUIRED)
+	find_package(MPI COMPONENTS C CXX)
+  if (NOT MPI_FOUND)
+    set(XMIPP_USE_MPI OFF)
+    message("MPI was requested but MPI was not found. Compiling without MPI")
+  endif()
+endif()
+
+if(${XMIPP_USE_MATLAB})
+	find_package(Matlab)
+
+  if (NOT Matlab_FOUND)
+    set(XMIPP_USE_MATLAB OFF)
+    message("Matlab was requested but Matlab was not found. Compiling without Matlab")
+  endif()
 endif()
 
 add_subdirectory(src)
