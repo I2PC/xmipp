@@ -34,7 +34,7 @@ from subprocess import Popen, PIPE
 
 # Installer imports
 from .constants import (XMIPP, VERNAME_KEY, CMD_OUT_LOG_FILE,
-	CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, XMIPP_VERSIONS)
+	CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, XMIPP_VERSIONS, INTERRUPTED_ERROR)
 from .logger import blue, red, logger
 
 ####################### RUN FUNCTIONS #######################
@@ -63,7 +63,10 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 		retCode, outputStr = __runStreamingJob(cmd, cwd=cwd, showOutput=showOutput, showError=showError)
 	else:
 		process = Popen(cmd, cwd=cwd, env=os.environ, stdout=PIPE, stderr=PIPE, shell=True)
-		process.wait()
+		try:
+			process.wait()
+		except KeyboardInterrupt:
+			return INTERRUPTED_ERROR, ""
 		
 		# Defining output string
 		retCode = process.returncode
@@ -246,6 +249,7 @@ def __runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError
 	"""
 	# Creating writer and reader buffers in same tmp file
 	error = False
+	outputStr = ''
 	try:
 		with open(CMD_OUT_LOG_FILE, "wb") as writerOut, open(CMD_OUT_LOG_FILE, "rb", 0) as readerOut,\
 			open(CMD_ERR_LOG_FILE, "wb") as writerErr, open(CMD_ERR_LOG_FILE, "rb", 0) as readerErr:
@@ -267,6 +271,9 @@ def __runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError
 	if error:
 		logger(red(errorText))
 
+	# Check if process was interrupted
+	if outputStr == '' and process.returncode is None:
+		process.returncode = INTERRUPTED_ERROR
 	# Return result
 	return process.returncode, outputStr
 
