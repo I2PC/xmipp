@@ -47,13 +47,11 @@ gmon.out
 
 # ignore everything in src folder
 /build
-/src
 /dist
 
-# except xmipp folder
-!/src/xmipp/
-!/src/CMakeLists.txt
-
+/src/scipion-em-xmipp
+/src/xmippViz
+/src/xmippCore
 /src/xmipp/bin
 /src/xmipp/lib
 /src/xmipp/models/*

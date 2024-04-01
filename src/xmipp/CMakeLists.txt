@@ -199,5 +199,11 @@ if(${XMIPP_USE_MATLAB})
 	)
 endif()
 
+# Install python sources
+install(
+	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libraries/py_xmipp/
+	DESTINATION ${CMAKE_INSTALL_PREFIX}/pylib/xmippPyModules/
+)
+
 # Add applications
 add_subdirectory(applications)
