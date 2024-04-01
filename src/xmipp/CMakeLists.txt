@@ -105,6 +105,7 @@ install(
  	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
+# Create the Python binding
 add_library(xmippLib SHARED ${PYTHON_BINDING_SOURCES})
 set_target_properties(xmippLib PROPERTIES PREFIX "")
 target_link_libraries(
