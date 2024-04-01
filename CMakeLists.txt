@@ -43,7 +43,12 @@ endif()
 if(${XMIPP_USE_CUDA})
   enable_language(CUDA)
 
-  set(CMAKE_CUDA_FLAGS "--x cu -D_FORCE_INLINES -Xcompiler -fPIC -std=c++14 --expt-extended-lambda")
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --x cu")
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -D_FORCE_INLINES")
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler")
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -fPIC")
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -std=c++14")
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda")
   
   if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
     set(CMAKE_CUDA_ARCHITECTURES 75)
