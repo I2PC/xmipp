@@ -33,7 +33,7 @@ from typing import Tuple, Dict
 from .utils import runJob
 from .logger import logger, yellow, green
 from .constants import (REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH,
-	CONFIG_DEFAULT_VALUES, SOURCE_CLONE_ERROR, INTERNAL_LOGIC_VARS)
+	CONFIG_DEFAULT_VALUES, SOURCE_CLONE_ERROR, INTERNAL_LOGIC_VARS, INTERRUPTED_ERROR)
 from .api import sendApiPOST
 
 ####################### COMMAND FUNCTIONS #######################
@@ -48,8 +48,10 @@ def getSources(branch: str=None):
 	for source in XMIPP_SOURCES:
 		retCode, output = __cloneSourceRepo(REPOSITORIES[source][0], path=SOURCES_PATH, branch=branch)
 		if retCode:
-			logger.logError(f"Error getting xmipp sources ({retCode}):\n{output}", retCode=SOURCE_CLONE_ERROR)
-			break
+			resultCode = getPredefinedError(realRetCode=retCode, desiredRetCode=SOURCE_CLONE_ERROR)
+			message = f"Error getting xmipp sources ({retCode}):\n{output}" if resultCode != retCode else ""
+			logger.logError(message, retCode=resultCode, addPortalLink=bool(message))
+			exitXmipp(retCode=resultCode)
 
 def getCMakeVarsStr(configDict: Dict) -> str:
 	"""
@@ -82,6 +84,16 @@ def exitXmipp(retCode: int=0, configDict: Dict={}):
 
 	# End execution
 	sys.exit(retCode)
+
+def getPredefinedError(realRetCode: int=0, desiredRetCode: int=0) -> int:
+	"""
+	### This function returns the corresponding predefined error for a caller piece of code.
+	
+	#### Params:
+	- realRetCode (int): Optional. Real error code obtained from the process.
+	- desiredRetCode (int): Optional. Predefined code corresponding to caller code.
+	"""
+	return realRetCode if realRetCode == INTERRUPTED_ERROR else desiredRetCode
 
 ####################### AUX FUNCTIONS #######################
 def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str]:

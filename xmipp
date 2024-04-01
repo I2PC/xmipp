@@ -38,8 +38,7 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 from installer.utils import runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
 from installer.config import readConfig, writeConfig
-from installer.main import getCMakeVarsStr, getSources, exitXmipp
-from installer.api import sendApiPOST
+from installer.main import getCMakeVarsStr, getSources, exitXmipp, getPredefinedError
 from installer.logger import logger
 
 ####################### EXECUTION MODES #######################
@@ -97,18 +96,16 @@ def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}) -> Dict
 	# Compile with CMake
 	retCode, _ = runJob(f"cmake --build {BUILD_PATH} --config {BUILD_TYPE} -j {args.jobs}", showCommand=True, showOutput=True, showError=True, streaming=True)
 	if retCode:
-		isInterrupted = retCode == INTERRUPTED_ERROR
-		retCode = retCode if isInterrupted else CMAKE_COMPILE_ERROR
-		logger.logError("", retCode=retCode, addPortalLink=not isInterrupted)
-		exitXmipp(retCode=retCode, configDict=configDict)
+		resultCode = getPredefinedError(realRetCode=retCode, desiredRetCode=CMAKE_COMPILE_ERROR)
+		logger.logError("", retCode=resultCode, addPortalLink=resultCode != retCode)
+		exitXmipp(retCode=resultCode, configDict=configDict)
 	
 	# Install with CMake
 	retCode, _ = runJob(f"cmake --install {BUILD_PATH} --config {BUILD_TYPE} --prefix {INSTALL_PATH}", showCommand=True, showOutput=True, showError=True, streaming=True)
 	if retCode:
-		isInterrupted = retCode == INTERRUPTED_ERROR
-		retCode = retCode if isInterrupted else CMAKE_INSTALL_ERROR
-		logger.logError("", retCode=retCode, addPortalLink=not isInterrupted)
-		exitXmipp(retCode=retCode, configDict=configDict)
+		resultCode = getPredefinedError(realRetCode=retCode, desiredRetCode=CMAKE_INSTALL_ERROR)
+		logger.logError("", retCode=resultCode, addPortalLink=resultCode != retCode)
+		exitXmipp(retCode=resultCode, configDict=configDict)
 	
 	return configDict
 
@@ -184,10 +181,9 @@ def modeAll(args: argparse.Namespace) -> Dict:
 	retCode, _ = runJob(f"cmake -S . -B {BUILD_PATH} -D CMAKE_INSTALL_PREFIX={INSTALL_PATH} -D CMAKE_BUILD_TYPE=Release {getCMakeVarsStr(configDict)}",
 		showCommand=True, showOutput=True, showError=True, streaming=True)
 	if retCode:
-		isInterrupted = retCode == INTERRUPTED_ERROR
-		retCode = retCode if isInterrupted else CMAKE_CONFIGURE_ERROR
-		logger.logError("", retCode=retCode, addPortalLink=not isInterrupted)
-		exitXmipp(retCode=retCode, configDict=configDict)
+		resultCode = getPredefinedError(realRetCode=retCode, desiredRetCode=CMAKE_CONFIGURE_ERROR)
+		logger.logError("", retCode=resultCode, addPortalLink=resultCode != retCode)
+		exitXmipp(retCode=resultCode, configDict=configDict)
 
 	# Compile and install
 	return modeCompileAndInstall(args, configDict=configDict)

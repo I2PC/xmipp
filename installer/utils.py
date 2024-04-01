@@ -63,7 +63,10 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 		retCode, outputStr = __runStreamingJob(cmd, cwd=cwd, showOutput=showOutput, showError=showError)
 	else:
 		process = Popen(cmd, cwd=cwd, env=os.environ, stdout=PIPE, stderr=PIPE, shell=True)
-		process.wait()
+		try:
+			process.wait()
+		except KeyboardInterrupt:
+			return INTERRUPTED_ERROR, ""
 		
 		# Defining output string
 		retCode = process.returncode
