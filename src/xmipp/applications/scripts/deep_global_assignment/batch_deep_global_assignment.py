@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
+import gc
 import math
 import numpy as np
 from scipy.ndimage import shift, rotate
 import os
+import random
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time
@@ -124,11 +126,16 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 sigmaShift = 2
                 shift_x, shift_y = np.random.normal(0, sigmaShift, 2)
                 I = shift(self.dataLoader.X[i], [shift_x, shift_y, 0], mode='wrap')
-                angle = np.random.uniform(0, 360)
-                X = rotate(I, angle, reshape=False)
-                aux = np.copy(self.dataLoader.angles[i])
-                aux[2] += angle
-                y = euler_to_rotation6d(aux)  # Assuming this function is defined elsewhere
+                # angle = np.random.uniform(0, 360)
+                X=I
+                # X = rotate(I, angle, reshape=False)
+                # aux = np.copy(self.dataLoader.angles[i])
+                # aux[2] += angle
+                # y = euler_to_rotation6d(aux)  # Assuming this function is defined elsewhere
+
+                # X=self.dataLoader.X[i]
+                y=self.dataLoader.y[i]
+
                 return X, y
 
             def newAugmentationParallel(self):
@@ -136,8 +143,9 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 X = np.zeros((self.maxSize,dim,dim,1))
                 y = np.zeros((self.maxSize,self.dataLoader.y.shape[1]))
 
+                idxList = [i for i in range(self.maxSize)]
                 with ThreadPoolExecutor(max_workers=self.numThreads) as executor:
-                    futures = [executor.submit(self.augment_single_image, i) for i in range(self.maxSize)]
+                    futures = [executor.submit(self.augment_single_image, i) for i in idxList]
                     for i, future in enumerate(as_completed(futures)):
                         X[i], y[i] = future.result()
                 super().__init__(X, y, batch_size, maxSize=self.maxSize, randomize=self.randomize)
@@ -186,12 +194,18 @@ class ScriptDeepGlobalAssignment(XmippScript):
                     # testModel(model, training_generator.X, training_generator.y)
                     if loss < modeprec:
                         break
-                model.save(fnThisModel, save_format="tf")
+                    del history
+                    gc.collect()
+
+                del generator
+                gc.collect()
+            model.save(fnThisModel, save_format="tf")
 
         SL = xmippLib.SymList()
         listSymmetryMatrices = SL.getSymmetryMatrices('c1')
         Xdim, fnImgs, angles, shifts = get_labels(fnXmd)
         dataLoader = DataLoader(fnImgs, angles, shifts, batch_size, Xdim, mode)
+        Nimgs=min(Nimgs,dataLoader.y.shape[0])
 
         angularLoss = deepGlobal.AngularLoss(listSymmetryMatrices, Xdim)
 
