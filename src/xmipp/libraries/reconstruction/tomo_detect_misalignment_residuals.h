@@ -81,12 +81,8 @@ public:
         double mahalanobisDistance;             // Mahalanobis distance to the expected residual distribution
     };
     
-    /** Input tilt-series dimensions */
-    size_t xSize;
-	size_t ySize;
-	size_t zSize;
+    /** Number of tilt-images */
     int nSize;
-    size_t normDim;
 
     /** Array of coordinate model structures */
     std::vector<resMod> vResMod;

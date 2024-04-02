@@ -1089,43 +1089,6 @@ void ProgTomoDetectMisalignmentResiduals::run()
 
 	size_t Xdim, Ydim;
 
-	MetaDataVec tiltseriesmd;
-    // ImageGeneric tiltSeriesImages;
-
-    // if (fnInputTS.isMetaData())
-    // {
-    //     tiltseriesmd.read(fnInputTS);
-    // }
-    // else
-    // {
-    //     tiltSeriesImages.read(fnInputTS, HEADER);
-
-    //     size_t Zdim, Ndim;
-    //     tiltSeriesImages.getDimensions(Xdim, Ydim, Zdim, Ndim);
-
-    //     if (fnInputTS.getExtension() == "mrc" and Ndim == 1)
-    //         Ndim = Zdim;
-
-    //     size_t id;
-    //     FileName fn;
-    //     for (size_t i = 0; i < Ndim; i++) 
-    //     {
-    //         id = tiltseriesmd.addObject();
-    //         fn.compose(i + FIRST_IMAGE, fnInputTS);
-    //         tiltseriesmd.setValue(MDL_IMAGE, fn, id);
-    //     }
-    // }
-
-	// tiltSeriesImages.getDimensions(xSize, ySize, zSize, nSize);
-
-	// #ifdef DEBUG_DIM
-	// std::cout << "Input tilt-series dimensions:" << std::endl;
-	// std::cout << "x " << xSize << std::endl;
-	// std::cout << "y " << ySize << std::endl;
-	// std::cout << "z " << zSize << std::endl;
-	// std::cout << "n " << nSize << std::endl;
-	// #endif
-
 	generateSideInfo();
 
 	contructResidualMatrix();
