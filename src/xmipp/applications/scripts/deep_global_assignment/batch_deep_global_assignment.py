@@ -123,17 +123,17 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 self.newAugmentationParallel()
 
             def augment_single_image(self, i):
-                sigmaShift = 2
-                shift_x, shift_y = np.random.normal(0, sigmaShift, 2)
-                I = shift(self.dataLoader.X[i], [shift_x, shift_y, 0], mode='wrap')
+                # sigmaShift = 2
+                # shift_x, shift_y = np.random.normal(0, sigmaShift, 2)
+                # I = shift(self.dataLoader.X[i], [shift_x, shift_y, 0], mode='wrap')
                 # angle = np.random.uniform(0, 360)
-                X=I
+                # X=I
                 # X = rotate(I, angle, reshape=False)
                 # aux = np.copy(self.dataLoader.angles[i])
                 # aux[2] += angle
                 # y = euler_to_rotation6d(aux)  # Assuming this function is defined elsewhere
 
-                # X=self.dataLoader.X[i]
+                X=self.dataLoader.X[i]
                 y=self.dataLoader.y[i]
 
                 return X, y
