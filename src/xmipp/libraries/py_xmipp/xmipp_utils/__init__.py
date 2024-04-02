@@ -287,6 +287,17 @@ try:
             self.x = self.x[indices]
             self.y = self.y[indices]
 
+    class XmippDualTrainingSequence(XmippTrainingSequence):
+        def __init__(self, x_set, y_set, batch_size, transform_func, maxSize=64, randomize=False):
+            super().__init__(x_set, y_set, batch_size, maxSize, randomize)
+            self.transform_func = transform_func
+
+        def __getitem__(self, idx):
+            batch_x, batch_y = super().__getitem__(idx)
+            batch_x_transformed = self.transform_func(batch_x)
+
+            return [batch_x, batch_x_transformed], batch_y
+
     KERAS_INSTALLED = True
 except:
     KERAS_INSTALLED = False

@@ -152,10 +152,7 @@ try:
         mask = create_circular_mask(h, w, center, radius)
         return tf.constant(mask.astype(np.float32).reshape(1, *mask.shape, 1))
 
-
-    def constructAnglesModel(Xdim):
-        input_tensor = Input(shape=(Xdim, Xdim, 1))
-
+    def constructConvolutionModel(input_tensor):
         filters = create_blur_filters(16, 16, int(Xdim/2))
         blurred_images = tf.nn.depthwise_conv2d(input_tensor, filters, strides=[1, 1, 1, 1], padding='SAME')
 
@@ -171,6 +168,15 @@ try:
         x = Conv2D(16, 1, padding='same', activation='relu')(x)
         # x = MaxPooling2D(pool_size=(2, 2))(x)
         x = Flatten()(x)
+        return x
+
+    def constructAnglesModel(Xdim):
+        cartesian_input = Input(shape=(Xdim, Xdim, 1), name='cartesian_input')
+        x_cartesian = constructConvolutionModel(cartesian_input)
+        polar_input = Input(shape=(Xdim, Xdim, 1), name='polar_input')
+        x_polar = constructConvolutionModel(polar_input)
+
+        x = Concatenate(axis=-1)([x_cartesian, x_polar])
         x = Dense(256, activation='relu')(x)
         x = Dense(64, activation='relu')(x)
         x2 = Dense(2, activation='linear')(x)
@@ -179,7 +185,7 @@ try:
         x3 = Angles2VectorLayer()(x3)
         x = Concatenate(axis=-1)([x2, x3])
 
-        return Model(input_tensor, x)
+        return Model([cartesian_input, polar_input], x)
 
     class AngularLoss(tf.keras.losses.Loss):
         def __init__(self, listSymmetryMatricesNP, Xdim, **kwargs):
