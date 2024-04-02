@@ -32,13 +32,12 @@
 
 void ProgTomoDetectMisalignmentResiduals::readParams()
 {
-	// fnInputTS = getParam("-i");
 	fnResidualInfo = getParam("--inputResInfo");
     fnOut = getParam("-o");
 
 	samplingRate = getDoubleParam("--samplingRate");
 	fiducialSize = getDoubleParam("--fiducialSize");
-
+	nSize = getIntParam("--numberTiltImages");
 
 	thrFiducialDistance = getDoubleParam("--thrFiducialDistance");
 }
@@ -47,13 +46,14 @@ void ProgTomoDetectMisalignmentResiduals::readParams()
 void ProgTomoDetectMisalignmentResiduals::defineParams()
 {
 	addUsageLine("This function determines the location of high contrast features in a volume.");
-	// addParamsLine("  -i <mrcs_file=\"\">                   					: Input tilt-series.");
+
 	addParamsLine("  --inputResInfo <input=\"\">							: Input file containing residual information of the detected landmarks.");
 
 	addParamsLine("  [-o <output=\"./alignemntReport.xmd\">]       			: Output file containing the alignemnt report.");
 
 	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px).");
 	addParamsLine("  [--fiducialSize <fiducialSize=100>]					: Fiducial size in Angstroms (A).");
+	addParamsLine("  [--numberTiltImages <numberTiltImages=60>]				: Number of tilt-images. Needed in case some image is missing form residual information.");
 
 	addParamsLine("  [--thrFiducialDistance <thrFiducialDistance=0.5>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate projection and the detected fiducial.");
 }
@@ -90,21 +90,6 @@ void ProgTomoDetectMisalignmentResiduals::generateSideInfo()
 
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Number of input coordinates: " << numberOfInputCoords << std::endl;
-	#endif
-
-	// Get number of tilt images from input residuals
-	nSize = 0;
-	for (size_t i = 0; i < vResMod.size(); i++)
-	{
-		if (vResMod[i].landmarkCoord.z > nSize)
-		{
-			nSize = vResMod[i].landmarkCoord.z;
-		}
-	}
-
-	nSize += 1;
-
-	#ifdef VERBOSE_OUTPUT
 	std::cout << "Number of tilt-images: " << nSize << std::endl;
 	#endif
 

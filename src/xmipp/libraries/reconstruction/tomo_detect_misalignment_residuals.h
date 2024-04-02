@@ -85,7 +85,7 @@ public:
     size_t xSize;
 	size_t ySize;
 	size_t zSize;
-    size_t nSize;
+    int nSize;
     size_t normDim;
 
     /** Array of coordinate model structures */
