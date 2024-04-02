@@ -255,7 +255,7 @@ class BnBgpu:
         return(cl)
     
     
-    def split_classes_for_range(self, classes, matches, percent=0.8):
+    def split_classes_for_range(self, classes, matches, percent=0.5):
         thr = torch.zeros(classes)
         for n in range(classes):
             if len(matches[matches[:, 1] == n, 2]) > 2: 
@@ -800,13 +800,13 @@ class BnBgpu:
             # elif iter < 13: 
             #     ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
 
-            if iter < 5:
+            if iter < 6:
                 ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            elif iter < 8: 
+            elif iter < 9: 
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            elif iter < 11: 
+            elif iter < 12: 
                 ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
-            elif iter < 14: 
+            elif iter < 15: 
                 ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
                 
         else:

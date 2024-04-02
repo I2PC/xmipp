@@ -75,7 +75,7 @@ if __name__=="__main__":
     final_classes = classes  
     refImages = args.ref
     # niter = int(args.niter)
-    niter = 14
+    niter = 15
     bands = args.bands
     vecs = args.vecs
     mask = args.mask
@@ -161,6 +161,7 @@ if __name__=="__main__":
         
         expImages = mmap.data[initBatch:endBatch].astype(np.float32)
         Texp = torch.from_numpy(expImages).float().to(cuda)
+        # Texp = Texp * bnb.create_gaussian_mask(Texp, sigma)
         del(expImages)  
               
         if i < initStep:          
@@ -235,7 +236,7 @@ if __name__=="__main__":
                 
                 
                 # if mode == "create_classes" and iter == 14:
-                if mode == "create_classes" and iter == 13:
+                if mode == "create_classes" and iter == 14:
                     
                     refClas[:endBatch] = matches[:, 1]
                                                           
