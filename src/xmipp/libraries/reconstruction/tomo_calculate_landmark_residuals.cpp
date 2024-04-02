@@ -39,7 +39,7 @@ void ProgTomoCalculateLandmarkResiduals::readParams()
 	samplingRate = getDoubleParam("--samplingRate");
 	fiducialSize = getDoubleParam("--fiducialSize");
 
-	thrSDHCC = getIntParam("--thrSDHCC");
+	thrSDHCC = getDoubleParam("--thrSDHCC");
 
  	fnInputCoord = getParam("--inputCoord");
 
