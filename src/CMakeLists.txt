@@ -133,3 +133,4 @@ endif()
 
 add_subdirectory(xmippCore)
 add_subdirectory(xmipp)
+add_subdirectory(xmippViz)
