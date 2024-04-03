@@ -39,6 +39,8 @@ void ProgTomoDetectMisalignmentResiduals::readParams()
 	fiducialSize = getDoubleParam("--fiducialSize");
 	nSize = getIntParam("--numberTiltImages");
 
+	removeOutliers = checkParam("--removeOutliers");
+
 	thrFiducialDistance = getDoubleParam("--thrFiducialDistance");
 }
 
@@ -54,6 +56,8 @@ void ProgTomoDetectMisalignmentResiduals::defineParams()
 	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px).");
 	addParamsLine("  [--fiducialSize <fiducialSize=100>]					: Fiducial size in Angstroms (A).");
 	addParamsLine("  [--numberTiltImages <numberTiltImages=60>]				: Number of tilt-images. Needed in case some image is missing form residual information.");
+
+	addParamsLine("  [--removeOutliers]										: Remove outliers before calculate mahalanobis distance.");
 
 	addParamsLine("  [--thrFiducialDistance <thrFiducialDistance=0.5>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate projection and the detected fiducial.");
 }
@@ -1094,9 +1098,15 @@ void ProgTomoDetectMisalignmentResiduals::run()
 	contructResidualMatrix();
 
 	// detectMisalignmentFromResiduals();
-	// detectMisalignmentFromResidualsMahalanobis();
-	detectMisalignmentFromResidualsMahalanobisRobust();
-	
+
+	if (removeOutliers)
+	{
+		detectMisalignmentFromResidualsMahalanobisRobust();
+	}else
+	{
+			detectMisalignmentFromResidualsMahalanobis();
+	}
+		
 	#ifdef GENERATE_RESIDUAL_STATISTICS
 	generateResidualStatiscticsFile();
 	#endif
