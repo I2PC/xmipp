@@ -125,7 +125,7 @@ install(
 	LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/bindings/python
 )
 install(
-	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bindings/python
+	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bindings/python/
 	DESTINATION ${CMAKE_INSTALL_PREFIX}/bindings/python
 )
 
