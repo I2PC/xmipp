@@ -95,7 +95,7 @@ def handleRetCode(realRetCode: int, predefinedErrorCode: int=0, configDict: Dict
 		message = message if resultCode != realRetCode else ''
 		logger.logError(message, retCode=resultCode, addPortalLink=resultCode != realRetCode)
 		exitXmipp(retCode=resultCode, configDict=configDict)
-	logger("\n", forceConsoleOutput=True)
+	logger("", forceConsoleOutput=True)
 
 def getSuccessMessage() -> str:
 	"""
