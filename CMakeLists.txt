@@ -119,9 +119,13 @@ configure_file(
 # Link to scipion
 if(XMIPP_LINK_TO_SCIPION)
   if (NOT SCIPION_SOFTWARE)
-    set(SCIPION_SOFTWARE /home/olauzirika/scipion3/software) # TODO
+    set(SCIPION_SOFTWARE "$ENV{SCIPION_SOFTWARE}")
   endif()
-  message("Scipion software directory found at ${SCIPION_SOFTWARE}")
-
-  link_to_scipion(${CMAKE_INSTALL_PREFIX} ${SCIPION_SOFTWARE})
+  
+  if (SCIPION_SOFTWARE)
+    message("Scipion software directory found at ${SCIPION_SOFTWARE}")
+    link_to_scipion(${CMAKE_INSTALL_PREFIX} ${SCIPION_SOFTWARE})
+  else()
+    message("Linking to scipion was requested, but SCIPION_SOFTWARE is not set")
+  endif()
 endif()
