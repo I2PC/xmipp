@@ -27,7 +27,7 @@ from typing import Dict, Any, Callable
 import os
 import shutil
 
-from ..constants import GCC_HOME, GXX_HOME, CUDA_HOME, CMAKE_HOME
+from ..constants import GCC_HOME, GXX_HOME, CUDA_COMPILER, CMAKE_HOME
 
 def __getFunctionSkeleton(packages: Dict[str, Any], 
                           key: str,
@@ -75,11 +75,12 @@ def getCXX(packages: Dict[str, Any]) -> Dict:
   return __getFunctionSkeleton(packages, key=GXX_HOME, finder=findCXX)
 
 def findNVCC() -> str:
+  nvcc = shutil.which('nvcc')
+  if nvcc is not None:
+    return nvcc
   unixDefaultNVCCPath = '/usr/local/cuda/bin/nvcc'
   if os.path.exists(unixDefaultNVCCPath):
     return unixDefaultNVCCPath
-  else:
-    return shutil.which('nvcc')
 
 def getNVCC(packages: Dict[str, Any]) -> Dict:
   """
@@ -89,9 +90,9 @@ def getNVCC(packages: Dict[str, Any]) -> Dict:
   - packages (dict): Dictionary containing package information.
 
   #### Returns:
-  - (dict): Param 'packages' with the 'CUDA_HOME' key updated based on the availability of 'nvcc'.
+  - (dict): Param 'packages' with the 'CUDA_COMPILER' key updated based on the availability of 'nvcc'.
   """
-  baseMatch = __getFunctionSkeleton(packages, key=CUDA_HOME, finder=findNVCC)
+  baseMatch = __getFunctionSkeleton(packages, key=CUDA_COMPILER, finder=findNVCC)
   # If base match is cuda root dir, add path to nvcc. Otherwise return as is
   return os.path.join(baseMatch, 'bin', 'nvcc') if 'cuda' in baseMatch.split('/')[-1] else baseMatch
 

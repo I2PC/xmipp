@@ -77,10 +77,6 @@ def exitXmipp(retCode: int=0, configDict: Dict={}):
 	if configDict:
 		sendApiPOST(configDict, retCode=retCode)
 	
-	# If it was a success, print success message
-	if not retCode:
-		logger(f"\n{__getSuccessMessage()}", forceConsoleOutput=True)
-
 	# End execution
 	sys.exit(retCode)
 
@@ -105,6 +101,7 @@ def handleRetCode(realRetCode: int, predefinedErrorCode: int=0, configDict: Dict
 def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str]:
 	"""
 	### Clones the given source as a repository in the given branch if exists. Defaults to default branch.
+	### If the repository already exists, checks out to specified branch (if provided).
 	
 	#### Params:
 	- source (str): Source to clone.
@@ -148,7 +145,7 @@ def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str
 		logger(green(f"{UP}{REMOVE_LINE}Done"), forceConsoleOutput=True)
 	return retCode, output
 
-def __getSuccessMessage() -> str:
+def getSuccessMessage() -> str:
 	"""
 	### This function returns the message shown when Xmipp is compiled successfully.
 	
