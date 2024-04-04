@@ -1,8 +1,8 @@
 # This script is valid for bash and zsh
 
 export XMIPP_HOME=@XMIPP_HOME@
-export PATH=@XMIPP_HOME@/bin:$PATH
-export LD_LIBRARY_PATH=@XMIPP_HOME@/lib:@XMIPP_HOME@/bindings/python:$LD_LIBRARY_PATH
+export PATH=@XMIPP_HOME@/@CMAKE_INSTALL_BINDIR@:$PATH
+export LD_LIBRARY_PATH=@XMIPP_HOME@/@CMAKE_INSTALL_LIBDIR@:@XMIPP_HOME@/bindings/python:$LD_LIBRARY_PATH
 export PYTHONPATH=@XMIPP_HOME@/bindings/python:@XMIPP_HOME@/pylib:$PYTHONPATH
 
 alias x='xmipp'
