@@ -22,6 +22,15 @@
 
 cmake_minimum_required(VERSION 3.16)
 
+# Import functions
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+include(fetch_cifpp)
+include(fetch_ctpl)
+include(fetch_cuFFTAdvisor)
+include(fetch_googletest)
+include(fetch_libsvm)
+include(link_to_scipion)
+
 # Define the project
 project(
   xmipp
@@ -36,12 +45,16 @@ include(CTest)
 option(XMIPP_USE_CUDA "Compile CUDA programs" ON)
 option(XMIPP_USE_MPI "Compile MPI programs" ON)
 option(XMIPP_USE_MATLAB "Compile MATLAB binding" ON)
+option(XMIPP_LINK_TO_SCIPION "Link to scipion3" ON)
 
 # Set C++ 17
 if(NOT DEFINED CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif()
+
+# Find Python
+find_package(Python3 COMPONENTS Interpreter Development NumPy REQUIRED)
 
 # Find CUDA and MPI
 if(${XMIPP_USE_CUDA})
@@ -53,7 +66,6 @@ if(${XMIPP_USE_CUDA})
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -D_FORCE_INLINES")
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler")
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -fPIC")
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -std=c++14")
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda")
     
     if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
@@ -82,10 +94,34 @@ if(${XMIPP_USE_MATLAB})
   endif()
 endif()
 
-add_subdirectory(src)
+# Fetch dependencies
+fetch_cifpp()
+fetch_ctpl()
+fetch_googletest()
+fetch_libsvm()
+if(XMIPP_USE_CUDA)
+  fetch_cuFFTAdvisor()
+endif()
 
+# Import subdirectories
+add_subdirectory(src/xmippCore)
+add_subdirectory(src/xmipp)
+add_subdirectory(src/xmippViz)
+
+# Configure bashrc file for installation
 set(XMIPP_HOME ${CMAKE_INSTALL_PREFIX})
 configure_file(
 	${CMAKE_CURRENT_SOURCE_DIR}/cmake/xmipp.bashrc.in
-	${CMAKE_INSTALL_PREFIX}/xmipp.bashrc
+	${CMAKE_CURRENT_BINARY_DIR}/xmipp.bashrc
 )
+# TODO install
+
+# Link to scipion
+if(XMIPP_LINK_TO_SCIPION)
+  if (NOT SCIPION_SOFTWARE)
+    set(SCIPION_SOFTWARE /home/olauzirika/scipion3/software) # TODO
+  endif()
+  message("Scipion software directory found at ${SCIPION_SOFTWARE}")
+
+  link_to_scipion(${CMAKE_INSTALL_PREFIX} ${SCIPION_SOFTWARE})
+endif()

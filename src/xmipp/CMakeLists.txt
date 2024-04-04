@@ -97,11 +97,11 @@ target_link_libraries(
 )
 install(
 	TARGETS swig_frm
-	LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/bindings/python
+	LIBRARY DESTINATION bindings/python
 )
 install(
 	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/external/sh_alignment/python/
-	DESTINATION ${CMAKE_INSTALL_PREFIX}/bindings/python/sh_alignment
+	DESTINATION bindings/python/sh_alignment
 )
 
 # Create the shared library
@@ -143,7 +143,7 @@ target_link_libraries(
 		Python3::NumPy
 )
 set(PYTHON_BINDING_DIR ${CMAKE_CURRENT_SOURCE_DIR}/bindings/python)
-set(PYTHON_BINDING_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/bindings/python)
+set(PYTHON_BINDING_INSTALL_DIR bindings/python)
 install(
 	TARGETS xmippLib
 	LIBRARY DESTINATION ${PYTHON_BINDING_INSTALL_DIR}
@@ -240,7 +240,7 @@ endif()
 # Install python library
 install(
 	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libraries/py_xmipp/
-	DESTINATION ${CMAKE_INSTALL_PREFIX}/pylib/xmippPyModules/
+	DESTINATION pylib/xmippPyModules/
 )
 
 # Add applications
