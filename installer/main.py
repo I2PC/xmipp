@@ -27,7 +27,7 @@ This module contains the necessary functions to run most installer commands.
 
 # General imports
 import os, sys
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional
 
 # Module imports
 from .utils import runJob, getCurrentBranch
@@ -125,13 +125,13 @@ def getSuccessMessage() -> str:
 	return '\n'.join([topBottomBorder, marginLine, messageLine, marginLine, topBottomBorder])
 
 ####################### AUX FUNCTIONS #######################
-def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str]:
+def __cloneSourceRepo(repo: str, branch: str=None, path: str='') -> Tuple[int, str]:
 	"""
 	### Clones the given source as a repository in the given branch if exists. Defaults to default branch.
 	### If the repository already exists, checks out to specified branch (if provided).
 	
 	#### Params:
-	- source (str): Source to clone.
+	- repo (str): Source to clone.
 	- branch (branch): Optional. Branch to clone repo from.
 	- path (str): Optional. Path to clone the repository into.
 	
@@ -139,20 +139,19 @@ def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str
 	- (int): 0 if everything worked, or else the return code of the command that failed.
 	- (str): Output data from the command if it worked or error if it failed.
 	"""
-	# If branch is provided, check if exists
+	retCode = 0
+	output = ''
 	logger(yellow("Working..."), forceConsoleOutput=True)
-	if branch:
-		retCode, _ = runJob(f"git ls-remote --heads {repo}.git {branch} | grep -q refs/heads/{branch}")
-		branchExists = not retCode
-		# If does not exist, show warning
-		if not branchExists:
-			warningStr = f"Warning: branch \'{branch}\' does not exist for repository with url {repo}.\n"
-			warningStr += "Falling back to repository's default branch."
-			logger(yellow(warningStr), forceConsoleOutput=True, substitute=True)
-			branch = None
-			logger(yellow("Working..."), forceConsoleOutput=True)
+	cloneBranch = __getCloneBranch(repo, branch)
 
-	branchStr = f" --branch {branch}" if branch else ''
+	# If specified branch does not exist, show warning
+	if branch and not cloneBranch:
+		warningStr = f"Warning: branch \'{branch}\' does not exist for repository with url {repo}.\n"
+		warningStr += "Falling back to repository's default branch."
+		logger(yellow(warningStr), forceConsoleOutput=True, substitute=True)
+		branch = None
+		logger(yellow("Working..."), forceConsoleOutput=True)
+
 	# Move to defined path to clone
 	currentPath = os.getcwd()
 	os.chdir(path)
@@ -160,11 +159,14 @@ def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str
 	# Check if repo already exists. If so, checkout instead of clone.
 	clonedFolder = repo.split("/")[-1]
 	if os.path.isdir(clonedFolder):
-		os.chdir(clonedFolder)
-		retCode, output = runJob(f"git checkout {branch}")
+		if branch:
+			os.chdir(clonedFolder)
+			retCode, output = runJob(f"git checkout {branch}")
+			logger(output)
 	else:
+		branchStr = f" --branch {branch}" if branch else ''
 		retCode, output = runJob(f"git clone{branchStr} {repo}.git")
-	logger(output)
+		logger(output)
 
 	# Go back to previous path
 	os.chdir(currentPath)
@@ -172,6 +174,24 @@ def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str
 	if not retCode:
 		logger(green("Done"), forceConsoleOutput=True, substitute=True)
 	return retCode, output
+
+def __getCloneBranch(repo: str, branch: str) -> Optional[str]:
+	"""
+	### Returns the branch to clone from in the given repository. 
+	
+	#### Params:
+	- repo (str): Repository to clone.
+	- branch (branch): Branch to clone repo from.
+	
+	#### Returns:
+	- (str | None): The given branch if it is a valid one, or None to indicate default branch.
+	"""
+	if branch:
+		retCode, _ = runJob(f"git ls-remote --heads {repo}.git {branch} | grep -q refs/heads/{branch}")
+		if not retCode:
+			return branch
+	
+	return None
 
 def __getPredefinedError(realRetCode: int=0, desiredRetCode: int=0) -> int:
 	"""
