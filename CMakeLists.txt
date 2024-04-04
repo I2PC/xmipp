@@ -62,6 +62,7 @@ if(${XMIPP_USE_CUDA})
   if (CMAKE_CUDA_COMPILER)
     enable_language(CUDA)
 
+    set(CMAKE_CUDA_STANDARD 14)
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --x cu")
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -D_FORCE_INLINES")
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler")
