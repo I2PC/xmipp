@@ -29,7 +29,7 @@ function(link_to_scipion INSTALL_DIRECTORY SCIPION_SOFTWARE)
 			${SCIPION_SOFTWARE}/em/xmipp
 	)
 
-	# Copy installation
+	# Copy python binding
 	install(
 		DIRECTORY
 			${INSTALL_DIRECTORY}/bindings/python/
