@@ -37,7 +37,8 @@ file(
 		${CMAKE_CURRENT_SOURCE_DIR}/libraries/interface/*.cpp 
 		${CMAKE_CURRENT_SOURCE_DIR}/libraries/reconstruction/*.cpp 
 		${CMAKE_CURRENT_SOURCE_DIR}/libraries/tomo/*.cpp 
-		${CMAKE_CURRENT_SOURCE_DIR}/external/*.cpp 
+		${CMAKE_CURRENT_SOURCE_DIR}/external/condor/*.cpp 
+		${CMAKE_CURRENT_SOURCE_DIR}/external/delaunay/*.cpp 
 )
 file(
 	GLOB_RECURSE 
@@ -48,8 +49,14 @@ file(
 		${CMAKE_CURRENT_SOURCE_DIR}/libraries/interface/*.h
 		${CMAKE_CURRENT_SOURCE_DIR}/libraries/reconstruction/*.h
 		${CMAKE_CURRENT_SOURCE_DIR}/libraries/tomo/*.h
-		${CMAKE_CURRENT_SOURCE_DIR}/external/*.h
+		${CMAKE_CURRENT_SOURCE_DIR}/external/condor/*.h
+		${CMAKE_CURRENT_SOURCE_DIR}/external/delaunay/*.h
 )	
+file(
+	GLOB_RECURSE 
+	FRM_SOURCES 
+		${CMAKE_CURRENT_SOURCE_DIR}/external/sh_alignment/*.cpp 
+)
 file(
 	GLOB_RECURSE 
 	PYTHON_BINDING_SOURCES
@@ -80,6 +87,24 @@ file(
 	PARALLEL_CUDA_SOURCES
 		${CMAKE_CURRENT_SOURCE_DIR}/libraries/parallel_adapt_cuda/*.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/libraries/reconstruction_adapt_cuda/*.cpp
+)
+
+# Compile FRM
+add_library(swig_frm SHARED ${FRM_SOURCES})
+set_target_properties(swig_frm PROPERTIES PREFIX "_")
+target_link_libraries(
+	swig_frm
+	PUBLIC
+		Python3::Python
+		Python3::NumPy
+)
+install(
+	TARGETS swig_frm
+	LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/bindings/python
+)
+install(
+	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/external/sh_alignment/python/
+	DESTINATION ${CMAKE_INSTALL_PREFIX}/bindings/python/sh_alignment
 )
 
 # Create the shared library
@@ -125,8 +150,18 @@ install(
 	LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/bindings/python
 )
 install(
-	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bindings/python/
-	DESTINATION ${CMAKE_INSTALL_PREFIX}/bindings/python
+	FILES
+		${CMAKE_CURRENT_SOURCE_DIR}/bindings/python/xmipp_base.py
+		${CMAKE_CURRENT_SOURCE_DIR}/bindings/python/xmipp_conda_envs.py
+		${CMAKE_CURRENT_SOURCE_DIR}/bindings/python/xmipp.py
+	DESTINATION 
+		${CMAKE_INSTALL_PREFIX}/bindings/python
+)
+install(
+	DIRECTORY
+		${CMAKE_CURRENT_SOURCE_DIR}/bindings/python/envs_DLTK
+	DESTINATION 
+		${CMAKE_INSTALL_PREFIX}/bindings/python
 )
 
 # Register MPI sources
