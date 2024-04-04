@@ -34,7 +34,7 @@ from .utils import runJob, getCurrentBranch
 from .logger import logger, yellow, green
 from .constants import (REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH, MASTER_BRANCHNAME,
 	CONFIG_DEFAULT_VALUES, SOURCE_CLONE_ERROR, INTERNAL_LOGIC_VARS,
-	INTERRUPTED_ERROR, XMIPP_VERSIONS, XMIPP, VERSION_KEY, REMOVE_LINE, UP)
+	INTERRUPTED_ERROR, XMIPP_VERSIONS, XMIPP, VERSION_KEY)
 from .api import sendApiPOST
 
 ####################### COMMAND FUNCTIONS #######################
@@ -146,9 +146,9 @@ def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str
 		branchExists = not retCode
 		# If does not exist, show warning
 		if not branchExists:
-			warningStr = f"{UP}{REMOVE_LINE}Warning: branch \'{branch}\' does not exist for repository with url {repo}.\n"
+			warningStr = f"Warning: branch \'{branch}\' does not exist for repository with url {repo}.\n"
 			warningStr += "Falling back to repository's default branch."
-			logger(yellow(warningStr), forceConsoleOutput=True)
+			logger(yellow(warningStr), forceConsoleOutput=True, substitute=True)
 			branch = None
 			logger(yellow("Working..."), forceConsoleOutput=True)
 
@@ -157,19 +157,20 @@ def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str
 	currentPath = os.getcwd()
 	os.chdir(path)
 
-	# Check if repo already exists. As we do not assume it has been
-	# correctly cloned, if exists, delete it and re-clone
+	# Check if repo already exists. If so, checkout instead of clone.
 	clonedFolder = repo.split("/")[-1]
 	if os.path.isdir(clonedFolder):
-		runJob(f"rm -rf {clonedFolder}")
-	retCode, output = runJob(f"git clone{branchStr} {repo}.git")
+		os.chdir(clonedFolder)
+		retCode, output = runJob(f"git checkout {branch}")
+	else:
+		retCode, output = runJob(f"git clone{branchStr} {repo}.git")
 	logger(output)
 
 	# Go back to previous path
 	os.chdir(currentPath)
 
 	if not retCode:
-		logger(green(f"{UP}{REMOVE_LINE}Done"), forceConsoleOutput=True)
+		logger(green("Done"), forceConsoleOutput=True, substitute=True)
 	return retCode, output
 
 def __getPredefinedError(realRetCode: int=0, desiredRetCode: int=0) -> int:

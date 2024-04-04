@@ -31,7 +31,7 @@ Provides a global logger
 import re
 
 # Installer imports
-from .constants import LOG_FILE, ERROR_CODE, DOCUMENTATION_URL
+from .constants import LOG_FILE, ERROR_CODE, DOCUMENTATION_URL, UP, REMOVE_LINE
 
 ####################### TEXT MODE #######################
 def green(text: str) -> str:
@@ -132,15 +132,18 @@ class Logger:
 		"""
 		self.outputToConsole = outputToConsole
  
-	def __call__(self, text: str, forceConsoleOutput: bool = False):
+	def __call__(self, text: str, forceConsoleOutput: bool = False, substitute: bool = False):
 		"""
 		### Log a message
 		
 		#### Params:
 		- text (str): Message to be logged. Supports fancy formatting
+		- forceConsoleOutput (bool): Optional. If True, text is also printed through terminal.
+		- substitute (bool): Optional. If True, previous line is substituted with new text. Only used when forceConsoleOutput = True.
 		"""
 		print(removeTextFormatting(text), file=self.logFile, flush=True)
 		if self.outputToConsole or forceConsoleOutput:
+			text = text if not substitute else f"{UP}{REMOVE_LINE}{text}"
 			print(text, flush=True)
 	 
 	def logError(self, errorMsg: str, retCode: int=1, addPortalLink: bool=True):
