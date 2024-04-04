@@ -34,7 +34,7 @@ from .utils import runJob, getCurrentBranch
 from .logger import logger, yellow, green
 from .constants import (REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH, MASTER_BRANCHNAME,
 	CONFIG_DEFAULT_VALUES, SOURCE_CLONE_ERROR, INTERNAL_LOGIC_VARS,
-	INTERRUPTED_ERROR, XMIPP_VERSIONS, XMIPP, VERSION_KEY, REMOVE_LINE, UP)
+	INTERRUPTED_ERROR, XMIPP_VERSIONS, XMIPP, VERSION_KEY)
 from .api import sendApiPOST
 
 ####################### COMMAND FUNCTIONS #######################
@@ -77,10 +77,6 @@ def exitXmipp(retCode: int=0, configDict: Dict={}):
 	if configDict:
 		sendApiPOST(configDict, retCode=retCode)
 	
-	# If it was a success, print success message
-	if not retCode:
-		logger(f"\n{__getSuccessMessage()}", forceConsoleOutput=True)
-
 	# End execution
 	sys.exit(retCode)
 
@@ -101,54 +97,7 @@ def handleRetCode(realRetCode: int, predefinedErrorCode: int=0, configDict: Dict
 		exitXmipp(retCode=resultCode, configDict=configDict)
 	logger("\n", forceConsoleOutput=True)
 
-####################### AUX FUNCTIONS #######################
-def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str]:
-	"""
-	### Clones the given source as a repository in the given branch if exists. Defaults to default branch.
-	
-	#### Params:
-	- source (str): Source to clone.
-	- branch (branch): Optional. Branch to clone repo from.
-	- path (str): Optional. Path to clone the repository into.
-	
-	#### Returns:
-	- (int): 0 if everything worked, or else the return code of the command that failed.
-	- (str): Output data from the command if it worked or error if it failed.
-	"""
-	# If branch is provided, check if exists
-	logger(yellow("Working..."), forceConsoleOutput=True)
-	if branch:
-		retCode, _ = runJob(f"git ls-remote --heads {repo}.git {branch} | grep -q refs/heads/{branch}")
-		branchExists = not retCode
-		# If does not exist, show warning
-		if not branchExists:
-			warningStr = f"{UP}{REMOVE_LINE}Warning: branch \'{branch}\' does not exist for repository with url {repo}.\n"
-			warningStr += "Falling back to repository's default branch."
-			logger(yellow(warningStr), forceConsoleOutput=True)
-			branch = None
-			logger(yellow("Working..."), forceConsoleOutput=True)
-
-	branchStr = f" --branch {branch}" if branch else ''
-	# Move to defined path to clone
-	currentPath = os.getcwd()
-	os.chdir(path)
-
-	# Check if repo already exists. As we do not assume it has been
-	# correctly cloned, if exists, delete it and re-clone
-	clonedFolder = repo.split("/")[-1]
-	if os.path.isdir(clonedFolder):
-		runJob(f"rm -rf {clonedFolder}")
-	retCode, output = runJob(f"git clone{branchStr} {repo}.git")
-	logger(output)
-
-	# Go back to previous path
-	os.chdir(currentPath)
-
-	if not retCode:
-		logger(green(f"{UP}{REMOVE_LINE}Done"), forceConsoleOutput=True)
-	return retCode, output
-
-def __getSuccessMessage() -> str:
+def getSuccessMessage() -> str:
 	"""
 	### This function returns the message shown when Xmipp is compiled successfully.
 	
@@ -174,6 +123,55 @@ def __getSuccessMessage() -> str:
 	marginLine = f"*{''.join([' ' for _ in range(totalLen - 2)])}*"
 
 	return '\n'.join([topBottomBorder, marginLine, messageLine, marginLine, topBottomBorder])
+
+####################### AUX FUNCTIONS #######################
+def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str]:
+	"""
+	### Clones the given source as a repository in the given branch if exists. Defaults to default branch.
+	### If the repository already exists, checks out to specified branch (if provided).
+	
+	#### Params:
+	- source (str): Source to clone.
+	- branch (branch): Optional. Branch to clone repo from.
+	- path (str): Optional. Path to clone the repository into.
+	
+	#### Returns:
+	- (int): 0 if everything worked, or else the return code of the command that failed.
+	- (str): Output data from the command if it worked or error if it failed.
+	"""
+	# If branch is provided, check if exists
+	logger(yellow("Working..."), forceConsoleOutput=True)
+	if branch:
+		retCode, _ = runJob(f"git ls-remote --heads {repo}.git {branch} | grep -q refs/heads/{branch}")
+		branchExists = not retCode
+		# If does not exist, show warning
+		if not branchExists:
+			warningStr = f"Warning: branch \'{branch}\' does not exist for repository with url {repo}.\n"
+			warningStr += "Falling back to repository's default branch."
+			logger(yellow(warningStr), forceConsoleOutput=True, substitute=True)
+			branch = None
+			logger(yellow("Working..."), forceConsoleOutput=True)
+
+	branchStr = f" --branch {branch}" if branch else ''
+	# Move to defined path to clone
+	currentPath = os.getcwd()
+	os.chdir(path)
+
+	# Check if repo already exists. If so, checkout instead of clone.
+	clonedFolder = repo.split("/")[-1]
+	if os.path.isdir(clonedFolder):
+		os.chdir(clonedFolder)
+		retCode, output = runJob(f"git checkout {branch}")
+	else:
+		retCode, output = runJob(f"git clone{branchStr} {repo}.git")
+	logger(output)
+
+	# Go back to previous path
+	os.chdir(currentPath)
+
+	if not retCode:
+		logger(green("Done"), forceConsoleOutput=True, substitute=True)
+	return retCode, output
 
 def __getPredefinedError(realRetCode: int=0, desiredRetCode: int=0) -> int:
 	"""

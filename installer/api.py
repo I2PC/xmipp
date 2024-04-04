@@ -35,7 +35,7 @@ from .config import (getOSReleaseName, getArchitectureName, getCUDAVersion,
 	getCmakeVersion, getGXXVersion, getGCCVersion, getCC, getCXX, getNVCC, getCMake)
 from .utils import runJob, getCurrentBranch, isBranchUpToDate, runParallelJobs
 from .cmake_cache import parseCmakeCache
-from .constants import (API_URL, LOG_FILE, TAIL_LOG_NCHARS, CUDA_HOME, CMAKE_HOME, GCC_HOME, GXX_HOME,
+from .constants import (API_URL, LOG_FILE, TAIL_LOG_NCHARS,
 	XMIPP_VERSIONS, XMIPP, VERSION_KEY, MASTER_BRANCHNAME)
 
 def sendApiPOST(configDict:Dict, retCode: int=0):
