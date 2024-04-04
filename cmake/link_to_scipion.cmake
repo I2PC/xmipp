@@ -40,12 +40,12 @@ function(link_to_scipion INSTALL_DIRECTORY SCIPION_SOFTWARE)
 	# Copy shared libraries
 	install(
 		FILES
-			${INSTALL_DIRECTORY}/lib/libcifpp.so
-			${INSTALL_DIRECTORY}/lib/libcifpp.so.3
-			${INSTALL_DIRECTORY}/lib/libcifpp.so.5.0.9
-			${INSTALL_DIRECTORY}/lib/libsvm.so
-			${INSTALL_DIRECTORY}/lib/libXmippCore.so
-			${INSTALL_DIRECTORY}/lib/libXmipp.so
+			${INSTALL_DIRECTORY}/${CMAKE_INSTALL_LIBDIR}/libcifpp.so
+			${INSTALL_DIRECTORY}/${CMAKE_INSTALL_LIBDIR}/libcifpp.so.3
+			${INSTALL_DIRECTORY}/${CMAKE_INSTALL_LIBDIR}/libcifpp.so.5.0.9
+			${INSTALL_DIRECTORY}/${CMAKE_INSTALL_LIBDIR}/libsvm.so
+			${INSTALL_DIRECTORY}/${CMAKE_INSTALL_LIBDIR}/libXmippCore.so
+			${INSTALL_DIRECTORY}/${CMAKE_INSTALL_LIBDIR}/libXmipp.so
 		DESTINATION
 			${SCIPION_SOFTWARE}/lib
 	)
