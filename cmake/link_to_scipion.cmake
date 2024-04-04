@@ -20,13 +20,13 @@
 #  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************
 
-function(link_to_scipion INSTALL_DIRECTORY SCIPION_HOME)
+function(link_to_scipion INSTALL_DIRECTORY SCIPION_SOFTWARE)
 	# Copy installation
 	install(
 		DIRECTORY
 			${INSTALL_DIRECTORY}/
 		DESTINATION
-			${SCIPION_HOME}/software/em/xmipp
+			${SCIPION_SOFTWARE}/em/xmipp
 	)
 
 	# Copy installation
@@ -34,7 +34,7 @@ function(link_to_scipion INSTALL_DIRECTORY SCIPION_HOME)
 		DIRECTORY
 			${INSTALL_DIRECTORY}/bindings/python/
 		DESTINATION
-			${SCIPION_HOME}/software/bindings
+			${SCIPION_SOFTWARE}/bindings
 	)
 
 	# Copy shared libraries
@@ -47,6 +47,6 @@ function(link_to_scipion INSTALL_DIRECTORY SCIPION_HOME)
 			${INSTALL_DIRECTORY}/lib/libXmippCore.so
 			${INSTALL_DIRECTORY}/lib/libXmipp.so
 		DESTINATION
-			${SCIPION_HOME}/lib
+			${SCIPION_SOFTWARE}/lib
 	)
 endfunction()
