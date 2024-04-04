@@ -26,6 +26,8 @@
 Submodule containing all the general constants needed for Xmipp's installation.
 """
 
+import os
+
 XMIPP = 'xmipp'
 XMIPP_CORE = 'xmippCore'
 XMIPP_VIZ = 'xmippViz'
@@ -57,6 +59,7 @@ SOURCES_PATH = "src/"
 BUILD_PATH = "build/"
 INSTALL_PATH = "dist/"
 BUILD_TYPE = "Release"
+CMAKE_CACHE_PATH = os.path.join(BUILD_PATH, 'CMakeCache.txt')
 
 # Source repositories
 ORGANIZATION_NAME = 'I2PC'
