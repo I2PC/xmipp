@@ -97,6 +97,33 @@ def handleRetCode(realRetCode: int, predefinedErrorCode: int=0, configDict: Dict
 		exitXmipp(retCode=resultCode, configDict=configDict)
 	logger("\n", forceConsoleOutput=True)
 
+def getSuccessMessage() -> str:
+	"""
+	### This function returns the message shown when Xmipp is compiled successfully.
+	
+	#### Returms:
+	- (str): Success message.
+	"""
+	# Getting release name
+	branchName = getCurrentBranch()
+	releaseName = branchName
+	if branchName is None or branchName == MASTER_BRANCHNAME:
+		releaseName = XMIPP_VERSIONS[XMIPP][VERSION_KEY]
+
+	# Creating message line
+	releaseMessage = 'Xmipp {} has been successfully installed, enjoy it!'.format(releaseName)
+	releaseMessageWrapper = '*  *'
+	messageLine = releaseMessageWrapper[:int(len(releaseMessageWrapper)/2)]
+	messageLine += green(f'Xmipp {releaseName} has been successfully installed, enjoy it!')
+	messageLine += releaseMessageWrapper[int(len(releaseMessageWrapper)/2):]
+
+	# Creating box around message line
+	totalLen = len(releaseMessage) + len(releaseMessageWrapper)
+	topBottomBorder = ''.join(['*' for _ in range(totalLen)])
+	marginLine = f"*{''.join([' ' for _ in range(totalLen - 2)])}*"
+
+	return '\n'.join([topBottomBorder, marginLine, messageLine, marginLine, topBottomBorder])
+
 ####################### AUX FUNCTIONS #######################
 def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str]:
 	"""
@@ -144,33 +171,6 @@ def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str
 	if not retCode:
 		logger(green(f"{UP}{REMOVE_LINE}Done"), forceConsoleOutput=True)
 	return retCode, output
-
-def getSuccessMessage() -> str:
-	"""
-	### This function returns the message shown when Xmipp is compiled successfully.
-	
-	#### Returms:
-	- (str): Success message.
-	"""
-	# Getting release name
-	branchName = getCurrentBranch()
-	releaseName = branchName
-	if branchName is None or branchName == MASTER_BRANCHNAME:
-		releaseName = XMIPP_VERSIONS[XMIPP][VERSION_KEY]
-
-	# Creating message line
-	releaseMessage = 'Xmipp {} has been successfully installed, enjoy it!'.format(releaseName)
-	releaseMessageWrapper = '*  *'
-	messageLine = releaseMessageWrapper[:int(len(releaseMessageWrapper)/2)]
-	messageLine += green(f'Xmipp {releaseName} has been successfully installed, enjoy it!')
-	messageLine += releaseMessageWrapper[int(len(releaseMessageWrapper)/2):]
-
-	# Creating box around message line
-	totalLen = len(releaseMessage) + len(releaseMessageWrapper)
-	topBottomBorder = ''.join(['*' for _ in range(totalLen)])
-	marginLine = f"*{''.join([' ' for _ in range(totalLen - 2)])}*"
-
-	return '\n'.join([topBottomBorder, marginLine, messageLine, marginLine, topBottomBorder])
 
 def __getPredefinedError(realRetCode: int=0, desiredRetCode: int=0) -> int:
 	"""
