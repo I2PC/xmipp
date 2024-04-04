@@ -114,14 +114,17 @@ configure_file(
 	${CMAKE_CURRENT_SOURCE_DIR}/cmake/xmipp.bashrc.in
 	${CMAKE_CURRENT_BINARY_DIR}/xmipp.bashrc
 )
-# TODO install
+install(
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/xmipp.bashrc
+  DESTINATION ./
+)
 
 # Link to scipion
 if(XMIPP_LINK_TO_SCIPION)
   if (NOT SCIPION_SOFTWARE)
     set(SCIPION_SOFTWARE "$ENV{SCIPION_SOFTWARE}")
   endif()
-  
+
   if (SCIPION_SOFTWARE)
     message("Scipion software directory found at ${SCIPION_SOFTWARE}")
     link_to_scipion(${CMAKE_INSTALL_PREFIX} ${SCIPION_SOFTWARE})
