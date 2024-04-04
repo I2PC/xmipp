@@ -78,7 +78,7 @@ if(${XMIPP_USE_CUDA})
 endif()
 
 if(${XMIPP_USE_MPI})
-	find_package(MPI COMPONENTS C CXX)
+	find_package(MPI COMPONENTS CXX)
   if (NOT MPI_FOUND)
     set(XMIPP_USE_MPI OFF)
     message("MPI was requested but MPI was not found. Compiling without MPI")

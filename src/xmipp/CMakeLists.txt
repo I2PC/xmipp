@@ -170,7 +170,6 @@ if(${XMIPP_USE_MPI})
 		XmippParallel
 		PUBLIC
 			Xmipp
-			MPI::MPI_C
 			MPI::MPI_CXX
 	)
 	install(
