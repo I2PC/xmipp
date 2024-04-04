@@ -24,9 +24,6 @@ cmake_minimum_required(VERSION 3.16)
 
 include(GNUInstallDirs)
 
-# Find dependencies
-find_package(Python3 COMPONENTS Interpreter Development NumPy REQUIRED)
-
 # Find source files
 file(
 	GLOB_RECURSE 
@@ -145,23 +142,25 @@ target_link_libraries(
 		Python3::Python
 		Python3::NumPy
 )
+set(PYTHON_BINDING_DIR ${CMAKE_CURRENT_SOURCE_DIR}/bindings/python)
+set(PYTHON_BINDING_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/bindings/python)
 install(
 	TARGETS xmippLib
-	LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/bindings/python
+	LIBRARY DESTINATION ${PYTHON_BINDING_INSTALL_DIR}
 )
 install(
 	FILES
-		${CMAKE_CURRENT_SOURCE_DIR}/bindings/python/xmipp_base.py
-		${CMAKE_CURRENT_SOURCE_DIR}/bindings/python/xmipp_conda_envs.py
-		${CMAKE_CURRENT_SOURCE_DIR}/bindings/python/xmipp.py
+		${PYTHON_BINDING_DIR}/xmipp_base.py
+		${PYTHON_BINDING_DIR}/xmipp_conda_envs.py
+		${PYTHON_BINDING_DIR}/xmipp.py
 	DESTINATION 
-		${CMAKE_INSTALL_PREFIX}/bindings/python
+		${PYTHON_BINDING_INSTALL_DIR}
 )
 install(
 	DIRECTORY
-		${CMAKE_CURRENT_SOURCE_DIR}/bindings/python/envs_DLTK
+		${PYTHON_BINDING_DIR}/envs_DLTK
 	DESTINATION 
-		${CMAKE_INSTALL_PREFIX}/bindings/python
+		${PYTHON_BINDING_INSTALL_DIR}
 )
 
 # Register MPI sources
@@ -227,7 +226,7 @@ if(${XMIPP_USE_CUDA} AND ${XMIPP_USE_MPI})
 	)
 endif()
 
-# Add MATLAB binding
+# Add MATLAB binding TODO
 if(${XMIPP_USE_MATLAB})
 	find_package(Matlab REQUIRED)
 	
@@ -238,7 +237,7 @@ if(${XMIPP_USE_MATLAB})
 	)
 endif()
 
-# Install python sources
+# Install python library
 install(
 	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libraries/py_xmipp/
 	DESTINATION ${CMAKE_INSTALL_PREFIX}/pylib/xmippPyModules/
