@@ -40,7 +40,6 @@ def parseCmakeCache(path: str, desiredKeys: Set[str]) -> Dict[str, Any]:
         value = match.group(3)
         
         if key in desiredKeys:
-          print(line, '->', match.groups())
           result[key] = value
           
   return result
