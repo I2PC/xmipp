@@ -178,7 +178,7 @@ def getCurrentBranch(dir: str='./') -> str:
 	- dir (str): Optional. Directory of the repository to get current branch from. Default is current directory.
 	
 	#### Returns:
-	- (str): The name of the branch, or empty string if given directory is not a repository or a recognizable tag.
+	- (str): The name of the branch, 'HEAD' if a tag, or empty string if given directory is not a repository or a recognizable tag.
 	"""
 	# Getting current branch name
 	retcode, branchName = runJob("git rev-parse --abbrev-ref HEAD", cwd=dir)

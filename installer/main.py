@@ -33,7 +33,7 @@ from typing import Tuple, Dict, Optional
 from .utils import runJob, getCurrentBranch
 from .logger import logger, yellow, green
 from .constants import (REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH, MASTER_BRANCHNAME,
-	CONFIG_DEFAULT_VALUES, SOURCE_CLONE_ERROR, INTERNAL_LOGIC_VARS,
+	CONFIG_DEFAULT_VALUES, SOURCE_CLONE_ERROR, INTERNAL_LOGIC_VARS, TAG_BRANCH_NAME,
 	INTERRUPTED_ERROR, XMIPP_VERSIONS, XMIPP, VERSION_KEY, SECTION_MESSAGE_LEN)
 from .api import sendApiPOST
 
@@ -221,10 +221,18 @@ def __getCloneBranch(repo: str, branch: str) -> Optional[str]:
 	#### Returns:
 	- (str | None): The given branch if it is a valid one, or None to indicate default branch.
 	"""
+	# If branch exists, use it
 	if branch:
 		retCode, _ = runJob(f"git ls-remote --heads {repo}.git {branch} | grep -q refs/heads/{branch}")
 		if not retCode:
 			return branch
+	
+	# If repository is xmipp source and current branch is a release, clone from corresponding release
+	repoName = repo.split("/")[-1]
+	if repoName in XMIPP_SOURCES:
+		branchName = getCurrentBranch()
+		if not branchName or branchName == MASTER_BRANCHNAME or branchName == TAG_BRANCH_NAME:
+			return XMIPP_VERSIONS[repoName][VERSION_KEY]
 	
 	return None
 

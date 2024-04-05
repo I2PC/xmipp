@@ -79,6 +79,7 @@ SCIPION_TESTS_URLS = "http://scipion.cnb.csic.es/downloads/scipion/data/tests"
 # Other variables
 TAB_SIZE = 4
 SECTION_MESSAGE_LEN = 60
+TAG_BRANCH_NAME = 'HEAD'
 
 # File names
 CONFIG_FILE = 'xmipp.conf'
