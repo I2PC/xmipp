@@ -28,7 +28,7 @@ Provides a global logger
 """
 
 # General imports
-import re
+import re, shutil, math
 
 # Installer imports
 from .constants import LOG_FILE, ERROR_CODE, DOCUMENTATION_URL, UP, REMOVE_LINE
@@ -122,6 +122,7 @@ class Logger:
 		"""
 		self.logFile = open(logPath, 'w')
 		self.outputToConsole = outputToConsole
+		self.__lenLastPrintedElem = 0
 	
 	def setConsoleOutput(self, outputToConsole: bool):
 		"""
@@ -143,8 +144,12 @@ class Logger:
 		"""
 		print(removeTextFormatting(text), file=self.logFile, flush=True)
 		if self.outputToConsole or forceConsoleOutput:
-			text = text if not substitute else f"{UP}{REMOVE_LINE}{text}"
+			# Calculate number of lines to substitute if substitution was requested
+			substitutionStr = ''.join([f'{UP}{REMOVE_LINE}' for _ in range(self.__getNLastLines())])
+			text = text if not substitute else f"{substitutionStr}{text}"
 			print(text, flush=True)
+			# Store length of printed string for next substitution calculation
+			self.__lenLastPrintedElem = len(text)
 	 
 	def logError(self, errorMsg: str, retCode: int=1, addPortalLink: bool=True):
 		"""
@@ -162,6 +167,15 @@ class Logger:
 			errorStr += f'\nMore details on the Xmipp documentation portal: {DOCUMENTATION_URL}'
 
 		self.__call__(red(errorStr), forceConsoleOutput=True)
+
+	def __getNLastLines(self) -> int:
+		"""
+		### This function returns the number of lines of the terminal the last print occupied.
+
+		#### Returns:
+		- (int): Number of lines of the last print. 
+		"""
+		return math.ceil(self.__lenLastPrintedElem / shutil.get_terminal_size().columns)
 
 """
 ### Global logger
