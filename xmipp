@@ -34,8 +34,8 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 	CMAKE_CONFIGURE_ERROR, CMAKE_COMPILE_ERROR, CMAKE_INSTALL_ERROR, PARAM_LOGIN, PARAM_SHORT,
 	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_MODEL_PATH, PARAM_MODELS_DIRECTORY,
 	PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE, PARAM_XMIPP_DIRECTORY, BUILD_PATH,
-	INSTALL_PATH, BUILD_TYPE)
-from installer.utils import runStreamingJob
+	INSTALL_PATH, BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES)
+from installer.utils import runStreamingJob, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
 from installer.config import readConfig, writeConfig
 from installer.main import getCMakeVarsStr, getSources, exitXmipp, handleRetCode, getSectionMessage, getSuccessMessage
@@ -43,22 +43,24 @@ from installer.logger import logger
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
-  """
-  ### Checks the params for execution mode "addModel" and then runs it.
+	"""
+	### Checks the params for execution mode "addModel" and then runs it.
 
-  #### Params:
-  - args (Namespace): Command line arguments parsed by argparse library.
-  """
-  pass
+	#### Params:
+	- args (Namespace): Command line arguments parsed by argparse library.
+	"""
+	pass
 
 def modeCleanBin(args: argparse.Namespace):
-  """
+	"""
 	### Checks the params for execution mode "cleanBin" and then runs it.
 	
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-  pass
+	# Get xmipp sources
+	xmippSources = [os.path.join(SOURCES_PATH, source) for source in XMIPP_SOURCES]
+	runJob(f"rm -rf {BUILD_PATH} {INSTALL_PATH} {' '.join(xmippSources)} {CONFIG_FILE}", showCommand=True)
 
 def modeCleanAll(args: argparse.Namespace):
 	"""
@@ -151,13 +153,13 @@ def modeTest(parser, args=argparse.Namespace):
 	pass
 
 def modeVersion(args: argparse.Namespace):
-  """
-  ### Checks the params for execution mode "version" and then runs it.
+	"""
+	### Checks the params for execution mode "version" and then runs it.
 
-  #### Params:
-  - args (Namespace): Command line arguments parsed by argparse library.
-  """
-  pass
+	#### Params:
+	- args (Namespace): Command line arguments parsed by argparse library.
+	"""
+	pass
 
 def modeAll(args: argparse.Namespace) -> Dict:
 	"""
