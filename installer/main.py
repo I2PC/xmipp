@@ -208,8 +208,6 @@ def __cloneSourceRepo(repo: str, branch: str=None, path: str='') -> Tuple[int, s
 	# Go back to previous path
 	os.chdir(currentPath)
 
-	if not retCode:
-		__logDoneMessage()
 	return retCode, output
 
 def __getCloneBranch(repo: str, branch: str) -> Optional[str]:

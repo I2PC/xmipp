@@ -149,7 +149,7 @@ class Logger:
 			text = text if not substitute else f"{substitutionStr}{text}"
 			print(text, flush=True)
 			# Store length of printed string for next substitution calculation
-			self.__lenLastPrintedElem = len(text)
+			self.__lenLastPrintedElem = len(removeTextFormatting(text))
 	 
 	def logError(self, errorMsg: str, retCode: int=1, addPortalLink: bool=True):
 		"""
