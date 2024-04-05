@@ -34,7 +34,7 @@ from .utils import runJob, getCurrentBranch
 from .logger import logger, yellow, green
 from .constants import (REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH, MASTER_BRANCHNAME,
 	CONFIG_DEFAULT_VALUES, SOURCE_CLONE_ERROR, INTERNAL_LOGIC_VARS,
-	INTERRUPTED_ERROR, XMIPP_VERSIONS, XMIPP, VERSION_KEY)
+	INTERRUPTED_ERROR, XMIPP_VERSIONS, XMIPP, VERSION_KEY, SECTION_MESSAGE_LEN)
 from .api import sendApiPOST
 
 ####################### COMMAND FUNCTIONS #######################
@@ -46,7 +46,7 @@ def getSources(branch: str=None):
 	- branch (str): Optional. Branch to clone the sources from.
 	"""
 	# Clone or download internal sources
-	logger("Getting Xmipp sources ------------------------------------", forceConsoleOutput=True)
+	logger(getSectionMessage("Getting Xmipp sources"), forceConsoleOutput=True)
 	for source in XMIPP_SOURCES:
 		logger(f"Cloning {source}...", forceConsoleOutput=True)
 		retCode, output = __cloneSourceRepo(REPOSITORIES[source][0], path=SOURCES_PATH, branch=branch)
@@ -95,6 +95,7 @@ def handleRetCode(realRetCode: int, predefinedErrorCode: int=0, configDict: Dict
 		message = message if resultCode != realRetCode else ''
 		logger.logError(message, retCode=resultCode, addPortalLink=resultCode != realRetCode)
 		exitXmipp(retCode=resultCode, configDict=configDict)
+	__logDoneMessage()
 	logger("", forceConsoleOutput=True)
 
 def getSuccessMessage() -> str:
@@ -124,7 +125,43 @@ def getSuccessMessage() -> str:
 
 	return '\n'.join([topBottomBorder, marginLine, messageLine, marginLine, topBottomBorder])
 
+def getSectionMessage(text: str) -> str:
+	"""
+	### This function prints a section message in a specific format.
+
+	#### Params:
+	- text (str): Title of the section.
+
+	#### Returns:
+	- (str): Formatted section message.
+	"""
+	# Check if provided text's length has exceeded specified limit
+	textLen = len(text)
+	remainingLen = SECTION_MESSAGE_LEN - textLen
+	if remainingLen < 4:
+		return text
+	
+	# Calculating characters around given text
+	nDashes = remainingLen - 2
+	nFinalDashes = int(nDashes / 2)
+	nInitialDashes = nDashes - nFinalDashes
+	finalDashes = ''.join(['-' for _ in range(nFinalDashes)])
+	initialDashes = ''.join(['-' for _ in range(nInitialDashes)])
+	return f"{initialDashes} {text} {finalDashes}"
+
 ####################### AUX FUNCTIONS #######################
+def __logDoneMessage():
+	"""
+	### This function logs a message shown after completing a task.
+	"""
+	logger(green("Done"), forceConsoleOutput=True, substitute=True)
+
+def __logWorkingMessage():
+	"""
+	### This function logs a message shown as placeholder for small tasks in progress.
+	"""
+	logger(yellow("Working..."), forceConsoleOutput=True)
+
 def __cloneSourceRepo(repo: str, branch: str=None, path: str='') -> Tuple[int, str]:
 	"""
 	### Clones the given source as a repository in the given branch if exists. Defaults to default branch.
@@ -141,7 +178,7 @@ def __cloneSourceRepo(repo: str, branch: str=None, path: str='') -> Tuple[int, s
 	"""
 	retCode = 0
 	output = ''
-	logger(yellow("Working..."), forceConsoleOutput=True)
+	__logWorkingMessage()
 	cloneBranch = __getCloneBranch(repo, branch)
 
 	# If specified branch does not exist, show warning
@@ -150,7 +187,7 @@ def __cloneSourceRepo(repo: str, branch: str=None, path: str='') -> Tuple[int, s
 		warningStr += "Falling back to repository's default branch."
 		logger(yellow(warningStr), forceConsoleOutput=True, substitute=True)
 		branch = None
-		logger(yellow("Working..."), forceConsoleOutput=True)
+		__logWorkingMessage()
 
 	# Move to defined path to clone
 	currentPath = os.getcwd()
@@ -172,7 +209,7 @@ def __cloneSourceRepo(repo: str, branch: str=None, path: str='') -> Tuple[int, s
 	os.chdir(currentPath)
 
 	if not retCode:
-		logger(green("Done"), forceConsoleOutput=True, substitute=True)
+		__logDoneMessage()
 	return retCode, output
 
 def __getCloneBranch(repo: str, branch: str) -> Optional[str]:

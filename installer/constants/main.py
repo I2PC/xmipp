@@ -78,6 +78,7 @@ SCIPION_TESTS_URLS = "http://scipion.cnb.csic.es/downloads/scipion/data/tests"
 
 # Other variables
 TAB_SIZE = 4
+SECTION_MESSAGE_LEN = 60
 
 # File names
 CONFIG_FILE = 'xmipp.conf'
@@ -86,7 +87,4 @@ XMIPPENV = 'xmippEnv.json'
 VERSIONS_FILE = 'xmippVersions.txt'
 COMPRESED_FILE = 'report.tar.gz'
 LOG_FILE = 'compileLOG.txt'
-CMD_OUT_LOG_FILE = 'commandOutput.log'
-CMD_ERR_LOG_FILE = 'commandError.log'
-OUTPUT_POLL_TIME = 0.5 # Seconds between each output refresh
 TAIL_LOG_NCHARS = 300

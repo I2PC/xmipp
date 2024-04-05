@@ -27,18 +27,19 @@ Module containing useful functions used by the installation process.
 """
 
 # General imports
-import os, time, multiprocessing
+import os, multiprocessing
 from typing import List, Tuple, Callable, Any, Optional
-from io import FileIO
 from subprocess import Popen, PIPE
+from threading import Thread
+from io import BufferedReader
 
 # Installer imports
-from .constants import (XMIPP, VERNAME_KEY, CMD_OUT_LOG_FILE,
-	CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, XMIPP_VERSIONS, INTERRUPTED_ERROR)
+from .constants import XMIPP, VERNAME_KEY, XMIPP_VERSIONS, INTERRUPTED_ERROR
 from .logger import blue, red, logger
 
 ####################### RUN FUNCTIONS #######################
-def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
+def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False,
+					 showCommand: bool=False, substitute: bool=False) -> Tuple[int, str]:
 	"""
 	### This function runs the given command.
 
@@ -48,7 +49,7 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	- showOutput (bool): Optional. If True, output is printed.
 	- showError (bool): Optional. If True, errors are printed.
 	- showCommand (bool): Optional. If True, command is printed in blue.
-	- streaming (bool): Optional. If True, output is shown in real time as it is being produced.
+	- substitute (bool): Optional. If True, output will replace previous line.
 
 	#### Returns:
 	- (int): Return code.
@@ -56,30 +57,27 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	"""
 	# Printing command if specified
 	if showCommand == True:
-		print(blue(cmd))
+		logger(blue(cmd), forceConsoleOutput=True, substitute=substitute)
 
 	# Running command
-	if streaming:
-		retCode, outputStr = __runStreamingJob(cmd, cwd=cwd, showOutput=showOutput, showError=showError)
-	else:
-		process = Popen(cmd, cwd=cwd, env=os.environ, stdout=PIPE, stderr=PIPE, shell=True)
-		try:
-			process.wait()
-		except KeyboardInterrupt:
-			return INTERRUPTED_ERROR, ""
-		
-		# Defining output string
-		retCode = process.returncode
-		output, err = process.communicate()
-		outputStr = err.decode() if retCode else output.decode()
+	process = Popen(cmd, cwd=cwd, env=os.environ, stdout=PIPE, stderr=PIPE, shell=True)
+	try:
+		process.wait()
+	except KeyboardInterrupt:
+		return INTERRUPTED_ERROR, ""
+	
+	# Defining output string
+	retCode = process.returncode
+	output, err = process.communicate()
+	outputStr = err.decode() if retCode else output.decode()
 
 	# Printing output if specified
-	if not streaming and showOutput:
-		print('{}\n'.format(outputStr))
+	if showOutput:
+		logger(f"{outputStr}\n", forceConsoleOutput=True, substitute=substitute)
 
 	# Printing errors if specified
-	if not streaming and err and showError:
-		print(red(outputStr))
+	if err and showError:
+		logger.logError(outputStr)
 
 	# Returing return code
 	outputStr = outputStr[:-1] if outputStr.endswith('\n') else outputStr
@@ -136,6 +134,40 @@ def runParallelJobs(funcs: List[Tuple[Callable, Tuple[Any]]], nJobs: int=multipr
 	
 	# Return obtained result list
 	return results
+
+def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, substitute: bool=False):
+	"""
+	### This function runs the given command and shows its output as it is being generated.
+
+	#### Params:
+	- cmd (str): Command to run.
+	- cwd (str): Optional. Path to run the command from. Default is current directory.
+	- showOutput (bool): Optional. If True, output is printed.
+	- showError (bool): Optional. If True, errors are printed.
+	- substitute (bool): Optional. If True, output will replace previous line.
+
+	#### Returns:
+	- (int): Return code.
+	- (str): Output of the command, regardless of if it is an error or regular output.
+	"""
+	# Create a Popen instance
+	process = Popen(cmd, cwd=cwd, stdout=PIPE, stderr=PIPE, shell=True)
+	
+	# Create and start threads for handling stdout and stderr
+	threadOut = Thread(target=__handleOutput, args=(process.stdout, showOutput, substitute))
+	threadErr = Thread(target=__handleOutput, args=(process.stderr, showError, substitute, True))
+	threadOut.start()
+	threadErr.start()
+
+	# Wait for execution, handling keyboard interruptions
+	try:
+		process.wait()
+		threadOut.join()
+		threadErr.join()
+	except (KeyboardInterrupt):
+		process.returncode = INTERRUPTED_ERROR
+
+	return process.returncode
 
 ####################### GIT FUNCTIONS #######################
 def getCurrentBranch(dir: str='./') -> str:
@@ -235,100 +267,26 @@ def getPackageVersionCmd(packageName: str) -> Optional[str]:
 	return output if retCode == 0 else None
 
 ####################### AUX FUNCTIONS (INTERNAL USE ONLY) #######################
-def __runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False):
+def __handleOutput(stream: BufferedReader, show: bool=False, substitute: bool=False, err: bool=False):
 	"""
-	### This function runs the given command and shows its output as it is being generated.
-	#### Params:
-	- cmd (str): Command to run.
-	- cwd (str): Optional. Path to run the command from. Default is current directory.
-	- showOutput (bool): Optional. If True, output is printed.
-	- showError (bool): Optional. If True, errors are printed.
-	#### Returns:
-	- (int): Return code.
-	- (str): Output of the command, regardless of if it is an error or regular output.
-	"""
-	# Creating writer and reader buffers in same tmp file
-	error = False
-	outputStr = ''
-	try:
-		with open(CMD_OUT_LOG_FILE, "wb") as writerOut, open(CMD_OUT_LOG_FILE, "rb", 0) as readerOut,\
-			open(CMD_ERR_LOG_FILE, "wb") as writerErr, open(CMD_ERR_LOG_FILE, "rb", 0) as readerErr:
-			# Configure stdout and stderr deppending on param values
-			stdout = writerOut if showOutput else PIPE
-			stderr = writerErr if showError else PIPE
-
-			# Run command and write output
-			process = Popen(cmd, cwd=cwd, stdout=stdout, stderr=stderr, shell=True)
-			outputStr = __writeProcessOutput(process, readerOut, readerErr, showOutput=showOutput, showError=showError)
-	except (KeyboardInterrupt, OSError) as e:
-		error = True
-		errorText = str(e)
-
-	# Remove tmp files
-	runJob(f"rm -f {CMD_OUT_LOG_FILE} {CMD_ERR_LOG_FILE}", cwd=cwd)
-
-	# If there were errors, show them instead of returning
-	if error:
-		logger(red(errorText))
-
-	# Check if process was interrupted
-	if outputStr == '' and process.returncode is None:
-		process.returncode = INTERRUPTED_ERROR
-	# Return result
-	return process.returncode, outputStr
-
-def __writeProcessOutput(process: Popen, readerOut: FileIO=None, readerErr: FileIO=None, showOutput: bool=False, showError: bool=False):
-	"""
-	### This function captures the output and errors of the given process as it runs.
-	#### Params:
-	- process (Popen): Running process.
-	- readerOut (FileIO): Output reader.
-	- readerErr (FileIO): Error reader.
-	- showOutput (bool): Optional. If True, output is printed.
-	- showError (bool): Optional. If True, errors are printed.
-	#### Returns:
-	- (str): Output of the command, regardless of if it is an error or regular output.
-	"""
-	# While process is still running, write output
-	outputStr = ""
-	while True:
-		# Get process running status and print output
-		isProcessFinished = process.poll() is not None
-		outputStr += __writeReaderLine(readerOut, show=showOutput)
-		outputStr += __writeReaderLine(readerErr, show=showError, err=True)
-
-		# If process has finished, exit loop
-		if isProcessFinished:
-			break
-
-		# Sleep before continuing to next iteration
-		time.sleep(OUTPUT_POLL_TIME)
-
-	return outputStr
-
-def __writeReaderLine(reader: FileIO, show: bool=False, err: bool=False):
-	"""
-	### This function captures the output and errors of the given process as it runs.
+	### This function receives a process output stream and logs its lines.
 
 	#### Params:
-	- reader (FileIO): Process reader.
-	- show (bool): Optional. If True, reader text is printed.
-	- err (bool): Optional. If True, reader's output is treated as an error.
-
-	#### Returns:
-	- (str): Output of the reader.
+	- stream (callable): Function to run.
+	- show (bool): Optional. If True, output will also be printed through terminal.
+	- substitute (bool): Optional. If True, output will replace previous line. Only used when show is True.
+	- err (bool): Optional. If True, the stream contains an error. Otherwise, it is regular output.
 	"""
-	# Getting raw line
-	line = reader.read().decode()
+	# If print through terminal is enabled with substitution, add a first line break
+	if show and substitute:
+		print("")
 
-	# If line is not empty, print it
-	if line:
-		# The line to print has to remove the last '\n'
-		printedLine = line[:-1] if line.endswith('\n') else line
-		logger(red(printedLine) if err else printedLine, forceConsoleOutput=show)
-
-	# Return line
-	return red(line) if err else line
+	# Print all lines in the process output
+	for line in iter(stream.readline, b''):
+		line = line.decode().replace("\n", "")
+		if err:
+			line = red(line)
+		logger(line, forceConsoleOutput=show, substitute=substitute)
 
 def __runLambda(function: Callable, args: Tuple[Any]=()):
 	"""
