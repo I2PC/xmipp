@@ -82,9 +82,5 @@ SECTION_MESSAGE_LEN = 60
 
 # File names
 CONFIG_FILE = 'xmipp.conf'
-OLD_CONFIG_FILE = 'xmipp_old.conf'
-XMIPPENV = 'xmippEnv.json'
-VERSIONS_FILE = 'xmippVersions.txt'
-COMPRESED_FILE = 'report.tar.gz'
-LOG_FILE = 'compileLOG.txt'
+LOG_FILE = 'compilation.log'
 TAIL_LOG_NCHARS = 300
