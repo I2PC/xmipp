@@ -107,15 +107,15 @@ def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}) -> Dict
 	# Compile with CMake
 	cmakeExecutable = configDict.get(CMAKE_HOME, 'cmake')
 	logger(getSectionMessage("Compiling with CMake"), forceConsoleOutput=True)
-	retCode = runStreamingJob(f"{cmakeExecutable} --build {BUILD_PATH} --config {BUILD_TYPE} -j {args.jobs}",
+	retCode, output = runStreamingJob(f"{cmakeExecutable} --build {BUILD_PATH} --config {BUILD_TYPE} -j {args.jobs}",
 													 showOutput=True, substitute=True)
-	handleRetCode(retCode, predefinedErrorCode=CMAKE_COMPILE_ERROR, configDict=configDict)
+	handleRetCode(retCode, predefinedErrorCode=CMAKE_COMPILE_ERROR, configDict=configDict, message=output)
 	
 	# Install with CMake
 	logger(getSectionMessage("Installing with CMake"), forceConsoleOutput=True)
-	retCode = runStreamingJob(f"{cmakeExecutable} --install {BUILD_PATH} --config {BUILD_TYPE} --prefix {INSTALL_PATH}",
+	retCode, output = runStreamingJob(f"{cmakeExecutable} --install {BUILD_PATH} --config {BUILD_TYPE} --prefix {INSTALL_PATH}",
 													 showOutput=True, substitute=True)
-	handleRetCode(retCode, predefinedErrorCode=CMAKE_INSTALL_ERROR, configDict=configDict)
+	handleRetCode(retCode, predefinedErrorCode=CMAKE_INSTALL_ERROR, configDict=configDict, message=output)
 	
 	return configDict
 
@@ -190,9 +190,9 @@ def modeAll(args: argparse.Namespace) -> Dict:
 	# Configure with CMake
 	cmakeExecutable = configDict.get(CMAKE_HOME, 'cmake')
 	logger(getSectionMessage("Configuring with CMake"), forceConsoleOutput=True)
-	retCode = runStreamingJob(f"{cmakeExecutable} -S . -B {BUILD_PATH} -D CMAKE_INSTALL_PREFIX={INSTALL_PATH} -D CMAKE_BUILD_TYPE=Release {getCMakeVarsStr(configDict)}",
+	retCode, output = runStreamingJob(f"{cmakeExecutable} -S . -B {BUILD_PATH} -D CMAKE_INSTALL_PREFIX={INSTALL_PATH} -D CMAKE_BUILD_TYPE=Release {getCMakeVarsStr(configDict)}",
 														showOutput=True, substitute=True)
-	handleRetCode(retCode, predefinedErrorCode=CMAKE_CONFIGURE_ERROR, configDict=configDict)
+	handleRetCode(retCode, predefinedErrorCode=CMAKE_CONFIGURE_ERROR, configDict=configDict, message=output)
 
 	# Compile and install
 	return modeCompileAndInstall(args, configDict=configDict)
