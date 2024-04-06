@@ -39,7 +39,7 @@ from installer.utils import runStreamingJob, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
 from installer.config import readConfig, writeConfig
 from installer.main import getCMakeVarsStr, getSources, exitXmipp, handleRetCode, getSectionMessage, getSuccessMessage
-from installer.logger import logger
+from installer.logger import logger, yellow, red
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
@@ -73,9 +73,21 @@ def modeCleanAll(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	# Get xmipp sources
-	xmippSources = [os.path.join(SOURCES_PATH, source) for source in XMIPP_SOURCES]
-	runJob(f"rm -rf {BUILD_PATH} {INSTALL_PATH} {' '.join(xmippSources)} {CONFIG_FILE}", showCommand=True)
+	# Print warning text and await input
+	confirmationText = 'YeS'
+	warningStr = "WARNING: This will DELETE ALL content from src and build.\n"
+	warningStr += "\tNotice that if you have unpushed changes, they will be deleted.\n"
+	warningStr += f"\nIf you are sure you want to do this, type '{confirmationText}' (case sensitive):"
+	logger(yellow(warningStr), forceConsoleOutput=True)
+
+
+	userInput = input()
+	if userInput == confirmationText:
+		# Get xmipp sources
+		xmippSources = [os.path.join(SOURCES_PATH, source) for source in XMIPP_SOURCES]
+		runJob(f"rm -rf {BUILD_PATH} {INSTALL_PATH} {' '.join(xmippSources)} {CONFIG_FILE}", showCommand=True)
+	else:
+		logger(red("Operation cancelled."), forceConsoleOutput=True)
 
 def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}) -> Dict:
 	"""
