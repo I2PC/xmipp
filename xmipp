@@ -34,7 +34,7 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 	CMAKE_CONFIGURE_ERROR, CMAKE_COMPILE_ERROR, CMAKE_INSTALL_ERROR, PARAM_LOGIN, PARAM_SHORT,
 	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_MODEL_PATH, PARAM_MODELS_DIRECTORY,
 	PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE, PARAM_XMIPP_DIRECTORY, BUILD_PATH,
-	INSTALL_PATH, BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP)
+	INSTALL_PATH, BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, CMAKE_HOME)
 from installer.utils import runStreamingJob, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
 from installer.config import readConfig, writeConfig
@@ -105,14 +105,15 @@ def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}) -> Dict
 		configDict = readConfig(CONFIG_FILE)
 
 	# Compile with CMake
+	cmakeExecutable = configDict.get(CMAKE_HOME, 'cmake')
 	logger(getSectionMessage("Compiling with CMake"), forceConsoleOutput=True)
-	retCode = runStreamingJob(f"cmake --build {BUILD_PATH} --config {BUILD_TYPE} -j {args.jobs}",
+	retCode = runStreamingJob(f"{cmakeExecutable} --build {BUILD_PATH} --config {BUILD_TYPE} -j {args.jobs}",
 													 showOutput=True, substitute=True)
 	handleRetCode(retCode, predefinedErrorCode=CMAKE_COMPILE_ERROR, configDict=configDict)
 	
 	# Install with CMake
 	logger(getSectionMessage("Installing with CMake"), forceConsoleOutput=True)
-	retCode = runStreamingJob(f"cmake --install {BUILD_PATH} --config {BUILD_TYPE} --prefix {INSTALL_PATH}",
+	retCode = runStreamingJob(f"{cmakeExecutable} --install {BUILD_PATH} --config {BUILD_TYPE} --prefix {INSTALL_PATH}",
 													 showOutput=True, substitute=True)
 	handleRetCode(retCode, predefinedErrorCode=CMAKE_INSTALL_ERROR, configDict=configDict)
 	
@@ -187,8 +188,9 @@ def modeAll(args: argparse.Namespace) -> Dict:
 	getSources(branch=args.branch)
 
 	# Configure with CMake
+	cmakeExecutable = configDict.get(CMAKE_HOME, 'cmake')
 	logger(getSectionMessage("Configuring with CMake"), forceConsoleOutput=True)
-	retCode = runStreamingJob(f"cmake -S . -B {BUILD_PATH} -D CMAKE_INSTALL_PREFIX={INSTALL_PATH} -D CMAKE_BUILD_TYPE=Release {getCMakeVarsStr(configDict)}",
+	retCode = runStreamingJob(f"{cmakeExecutable} -S . -B {BUILD_PATH} -D CMAKE_INSTALL_PREFIX={INSTALL_PATH} -D CMAKE_BUILD_TYPE=Release {getCMakeVarsStr(configDict)}",
 														showOutput=True, substitute=True)
 	handleRetCode(retCode, predefinedErrorCode=CMAKE_CONFIGURE_ERROR, configDict=configDict)
 
