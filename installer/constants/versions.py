@@ -28,8 +28,8 @@ Submodule containing all version info required for Xmipp's installation process.
 from .main import XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN
 
 # Xmipp's current versions
-__LATEST_RELEASE_NUMBER = '3.23.11.0'
-__LATEST_RELEASE_NAME = 'v3.23.11-Nereus'
+__LATEST_RELEASE_NUMBER = '3.XX.YY.0'
+__LATEST_RELEASE_NAME = 'v3.XX.YY-TBD'
 #####################################
 DEVEL_BRANCHNAME = 'devel'					
 MASTER_BRANCHNAME = 'master'				
@@ -66,20 +66,7 @@ vGCC = [
 ]
 
 # Version requirements
-#####################################
-GCC_MINIMUM = vGCC[-1]							#TODO: NEEDED? MAYBE ONLY G++, check with nvcc -- g++
-GPP_MINIMUM = GCC_MINIMUM						# #8.4 - 2019
-CMAKE_MINIMUM = '3.16'							# #3.16 - 2019
-MAKE_MINIMUM = '4.0'                # #4.0 - 2014
-CUDA_MINIMUM = '10.1'								#	#10.1 - 2019
-MPI_MINIMUM = '3.0'									#	#3.0 - 2012
-PYTHON_MINIMUM = '3.0'							#	#3.0 - 2008
-NUMPY_MINIMUM = '1.21'							#	#1.21 - 2021
-HDF5_MINIMUM = '1.10'								#	#1.10 - 2017
-FFTW_MINIMUM = '3.0'								#	#3.0 - 2007
-GIT_MINIMUM = '2.0'									#	#2.0 - 2014
-RSYNC_MINIMUM = '3.0'								#	#3.0 - 2008
-#####################################
+CMAKE_MINIMUM = '3.16' # 2019
 
 # CUDA-gcc compatibility table
 # https://gist.github.com/ax3l/9489132

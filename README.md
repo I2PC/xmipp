@@ -56,7 +56,7 @@ Next is to compile xmipp. There are to possibilities and in both you will can ru
 - Compile Xmipp by invoking the compilation script, which will take you through the rest of the process:`./xmipp` that way you will install Xmipp with the dependencies and thier versions that the enviroment you decide, or the default one.
 - Compile Xmipp via Scipion enviroment `scipion3 run ./xmipp` that way you will install Xmipp with the dependencies and their versions that Scipion decided. 
 
-As long as you are in a conda enviroment containing a proper installation of Scipion, the link process will be done automatically by Xmipp's installer.
+As long as you are in a conda enviroment containing a proper installation of Scipion, and variable `XMIPP_LINK_TO_SCIPION` is set to `ON`, the link process will be done automatically by Xmipp's installer.
 
 ## Using Xmipp
 Xmipp is installed in the build directory located in the same directory where the xmipp script is located. To set all necessary environment variables and paths to all Xmipp programs, you can simply 
