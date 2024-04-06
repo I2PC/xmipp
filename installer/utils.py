@@ -39,7 +39,7 @@ from .logger import blue, red, logger
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False,
-					 showCommand: bool=False, substitute: bool=False) -> Tuple[int, str]:
+					 showCommand: bool=False, substitute: bool=False, logOutput: bool=True) -> Tuple[int, str]:
 	"""
 	### This function runs the given command.
 
@@ -50,6 +50,7 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	- showError (bool): Optional. If True, errors are printed.
 	- showCommand (bool): Optional. If True, command is printed in blue.
 	- substitute (bool): Optional. If True, output will replace previous line.
+	- logOutput (bool): Optional. If True, output will be stored in the log.
 
 	#### Returns:
 	- (int): Return code.
@@ -57,7 +58,10 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	"""
 	# Printing command if specified
 	if showCommand == True:
-		logger(blue(cmd), forceConsoleOutput=True, substitute=substitute)
+		if logOutput:
+			logger(blue(cmd), forceConsoleOutput=True, substitute=substitute)
+		else:
+			print(blue(cmd))
 
 	# Running command
 	process = Popen(cmd, cwd=cwd, env=os.environ, stdout=PIPE, stderr=PIPE, shell=True)
@@ -73,7 +77,10 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 
 	# Printing output if specified
 	if showOutput:
-		logger(f"{outputStr}\n", forceConsoleOutput=True, substitute=substitute)
+		if logOutput:
+			logger(f"{outputStr}\n", forceConsoleOutput=True, substitute=substitute)
+		else:
+			print(f"{outputStr}\n")
 
 	# Printing errors if specified
 	if err and showError:

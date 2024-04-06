@@ -34,10 +34,10 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 	CMAKE_CONFIGURE_ERROR, CMAKE_COMPILE_ERROR, CMAKE_INSTALL_ERROR, PARAM_LOGIN, PARAM_SHORT,
 	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_MODEL_PATH, PARAM_MODELS_DIRECTORY,
 	PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE, PARAM_XMIPP_DIRECTORY, BUILD_PATH,
-	INSTALL_PATH, BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, CMAKE_HOME)
+	INSTALL_PATH, BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE)
 from installer.utils import runStreamingJob, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
-from installer.config import readConfig, writeConfig
+from installer.config import readConfig, writeConfig, getCMake
 from installer.main import getCMakeVarsStr, getSources, exitXmipp, handleRetCode, getSectionMessage, getSuccessMessage
 from installer.logger import logger, yellow, red
 
@@ -58,13 +58,13 @@ def modeCleanBin():
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	runJob(f"find {SOURCES_PATH}/* -name \"*.so\" -exec rm -rf {{}} \;", showCommand=True)
-	runJob(f"find {SOURCES_PATH}/* -name \"*.os\" -exec rm -rf {{}} \;", showCommand=True)
-	runJob(f"find {SOURCES_PATH}/* -name \"*.o\" -exec rm -rf {{}} \;", showCommand=True)
-	runJob("find . -iname \"*.pyc\" -delete", showCommand=True)
-	runJob(f"rm -rf {CONFIG_FILE} {BUILD_PATH}", showCommand=True)
-	runJob("find . -iname \"*.dblite\" -delete", showCommand=True)
-	runJob(f"find {os.path.join(SOURCES_PATH, XMIPP, 'applications', 'programs')} --type d -empty", showCommand=True)
+	runJob(f"find {SOURCES_PATH}/* -name \"*.so\" -exec rm -rf {{}} \;", showCommand=True, logOutput=False)
+	runJob(f"find {SOURCES_PATH}/* -name \"*.os\" -exec rm -rf {{}} \;", showCommand=True, logOutput=False)
+	runJob(f"find {SOURCES_PATH}/* -name \"*.o\" -exec rm -rf {{}} \;", showCommand=True, logOutput=False)
+	runJob("find . -iname \"*.pyc\" -delete", showCommand=True, logOutput=False)
+	runJob(f"rm -rf {CONFIG_FILE} {BUILD_PATH}", showCommand=True, logOutput=False)
+	runJob("find . -iname \"*.dblite\" -delete", showCommand=True, logOutput=False)
+	runJob(f"find {os.path.join(SOURCES_PATH, XMIPP, 'applications', 'programs')} --type d -empty", showCommand=True, logOutput=False)
 
 def modeCleanAll():
 	"""
@@ -78,16 +78,16 @@ def modeCleanAll():
 	warningStr = "WARNING: This will DELETE ALL content from src and build.\n"
 	warningStr += "\tNotice that if you have unpushed changes, they will be deleted.\n"
 	warningStr += f"\nIf you are sure you want to do this, type '{confirmationText}' (case sensitive):"
-	logger(yellow(warningStr), forceConsoleOutput=True)
+	print(yellow(warningStr))
 
 
 	userInput = input()
 	if userInput == confirmationText:
 		# Get xmipp sources
 		xmippSources = [os.path.join(SOURCES_PATH, source) for source in XMIPP_SOURCES]
-		runJob(f"rm -rf {BUILD_PATH} {INSTALL_PATH} {' '.join(xmippSources)} {CONFIG_FILE}", showCommand=True)
+		runJob(f"rm -rf {BUILD_PATH} {INSTALL_PATH} {' '.join(xmippSources)} {CONFIG_FILE}", showCommand=True, logOutput=False)
 	else:
-		logger(red("Operation cancelled."), forceConsoleOutput=True)
+		print(red("Operation cancelled."))
 
 def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}) -> Dict:
 	"""
@@ -100,12 +100,15 @@ def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}) -> Dict
 	#### Returns:
 	- (dict): Dictionary containig all config variables.
 	"""
+	# Initiate logger
+	logger.startLogFile(LOG_FILE)
+	
 	# If config variable dictionary is not received, read from file
 	if not configDict:
 		configDict = readConfig(CONFIG_FILE)
 
 	# Compile with CMake
-	cmakeExecutable = configDict.get(CMAKE_HOME, 'cmake')
+	cmakeExecutable = getCMake(configDict)
 	logger(getSectionMessage("Compiling with CMake"), forceConsoleOutput=True)
 	retCode, output = runStreamingJob(f"{cmakeExecutable} --build {BUILD_PATH} --config {BUILD_TYPE} -j {args.jobs}",
 													 showOutput=True, substitute=True)
@@ -181,6 +184,9 @@ def modeAll(args: argparse.Namespace) -> Dict:
 	#### Returns:
 	- (dict): Dictionary containig all config variables.
 	"""
+	# Initiate logger
+	logger.startLogFile(LOG_FILE)
+
 	# Read and/or write variables from config file
 	configDict = modeConfig()
 
@@ -188,7 +194,7 @@ def modeAll(args: argparse.Namespace) -> Dict:
 	getSources(branch=args.branch)
 
 	# Configure with CMake
-	cmakeExecutable = configDict.get(CMAKE_HOME, 'cmake')
+	cmakeExecutable = getCMake(configDict)
 	logger(getSectionMessage("Configuring with CMake"), forceConsoleOutput=True)
 	retCode, output = runStreamingJob(f"{cmakeExecutable} -S . -B {BUILD_PATH} -D CMAKE_INSTALL_PREFIX={INSTALL_PATH} -D CMAKE_BUILD_TYPE=Release {getCMakeVarsStr(configDict)}",
 														showOutput=True, substitute=True)

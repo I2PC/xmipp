@@ -24,6 +24,8 @@
 
 from .config import CUDA, MPI, MATLAB, LINK_SCIPION, GCC_HOME, GXX_HOME, CUDA_COMPILER
 
+DEFAULT_CMAKE = 'cmake'
+
 # CMake cache file variables to look for
 XMIPP_USE_CUDA=CUDA
 XMIPP_USE_MPI=MPI

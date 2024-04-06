@@ -31,7 +31,7 @@ Provides a global logger
 import re, shutil, math
 
 # Installer imports
-from .constants import LOG_FILE, ERROR_CODE, DOCUMENTATION_URL, UP, REMOVE_LINE
+from .constants import ERROR_CODE, DOCUMENTATION_URL, UP, REMOVE_LINE
 
 ####################### TEXT MODE #######################
 def green(text: str) -> str:
@@ -112,18 +112,27 @@ class Logger:
 	### Logger class for keeping track of installation messages
 	"""
  
-	def __init__(self, logPath: str, outputToConsole: bool = False):
+	def __init__(self, outputToConsole: bool = False):
 		"""
 		### Constructor
 		
 		#### Params:
-		- logPath (str): Path to the log file.
 		- ouputToConsoloe (str): Print messages to console 
 		"""
-		self.logFile = open(logPath, 'w')
-		self.outputToConsole = outputToConsole
+		self.__logFile = None
+		self.__outputToConsole = outputToConsole
 		self.__lenLastPrintedElem = 0
 	
+	def startLogFile(self, logPath: str):
+		"""
+		### Initiates the log file.
+
+		#### Params:
+		- logPath (str): Path to the log file.
+		"""
+		if self.__logFile is None:
+			self.__logFile = open(logPath, 'w')
+
 	def setConsoleOutput(self, outputToConsole: bool):
 		"""
 		### Modifies console output beaviour
@@ -131,7 +140,7 @@ class Logger:
 		#### Params:
 		- ouputToConsoloe (str): Enable printing messages to console 
 		"""
-		self.outputToConsole = outputToConsole
+		self.__outputToConsole = outputToConsole
  
 	def __call__(self, text: str, forceConsoleOutput: bool = False, substitute: bool = False):
 		"""
@@ -142,8 +151,12 @@ class Logger:
 		- forceConsoleOutput (bool): Optional. If True, text is also printed through terminal.
 		- substitute (bool): Optional. If True, previous line is substituted with new text. Only used when forceConsoleOutput = True.
 		"""
-		print(removeTextFormatting(text), file=self.logFile, flush=True)
-		if self.outputToConsole or forceConsoleOutput:
+		# Check if log file has been provided
+		if self.__logFile is None:
+			raise FileNotFoundError("Log file has not been initialized.")
+		
+		print(removeTextFormatting(text), file=self.__logFile, flush=True)
+		if self.__outputToConsole or forceConsoleOutput:
 			# Calculate number of lines to substitute if substitution was requested
 			substitutionStr = ''.join([f'{UP}{REMOVE_LINE}' for _ in range(self.__getNLastLines())])
 			text = text if not substitute else f"{substitutionStr}{text}"
@@ -180,4 +193,4 @@ class Logger:
 """
 ### Global logger
 """
-logger = Logger(LOG_FILE)
+logger = Logger()
