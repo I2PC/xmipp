@@ -66,7 +66,7 @@ def modeCleanBin():
 	runJob("find . -iname \"*.dblite\" -delete", showCommand=True)
 	runJob(f"find {os.path.join(SOURCES_PATH, XMIPP, 'applications', 'programs')} --type d -empty", showCommand=True)
 
-def modeCleanAll(args: argparse.Namespace):
+def modeCleanAll():
 	"""
 	### Checks the params for execution mode "cleanAll" and then runs it.
 	
@@ -209,7 +209,7 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	elif args.mode == MODE_ALL:
 		configDict = modeAll(args)
 	elif args.mode == MODE_CLEAN_ALL:
-		modeCleanAll(args)
+		modeCleanAll()
 	elif args.mode == MODE_CLEAN_BIN:
 		modeCleanBin()
 	elif args.mode == MODE_COMPILE_AND_INSTALL:
