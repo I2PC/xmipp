@@ -36,7 +36,6 @@ MODE_ADD_MODEL = 'addModel'
 MODE_ALL = 'all'
 MODE_CLEAN_ALL = 'cleanAll'
 MODE_CLEAN_BIN = 'cleanBin'
-MODE_CLEAN_DEPRECATED = 'cleanDeprecated'
 MODE_COMPILE_AND_INSTALL = 'compileAndInstall'
 MODE_CONFIG = 'config'
 MODE_GET_MODELS = 'getModels'
@@ -59,7 +58,6 @@ MODES = {
 	},
 	'Clean': {
 		MODE_CLEAN_BIN: ['Removes all compiled binaries.'],
-		MODE_CLEAN_DEPRECATED: ['Removes all deprecated binaries from src/xmipp/bin.'],
 		MODE_CLEAN_ALL: ['Removes all compiled binaries and sources, leaves the repository as if freshly cloned (without pulling).']
 	},
 	'Test': {
@@ -163,7 +161,6 @@ MODE_ARGS = {
 	MODE_CONFIG: [],
 	MODE_GET_MODELS: [PARAM_MODELS_DIRECTORY],
 	MODE_CLEAN_BIN: [],
-	MODE_CLEAN_DEPRECATED: [],
 	MODE_CLEAN_ALL: [],
 	MODE_TEST: [PARAM_TEST_NAME, PARAM_SHOW_TESTS],
 	MODE_GIT: [PARAM_GIT_COMMAND],
@@ -198,7 +195,6 @@ MODE_EXAMPLES = {
 		f'./xmipp {MODE_GET_MODELS} -d /path/to/my/model/directory'
 	],
 	MODE_CLEAN_BIN: [],
-	MODE_CLEAN_DEPRECATED: [],
 	MODE_CLEAN_ALL: [],
 	MODE_TEST: [
 		f'./xmipp {MODE_TEST} testName',

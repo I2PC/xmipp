@@ -29,8 +29,8 @@ from typing import Dict
 
 # Installer imports
 from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,
-	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS, MODE_TEST, MODE_GIT,
-	MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, CONFIG_FILE,
+	MODE_CLEAN_ALL, MODE_VERSION, MODE_GET_MODELS, MODE_TEST, MODE_GIT, MODE_ADD_MODEL,
+	COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, CONFIG_FILE,
 	CMAKE_CONFIGURE_ERROR, CMAKE_COMPILE_ERROR, CMAKE_INSTALL_ERROR, PARAM_LOGIN, PARAM_SHORT,
 	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_MODEL_PATH, PARAM_MODELS_DIRECTORY,
 	PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE, PARAM_XMIPP_DIRECTORY, BUILD_PATH,
@@ -76,15 +76,6 @@ def modeCleanAll(args: argparse.Namespace):
 	# Get xmipp sources
 	xmippSources = [os.path.join(SOURCES_PATH, source) for source in XMIPP_SOURCES]
 	runJob(f"rm -rf {BUILD_PATH} {INSTALL_PATH} {' '.join(xmippSources)} {CONFIG_FILE}", showCommand=True)
-
-def modeCleanDeprecated(args: argparse.Namespace):
-	"""
-	### Checks the params for execution mode "cleanDeprecated" and then runs it.
-	
-	#### Params:
-	- args (Namespace): Command line arguments parsed by argparse library.
-	"""
-	pass
 
 def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}) -> Dict:
 	"""
@@ -209,8 +200,6 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 		modeCleanAll(args)
 	elif args.mode == MODE_CLEAN_BIN:
 		modeCleanBin()
-	elif args.mode == MODE_CLEAN_DEPRECATED:
-		modeCleanDeprecated(args)
 	elif args.mode == MODE_COMPILE_AND_INSTALL:
 		configDict = modeCompileAndInstall(args)
 	elif args.mode == MODE_CONFIG:
@@ -262,9 +251,6 @@ if __name__ == "__main__":
 
 	# Arguments for mode 'cleanBin'
 	cleanBinSubparser = subparsers.add_parser(MODE_CLEAN_BIN, formatter_class=ModeHelpFormatter)
-
-	# Arguments for mode 'cleanDeprecated'
-	cleanDeprecatedSubparser = subparsers.add_parser(MODE_CLEAN_DEPRECATED, formatter_class=ModeHelpFormatter)
 
 	# Arguments for mode 'compileAndInstall'
 	compileAndInstallSubparser = subparsers.add_parser(MODE_COMPILE_AND_INSTALL, formatter_class=ModeHelpFormatter)
