@@ -151,6 +151,7 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: 
 	"""
 	# Create a Popen instance and error stack
 	errorStack = []
+	logger(cmd)
 	process = Popen(cmd, cwd=cwd, stdout=PIPE, stderr=PIPE, shell=True)
 	
 	# Create and start threads for handling stdout and stderr
