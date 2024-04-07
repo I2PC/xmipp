@@ -154,6 +154,20 @@ def getSectionMessage(text: str) -> str:
 	return f"{initialDashes} {text} {finalDashes}"
 
 ####################### AUX FUNCTIONS #######################
+def __branchExists(repo: str, branch: str) -> bool:
+	"""
+	### This function checks if the given branch exists.
+
+	#### Params:
+	- repo (str): Repository to check the branch from.
+	- branch (str): Branch to check.
+
+	#### Returns:
+	- (bool): True if the branch exists, False otherwise.
+	"""
+	retCode, _ = runJob(f"git ls-remote --heads {repo}.git {branch} | grep -q refs/heads/{branch}", logOutput=False)
+	return not retCode
+
 def __logDoneMessage():
 	"""
 	### This function logs a message shown after completing a task.
@@ -224,10 +238,8 @@ def __getCloneBranch(repo: str, branch: str) -> Optional[str]:
 	- (str | None): The given branch if it is a valid one, or None to indicate default branch.
 	"""
 	# If branch exists, use it
-	if branch:
-		retCode, _ = runJob(f"git ls-remote --heads {repo}.git {branch} | grep -q refs/heads/{branch}", logOutput=False)
-		if not retCode:
-			return branch
+	if branch and __branchExists(repo, branch):
+		return branch
 	
 	# If repository is xmipp source and current branch is a release, clone from corresponding release
 	repoName = repo.split("/")[-1]

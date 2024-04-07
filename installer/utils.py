@@ -73,11 +73,15 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	outputStr = outputStr[:-1] if outputStr.endswith('\n') else outputStr
 
 	# Printing output if specified
-	__logToSelection(f"{outputStr}", sendToLog=logOutput, sendToTerminal=showOutput, substitute=substitute)
+	if not retCode:
+		__logToSelection(f"{outputStr}", sendToLog=logOutput, sendToTerminal=showOutput, substitute=substitute)
 
 	# Printing errors if specified
-	if err and showError:
-		logger.logError(outputStr)
+	if retCode and showError:
+		if logOutput:
+			logger.logError(outputStr)
+		else:
+			print(red(outputStr))
 
 	# Returing return code
 	return retCode, outputStr

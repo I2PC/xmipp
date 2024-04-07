@@ -39,7 +39,7 @@ from installer.utils import runStreamingJob, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
 from installer.config import readConfig, writeConfig, getCMake, isCMakeValid
 from installer.main import getCMakeVarsStr, getSources, exitXmipp, handleRetCode, getSectionMessage, getSuccessMessage
-from installer.logger import logger, yellow, red
+from installer.logger import logger, yellow, red, blue
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
@@ -153,7 +153,17 @@ def modeGit(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	pass
+	cmd = f"git {' '.join(args.command)}"
+	print(f"Running command '{cmd}' for all xmipp sources...")
+	for source in XMIPP_SOURCES:
+		print("")
+		# Check if source exists to perform command, else skip
+		sourcePath = os.path.abspath(os.path.join(SOURCES_PATH, source))
+		if not os.path.exists(sourcePath):
+			print(yellow(f"WARNING: Source {source} does not exist in path {sourcePath}. Skipping."))
+			continue
+		print(blue(f"Running command for {source} in path {sourcePath}..."))
+		runJob(cmd, logOutput=False, cwd=sourcePath, showOutput=True, showError=True)
 
 def modeTest(parser, args=argparse.Namespace):
 	"""
