@@ -193,7 +193,7 @@ def __getLogTail() -> Optional[str]:
 	- (str | None): Installation log's last lines, or None if there were any errors.
 	"""
 	# Obtaining log tail
-	retCode, output = runJob(f"tail -n {TAIL_LOG_NCHARS} {LOG_FILE}")
+	retCode, output = runJob(f"tail -n {TAIL_LOG_NCHARS} {LOG_FILE}", logOutput=False)
 
 	# Return content if it went right
 	return output if retCode == 0 else None
