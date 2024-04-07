@@ -100,7 +100,7 @@ def runInsistentJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: 
 	"""
 	# Running command up to nRetries times (improves resistance to small network errors)
 	for _ in range(nRetries):
-		retCode, output = runJob(cmd, cwd=cwd)
+		retCode, output = runJob(cmd, cwd=cwd, logOutput=False)
 		# Break loop if success was achieved
 		if retCode == 0:
 			break
@@ -239,7 +239,7 @@ def isBranchUpToDate(dir: str='./') -> bool:
 		return False
 
 	# Get latest local commit
-	localCommit = runJob(f"git rev-parse {currentBranch}")[1]
+	localCommit = runJob(f"git rev-parse {currentBranch}", logOutput=False)[1]
 
 	# Get latest remote commit
 	retCode, remoteCommit = runInsistentJob(f"git rev-parse origin/{currentBranch}")
