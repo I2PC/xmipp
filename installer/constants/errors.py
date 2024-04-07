@@ -44,7 +44,7 @@ CHECK_ABOVE_MESSAGE = 'Check the error displayed above.'
 ERROR_CODE = {
 	INTERRUPTED_ERROR: ['Process was interrupted by the user.', ''],
 	SOURCE_CLONE_ERROR: ['Error cloning xmipp repository with git.', 'Please review the internet connection and the git package.'],
-	CMAKE_ERROR: ['', f'Please install or review your CMake version by following the instructions at {CMAKE_INSTALL_DOCS_URL}\033[0m'],
+	CMAKE_ERROR: ['There was an erorr with CMake.', f'Please install or review your CMake version by following the instructions at {CMAKE_INSTALL_DOCS_URL}\033[0m'],
 	CMAKE_CONFIGURE_ERROR: ['Error configuring with CMake.', CHECK_ABOVE_MESSAGE],
 	CMAKE_COMPILE_ERROR: ['Error compiling with CMake.', CHECK_ABOVE_MESSAGE],
 	CMAKE_INSTALL_ERROR: ['Error installing with CMake.', CHECK_ABOVE_MESSAGE],

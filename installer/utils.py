@@ -57,11 +57,7 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	- (str): Output of the command, regardless of if it is an error or regular output.
 	"""
 	# Printing command if specified
-	if showCommand == True:
-		if logOutput:
-			logger(blue(cmd), forceConsoleOutput=True, substitute=substitute)
-		else:
-			print(blue(cmd))
+	__logToSelection(blue(cmd), sendToLog=logOutput, sendToTerminal=showCommand, substitute=substitute)
 
 	# Running command
 	process = Popen(cmd, cwd=cwd, env=os.environ, stdout=PIPE, stderr=PIPE, shell=True)
@@ -73,21 +69,17 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	# Defining output string
 	retCode = process.returncode
 	output, err = process.communicate()
-	outputStr = err.decode() if retCode else output.decode()
+	outputStr = output.decode() if not retCode and output else err.decode()
+	outputStr = outputStr[:-1] if outputStr.endswith('\n') else outputStr
 
 	# Printing output if specified
-	if showOutput:
-		if logOutput:
-			logger(f"{outputStr}\n", forceConsoleOutput=True, substitute=substitute)
-		else:
-			print(f"{outputStr}\n")
+	__logToSelection(f"{outputStr}", sendToLog=logOutput, sendToTerminal=showOutput, substitute=substitute)
 
 	# Printing errors if specified
 	if err and showError:
 		logger.logError(outputStr)
 
 	# Returing return code
-	outputStr = outputStr[:-1] if outputStr.endswith('\n') else outputStr
 	return retCode, outputStr
 
 def runInsistentJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, nRetries: int=5) -> Tuple[int, str]:
@@ -190,7 +182,7 @@ def getCurrentBranch(dir: str='./') -> str:
 	- (str): The name of the branch, 'HEAD' if a tag, or empty string if given directory is not a repository or a recognizable tag.
 	"""
 	# Getting current branch name
-	retcode, branchName = runJob("git rev-parse --abbrev-ref HEAD", cwd=dir)
+	retcode, branchName = runJob("git rev-parse --abbrev-ref HEAD", cwd=dir, logOutput=False)
 
 	# If there was an error, we are in no branch
 	return branchName if not retcode else ''
@@ -270,7 +262,7 @@ def getPackageVersionCmd(packageName: str) -> Optional[str]:
 	- (str | None): Version information of the package or None if not found or errors happened.
 	"""
 	# Running command
-	retCode, output = runJob(f'{packageName} --version')
+	retCode, output = runJob(f'{packageName} --version', logOutput=False)
 
 	# Check result if there were no errors
 	return output if retCode == 0 else None
@@ -311,3 +303,19 @@ def __runLambda(function: Callable, args: Tuple[Any]=()):
 	- (Any): Return value/(s) of the called function.
 	"""
 	return function(*args)
+
+def __logToSelection(message: str, sendToLog: bool=True, sendToTerminal: bool=False, substitute: bool=False):
+	"""
+	### This function logs the given message into the selected logging platform.
+
+	#### Params:
+	- message (str): Message to log.
+	- sendToLog (bool): Optional. If True, message is sent to the logger (into file).
+	- sendToTerminal (bool): Optional. If True, message is sent to terminal.
+	- substitute (bool): Optional. If True, message will replace last terminal printed message. Only used when all other variables are True.
+	"""
+	if sendToLog:
+		logger(message, forceConsoleOutput=sendToTerminal, substitute=substitute)
+	else:
+		if sendToTerminal:
+			print(message)

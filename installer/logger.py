@@ -130,8 +130,7 @@ class Logger:
 		#### Params:
 		- logPath (str): Path to the log file.
 		"""
-		if self.__logFile is None:
-			self.__logFile = open(logPath, 'w')
+		self.__logFile = open(logPath, 'w')
 
 	def setConsoleOutput(self, outputToConsole: bool):
 		"""

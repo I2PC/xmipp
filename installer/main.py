@@ -50,7 +50,8 @@ def getSources(branch: str=None):
 	for source in XMIPP_SOURCES:
 		logger(f"Cloning {source}...", forceConsoleOutput=True)
 		retCode, output = __cloneSourceRepo(REPOSITORIES[source][0], path=SOURCES_PATH, branch=branch)
-		handleRetCode(retCode, predefinedErrorCode=SOURCE_CLONE_ERROR, message=output)
+		message = output if retCode else ''
+		handleRetCode(retCode, predefinedErrorCode=SOURCE_CLONE_ERROR, message=message)
 
 def getCMakeVarsStr(configDict: Dict) -> str:
 	"""
@@ -74,7 +75,7 @@ def exitXmipp(retCode: int=0, configDict: Dict={}):
 	- configDict (dict): Optional. Dictionary containing all config variables. If not empty, an API message is sent.
 	"""
 	# Send API message
-	if configDict:
+	if configDict and retCode != INTERRUPTED_ERROR:
 		sendApiPOST(configDict, retCode=retCode)
 	
 	# End execution
@@ -96,7 +97,8 @@ def handleRetCode(realRetCode: int, predefinedErrorCode: int=0, configDict: Dict
 		logger.logError(message, retCode=resultCode, addPortalLink=resultCode != realRetCode)
 		exitXmipp(retCode=resultCode, configDict=configDict)
 	else:
-		logger(message)
+		if message:
+			logger(message)
 	__logDoneMessage()
 	logger("", forceConsoleOutput=True)
 
@@ -201,11 +203,9 @@ def __cloneSourceRepo(repo: str, branch: str=None, path: str='') -> Tuple[int, s
 		if branch:
 			os.chdir(clonedFolder)
 			retCode, output = runJob(f"git checkout {branch}")
-			logger(output)
 	else:
 		branchStr = f" --branch {branch}" if branch else ''
 		retCode, output = runJob(f"git clone{branchStr} {repo}.git")
-		logger(output)
 
 	# Go back to previous path
 	os.chdir(currentPath)
@@ -225,7 +225,7 @@ def __getCloneBranch(repo: str, branch: str) -> Optional[str]:
 	"""
 	# If branch exists, use it
 	if branch:
-		retCode, _ = runJob(f"git ls-remote --heads {repo}.git {branch} | grep -q refs/heads/{branch}")
+		retCode, _ = runJob(f"git ls-remote --heads {repo}.git {branch} | grep -q refs/heads/{branch}", logOutput=False)
 		if not retCode:
 			return branch
 	

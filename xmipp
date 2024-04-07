@@ -34,10 +34,10 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 	CMAKE_CONFIGURE_ERROR, CMAKE_COMPILE_ERROR, CMAKE_INSTALL_ERROR, PARAM_LOGIN, PARAM_SHORT,
 	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_MODEL_PATH, PARAM_MODELS_DIRECTORY,
 	PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE, PARAM_XMIPP_DIRECTORY, BUILD_PATH,
-	INSTALL_PATH, BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE)
+	INSTALL_PATH, BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE, CMAKE_ERROR)
 from installer.utils import runStreamingJob, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
-from installer.config import readConfig, writeConfig, getCMake
+from installer.config import readConfig, writeConfig, getCMake, isCMakeValid
 from installer.main import getCMakeVarsStr, getSources, exitXmipp, handleRetCode, getSectionMessage, getSuccessMessage
 from installer.logger import logger, yellow, red
 
@@ -100,12 +100,12 @@ def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}) -> Dict
 	#### Returns:
 	- (dict): Dictionary containig all config variables.
 	"""
-	# Initiate logger
-	logger.startLogFile(LOG_FILE)
-	
-	# If config variable dictionary is not received, read from file
+	# If config variable dictionary is not received this mode is the first being executed
 	if not configDict:
+		logger.startLogFile(LOG_FILE)
 		configDict = readConfig(CONFIG_FILE)
+		if not isCMakeValid(configDict=configDict):
+			handleRetCode(CMAKE_ERROR, predefinedErrorCode=CMAKE_ERROR)
 
 	# Compile with CMake
 	cmakeExecutable = getCMake(configDict)
@@ -189,6 +189,10 @@ def modeAll(args: argparse.Namespace) -> Dict:
 
 	# Read and/or write variables from config file
 	configDict = modeConfig()
+
+	# Check if cmake is valid
+	if not isCMakeValid(configDict=configDict):
+		handleRetCode(CMAKE_ERROR, predefinedErrorCode=CMAKE_ERROR)
 
 	# Clone sources from specified branch
 	getSources(branch=args.branch)
