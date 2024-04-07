@@ -113,7 +113,7 @@ if __name__=="__main__":
         
         expImages = mexp.data[initBatch:endBatch].astype(np.float32)#.copy()
         Texp = torch.from_numpy(expImages).float().to(cuda)
-        #Texp = Texp * bnb.create_gaussian_mask(Texp, 42)
+        Texp = Texp * bnb.create_circular_mask(Texp)
 
         del(expImages)
         ft = torch.fft.rfft2(Texp, norm="forward")

@@ -161,7 +161,8 @@ if __name__=="__main__":
         
         expImages = mmap.data[initBatch:endBatch].astype(np.float32)
         Texp = torch.from_numpy(expImages).float().to(cuda)
-        # Texp = Texp * bnb.create_gaussian_mask(Texp, sigma)
+        if mask:
+            Texp = Texp * bnb.create_circular_mask(Texp)
         del(expImages)  
               
         if i < initStep:          

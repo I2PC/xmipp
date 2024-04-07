@@ -558,6 +558,19 @@ class BnBgpu:
         
         return mask  
     
+    
+    def create_circular_mask(self, images):
+        dim = images.size(dim=1)
+        center = dim // 2
+        y, x = torch.meshgrid(torch.arange(dim) - center, torch.arange(dim) - center, indexing='ij')
+        dist = torch.sqrt(x**2 + y**2).float().to(images.device)
+        
+        # Creamos una máscara circular
+        circular_mask = torch.zeros_like(dist)
+        circular_mask[dist <= center] = 1.0
+        
+        return circular_mask
+    
 
     def apply_lowpass_filter(self, images, cutoff_frequency, sampling):
         batch_size, height, width = images.size()
