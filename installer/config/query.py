@@ -29,6 +29,20 @@ import shutil
 
 from ..constants import GCC_HOME, GXX_HOME, CUDA_COMPILER, CMAKE_HOME, DEFAULT_CMAKE
 
+def getCMake(packages: Dict[str, Any]) -> Dict:
+	"""
+	### Retrieves information about the CMake package and updates the dictionary accordingly.
+
+	#### Params:
+	- packages (dict): Dictionary containing package information.
+
+	#### Returns:
+	- (dict): Param 'packages' with the 'CMAKE_HOME' key updated based on the availability of 'cmake'.
+	"""
+	cmakeExecutable = packages.get(CMAKE_HOME, shutil.which(DEFAULT_CMAKE))
+	return cmakeExecutable if cmakeExecutable else shutil.which(DEFAULT_CMAKE)
+
+####################### TMP --- SHOULD BE REMOVED #######################
 def __getFunctionSkeleton(packages: Dict[str, Any], 
 													key: str,
 													finder: Callable):
@@ -96,15 +110,3 @@ def getNVCC(packages: Dict[str, Any]) -> Dict:
 	# If base match is cuda root dir, add path to nvcc. Otherwise return as is
 	return os.path.join(baseMatch, 'bin', 'nvcc') if 'cuda' in baseMatch.split('/')[-1] else baseMatch
 
-def getCMake(packages: Dict[str, Any]) -> Dict:
-	"""
-	### Retrieves information about the CMake package and updates the dictionary accordingly.
-
-	#### Params:
-	- packages (dict): Dictionary containing package information.
-
-	#### Returns:
-	- (dict): Param 'packages' with the 'CMAKE_HOME' key updated based on the availability of 'cmake'.
-	"""
-	cmakeExecutable = packages.get(CMAKE_HOME, shutil.which(DEFAULT_CMAKE))
-	return cmakeExecutable if cmakeExecutable else shutil.which(DEFAULT_CMAKE)
