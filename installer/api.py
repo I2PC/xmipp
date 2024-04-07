@@ -133,7 +133,7 @@ def __getMACAddress() -> Optional[str]:
 	- (str | None): MAC address, or None if there were any errors.
 	"""
 	# Run command to get network interfaces info
-	status, output = runJob("ip addr")
+	status, output = runJob("ip addr", logOutput=False)
 
 	# If command failed, return None to avoid sending POST request
 	if status != 0:
