@@ -180,8 +180,6 @@ endif()
 
 # Register CUDA sources
 if(${XMIPP_USE_CUDA})
-  find_package(CUDAToolkit 10.2 REQUIRED)
-
 	set_source_files_properties(
  		${CUDA_SOURCES}
 		PROPERTIES LANGUAGE CUDA
