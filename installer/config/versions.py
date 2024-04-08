@@ -76,7 +76,7 @@ def getOSReleaseName() -> str:
 	textAfter = '"\n'
 
 	# Obtaining os release name
-	retCode, name = runJob('cat /etc/os-release')
+	retCode, name = runJob('cat /etc/os-release', logOutput=False)
 
 	# Look for release name if command did not fail
 	if retCode == 0:
@@ -107,7 +107,7 @@ def getArchitectureName() -> str:
 	archName = UNKNOWN_VALUE
 
 	# Obtaining architecture name
-	retCode, architecture = runJob('cat /sys/devices/cpu/caps/pmu_name')
+	retCode, architecture = runJob('cat /sys/devices/cpu/caps/pmu_name', logOutput=False)
 
 	# If command worked and returned info, extract it
 	if retCode == 0 and architecture:

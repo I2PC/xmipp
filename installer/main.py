@@ -27,14 +27,14 @@ This module contains the necessary functions to run most installer commands.
 
 # General imports
 import os, sys
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional
 
 # Module imports
 from .utils import runJob, getCurrentBranch
 from .logger import logger, yellow, green
 from .constants import (REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH, MASTER_BRANCHNAME,
-	CONFIG_DEFAULT_VALUES, SOURCE_CLONE_ERROR, INTERNAL_LOGIC_VARS,
-	INTERRUPTED_ERROR, XMIPP_VERSIONS, XMIPP, VERSION_KEY)
+	CONFIG_DEFAULT_VALUES, SOURCE_CLONE_ERROR, INTERNAL_LOGIC_VARS, TAG_BRANCH_NAME,
+	INTERRUPTED_ERROR, XMIPP_VERSIONS, XMIPP, VERSION_KEY, SECTION_MESSAGE_LEN)
 from .api import sendApiPOST
 
 ####################### COMMAND FUNCTIONS #######################
@@ -46,11 +46,12 @@ def getSources(branch: str=None):
 	- branch (str): Optional. Branch to clone the sources from.
 	"""
 	# Clone or download internal sources
-	logger("Getting Xmipp sources ------------------------------------", forceConsoleOutput=True)
+	logger(getSectionMessage("Getting Xmipp sources"), forceConsoleOutput=True)
 	for source in XMIPP_SOURCES:
 		logger(f"Cloning {source}...", forceConsoleOutput=True)
 		retCode, output = __cloneSourceRepo(REPOSITORIES[source][0], path=SOURCES_PATH, branch=branch)
-		handleRetCode(retCode, predefinedErrorCode=SOURCE_CLONE_ERROR, message=output)
+		message = output if retCode else ''
+		handleRetCode(retCode, predefinedErrorCode=SOURCE_CLONE_ERROR, message=message)
 
 def getCMakeVarsStr(configDict: Dict) -> str:
 	"""
@@ -74,7 +75,7 @@ def exitXmipp(retCode: int=0, configDict: Dict={}):
 	- configDict (dict): Optional. Dictionary containing all config variables. If not empty, an API message is sent.
 	"""
 	# Send API message
-	if configDict:
+	if configDict and retCode != INTERRUPTED_ERROR:
 		sendApiPOST(configDict, retCode=retCode)
 	
 	# End execution
@@ -95,7 +96,11 @@ def handleRetCode(realRetCode: int, predefinedErrorCode: int=0, configDict: Dict
 		message = message if resultCode != realRetCode else ''
 		logger.logError(message, retCode=resultCode, addPortalLink=resultCode != realRetCode)
 		exitXmipp(retCode=resultCode, configDict=configDict)
-	logger("\n", forceConsoleOutput=True)
+	else:
+		if message:
+			logger(message)
+	__logDoneMessage()
+	logger("", forceConsoleOutput=True)
 
 def getSuccessMessage() -> str:
 	"""
@@ -124,14 +129,64 @@ def getSuccessMessage() -> str:
 
 	return '\n'.join([topBottomBorder, marginLine, messageLine, marginLine, topBottomBorder])
 
+def getSectionMessage(text: str) -> str:
+	"""
+	### This function prints a section message in a specific format.
+
+	#### Params:
+	- text (str): Title of the section.
+
+	#### Returns:
+	- (str): Formatted section message.
+	"""
+	# Check if provided text's length has exceeded specified limit
+	textLen = len(text)
+	remainingLen = SECTION_MESSAGE_LEN - textLen
+	if remainingLen < 4:
+		return text
+	
+	# Calculating characters around given text
+	nDashes = remainingLen - 2
+	nFinalDashes = int(nDashes / 2)
+	nInitialDashes = nDashes - nFinalDashes
+	finalDashes = ''.join(['-' for _ in range(nFinalDashes)])
+	initialDashes = ''.join(['-' for _ in range(nInitialDashes)])
+	return f"{initialDashes} {text} {finalDashes}"
+
 ####################### AUX FUNCTIONS #######################
-def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str]:
+def __branchExists(repo: str, branch: str) -> bool:
+	"""
+	### This function checks if the given branch exists.
+
+	#### Params:
+	- repo (str): Repository to check the branch from.
+	- branch (str): Branch to check.
+
+	#### Returns:
+	- (bool): True if the branch exists, False otherwise.
+	"""
+	retCode, _ = runJob(f"git ls-remote --heads {repo}.git {branch} | grep -q refs/heads/{branch}", logOutput=False)
+	return not retCode
+
+def __logDoneMessage():
+	"""
+	### This function logs a message shown after completing a task.
+	"""
+	logger(green("Done"), forceConsoleOutput=True, substitute=True)
+
+def __logWorkingMessage():
+	"""
+	### This function logs a message shown as placeholder for small tasks in progress.
+	"""
+	logger(yellow("Working..."), forceConsoleOutput=True)
+
+def __cloneSourceRepo(repo: str, branch: str=None, path: str='') -> Tuple[int, str]:
 	"""
 	### Clones the given source as a repository in the given branch if exists. Defaults to default branch.
 	### If the repository already exists, checks out to specified branch (if provided).
 	
 	#### Params:
-	- source (str): Source to clone.
+	- repo (str): Source to clone.
 	- branch (branch): Optional. Branch to clone repo from.
 	- path (str): Optional. Path to clone the repository into.
 	
@@ -139,20 +194,19 @@ def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str
 	- (int): 0 if everything worked, or else the return code of the command that failed.
 	- (str): Output data from the command if it worked or error if it failed.
 	"""
-	# If branch is provided, check if exists
-	logger(yellow("Working..."), forceConsoleOutput=True)
-	if branch:
-		retCode, _ = runJob(f"git ls-remote --heads {repo}.git {branch} | grep -q refs/heads/{branch}")
-		branchExists = not retCode
-		# If does not exist, show warning
-		if not branchExists:
-			warningStr = f"Warning: branch \'{branch}\' does not exist for repository with url {repo}.\n"
-			warningStr += "Falling back to repository's default branch."
-			logger(yellow(warningStr), forceConsoleOutput=True, substitute=True)
-			branch = None
-			logger(yellow("Working..."), forceConsoleOutput=True)
+	retCode = 0
+	output = ''
+	__logWorkingMessage()
+	cloneBranch = __getCloneBranch(repo, branch)
 
-	branchStr = f" --branch {branch}" if branch else ''
+	# If specified branch does not exist, show warning
+	if branch and not cloneBranch:
+		warningStr = f"Warning: branch \'{branch}\' does not exist for repository with url {repo}.\n"
+		warningStr += "Falling back to repository's default branch."
+		logger(yellow(warningStr), forceConsoleOutput=True, substitute=True)
+		branch = None
+		__logWorkingMessage()
+
 	# Move to defined path to clone
 	currentPath = os.getcwd()
 	os.chdir(path)
@@ -160,18 +214,41 @@ def __cloneSourceRepo(repo: str, branch: str='', path: str='') -> Tuple[int, str
 	# Check if repo already exists. If so, checkout instead of clone.
 	clonedFolder = repo.split("/")[-1]
 	if os.path.isdir(clonedFolder):
-		os.chdir(clonedFolder)
-		retCode, output = runJob(f"git checkout {branch}")
+		if branch:
+			os.chdir(clonedFolder)
+			retCode, output = runJob(f"git checkout {branch}")
 	else:
+		branchStr = f" --branch {branch}" if branch else ''
 		retCode, output = runJob(f"git clone{branchStr} {repo}.git")
-	logger(output)
 
 	# Go back to previous path
 	os.chdir(currentPath)
 
-	if not retCode:
-		logger(green("Done"), forceConsoleOutput=True, substitute=True)
 	return retCode, output
+
+def __getCloneBranch(repo: str, branch: str) -> Optional[str]:
+	"""
+	### Returns the branch to clone from in the given repository. 
+	
+	#### Params:
+	- repo (str): Repository to clone.
+	- branch (branch): Branch to clone repo from.
+	
+	#### Returns:
+	- (str | None): The given branch if it is a valid one, or None to indicate default branch.
+	"""
+	# If branch exists, use it
+	if branch and __branchExists(repo, branch):
+		return branch
+	
+	# If repository is xmipp source and current branch is a release, clone from corresponding release
+	repoName = repo.split("/")[-1]
+	if repoName in XMIPP_SOURCES:
+		branchName = getCurrentBranch()
+		if not branchName or branchName == MASTER_BRANCHNAME or branchName == TAG_BRANCH_NAME:
+			return XMIPP_VERSIONS[repoName][VERSION_KEY]
+	
+	return None
 
 def __getPredefinedError(realRetCode: int=0, desiredRetCode: int=0) -> int:
 	"""

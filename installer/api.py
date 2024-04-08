@@ -32,7 +32,7 @@ from typing import Dict, Optional
 
 # Self imports
 from .config import (getOSReleaseName, getArchitectureName, getCUDAVersion,
-	getCmakeVersion, getGXXVersion, getGCCVersion, getCC, getCXX, getNVCC, getCMake)
+	getCmakeVersion, getGXXVersion, getGCCVersion, getCMake, getCC, getCXX, getNVCC)
 from .utils import runJob, getCurrentBranch, isBranchUpToDate, runParallelJobs
 from .cmake_cache import parseCmakeCache
 from .constants import (API_URL, LOG_FILE, TAIL_LOG_NCHARS,
@@ -133,7 +133,7 @@ def __getMACAddress() -> Optional[str]:
 	- (str | None): MAC address, or None if there were any errors.
 	"""
 	# Run command to get network interfaces info
-	status, output = runJob("ip addr")
+	status, output = runJob("ip addr", logOutput=False)
 
 	# If command failed, return None to avoid sending POST request
 	if status != 0:
@@ -193,7 +193,7 @@ def __getLogTail() -> Optional[str]:
 	- (str | None): Installation log's last lines, or None if there were any errors.
 	"""
 	# Obtaining log tail
-	retCode, output = runJob(f"tail -n {TAIL_LOG_NCHARS} {LOG_FILE}")
+	retCode, output = runJob(f"tail -n {TAIL_LOG_NCHARS} {LOG_FILE}", logOutput=False)
 
 	# Return content if it went right
 	return output if retCode == 0 else None

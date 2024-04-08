@@ -34,18 +34,12 @@ Xmipp requires Cmake 3.16 or above. To update it please [visit](https://github.c
 Xmipp supports Cuda 8 through 11.7. CUDA is optional but highly recommended. We recommend you to use the newest version available for your operating system, though Cuda 10.2 has the widest support among other Scipion plugins. Pay attemption to the [compiler - CUDA](https://gist.github.com/ax3l/9489132) compatibility.
 To install CUDA for your operating system, follow the [official install guide](https://developer.nvidia.com/cuda-toolkit-archive).
 
-#### OpenCV
-OpenCV is used for some programs: movie_optical_alignment (with GPU support) and volume_homogenizer, however, it is not required.
-If you installed OpenCV via apt (`sudo apt install libopencv-dev`), it should be automatically picked up by the Xmipp script
-
 #### HDF5
 We sometimes see issues regarding the HDF5 dependency. Please visit the [HDF5 Troubleshooting wiki](https://github.com/I2PC/xmipp/wiki/HDF5-Troubleshooting)
 
 #### Full list of dependencies
 
 `sudo apt install -y libfftw3-dev libopenmpi-dev libhdf5-dev python3-numpy python3-dev libtiff5-dev libsqlite3-dev default-jdk git cmake`
-
-`pip install scons` in the enviroment that xmipp will be compiled (scipion3 if you will run Xmipp within Scipion)
 
 Also a compiler will be required (`sudo apt install gcc-10 g++-10`)
 
@@ -54,7 +48,7 @@ Standalone installation of Xmipp is recommended for researchers and developers. 
 
 Start by cloning the repository and then navigate to the right directory.
 
-`git clone https://github.com/I2PC/xmipp.git xmipp-bundle && cd xmipp-bundle`
+`git clone https://github.com/I2PC/xmipp.git xmipp && cd xmipp`
 
 Refer to `./xmipp --help` for additional info on the compilation process and possible customizations.
 
@@ -62,21 +56,11 @@ Next is to compile xmipp. There are to possibilities and in both you will can ru
 - Compile Xmipp by invoking the compilation script, which will take you through the rest of the process:`./xmipp` that way you will install Xmipp with the dependencies and thier versions that the enviroment you decide, or the default one.
 - Compile Xmipp via Scipion enviroment `scipion3 run ./xmipp` that way you will install Xmipp with the dependencies and their versions that Scipion decided. 
 
-It is important to highlight that this step only compiles Xmipp, but it does not link to Scipion. The linking to Scipion is explained in the next section.
-
-### Linking Xmipp standalone to Scipion
-
-Once the Standalone version has been installed, the user can link such installation to Scipion to have the posibility of use Xmipp inside Scipion. Linking with Scipion requires to the repository of `scipion-em-xmipp` which can be found in the folder `src/scipion-em-xmipp`. This repository contains the files that Scipion needs to execute Xmipp programs. However, it remains to link the Xmipp binaries with Scipion. To do that we need Scipion installed ([see Scipion installation web page](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html#)) and just launch the next command to link the binaries
-
-`scipion3 installp -p ~/scipion-em-xmipp --devel`
-
-where `scipion-em-xmipp` is the folder of the repository, it means `src/scipion-em-xmipp`.
-This command should work in most of the cases. However, if you do this and Scipion does not find Xmipp, please visit [Linking Xmipp to Scipion Troubleshooting](https://github.com/I2PC/xmipp/wiki/Linking-Xmipp-to-Scipion-Troubleshooting)
+As long as you are in a conda enviroment containing a proper installation of Scipion, and variable `XMIPP_LINK_TO_SCIPION` is set to `ON`, the link process will be done automatically by Xmipp's installer.
 
 ## Using Xmipp
 Xmipp is installed in the build directory located in the same directory where the xmipp script is located. To set all necessary environment variables and paths to all Xmipp programs, you can simply 
 `source build/xmipp.bashrc`
-
 
 ## That's all
 

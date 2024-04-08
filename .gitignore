@@ -57,8 +57,6 @@ gmon.out
 /src/xmipp/models/*
 /src/xmipp/tests/data
 *.conf
-xmippEnv.json
-compile_commands.json
 *.tgz
 
 # Ignore version file
@@ -67,8 +65,4 @@ compile_commands.json
 /src/xmipp/applications/programs/version
 
 # Output files from compilation
-compileLOG.txt
-reportInstallation.tar.gz
-xmipp_version.txt
-commandError.log
-commandOutput.log
+compilation.log

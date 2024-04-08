@@ -31,3 +31,4 @@ from .errors import *
 from .parser import *
 from .versions import *
 from .config import *
+from .cmake import *

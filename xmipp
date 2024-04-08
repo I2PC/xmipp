@@ -29,54 +29,65 @@ from typing import Dict
 
 # Installer imports
 from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,
-	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS, MODE_TEST, MODE_GIT,
-	MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, CONFIG_FILE,
+	MODE_CLEAN_ALL, MODE_VERSION, MODE_GET_MODELS, MODE_TEST, MODE_GIT, MODE_ADD_MODEL,
+	COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, CONFIG_FILE,
 	CMAKE_CONFIGURE_ERROR, CMAKE_COMPILE_ERROR, CMAKE_INSTALL_ERROR, PARAM_LOGIN, PARAM_SHORT,
 	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_MODEL_PATH, PARAM_MODELS_DIRECTORY,
 	PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE, PARAM_XMIPP_DIRECTORY, BUILD_PATH,
-	INSTALL_PATH, BUILD_TYPE)
-from installer.utils import runJob
+	INSTALL_PATH, BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE, CMAKE_ERROR)
+from installer.utils import runStreamingJob, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
-from installer.config import readConfig, writeConfig
-from installer.main import getCMakeVarsStr, getSources, exitXmipp, handleRetCode
-from installer.logger import logger
+from installer.config import readConfig, writeConfig, getCMake, isCMakeValid
+from installer.main import getCMakeVarsStr, getSources, exitXmipp, handleRetCode, getSectionMessage, getSuccessMessage
+from installer.logger import logger, yellow, red, blue
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
-  """
-  ### Checks the params for execution mode "addModel" and then runs it.
+	"""
+	### Checks the params for execution mode "addModel" and then runs it.
 
-  #### Params:
-  - args (Namespace): Command line arguments parsed by argparse library.
-  """
-  pass
+	#### Params:
+	- args (Namespace): Command line arguments parsed by argparse library.
+	"""
+	pass
 
-def modeCleanBin(args: argparse.Namespace):
-  """
+def modeCleanBin():
+	"""
 	### Checks the params for execution mode "cleanBin" and then runs it.
 	
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-  pass
+	runJob(f"find {SOURCES_PATH}/* -name \"*.so\" -exec rm -rf {{}} \;", showCommand=True, logOutput=False)
+	runJob(f"find {SOURCES_PATH}/* -name \"*.os\" -exec rm -rf {{}} \;", showCommand=True, logOutput=False)
+	runJob(f"find {SOURCES_PATH}/* -name \"*.o\" -exec rm -rf {{}} \;", showCommand=True, logOutput=False)
+	runJob("find . -iname \"*.pyc\" -delete", showCommand=True, logOutput=False)
+	runJob(f"rm -rf {CONFIG_FILE} {BUILD_PATH}", showCommand=True, logOutput=False)
+	runJob("find . -iname \"*.dblite\" -delete", showCommand=True, logOutput=False)
+	runJob(f"find {os.path.join(SOURCES_PATH, XMIPP, 'applications', 'programs')} --type d -empty", showCommand=True, logOutput=False)
 
-def modeCleanAll(args: argparse.Namespace):
+def modeCleanAll():
 	"""
 	### Checks the params for execution mode "cleanAll" and then runs it.
 	
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	pass
+	# Print warning text and await input
+	confirmationText = 'YeS'
+	warningStr = "WARNING: This will DELETE ALL content from src and build.\n"
+	warningStr += "\tNotice that if you have unpushed changes, they will be deleted.\n"
+	warningStr += f"\nIf you are sure you want to do this, type '{confirmationText}' (case sensitive):"
+	print(yellow(warningStr))
 
-def modeCleanDeprecated(args: argparse.Namespace):
-	"""
-	### Checks the params for execution mode "cleanDeprecated" and then runs it.
-	
-	#### Params:
-	- args (Namespace): Command line arguments parsed by argparse library.
-	"""
-	pass
+
+	userInput = input()
+	if userInput == confirmationText:
+		# Get xmipp sources
+		xmippSources = [os.path.join(SOURCES_PATH, source) for source in XMIPP_SOURCES]
+		runJob(f"rm -rf {BUILD_PATH} {INSTALL_PATH} {' '.join(xmippSources)} {CONFIG_FILE}", showCommand=True, logOutput=False)
+	else:
+		print(red("Operation cancelled."))
 
 def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}) -> Dict:
 	"""
@@ -89,19 +100,25 @@ def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}) -> Dict
 	#### Returns:
 	- (dict): Dictionary containig all config variables.
 	"""
-	# If config variable dictionary is not received, read from file
+	# If config variable dictionary is not received this mode is the first being executed
 	if not configDict:
+		logger.startLogFile(LOG_FILE)
 		configDict = readConfig(CONFIG_FILE)
+		if not isCMakeValid(configDict=configDict):
+			handleRetCode(CMAKE_ERROR, predefinedErrorCode=CMAKE_ERROR)
 
 	# Compile with CMake
-	retCode, _ = runJob(f"cmake --build {BUILD_PATH} --config {BUILD_TYPE} -j {args.jobs}",
-										 showCommand=True, showOutput=True, showError=True, streaming=True)
-	handleRetCode(retCode, predefinedErrorCode=CMAKE_COMPILE_ERROR, configDict=configDict)
+	cmakeExecutable = getCMake(configDict)
+	logger(getSectionMessage("Compiling with CMake"), forceConsoleOutput=True)
+	retCode, output = runStreamingJob(f"{cmakeExecutable} --build {BUILD_PATH} --config {BUILD_TYPE} -j {args.jobs}",
+													 showOutput=True, substitute=True)
+	handleRetCode(retCode, predefinedErrorCode=CMAKE_COMPILE_ERROR, configDict=configDict, message=output)
 	
 	# Install with CMake
-	retCode, _ = runJob(f"cmake --install {BUILD_PATH} --config {BUILD_TYPE} --prefix {INSTALL_PATH}",
-											showCommand=True, showOutput=True, showError=True, streaming=True)
-	handleRetCode(retCode, predefinedErrorCode=CMAKE_INSTALL_ERROR, configDict=configDict)
+	logger(getSectionMessage("Installing with CMake"), forceConsoleOutput=True)
+	retCode, output = runStreamingJob(f"{cmakeExecutable} --install {BUILD_PATH} --config {BUILD_TYPE} --prefix {INSTALL_PATH}",
+													 showOutput=True, substitute=True)
+	handleRetCode(retCode, predefinedErrorCode=CMAKE_INSTALL_ERROR, configDict=configDict, message=output)
 	
 	return configDict
 
@@ -136,7 +153,17 @@ def modeGit(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	pass
+	cmd = f"git {' '.join(args.command)}"
+	print(f"Running command '{cmd}' for all xmipp sources...")
+	for source in XMIPP_SOURCES:
+		print("")
+		# Check if source exists to perform command, else skip
+		sourcePath = os.path.abspath(os.path.join(SOURCES_PATH, source))
+		if not os.path.exists(sourcePath):
+			print(yellow(f"WARNING: Source {source} does not exist in path {sourcePath}. Skipping."))
+			continue
+		print(blue(f"Running command for {source} in path {sourcePath}..."))
+		runJob(cmd, logOutput=False, cwd=sourcePath, showOutput=True, showError=True)
 
 def modeTest(parser, args=argparse.Namespace):
 	"""
@@ -149,13 +176,13 @@ def modeTest(parser, args=argparse.Namespace):
 	pass
 
 def modeVersion(args: argparse.Namespace):
-  """
-  ### Checks the params for execution mode "version" and then runs it.
+	"""
+	### Checks the params for execution mode "version" and then runs it.
 
-  #### Params:
-  - args (Namespace): Command line arguments parsed by argparse library.
-  """
-  pass
+	#### Params:
+	- args (Namespace): Command line arguments parsed by argparse library.
+	"""
+	pass
 
 def modeAll(args: argparse.Namespace) -> Dict:
 	"""
@@ -167,16 +194,25 @@ def modeAll(args: argparse.Namespace) -> Dict:
 	#### Returns:
 	- (dict): Dictionary containig all config variables.
 	"""
+	# Initiate logger
+	logger.startLogFile(LOG_FILE)
+
 	# Read and/or write variables from config file
 	configDict = modeConfig()
+
+	# Check if cmake is valid
+	if not isCMakeValid(configDict=configDict):
+		handleRetCode(CMAKE_ERROR, predefinedErrorCode=CMAKE_ERROR)
 
 	# Clone sources from specified branch
 	getSources(branch=args.branch)
 
 	# Configure with CMake
-	retCode, _ = runJob(f"cmake -S . -B {BUILD_PATH} -D CMAKE_INSTALL_PREFIX={INSTALL_PATH} -D CMAKE_BUILD_TYPE=Release {getCMakeVarsStr(configDict)}",
-											showCommand=True, showOutput=True, showError=True, streaming=True)
-	handleRetCode(retCode, predefinedErrorCode=CMAKE_CONFIGURE_ERROR, configDict=configDict)
+	cmakeExecutable = getCMake(configDict)
+	logger(getSectionMessage("Configuring with CMake"), forceConsoleOutput=True)
+	retCode, output = runStreamingJob(f"{cmakeExecutable} -S . -B {BUILD_PATH} -D CMAKE_INSTALL_PREFIX={INSTALL_PATH} -D CMAKE_BUILD_TYPE=Release {getCMakeVarsStr(configDict)}",
+														showOutput=True, substitute=True)
+	handleRetCode(retCode, predefinedErrorCode=CMAKE_CONFIGURE_ERROR, configDict=configDict, message=output)
 
 	# Compile and install
 	return modeCompileAndInstall(args, configDict=configDict)
@@ -195,11 +231,9 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	elif args.mode == MODE_ALL:
 		configDict = modeAll(args)
 	elif args.mode == MODE_CLEAN_ALL:
-		modeCleanAll(args)
+		modeCleanAll()
 	elif args.mode == MODE_CLEAN_BIN:
-		modeCleanBin(args)
-	elif args.mode == MODE_CLEAN_DEPRECATED:
-		modeCleanDeprecated(args)
+		modeCleanBin()
 	elif args.mode == MODE_COMPILE_AND_INSTALL:
 		configDict = modeCompileAndInstall(args)
 	elif args.mode == MODE_CONFIG:
@@ -216,6 +250,10 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 		# If method was none of the above, exit with error
 		logger.logError(f"Mode \"{args.mode}\" not recognized. {COMMON_USAGE_HELP_MESSAGE}")
 		exitXmipp(retCode=1, configDict=configDict)
+	
+	# Print success message for specific modes
+	if args.mode == MODE_ALL or args.mode == MODE_COMPILE_AND_INSTALL:
+		logger(getSuccessMessage(), forceConsoleOutput=True)
 	exitXmipp(configDict=configDict)
 	
 ####################### MAIN EXECUTION THREAD #######################
@@ -247,9 +285,6 @@ if __name__ == "__main__":
 
 	# Arguments for mode 'cleanBin'
 	cleanBinSubparser = subparsers.add_parser(MODE_CLEAN_BIN, formatter_class=ModeHelpFormatter)
-
-	# Arguments for mode 'cleanDeprecated'
-	cleanDeprecatedSubparser = subparsers.add_parser(MODE_CLEAN_DEPRECATED, formatter_class=ModeHelpFormatter)
 
 	# Arguments for mode 'compileAndInstall'
 	compileAndInstallSubparser = subparsers.add_parser(MODE_COMPILE_AND_INSTALL, formatter_class=ModeHelpFormatter)

@@ -36,35 +36,32 @@ XMIPP_PLUGIN = 'scipion-em-xmipp'
 UP = "\x1B[1A\r"
 REMOVE_LINE = '\033[K'
 
-CUFFTADVISOR = 'cuFFTAdvisor'
-CTPL = 'CTPL'
-GTEST = 'googletest'
-LIBSVM = 'libsvm'
-LIBCIFPP = 'libcifpp'
+__CUFFTADVISOR = 'cuFFTAdvisor'
+__CTPL = 'CTPL'
+__GTEST = 'googletest'
+__LIBSVM = 'libsvm'
+__LIBCIFPP = 'libcifpp'
 
+__BASE_GITHUB_URL = 'https://github.com'
+__ORGANIZATION_NAME = 'I2PC'
 REPOSITORIES = {
-	XMIPP: ['https://github.com/I2PC/xmipp', None],
-	XMIPP_CORE: ['https://github.com/I2PC/xmippCore', None],
-	XMIPP_VIZ: ['https://github.com/I2PC/xmippViz', None],
-	XMIPP_PLUGIN: ['https://github.com/I2PC/scipion-em-xmipp', None],
-	CUFFTADVISOR: ['https://github.com/DStrelak/cuFFTAdvisor', 'master'],
-	CTPL: ['https://github.com/vit-vit/CTPL', 'master'],
-	GTEST: ['https://github.com/google/googletest', 'v1.13.x'],
-	LIBSVM: ['https://github.com/cossorzano/libsvm', 'master'],
-	LIBCIFPP: ['https://github.com/MartinSalinas98/libcifpp', 'ms_feature_ciflibrary'],
+	XMIPP: [os.path.join(__BASE_GITHUB_URL, __ORGANIZATION_NAME, XMIPP), None],
+	XMIPP_CORE: [os.path.join(__BASE_GITHUB_URL, __ORGANIZATION_NAME, XMIPP_CORE), None],
+	XMIPP_VIZ: [os.path.join(__BASE_GITHUB_URL, __ORGANIZATION_NAME, XMIPP_VIZ), None],
+	XMIPP_PLUGIN: [os.path.join(__BASE_GITHUB_URL, __ORGANIZATION_NAME, XMIPP_PLUGIN), None],
+	__CUFFTADVISOR: [os.path.join(__BASE_GITHUB_URL, 'DStrelak', __CUFFTADVISOR), 'master'],
+	__CTPL: [os.path.join(__BASE_GITHUB_URL, 'vit-vit', __CTPL), 'master'],
+	__GTEST: [os.path.join(__BASE_GITHUB_URL, 'google', __GTEST), 'v1.13.x'],
+	__LIBSVM: [os.path.join(__BASE_GITHUB_URL, 'cossorzano', __LIBSVM), 'master'],
+	__LIBCIFPP: [os.path.join(__BASE_GITHUB_URL, 'MartinSalinas98', __LIBCIFPP), 'ms_feature_ciflibrary'],
 }
 XMIPP_SOURCES = [XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN]
-EXTERNAL_SOURCES = [CUFFTADVISOR, CTPL, GTEST, LIBSVM, LIBCIFPP]
-SOURCES_PATH = "src/"
-BUILD_PATH = "build/"
-INSTALL_PATH = "dist/"
+EXTERNAL_SOURCES = [__CUFFTADVISOR, __CTPL, __GTEST, __LIBSVM, __LIBCIFPP]
+SOURCES_PATH = "src"
+BUILD_PATH = "build"
+INSTALL_PATH = "dist"
 BUILD_TYPE = "Release"
 CMAKE_CACHE_PATH = os.path.join(BUILD_PATH, 'CMakeCache.txt')
-
-# Source repositories
-ORGANIZATION_NAME = 'I2PC'
-TAGS_SUBPAGE = 'archive/refs/tags/'
-BRANCHES_SUBPAGE = 'archive/refs/heads/'
 
 # Internal URLs
 API_URL = 'xmipp.i2pc.es/api/attempts/'
@@ -78,15 +75,10 @@ SCIPION_TESTS_URLS = "http://scipion.cnb.csic.es/downloads/scipion/data/tests"
 
 # Other variables
 TAB_SIZE = 4
+SECTION_MESSAGE_LEN = 60
+TAG_BRANCH_NAME = 'HEAD'
 
 # File names
 CONFIG_FILE = 'xmipp.conf'
-OLD_CONFIG_FILE = 'xmipp_old.conf'
-XMIPPENV = 'xmippEnv.json'
-VERSIONS_FILE = 'xmippVersions.txt'
-COMPRESED_FILE = 'report.tar.gz'
-LOG_FILE = 'compileLOG.txt'
-CMD_OUT_LOG_FILE = 'commandOutput.log'
-CMD_ERR_LOG_FILE = 'commandError.log'
-OUTPUT_POLL_TIME = 0.5 # Seconds between each output refresh
+LOG_FILE = 'compilation.log'
 TAIL_LOG_NCHARS = 300
