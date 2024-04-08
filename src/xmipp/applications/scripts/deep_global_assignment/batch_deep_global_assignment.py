@@ -34,7 +34,6 @@ class ScriptDeepGlobalAssignment(XmippScript):
         self.addParamsLine('[--precision <s=0.5>]         : Alignment precision measured in pixels')
         self.addParamsLine('[--Nimgs <n=1000>]            : Subset size for training')
         self.addParamsLine('[--mode <mode>]               : Mode: shift, angles')
-        self.addParamsLine('[--numThreads <n=8>]          : Number of threads')
 
     def run(self):
         fnXmd = self.getParam("-i")
@@ -47,7 +46,6 @@ class ScriptDeepGlobalAssignment(XmippScript):
         precision = float(self.getParam("--precision"))
         mode = self.getParam("--mode")
         Nimgs = int(self.getParam('--Nimgs'))
-        numThreads = int(self.getParam('--numThreads'))
 
         from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
 
@@ -97,7 +95,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
                     I *= self.mask
                     self.X[i] = np.reshape(I, (self.dim, self.dim, 1))
 
-        def get_labels(fnXmd):
+        def get_labels(fnXmd, Nimgs):
             """Returns dimensions, images, angles and shifts values from images files"""
             md = xmippLib.MetaData(fnXmd)
             Xdim, _, _, _ = md.getImageSize()
@@ -111,44 +109,9 @@ class ScriptDeepGlobalAssignment(XmippScript):
             angles = [np.array((r,t,p)) for r, t, p in zip(rots, tilts, psis)]
             img_shift = [np.array((sX,sY)) for sX, sY in zip(shiftX, shiftY)]
 
-            return Xdim, fnImg, angles, img_shift
-
-        class AngleGenerator(XmippTrainingSequence):
-            def __init__(self, dataLoader, batch_size, maxSize, randomize, numThreads):
-                self.dataLoader = dataLoader
-                self.batch_size = batch_size
-                self.maxSize = maxSize
-                self.randomize = randomize
-                self.numThreads = numThreads
-                self.newAugmentationParallel()
-
-            def augment_single_image(self, i):
-                # sigmaShift = 2
-                # shift_x, shift_y = np.random.normal(0, sigmaShift, 2)
-                # I = shift(self.dataLoader.X[i], [shift_x, shift_y, 0], mode='wrap')
-                # angle = np.random.uniform(0, 360)
-                # X=I
-                # X = rotate(I, angle, reshape=False)
-                # aux = np.copy(self.dataLoader.angles[i])
-                # aux[2] += angle
-                # y = euler_to_rotation6d(aux)  # Assuming this function is defined elsewhere
-
-                X=self.dataLoader.X[i]
-                y=self.dataLoader.y[i]
-
-                return X, y
-
-            def newAugmentationParallel(self):
-                dim = self.dataLoader.X.shape[1]
-                X = np.zeros((self.maxSize,dim,dim,1))
-                y = np.zeros((self.maxSize,self.dataLoader.y.shape[1]))
-
-                idxList = [i for i in range(self.maxSize)]
-                with ThreadPoolExecutor(max_workers=self.numThreads) as executor:
-                    futures = [executor.submit(self.augment_single_image, i) for i in idxList]
-                    for i, future in enumerate(as_completed(futures)):
-                        X[i], y[i] = future.result()
-                super().__init__(X, y, batch_size, maxSize=self.maxSize, randomize=self.randomize)
+            Nimgs = min(Nimgs, len(angles))
+            idx = random.sample([i for i in range(len(angles))], Nimgs)
+            return Xdim, [fnImg[i] for i in idx], [angles[i] for i in idx], [img_shift[i] for i in idx]
 
         def testModel(model, X, y):
             ypred = model.predict(X)
@@ -158,7 +121,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 np.set_printoptions(threshold=sys.maxsize)
                 print(ypred[i])
 
-        def trainModel(model, dataLoader, Nimgs, mode, modeprec, fnThisModel, lossFunction, numThreads=1):
+        def trainModel(model, dataLoader, mode, modeprec, fnThisModel, lossFunction):
             adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
             sys.stdout.flush()
             if lossFunction is not None:
@@ -171,41 +134,27 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 min_lr=1e-8,  # Lower bound on the learning rate
             )
 
-            sizeStep = round(Nimgs/100)
-            for maxSize in range(100, Nimgs, sizeStep):
-                print("Num. imgs=%d"%maxSize)
-                if mode=="shift":
-                    generator = XmippTrainingSequence(dataLoader.X, dataLoader.y, batch_size, maxSize=maxSize, randomize=True)
-                else:
-                    generator = AngleGenerator(dataLoader, batch_size, maxSize=maxSize, randomize=True, numThreads=numThreads)
+            generator = XmippTrainingSequence(dataLoader.X, dataLoader.y, batch_size, randomize=True)
 
-                # generator.shuffle_data()
+            # generator.shuffle_data()
 
-                epoch = 0
-                for i in range(maxEpochs):
-                    start_time = time()
-                    history = model.fit(generator, epochs=1, verbose=0, callbacks=[reduce_lr])
-                    end_time = time()
-                    epoch += 1
-                    loss = history.history['loss'][-1]
-                    print("Epoch %d loss=%f trainingTime=%d" % (epoch, loss, int(end_time-start_time)), flush=True)
-                    if mode=="angles":
-                        generator.newAugmentationParallel()
-                    # testModel(model, training_generator.X, training_generator.y)
-                    if loss < modeprec:
-                        break
-                    del history
-                    gc.collect()
-
-                del generator
-                gc.collect()
+            epoch = 0
+            for i in range(maxEpochs):
+                start_time = time()
+                history = model.fit(generator, epochs=1, verbose=0, callbacks=[reduce_lr])
+                end_time = time()
+                epoch += 1
+                loss = history.history['loss'][-1]
+                print("Epoch %d loss=%f trainingTime=%d" % (epoch, loss, int(end_time-start_time)), flush=True)
+                # testModel(model, training_generator.X, training_generator.y)
+                if loss < modeprec:
+                    break
             model.save(fnThisModel, save_format="tf")
 
         SL = xmippLib.SymList()
         listSymmetryMatrices = SL.getSymmetryMatrices('c1')
-        Xdim, fnImgs, angles, shifts = get_labels(fnXmd)
+        Xdim, fnImgs, angles, shifts = get_labels(fnXmd, Nimgs)
         dataLoader = DataLoader(fnImgs, angles, shifts, batch_size, Xdim, mode)
-        Nimgs=min(Nimgs,dataLoader.y.shape[0])
 
         angularLoss = deepGlobal.AngularLoss(listSymmetryMatrices, Xdim)
 
@@ -217,13 +166,13 @@ class ScriptDeepGlobalAssignment(XmippScript):
                     print("Learning shift")
                     modelShift = deepGlobal.constructShiftModel(Xdim)
                     modelShift.summary()
-                    trainModel(modelShift, dataLoader, Nimgs, mode, precision, fnModelIndex, 'mae')
+                    trainModel(modelShift, dataLoader, mode, precision, fnModelIndex, 'mae')
                 else:
                     # Learn angles
                     print("Learning angular assignment")
                     model = deepGlobal.constructAnglesModel(Xdim)
                     model.summary()
-                    trainModel(model, dataLoader, Nimgs, mode, precision, fnModelIndex, angularLoss, numThreads)
+                    trainModel(model, dataLoader, mode, precision, fnModelIndex, angularLoss)
         except Exception as e:
             print(e)
             sys.exit(1)
