@@ -210,8 +210,9 @@ def modeAll(args: argparse.Namespace) -> Dict:
 	# Configure with CMake
 	cmakeExecutable = getCMake(configDict)
 	logger(getSectionMessage("Configuring with CMake"), forceConsoleOutput=True)
-	retCode, output = runStreamingJob(f"{cmakeExecutable} -S . -B {BUILD_PATH} -D CMAKE_INSTALL_PREFIX={INSTALL_PATH} -D CMAKE_BUILD_TYPE=Release {getCMakeVarsStr(configDict)}",
-														showOutput=True, substitute=True)
+	configureCmd = f"{cmakeExecutable} -S . -B {BUILD_PATH} -D CMAKE_INSTALL_PREFIX={INSTALL_PATH}"
+	configureCmd += f" -D CMAKE_BUILD_TYPE={BUILD_TYPE} -D CMAKE_SKIP_RPATH=ON  {getCMakeVarsStr(configDict)}"
+	retCode, output = runStreamingJob(configureCmd, showOutput=True, substitute=True)
 	handleRetCode(retCode, predefinedErrorCode=CMAKE_CONFIGURE_ERROR, configDict=configDict, message=output)
 
 	# Compile and install
