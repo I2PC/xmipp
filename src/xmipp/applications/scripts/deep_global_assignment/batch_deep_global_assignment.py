@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 
-import gc
 import math
 import numpy as np
-from scipy.ndimage import shift, rotate
+from scipy.ndimage import shift
 import os
 import random
 import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time
 
 import xmippLib
@@ -57,6 +55,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
         checkIf_tf_keras_installed()
 
         import tensorflow as tf
+        import keras
         import xmippPyModules.deepGlobalAssignment as deepGlobal
         from xmippPyModules.xmipp_utils import XmippTrainingSequence
 
@@ -110,8 +109,9 @@ class ScriptDeepGlobalAssignment(XmippScript):
             img_shift = [np.array((sX,sY)) for sX, sY in zip(shiftX, shiftY)]
 
             Nimgs = min(Nimgs, len(angles))
-            idx = random.sample([i for i in range(len(angles))], Nimgs)
-            return Xdim, [fnImg[i] for i in idx], [angles[i] for i in idx], [img_shift[i] for i in idx]
+#            idx = random.sample([i for i in range(len(angles))], Nimgs)
+#            return Xdim, [fnImg[i] for i in idx], [angles[i] for i in idx], [img_shift[i] for i in idx]
+            return Xdim, fnImg, angles, img_shift
 
         def testModel(model, X, y):
             ypred = model.predict(X)
@@ -163,15 +163,22 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 fnModelIndex = fnModel + str(index) + ".tf"
                 # Learn shift
                 if mode=="shift":
-                    print("Learning shift")
-                    modelShift = deepGlobal.constructShiftModel(Xdim)
-                    modelShift.summary()
+                    if os.path.exists(fnModelIndex):
+                        modelShift = keras.models.load_model(fnModelIndex, compile=True)
+                    else:
+                        modelShift = deepGlobal.constructShiftModel(Xdim)
+                        modelShift.summary()
                     trainModel(modelShift, dataLoader, mode, precision, fnModelIndex, 'mae')
                 else:
                     # Learn angles
-                    print("Learning angular assignment")
-                    model = deepGlobal.constructAnglesModel(Xdim)
-                    model.summary()
+                    if os.path.exists(fnModelIndex):
+                        model = keras.models.load_model(fnModelIndex, custom_objects={
+                                                            'Angles2VectorLayer': deepGlobal.Angles2VectorLayer,
+                                                            'AngularLoss': deepGlobal.AngularLoss(listSymmetryMatrices, Xdim)},
+                                                        compile=True)
+                    else:
+                        model = deepGlobal.constructAnglesModel(Xdim)
+                        model.summary()
                     trainModel(model, dataLoader, mode, precision, fnModelIndex, angularLoss)
         except Exception as e:
             print(e)
