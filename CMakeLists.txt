@@ -30,7 +30,6 @@ include(fetch_cuFFTAdvisor)
 include(fetch_googletest)
 include(fetch_libsvm)
 include(link_to_scipion)
-include(write_version)
 
 # Define the project
 project(
@@ -57,6 +56,7 @@ endif()
 
 # Find Python
 find_package(Python3 COMPONENTS Interpreter Development NumPy REQUIRED)
+string(APPEND XMIPP_VERSIONS "Python3=${Python3_VERSION}\n")
 
 # Find CUDA
 if(${XMIPP_USE_CUDA})
@@ -64,6 +64,7 @@ if(${XMIPP_USE_CUDA})
   if (CMAKE_CUDA_COMPILER)
     enable_language(CUDA)
     find_package(CUDAToolkit 10.2 REQUIRED)
+	  string(APPEND XMIPP_VERSIONS "CUDA=${CUDAToolkit_VERSION}\n")
 
     set(CMAKE_CUDA_STANDARD 14)
 
@@ -93,6 +94,8 @@ if(${XMIPP_USE_MPI})
   if (NOT MPI_FOUND)
     set(XMIPP_USE_MPI OFF)
     message("MPI was requested but MPI was not found. Compiling without MPI")
+  else()
+	  string(APPEND XMIPP_VERSIONS "MPI=${MPI_CXX_VERSION}\n")
   endif()
 endif()
 
@@ -121,8 +124,7 @@ add_subdirectory(src/xmippViz)
 
 # Save a version file for debug
 if(XMIPP_SAVE_VERSIONS)
-  write_version(MPI_VERSION ${MPI_CXX_VERSION})
-  write_version(CUDA_VERSION ${CUDAToolkit_VERSION})
+  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/versions.txt" "${XMIPP_VERSIONS}")
 endif()
 
 # Configure bashrc file for installation
