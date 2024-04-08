@@ -191,10 +191,10 @@ if(${XMIPP_USE_CUDA})
 		XmippCuda
 		PUBLIC
 			Xmipp
+			cuFFTAdvisor
 			CUDA::cudart
 			CUDA::cufft
 			CUDA::nvml
-			cuFFTAdvisor
 	)
 
 	add_library(XmippInterfaceCuda SHARED ${CUDA_INTERFACE_SOURCES})
@@ -202,6 +202,7 @@ if(${XMIPP_USE_CUDA})
 		XmippInterfaceCuda
 		PUBLIC
 			Xmipp
+		INTERFACE
 			XmippCuda
 	)
 	install(
@@ -217,6 +218,7 @@ if(${XMIPP_USE_CUDA} AND ${XMIPP_USE_MPI})
 		XmippParallelCuda
 		PUBLIC
 			XmippParallel
+		INTERFACE
 			XmippCuda
 	)
 	install(
