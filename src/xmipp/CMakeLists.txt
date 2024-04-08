@@ -191,10 +191,10 @@ if(${XMIPP_USE_CUDA})
 		XmippCuda
 		PUBLIC
 			Xmipp
+			cuFFTAdvisor
 			CUDA::cudart
 			CUDA::cufft
 			CUDA::nvml
-			cuFFTAdvisor
 	)
 
 	add_library(XmippInterfaceCuda SHARED ${CUDA_INTERFACE_SOURCES})
