@@ -218,6 +218,7 @@ if(${XMIPP_USE_CUDA} AND ${XMIPP_USE_MPI})
 		XmippParallelCuda
 		PUBLIC
 			XmippParallel
+		INTERFACE
 			XmippCuda
 	)
 	install(
