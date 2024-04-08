@@ -124,6 +124,8 @@ add_subdirectory(src/xmippViz)
 
 # Save a version file for debug
 if(XMIPP_SAVE_VERSIONS)
+
+  string(APPEND XMIPP_VERSIONS "CMake=${CMAKE_VERSION}\n")
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/versions.txt" "${XMIPP_VERSIONS}")
 endif()
 
