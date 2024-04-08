@@ -23,13 +23,13 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Set, Dict, Any
+from typing import Dict, Any
 
 import re
 
-__ITEM_REGEX = re.compile(r'([A-Za-z0-9_-]+)(:[A-Za-z_]+)?=(.*)')
+__ITEM_REGEX = re.compile(r'([A-Za-z0-9_-]+)=(.*)')
 
-def parseCmakeCache(path: str, desiredKeys: Set[str]) -> Dict[str, Any]:
+def parseCmakeVersions(path: str) -> Dict[str, Any]:
   result = dict()
   
   with open(path, 'r') as file:
@@ -37,9 +37,7 @@ def parseCmakeCache(path: str, desiredKeys: Set[str]) -> Dict[str, Any]:
       match = __ITEM_REGEX.match(line)
       if match is not None:
         key = match.group(1)
-        value = match.group(3)
-        
-        if key in desiredKeys:
-          result[key] = value
+        value = match.group(2)
+        result[key] = value
           
   return result
