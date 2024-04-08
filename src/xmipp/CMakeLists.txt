@@ -202,6 +202,7 @@ if(${XMIPP_USE_CUDA})
 		XmippInterfaceCuda
 		PUBLIC
 			Xmipp
+		INTERFACE
 			XmippCuda
 	)
 	install(
