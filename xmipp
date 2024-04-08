@@ -80,8 +80,11 @@ def modeCleanAll():
 	warningStr += f"\nIf you are sure you want to do this, type '{confirmationText}' (case sensitive):"
 	print(yellow(warningStr))
 
-
-	userInput = input()
+	try:
+		userInput = input()
+	except KeyboardInterrupt:
+		userInput = ''
+		print("")
 	if userInput == confirmationText:
 		# Get xmipp sources
 		xmippSources = [os.path.join(SOURCES_PATH, source) for source in XMIPP_SOURCES]
