@@ -66,6 +66,11 @@ file(
 )
 file(
 	GLOB_RECURSE 
+	MATLAB_BINDING_SCRIPTS
+		${CMAKE_CURRENT_SOURCE_DIR}/bindings/matlab/*.m
+)
+file(
+	GLOB_RECURSE 
 	PARALLEL_SOURCES
 		${CMAKE_CURRENT_SOURCE_DIR}/libraries/parallel/*.cpp
 )
@@ -227,12 +232,24 @@ endif()
 
 # Add MATLAB binding TODO
 if(${XMIPP_USE_MATLAB})
-	find_package(Matlab REQUIRED)
+	foreach(MATLAB_BINDING_SOURCE ${MATLAB_BINDING_SOURCES})
+		get_filename_component(MEX_NAME ${MATLAB_BINDING_SOURCE} NAME_WE)
+		set(TARGET_NAME "XmippMatlab-${MEX_NAME}")
+		matlab_add_mex(
+			NAME ${TARGET_NAME}
+			SRC ${MATLAB_BINDING_SOURCE}
+			OUTPUT_NAME ${MEX_NAME}
+			LINK_TO Xmipp
+		)
+		install(
+			TARGETS ${TARGET_NAME}
+			DESTINATION bindings/matlab
+		)
+	endforeach()
 	
-	matlab_add_mex(
-		NAME XMIPP_USE_MATLAB
-		SRC ${MATLAB_BINDING_SOURCES}
-		LINK_TO Xmipp
+	install(
+		FILES ${MATLAB_BINDING_SCRIPTS}
+		DESTINATION bindings/matlab
 	)
 endif()
 

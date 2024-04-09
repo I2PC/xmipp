@@ -99,6 +99,7 @@ if(${XMIPP_USE_MPI})
   endif()
 endif()
 
+# Find MATLAB
 if(${XMIPP_USE_MATLAB})
 	find_package(Matlab)
 
