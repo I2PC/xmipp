@@ -37,12 +37,25 @@ function(fetch_cuFFTAdvisor)
 		BUILD_IN_SOURCE TRUE
 	)
 
+
+	# Set output variables
+	set(CUFFTADVISOR_INCLUDE_DIR ${SOURCE_DIR})
+	set(CUFFTADVISOR_LIB_DIR ${SOURCE_DIR}/build)
+	set(CUFFTADVISOR_LIB_NAME libcuFFTAdvisor.so)
+	set(CUFFTADVISOR_LIB ${CUFFTADVISOR_LIB_DIR}/${CUFFTADVISOR_LIB_NAME})
+
 	add_library(cuFFTAdvisor SHARED IMPORTED)
-	set_target_properties(cuFFTAdvisor PROPERTIES IMPORTED_LOCATION ${SOURCE_DIR}/build/libcuFFTAdvisor.so)
-	target_include_directories(cuFFTAdvisor INTERFACE ${SOURCE_DIR})
+	set_target_properties(cuFFTAdvisor PROPERTIES IMPORTED_LOCATION ${CUFFTADVISOR_LIB})
+	target_include_directories(cuFFTAdvisor INTERFACE ${CUFFTADVISOR_INCLUDE_DIR})
 	add_dependencies(cuFFTAdvisor build_cuFFTAdvisor)
 	install(
-		FILES ${SOURCE_DIR}/build/libcuFFTAdvisor.so
+		FILES ${CUFFTADVISOR_LIB}
  		DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	)
+
+	# Propagate variables to parent scope
+	set(CUFFTADVISOR_INCLUDE_DIR ${CUFFTADVISOR_INCLUDE_DIR} PARENT_SCOPE)
+	set(CUFFTADVISOR_LIB_DIR ${CUFFTADVISOR_LIB_DIR} PARENT_SCOPE)
+	set(CUFFTADVISOR_LIB_NAME ${CUFFTADVISOR_LIB_NAME} PARENT_SCOPE)
+	set(CUFFTADVISOR_LIB ${CUFFTADVISOR_LIB} PARENT_SCOPE)
 endfunction()

@@ -190,11 +190,29 @@ if(${XMIPP_USE_CUDA})
 		PROPERTIES LANGUAGE CUDA
 	)
 	add_library(XmippCuda STATIC ${CUDA_SOURCES})
+
+	# HACK: Manually add cuFFTAdvisor. Linking the target leads to wrong RPATH
+	target_include_directories(
+		XmippCuda
+		PUBLIC
+			${CUFFTADVISOR_INCLUDE_DIR}
+	)	
+	target_link_directories(
+		XmippCuda
+		PUBLIC
+			${CUFFTADVISOR_LIB_DIR}
+	)
+	target_link_libraries(
+		XmippCuda
+		PUBLIC
+			${CUFFTADVISOR_LIB_NAME}
+	)
+	add_dependencies(XmippCuda cuFFTAdvisor)
+
 	target_link_libraries(
 		XmippCuda
 		PUBLIC
 			Xmipp
-			cuFFTAdvisor
 			CUDA::cudart
 			CUDA::cufft
 			CUDA::nvml
