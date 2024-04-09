@@ -4,6 +4,7 @@ export XMIPP_HOME=@XMIPP_HOME@
 export PATH=@XMIPP_HOME@/@CMAKE_INSTALL_BINDIR@:$PATH
 export LD_LIBRARY_PATH=@XMIPP_HOME@/@CMAKE_INSTALL_LIBDIR@:@XMIPP_HOME@/bindings/python:$LD_LIBRARY_PATH
 export PYTHONPATH=@XMIPP_HOME@/bindings/python:@XMIPP_HOME@/pylib:$PYTHONPATH
+export MATLABPATH=@XMIPP_HOME@/bindings/matlab:$MATLABPATH
 
 alias x='xmipp'
 alias xsj='xmipp_showj'
