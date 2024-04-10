@@ -462,12 +462,18 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
     MultidimArray<double> binaryCoordinatesMapSlice;
     MultidimArray<double> labelCoordiantesMapSlice;
-    MultidimArray<double> equalizedMap;
-    MultidimArray<double> labelCoordiantesMap;
+	MultidimArray<double> labelCoordiantesMap;
 	MultidimArray<double> tiltImage;
+	MultidimArray<double> tiltImageTmp;
 
 	labelCoordiantesMap.initZeros(nSize, zSize, ySize_d, xSize_d);
+
+	#ifdef DEBUG_OUTPUT_FILES
+	MultidimArray<double> zScoreMap;
+    MultidimArray<double> equalizedMap;
 	equalizedMap.initZeros(nSize, zSize, ySize_d, xSize_d);
+	zScoreMap.initZeros(nSize, zSize, ySize_d, xSize_d);
+	#endif
 
 	for(size_t k = 0; k < nSize; ++k)
 	{	
@@ -477,6 +483,7 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
 		std::vector<Point2D<int>> interLim = interpolationLimitsVector_ds[k];
 		tiltImage.initZeros(ySize_d, xSize_d);
+		tiltImageTmp.initZeros(ySize_d, xSize_d);
 
 		for (size_t i = 0; i < ySize_d; i++)
 		{
@@ -484,65 +491,86 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
 			for (size_t j = il.x; j < il.y; ++j)
 			{
-				DIRECT_A2D_ELEM(tiltImage, i, j) = DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j);
+				DIRECT_A2D_ELEM(tiltImageTmp, i, j) = DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j);
 			}
 		}
 
 		// Z-SCORE THRESHOLDING ----------------------------------------------
-        double average = 0;
-        double standardDeviation = 0;
+		int numberOfBands = 25;
+		int bandSize = xSize_d/numberOfBands;
 
-		computeAvgAndStdevFromMiltidimArray(tiltImage, average, standardDeviation, interLim);
+		double average = 0;
+		double standardDeviation = 0;
 
-		double thresholdU = average + thrSD * standardDeviation;
+		for (size_t b = 0; b < numberOfBands; b++)
+		{	
+			// std::cout << "Analyzing band " << b << " out of " << numberOfBands << std::endl;
+			// std::cout << "Band from j=" << b*bandSize << " to j=" << (b+1)*bandSize << std::endl;
 
-		#ifdef DEBUG_HCC
-		std::cout << "------------------------------------------------------" << std::endl;
-		std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << std::endl;
-		std::cout << "thresholdU: " << thresholdU << std::endl;
-        #endif
+			average = 0;
+			standardDeviation = 0;
 
-		tiltImage.initZeros(ySize_d, xSize_d);
+			computeAvgAndStdevFromMiltidimArray(tiltImageTmp, average, standardDeviation, interLim, b*bandSize, (b+1)*bandSize, false);
 
+			std::cout << "average=" << average << " standardDeviation=" << standardDeviation << std::endl;
+
+			double thresholdU = average + thrSD * standardDeviation;
+
+			#ifdef DEBUG_HCC
+			std::cout << "------------------------------------------------------" << std::endl;
+			std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << std::endl;
+			std::cout << "thresholdU: " << thresholdU << std::endl;
+			#endif
+
+
+			for (size_t i = 0; i < ySize_d; i++)
+			{
+				Point2D<int> il = interLim[i];
+
+				int jMin = (il.x > b*bandSize) ? il.x : b*bandSize;
+				int jMax = (il.y < (b+1)*bandSize) ? il.y : (b+1)*bandSize;
+
+				for (size_t j = jMin; j < jMax; ++j)
+				{
+					double value = DIRECT_A2D_ELEM(tiltImageTmp, i, j);
+
+					if (value > thresholdU)
+					{
+						DIRECT_A2D_ELEM(tiltImage, i, j) = (value-average)/standardDeviation;
+
+						#ifdef DEBUG_OUTPUT_FILES
+						DIRECT_NZYX_ELEM(zScoreMap, k, 0, i, j) = (value-average)/standardDeviation;
+						#endif
+					}
+					// else
+					// {
+					// 	DIRECT_A2D_ELEM(tiltImage, i, j) = 0.0;
+					// }
+				}
+			}
+		}
+
+		// MAX POOLING ------------------------------------------------
+		maxPooling(tiltImage, targetFS/2, interLim);
+		filterFourierDirections(tiltImage, k);
+
+		#ifdef DEBUG_OUTPUT_FILES
+		// Save equalized tilt-series  
 		for(size_t i = 0; i < ySize_d; i++)
         {
             for(size_t j = 0; j < xSize_d; ++j)
             {
-                double value = DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j);
-
-                if (value > thresholdU)
-                {
-					DIRECT_A2D_ELEM(tiltImage, i, j) = value;
-               }
-            }
-        }
-
-		// MAX POOLING ------------------------------------------------
-		maxPooling(tiltImage, targetFS);
-		filterFourierDirections(tiltImage);
-
-		CorrelationAux aux;
-		MultidimArray<double> imageTmp;
-		imageTmp = tiltImage;
-		correlation_matrix(imageTmp, landmarkReference_FTdir, tiltImage, aux, true);
-
-		// Save equalized tilt-series  
-		for(size_t i = 0; i < ySize_d; i++)
-        {
- 			Point2D<int> il = interLim[i];
-
-            for(size_t j = il.x; j < il.y; ++j)
-            {
 				DIRECT_NZYX_ELEM(equalizedMap, k, 0, i, j) = DIRECT_A2D_ELEM(tiltImage, i, j);
             }
         }
+		#endif
 
 		// LABELLING --------------------------------------------------------------------
 		binaryCoordinatesMapSlice.initZeros(ySize_d, xSize_d);
 
         average = 0;
         standardDeviation = 0;
-		computeAvgAndStdevFromMiltidimArray(tiltImage, average, standardDeviation, interLim);
+		computeAvgAndStdevFromMiltidimArray(tiltImage, average, standardDeviation, interLim, 0, xSize_d, true);
 
 		for(size_t i = 0; i < ySize_d; i++)
         {
@@ -550,7 +578,7 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
             for(size_t j = il.x; j < il.y; ++j)
             {
-				if (DIRECT_A2D_ELEM(tiltImage, i, j) > average + thrSD * standardDeviation)
+				if (DIRECT_A2D_ELEM(tiltImage, i, j) > average)
 				{
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
 				}
@@ -660,6 +688,10 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 	saveImage.write(outputFileNameLabeledVolume);
 		
 	// save tilt series only with thr of sd ------------------------------------ 
+	outputFileNameLabeledVolume = rawname + "/ts_zScore.mrcs";
+	saveImage() = zScoreMap;
+	saveImage.write(outputFileNameLabeledVolume);
+
 	outputFileNameLabeledVolume = rawname + "/ts_equalized.mrcs";
 	saveImage() = equalizedMap;
 	saveImage.write(outputFileNameLabeledVolume);
@@ -1163,7 +1195,7 @@ void ProgTomoDetectLandmarks::run()
 
 
 // --------------------------- UTILS functions ----------------------------
-void ProgTomoDetectLandmarks::computeAvgAndStdevFromMiltidimArray(MultidimArray<double> &tiltImage, double& avg, double& stddev, std::vector<Point2D<int>> interLim)
+void ProgTomoDetectLandmarks::computeAvgAndStdevFromMiltidimArray(MultidimArray<double> &tiltImage, double& avg, double& stddev, std::vector<Point2D<int>> interLim, int xMin, int xMax, bool onlyPositive)
 {
 	double sum = 0;
 	double sum2 = 0;
@@ -1173,17 +1205,39 @@ void ProgTomoDetectLandmarks::computeAvgAndStdevFromMiltidimArray(MultidimArray<
 	{
 		Point2D<int> il = interLim[i];
 
-		for (size_t j = il.x; j < il.y; ++j)
+		int jMin = (il.x > xMin) ? il.x : xMin;
+		int jMax = (il.y < xMax) ? il.y : xMax;
+
+		for (size_t j = jMin; j < jMax; ++j)
 		{
 			double value = DIRECT_A2D_ELEM(tiltImage, i, j);
-			sum += value;
-			sum2 += value*value;
-			++Nelems;
+
+			if (onlyPositive && value<=0)
+			{
+				continue;
+			}
+			else
+			{
+				sum += value;
+				sum2 += value*value;
+				++Nelems;
+			}
 		}
 	}
 
-	avg = sum / Nelems;
-	stddev = sqrt(sum2/Nelems - avg*avg);
+	// std::cout << "sum=" << sum << " nelems= " << Nelems <<std::endl;
+
+	if (Nelems == 0)
+	{
+		std::cout << "++++++++++++++++++++++++++++++ number of elemens is ZERO" << std::endl;
+		avg = 0;
+		stddev = 0;
+	}
+	else
+	{
+		avg = sum / Nelems;
+		stddev = sqrt(sum2/Nelems - avg*avg);
+	}
 }
 
 
@@ -1386,44 +1440,51 @@ void ProgTomoDetectLandmarks::createLandmarkTemplate_FTdir()
 
 // // ------------------------------------------------------------------------------------------------------------------------------
 // // MAXPOOLING
-void ProgTomoDetectLandmarks::maxPooling(MultidimArray<double> &image, size_t windowSize) 
+void ProgTomoDetectLandmarks::maxPooling(MultidimArray<double> &image, size_t windowSize, std::vector<Point2D<int>> interLim) 
 {
 	MultidimArray<double> window;
 	std::vector<double> aa;
 
-	// Ensure windowSize is an odd number
-    windowSize = (windowSize % 2 == 0) ? windowSize + 1 : windowSize;
+	// Ensure windowSize is an even number
+    windowSize += (windowSize % 2 != 0);
+
 	int halfWindowSize = (int)windowSize / 2;
+	int halfWindowSizeSq = halfWindowSize*halfWindowSize;
 
 	MultidimArray<double> imageTmp = image;
-	image.initConstant(0);
+	image.initZeros(ySize_d, xSize_d);
 
     for (int i = 0; i < ySize_d; i++) 
 	{
-        for (int j = 0; j < xSize_d; j++) 
-		{
-            int y0 = std::max(0, int(i - windowSize / 2));
-            int x0 = std::max(0, int(j - windowSize / 2));
-            int yF = std::min(ySize_d - 1, i + windowSize / 2);
-            int xF = std::min(xSize_d - 1, j + windowSize / 2);
+		Point2D<int> il = interLim[i];
 
-			for (int k = -halfWindowSize; k <= halfWindowSize ; k++)
+        for (int j = il.x; j < il.y; j++) 
+		{
+			for (int k = -halfWindowSize; k <= halfWindowSize; k++)
             {
-                for (int l = -halfWindowSize ; l <= halfWindowSize ; l++)
+                for (int l = -halfWindowSize; l <= halfWindowSize; l++)
                 {
-                    if (i+k>=0 && j+l>=0 && j+l<xSize_d && i+k<ySize_d && k*k+l*l<=halfWindowSize*halfWindowSize)
+                    if (i+k>=0 && j+l>=0 && j+l<xSize_d && i+k<ySize_d && k*k+l*l<=halfWindowSizeSq)
                     {
                         aa.push_back(DIRECT_A2D_ELEM(imageTmp, (i + k), (j + l)));
                     }
                 }
-            }
+            }	
 
-			// window2D(imageTmp, window, y0, x0, yF, xF); 
-			// double elem_max = *std::max_element(MULTIDIM_ARRAY(window), MULTIDIM_ARRAY(window)+NZYXSIZE(window));
+			// Check aa vector is not empty
+			if (aa.size())
+			{
+				auto max_it = std::max_element(aa.begin(), aa.end());
+				double elem_max = *max_it;
 
-			double elem_max = *std::max_element(aa.begin(), aa.end());
-			DIRECT_A2D_ELEM(image, i, j) = elem_max;
-			aa.clear();
+				DIRECT_A2D_ELEM(image, i, j) = elem_max;
+
+				aa.clear();
+			}
+			else
+			{
+				DIRECT_A2D_ELEM(image, i, j) = 0.0;
+			}
         }
     }
 }
@@ -1597,12 +1658,11 @@ void ProgTomoDetectLandmarks::adaptiveHistogramEqualization(MultidimArray<double
 // }
 // // ------------------------------------------------------------------------------------------------------------------------------
 
-void ProgTomoDetectLandmarks::filterFourierDirections(MultidimArray<double> &image) 
+void ProgTomoDetectLandmarks::filterFourierDirections(MultidimArray<double> &image, size_t k) 
 {
 	MultidimArray<double> imageTmp;
 	MultidimArray<double> imageOut;
-	imageOut.resizeNoCopy(image);
-	imageOut.initConstant(1);
+	imageOut.initZeros(ySize_d, xSize_d);
 	
 	size_t numberOfDirections = 8;
 	double angleStep = PI / numberOfDirections;
@@ -1610,25 +1670,14 @@ void ProgTomoDetectLandmarks::filterFourierDirections(MultidimArray<double> &ima
 	for (size_t n = 0; n < numberOfDirections; n++)
 	{
 	 	imageTmp = image;
-		// std::cout << "xdir= " << cos(n*angleStep) << ", ydir=" << sin(n*angleStep) << std::endl;
-		
-		directionalFilterFourier(imageTmp, cos(n*angleStep), sin(n*angleStep));
-		imageTmp.statisticsAdjust(0.0, 1.0);
-		// imageTmp.binarize(0.0);
 
-		// FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY1D(imageTmp)
-		// {
-		// 	if(DIRECT_A1D_ELEM(imageTmp, i) < 0)
-		// 	{
-		// 		DIRECT_A1D_ELEM(imageTmp, i)=0;
-		// 	}
-		// }
+		// std::cout << "xdir= " << cos(n*angleStep) << ", ydir=" << sin(n*angleStep) << std::endl;
+		directionalFilterFourier(imageTmp, cos(n*angleStep), sin(n*angleStep));
 
 		imageOut = imageOut + imageTmp;
 	}
 
 	image = image * imageOut;
-	image.statisticsAdjust(0.0, 1.0);
 	
 	// std::cout << "Discrete sumation mode" << std::endl;
 	// MultidimArray<double> imageDirX;
@@ -1726,7 +1775,8 @@ void ProgTomoDetectLandmarks::directionalFilterFourier(MultidimArray<double> &im
 	// img.write("freqMap.mrc");
 	double cosAngle;
 	// cosAngle = 1.0/sqrt(2);
-	cosAngle = 0.9397;  // 20º cosine
+	// cosAngle = 0.9397;  // 20º cosine
+	cosAngle = 0.9848; // 10º cosine
 	auto aux = (8.0/((cosAngle -1)*(cosAngle -1)));
 	//cosine = expf( -((cosine -1)*(cosine -1))*aux); 
 

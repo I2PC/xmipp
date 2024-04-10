@@ -218,15 +218,15 @@ public:
     void createLandmarkTemplate_FTdir();
     // void histogramEqualization(MultidimArray<double> &data);
     void adaptiveHistogramEqualization(MultidimArray<double> &image, size_t windowSize);
-    void maxPooling(MultidimArray<double> &image, size_t windowSize);
+    void maxPooling(MultidimArray<double> &image, size_t windowSize, std::vector<Point2D<int>> interLim);
 
-    void filterFourierDirections(MultidimArray<double> &image);
+    void filterFourierDirections(MultidimArray<double> &imag, size_t k);
     void directionalFilterFourier(MultidimArray<double> &image, double xdir, double ydir);
 
     // void houghTransform(MultidimArray<double> &image, int minRadius, int maxRadius);
     void bandpassFilter(MultidimArray<double> &tiltImage);
 
-    void computeAvgAndStdevFromMiltidimArray(MultidimArray<double> &tiltImage, double& avg, double& stddev, std::vector<Point2D<int>> interLim);
+    void computeAvgAndStdevFromMiltidimArray(MultidimArray<double> &tiltImage, double &avg, double &stddev, std::vector<Point2D<int>> interLim, int xMin, int xMax, bool onlyPositive);
 
 };
 
