@@ -35,4 +35,5 @@ def getCMake(config: Dict[str, Any]) -> str:
 	#### Returns:
 	- (dict): Param 'packages' with the 'CMAKE' key updated based on the availability of 'cmake'.
 	"""
-	return config.get(CMAKE, shutil.which(DEFAULT_CMAKE))
+	cmake = config.get(CMAKE)
+	return cmake if cmake else shutil.which(DEFAULT_CMAKE)
