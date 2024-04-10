@@ -27,6 +27,7 @@ function(link_to_scipion INSTALL_DIRECTORY SCIPION_SOFTWARE)
 			${INSTALL_DIRECTORY}/
 		DESTINATION
 			${SCIPION_SOFTWARE}/em/xmipp
+		USE_SOURCE_PERMISSIONS
 	)
 
 	# Copy python binding
