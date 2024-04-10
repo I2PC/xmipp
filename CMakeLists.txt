@@ -29,6 +29,7 @@ include(fetch_ctpl)
 include(fetch_cuFFTAdvisor)
 include(fetch_googletest)
 include(fetch_libsvm)
+include(write_bashrc)
 include(link_to_scipion)
 
 # Define the project
@@ -132,11 +133,7 @@ if(XMIPP_SAVE_VERSIONS)
 endif()
 
 # Configure bashrc file for installation
-set(XMIPP_HOME ${CMAKE_INSTALL_PREFIX})
-configure_file(
-	${CMAKE_CURRENT_SOURCE_DIR}/cmake/xmipp.bashrc.in
-	${CMAKE_CURRENT_BINARY_DIR}/xmipp.bashrc
-)
+write_bashrc(${CMAKE_CURRENT_BINARY_DIR}/xmipp.bashrc ${CMAKE_INSTALL_PREFIX})
 install(
   FILES ${CMAKE_CURRENT_BINARY_DIR}/xmipp.bashrc
   DESTINATION ./
