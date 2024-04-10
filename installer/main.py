@@ -61,9 +61,9 @@ def getCMakeVarsStr(configDict: Dict) -> str:
 	- configDict (dict): Dictionary to obtain the parameters from.
 	"""
 	cmakeParams = []
-	for variable in CONFIG_DEFAULT_VALUES.keys():
-		if variable in configDict and variable not in INTERNAL_LOGIC_VARS and configDict[variable] != '':
-			cmakeParams.append(f"-D {variable}={configDict[variable]}")
+	for (key, value) in configDict.items():
+		if key not in INTERNAL_LOGIC_VARS and bool(value):
+			cmakeParams.append(f"-D {key}={value}")
 	return ' '.join(cmakeParams)
 
 def exitXmipp(retCode: int=0, configDict: Dict={}):
