@@ -21,7 +21,18 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
-from .file import readConfig, writeConfig
-from .versions import *
-from .query import *
-from .main import *
+from typing import Dict, Any
+from .constants import CMAKE, DEFAULT_CMAKE
+import shutil
+
+def getCMake(config: Dict[str, Any]) -> str:
+	"""
+	### Retrieves information about the CMake package and updates the dictionary accordingly.
+
+	#### Params:
+	- packages (dict): Dictionary containing package information.
+
+	#### Returns:
+	- (dict): Param 'packages' with the 'CMAKE' key updated based on the availability of 'cmake'.
+	"""
+	return config.get(CMAKE, shutil.which(DEFAULT_CMAKE))

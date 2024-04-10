@@ -69,4 +69,5 @@ TAG_BRANCH_NAME = 'HEAD'
 # File names
 CONFIG_FILE = 'xmipp.conf'
 LOG_FILE = 'compilation.log'
+VERSION_FILE = 'build/versions.txt'
 TAIL_LOG_NCHARS = 300

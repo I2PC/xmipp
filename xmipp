@@ -37,7 +37,8 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 	INSTALL_PATH, BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE, CMAKE_ERROR)
 from installer.utils import runStreamingJob, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
-from installer.config import readConfig, writeConfig, getCMake, isCMakeValid
+from installer.config import readConfig, writeConfig
+from installer.cmake import getCMake
 from installer.main import getCMakeVarsStr, getSources, exitXmipp, handleRetCode, getSectionMessage, getSuccessMessage
 from installer.logger import logger, yellow, red, blue
 
@@ -107,8 +108,6 @@ def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}) -> Dict
 	if not configDict:
 		logger.startLogFile(LOG_FILE)
 		configDict = readConfig(CONFIG_FILE)
-		if not isCMakeValid(configDict=configDict):
-			handleRetCode(CMAKE_ERROR, predefinedErrorCode=CMAKE_ERROR)
 
 	# Compile with CMake
 	cmakeExecutable = getCMake(configDict)
@@ -202,10 +201,6 @@ def modeAll(args: argparse.Namespace) -> Dict:
 
 	# Read and/or write variables from config file
 	configDict = modeConfig()
-
-	# Check if cmake is valid
-	if not isCMakeValid(configDict=configDict):
-		handleRetCode(CMAKE_ERROR, predefinedErrorCode=CMAKE_ERROR)
 
 	# Clone sources from specified branch
 	getSources(branch=args.branch)

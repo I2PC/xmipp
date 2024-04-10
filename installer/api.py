@@ -31,11 +31,10 @@ import re, hashlib, http.client, json, ssl
 from typing import Dict, Optional
 
 # Self imports
-from .config import (getOSReleaseName, getArchitectureName, getCUDAVersion,
-	getCmakeVersion, getGXXVersion, getGCCVersion, getCMake, getCC, getCXX, getNVCC)
+from .cmake_versions import parseCmakeVersions
 from .utils import runJob, getCurrentBranch, isBranchUpToDate, runParallelJobs
 from .constants import (API_URL, LOG_FILE, TAIL_LOG_NCHARS,
-	XMIPP_VERSIONS, XMIPP, VERSION_KEY, MASTER_BRANCHNAME)
+	XMIPP_VERSIONS, XMIPP, VERSION_KEY, MASTER_BRANCHNAME, VERSION_FILE)
 
 def sendApiPOST(configDict:Dict, retCode: int=0):
 	"""
@@ -87,13 +86,14 @@ def __getJSON(configDict: Dict, retCode: int=0) -> Optional[Dict]:
 		return
 	
 	# Obtaining variables in parallel
+	data = parseCmakeVersions(VERSION_FILE)
 	jsonData = runParallelJobs([
-		(getOSReleaseName, ()),
-		(getArchitectureName, ()),
-		(getCUDAVersion, (getNVCC(configDict),)),
-		(getCmakeVersion, (getCMake(configDict),)),
-		(getGCCVersion, (getCC(configDict),)),
-		(getGXXVersion, (getCXX(configDict),)),
+	#	(getOSReleaseName, ()),
+	#	(getArchitectureName, ()),
+	#	(getCUDAVersion, (getNVCC(configDict),)),
+	#	(getCmakeVersion, (getCMake(configDict),)),
+	#	(getGCCVersion, (getCC(configDict),)),
+	#	(getGXXVersion, (getCXX(configDict),)),
 		(getCurrentBranch, ()),
 		(isBranchUpToDate, ()),
 		(__getLogTail, ())
@@ -110,10 +110,10 @@ def __getJSON(configDict: Dict, retCode: int=0) -> Optional[Dict]:
 		"version": {
 			"os": jsonData[0],
 			"architecture": jsonData[1],
-			"cuda": jsonData[2],
-			"cmake": jsonData[3],
-			"gcc": jsonData[4],
-			"gpp": jsonData[5],
+			"cuda": data['CUDA'],
+			"cmake": data['CMAKE'],
+			"gcc": data['CC'],
+			"gpp": data['CXX'],
 			"scons": None
 		},
 		"xmipp": {

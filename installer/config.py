@@ -23,7 +23,7 @@
 
 from typing import Dict, Tuple, Optional
 from datetime import datetime
-from ..constants import CONFIG_VARIABLES, CONFIG_DEFAULT_VALUES, TOGGLES, LOCATIONS, ON, OFF
+from .constants import CONFIG_VARIABLES, CONFIG_DEFAULT_VALUES, TOGGLES, LOCATIONS, ON, OFF
 
 ASSIGNMENT_SEPARATOR = '='
 COMMENT_ESCAPE = '#'
