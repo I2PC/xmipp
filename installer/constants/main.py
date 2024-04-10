@@ -36,12 +36,6 @@ XMIPP_PLUGIN = 'scipion-em-xmipp'
 UP = "\x1B[1A\r"
 REMOVE_LINE = '\033[K'
 
-__CUFFTADVISOR = 'cuFFTAdvisor'
-__CTPL = 'CTPL'
-__GTEST = 'googletest'
-__LIBSVM = 'libsvm'
-__LIBCIFPP = 'libcifpp'
-
 __BASE_GITHUB_URL = 'https://github.com'
 __ORGANIZATION_NAME = 'I2PC'
 REPOSITORIES = {
@@ -49,14 +43,8 @@ REPOSITORIES = {
 	XMIPP_CORE: [os.path.join(__BASE_GITHUB_URL, __ORGANIZATION_NAME, XMIPP_CORE), None],
 	XMIPP_VIZ: [os.path.join(__BASE_GITHUB_URL, __ORGANIZATION_NAME, XMIPP_VIZ), None],
 	XMIPP_PLUGIN: [os.path.join(__BASE_GITHUB_URL, __ORGANIZATION_NAME, XMIPP_PLUGIN), None],
-	__CUFFTADVISOR: [os.path.join(__BASE_GITHUB_URL, 'DStrelak', __CUFFTADVISOR), 'master'],
-	__CTPL: [os.path.join(__BASE_GITHUB_URL, 'vit-vit', __CTPL), 'master'],
-	__GTEST: [os.path.join(__BASE_GITHUB_URL, 'google', __GTEST), 'v1.13.x'],
-	__LIBSVM: [os.path.join(__BASE_GITHUB_URL, 'cossorzano', __LIBSVM), 'master'],
-	__LIBCIFPP: [os.path.join(__BASE_GITHUB_URL, 'MartinSalinas98', __LIBCIFPP), 'ms_feature_ciflibrary'],
 }
 XMIPP_SOURCES = [XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN]
-EXTERNAL_SOURCES = [__CUFFTADVISOR, __CTPL, __GTEST, __LIBSVM, __LIBCIFPP]
 SOURCES_PATH = "src"
 BUILD_PATH = "build"
 INSTALL_PATH = "dist"
