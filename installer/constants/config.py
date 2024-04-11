@@ -48,6 +48,7 @@ __BUILD_TESTING = 'BUILD_TESTING'
 
 # This is not used in cmake
 __CONDA_PREFIX = 'CONDA_PREFIX'
+__XMIPP_CUDA_BIN = 'XMIPP_CUDA_BIN'
 __TUNE_FLAG='-mtune=native'
 
 # Config file variable structure
@@ -64,6 +65,14 @@ CONFIG_VARIABLES = {
 	]
 }
 
+def __getNvccEnvVariable():
+	bin = os.environ.get(__XMIPP_CUDA_BIN)
+	return bin + '/nvcc' if bin else None
+
+def __getPrefixPath():
+  return os.environ.get(__CONDA_PREFIX)
+ 
+ 
 ON = 'ON'
 OFF = 'OFF'
 CONFIG_DEFAULT_VALUES = {
@@ -75,8 +84,8 @@ CONFIG_DEFAULT_VALUES = {
 	CXX: None,
 	CC_FLAGS: __TUNE_FLAG,
 	CXX_FLAGS: __TUNE_FLAG,
-	CUDA_COMPILER: None,
-	__PREFIX_PATH: os.environ.get(__CONDA_PREFIX),
+	CUDA_COMPILER: __getNvccEnvVariable(),
+	__PREFIX_PATH: __getPrefixPath(),
 	__MPI_HOME: None,
 	__PYTHON_HOME: None,
 	__FFTW_HOME: None,
