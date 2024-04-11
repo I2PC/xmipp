@@ -123,6 +123,13 @@ def writeConfig(path: str, configDict: Dict=None):
     for flag in CONFIG_VARIABLES[COMPILATION_FLAGS]:
       lines.append(__makeConfigLine(flag, variables.get(flag), CONFIG_DEFAULT_VALUES[flag]) + '\n')
       variables.pop(flag, None)
+    
+    # If there are extra unkown flags, add them in a different section
+    if variables:
+      lines.append("\n##### UNKNOWN VARIABLES #####\n")
+      lines.append("# This variables were not expected, but are kept here in case they might be needed.\n")
+      for variable in variables.keys():
+        lines.append(__makeConfigLine(variable, variables[variable], '') + '\n')
 
     lines.append(f"\n# Config file automatically generated on {datetime.today()}\n")
     configFile.writelines(lines)
