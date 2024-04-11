@@ -102,6 +102,7 @@ PARAM_GIT_COMMAND = 'git-command'
 PARAM_LOGIN = 'login'
 PARAM_MODEL_PATH = 'model-path'
 PARAM_UPDATE = 'update'
+PARAM_OVERWRITE = 'overwrite'
 PARAMS = {
 	PARAM_XMIPP_DIRECTORY: {
 		SHORT_VERSION: "-d",
@@ -150,6 +151,11 @@ PARAMS = {
 	PARAM_UPDATE: {
 		LONG_VERSION: "--update",
 		DESCRIPTION: "Flag to update an existing model"
+	},
+	PARAM_OVERWRITE: {
+		SHORT_VERSION: "-o",
+		LONG_VERSION: "--overwrite",
+		DESCRIPTION: "If set, current config file will be overwritten with a new one."
 	}
 }
 
@@ -171,34 +177,38 @@ MODE_ARGS = {
 MODE_EXAMPLES = {
 	MODE_VERSION: [
 		f'./xmipp {MODE_VERSION}',
-		f'./xmipp {MODE_VERSION} --short',
-		f'./xmipp {MODE_VERSION} -d /path/to/my/build/dir'
+		f'./xmipp {MODE_VERSION} {PARAMS[PARAM_SHORT][LONG_VERSION]}',
+		f'./xmipp {MODE_VERSION} {PARAMS[PARAM_XMIPP_DIRECTORY][SHORT_VERSION]} /path/to/my/build/dir'
 	],
 	MODE_COMPILE_AND_INSTALL: [
 		f'./xmipp {MODE_COMPILE_AND_INSTALL}',
-		f'./xmipp {MODE_COMPILE_AND_INSTALL} -j 20',
-		f'./xmipp {MODE_COMPILE_AND_INSTALL} -d /path/to/my/build/dir',
-		f'./xmipp {MODE_COMPILE_AND_INSTALL} -b devel',
-		f'./xmipp {MODE_COMPILE_AND_INSTALL} -j 20 dir /path/to/my/build/dir -b devel'
+		f'./xmipp {MODE_COMPILE_AND_INSTALL} {PARAMS[PARAM_JOBS][SHORT_VERSION]} 20',
+		f'./xmipp {MODE_COMPILE_AND_INSTALL} {PARAMS[PARAM_XMIPP_DIRECTORY][SHORT_VERSION]} /path/to/my/build/dir',
+		f'./xmipp {MODE_COMPILE_AND_INSTALL} {PARAMS[PARAM_BRANCH][SHORT_VERSION]} devel',
+		f'./xmipp {MODE_COMPILE_AND_INSTALL} {PARAMS[PARAM_JOBS][SHORT_VERSION]} '
+		f'20 {PARAMS[PARAM_XMIPP_DIRECTORY][SHORT_VERSION]} /path/to/my/build/dir {PARAMS[PARAM_BRANCH][SHORT_VERSION]} devel'
 	],
 	MODE_ALL: [
 		'./xmipp',
 		f'./xmipp {MODE_ALL}',
-		'./xmipp -j 20',
-		'./xmipp -d /path/to/my/build/dir',
-		'./xmipp -b devel',
-		f'./xmipp {MODE_ALL} -j 20 -d /path/to/my/build/dir -b devel]'
+		f'./xmipp {PARAMS[PARAM_JOBS][SHORT_VERSION]} 20',
+		f'./xmipp {PARAMS[PARAM_XMIPP_DIRECTORY][SHORT_VERSION]} /path/to/my/build/dir',
+		f'./xmipp {PARAMS[PARAM_BRANCH][SHORT_VERSION]} devel',
+		f'./xmipp {MODE_ALL} {PARAMS[PARAM_JOBS][SHORT_VERSION]} 20 '
+		f'{PARAMS[PARAM_XMIPP_DIRECTORY][SHORT_VERSION]} /path/to/my/build/dir {PARAMS[PARAM_BRANCH][SHORT_VERSION]} devel'
 	],
-	MODE_CONFIG: [],
+	MODE_CONFIG: [
+		f'./xmipp {MODE_CONFIG} {PARAMS[PARAM_OVERWRITE][SHORT_VERSION]}'
+	],
 	MODE_GET_MODELS: [
 		f'./xmipp {MODE_GET_MODELS}',
-		f'./xmipp {MODE_GET_MODELS} -d /path/to/my/model/directory'
+		f'./xmipp {MODE_GET_MODELS} {PARAMS[PARAM_MODELS_DIRECTORY][SHORT_VERSION]} /path/to/my/model/directory'
 	],
 	MODE_CLEAN_BIN: [],
 	MODE_CLEAN_ALL: [],
 	MODE_TEST: [
-		f'./xmipp {MODE_TEST} testName',
-		f'./xmipp {MODE_TEST} --show',
+		f'./xmipp {MODE_TEST} xmipp_sample_test',
+		f'./xmipp {MODE_TEST} {PARAMS[PARAM_SHORT][LONG_VERSION]}',
 	],
 	MODE_GIT: [
 		f'./xmipp {MODE_GIT} pull',

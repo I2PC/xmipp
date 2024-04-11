@@ -34,7 +34,7 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 	CMAKE_CONFIGURE_ERROR, CMAKE_COMPILE_ERROR, CMAKE_INSTALL_ERROR, PARAM_LOGIN, PARAM_SHORT,
 	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_MODEL_PATH, PARAM_MODELS_DIRECTORY,
 	PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE, PARAM_XMIPP_DIRECTORY, BUILD_PATH,
-	INSTALL_PATH, BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE)
+	INSTALL_PATH, BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE, CMAKE_ERROR, PARAM_OVERWRITE)
 from installer.utils import runStreamingJob, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
 from installer.config import readConfig, writeConfig
@@ -136,8 +136,11 @@ def modeConfig(overwrite: bool=False) -> Dict:
 	#### Returns:
 	- (dict): Dictionary containig all config variables.
 	"""
-	if overwrite or not os.path.exists(CONFIG_FILE):
-		writeConfig(CONFIG_FILE)
+	configDict = {}
+	if not overwrite and os.path.exists(CONFIG_FILE):
+		configDict = readConfig(CONFIG_FILE)
+
+	writeConfig(CONFIG_FILE, configDict=configDict)
 	
 	return readConfig(CONFIG_FILE)
 
@@ -240,7 +243,7 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	elif args.mode == MODE_COMPILE_AND_INSTALL:
 		configDict = modeCompileAndInstall(args)
 	elif args.mode == MODE_CONFIG:
-		modeConfig(overwrite=True)
+		modeConfig(overwrite=args.overwrite)
 	elif args.mode == MODE_GET_MODELS:
 		modeGetModels(args)
 	elif args.mode == MODE_GIT:
@@ -297,6 +300,7 @@ if __name__ == "__main__":
 
 	# Arguments for mode 'config'
 	configSubparser = subparsers.add_parser(MODE_CONFIG, formatter_class=ModeHelpFormatter)
+	configSubparser.add_argument(*getParamNames(PARAM_OVERWRITE), action='store_true')
 
 	# Arguments for mode 'getModels'
 	getModelsSubparser = subparsers.add_parser(MODE_GET_MODELS, formatter_class=ModeHelpFormatter)

@@ -21,10 +21,12 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
+import shutil, re
 from typing import Dict, Any, List
 from .constants import CMAKE, DEFAULT_CMAKE, INTERNAL_LOGIC_VARS
 from .utils import runJob
-import shutil
+
+__ITEM_REGEX = re.compile(r'([A-Za-z0-9_-]+)=(.*)')
 
 def getCMake(config: Dict[str, Any]) -> str:
 	"""
@@ -62,15 +64,33 @@ def getCMakeVarsStr(config: Dict) -> str:
 	return ' '.join(getCMakeVars(config))
 
 def checkPackage(package: str, config: Dict[str, Any]) -> bool:
-  cmake = getCMake(config)
-  args = []
-  args.append(f'-DNAME={package}')
-  args.append(f'-DCOMPILER_ID=GNU')
-  args.append(f'-DLANGUAGE=C')
-  args.append(f'-DMODE=EXIST')
-  args += getCMakeVars(config)
-  
-  cmd = cmake + ' ' + ' '.join(args)
-  ret, _ = runJob(cmd, logOutput=False)
-  return ret == 0
-  
+	cmake = getCMake(config)
+	args = []
+	args.append(f'-DNAME={package}')
+	args.append('-DCOMPILER_ID=GNU')
+	args.append('-DLANGUAGE=C')
+	args.append('-DMODE=EXIST')
+	args += getCMakeVars(config)
+	
+	cmd = cmake + ' ' + ' '.join(args)
+	ret, _ = runJob(cmd, logOutput=False)
+	return ret == 0
+
+def parseCmakeVersions(path: str) -> Dict[str, Any]:
+	"""
+	### This function parses the file where versions found by CMake have been extracted.
+
+	#### Params:
+	- 
+	"""
+	result = dict()
+	
+	with open(path, 'r') as file:
+		for line in file.readlines():
+			match = __ITEM_REGEX.match(line)
+			if match is not None:
+				key = match.group(1)
+				value = match.group(2)
+				result[key] = value
+					
+	return result
