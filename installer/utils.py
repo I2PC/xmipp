@@ -39,7 +39,7 @@ from .logger import blue, red, logger
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False,
-					 showCommand: bool=False, substitute: bool=False, logOutput: bool=True) -> Tuple[int, str]:
+					 showCommand: bool=False, substitute: bool=False, logOutput: bool=False) -> Tuple[int, str]:
 	"""
 	### This function runs the given command.
 
@@ -104,7 +104,7 @@ def runInsistentJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: 
 	"""
 	# Running command up to nRetries times (improves resistance to small network errors)
 	for _ in range(nRetries):
-		retCode, output = runJob(cmd, cwd=cwd, logOutput=False)
+		retCode, output = runJob(cmd, cwd=cwd)
 		# Break loop if success was achieved
 		if retCode == 0:
 			break
@@ -184,7 +184,7 @@ def getCurrentBranch(dir: str='./') -> str:
 	- (str): The name of the branch, 'HEAD' if a tag, or empty string if given directory is not a repository or a recognizable tag.
 	"""
 	# Getting current branch name
-	retcode, branchName = runJob("git rev-parse --abbrev-ref HEAD", cwd=dir, logOutput=False)
+	retcode, branchName = runJob("git rev-parse --abbrev-ref HEAD", cwd=dir)
 
 	# If there was an error, we are in no branch
 	return branchName if not retcode else ''
@@ -240,7 +240,7 @@ def isBranchUpToDate(dir: str='./') -> bool:
 		return False
 
 	# Get latest local commit
-	localCommit = runJob(f"git rev-parse {currentBranch}", logOutput=False)[1]
+	localCommit = runJob(f"git rev-parse {currentBranch}")[1]
 
 	# Get latest remote commit
 	retCode, remoteCommit = runInsistentJob(f"git rev-parse origin/{currentBranch}")
@@ -264,7 +264,7 @@ def getPackageVersionCmd(packageName: str) -> Optional[str]:
 	- (str | None): Version information of the package or None if not found or errors happened.
 	"""
 	# Running command
-	retCode, output = runJob(f'{packageName} --version', logOutput=False)
+	retCode, output = runJob(f'{packageName} --version')
 
 	# Check result if there were no errors
 	return output if retCode == 0 else None

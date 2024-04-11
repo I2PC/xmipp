@@ -59,13 +59,13 @@ def modeCleanBin():
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	runJob(f"find {SOURCES_PATH}/* -name \"*.so\" -exec rm -rf {{}} \;", showCommand=True, logOutput=False)
-	runJob(f"find {SOURCES_PATH}/* -name \"*.os\" -exec rm -rf {{}} \;", showCommand=True, logOutput=False)
-	runJob(f"find {SOURCES_PATH}/* -name \"*.o\" -exec rm -rf {{}} \;", showCommand=True, logOutput=False)
-	runJob("find . -iname \"*.pyc\" -delete", showCommand=True, logOutput=False)
-	runJob(f"rm -rf {CONFIG_FILE} {BUILD_PATH}", showCommand=True, logOutput=False)
-	runJob("find . -iname \"*.dblite\" -delete", showCommand=True, logOutput=False)
-	runJob(f"find {os.path.join(SOURCES_PATH, XMIPP, 'applications', 'programs')} --type d -empty", showCommand=True, logOutput=False)
+	runJob(f"find {SOURCES_PATH}/* -name \"*.so\" -exec rm -rf {{}} \;", showCommand=True)
+	runJob(f"find {SOURCES_PATH}/* -name \"*.os\" -exec rm -rf {{}} \;", showCommand=True)
+	runJob(f"find {SOURCES_PATH}/* -name \"*.o\" -exec rm -rf {{}} \;", showCommand=True)
+	runJob("find . -iname \"*.pyc\" -delete", showCommand=True)
+	runJob(f"rm -rf {CONFIG_FILE} {BUILD_PATH}", showCommand=True)
+	runJob("find . -iname \"*.dblite\" -delete", showCommand=True)
+	runJob(f"find {os.path.join(SOURCES_PATH, XMIPP, 'applications', 'programs')} --type d -empty", showCommand=True)
 
 def modeCleanAll():
 	"""
@@ -89,7 +89,7 @@ def modeCleanAll():
 	if userInput == confirmationText:
 		# Get xmipp sources
 		xmippSources = [os.path.join(SOURCES_PATH, source) for source in XMIPP_SOURCES]
-		runJob(f"rm -rf {BUILD_PATH} {INSTALL_PATH} {' '.join(xmippSources)} {CONFIG_FILE}", showCommand=True, logOutput=False)
+		runJob(f"rm -rf {BUILD_PATH} {INSTALL_PATH} {' '.join(xmippSources)} {CONFIG_FILE}", showCommand=True)
 	else:
 		print(red("Operation cancelled."))
 
@@ -108,6 +108,8 @@ def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}) -> Dict
 	if not configDict:
 		logger.startLogFile(LOG_FILE)
 		configDict = readConfig(CONFIG_FILE)
+		if not getCMake(configDict):
+			handleRetCode(CMAKE_ERROR, predefinedErrorCode=CMAKE_ERROR)
 
 	# Compile with CMake
 	cmakeExecutable = getCMake(configDict)
@@ -165,7 +167,7 @@ def modeGit(args: argparse.Namespace):
 			print(yellow(f"WARNING: Source {source} does not exist in path {sourcePath}. Skipping."))
 			continue
 		print(blue(f"Running command for {source} in path {sourcePath}..."))
-		runJob(cmd, logOutput=False, cwd=sourcePath, showOutput=True, showError=True)
+		runJob(cmd, cwd=sourcePath, showOutput=True, showError=True)
 
 def modeTest(parser, args=argparse.Namespace):
 	"""
@@ -207,6 +209,8 @@ def modeAll(args: argparse.Namespace) -> Dict:
 
 	# Configure with CMake
 	cmakeExecutable = getCMake(configDict)
+	if cmakeExecutable:
+		handleRetCode(CMAKE_ERROR, predefinedErrorCode=CMAKE_ERROR)
 	logger(getSectionMessage("Configuring with CMake"), forceConsoleOutput=True)
 	configureCmd = f"{cmakeExecutable} -S . -B {BUILD_PATH} -D CMAKE_INSTALL_PREFIX={INSTALL_PATH}"
 	configureCmd += f" -D CMAKE_BUILD_TYPE={BUILD_TYPE} {getCMakeVarsStr(configDict)}"

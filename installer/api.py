@@ -132,7 +132,7 @@ def __getMACAddress() -> Optional[str]:
 	- (str | None): MAC address, or None if there were any errors.
 	"""
 	# Run command to get network interfaces info
-	status, output = runJob("ip addr", logOutput=False)
+	status, output = runJob("ip addr")
 
 	# If command failed, return None to avoid sending POST request
 	if status != 0:
@@ -192,7 +192,7 @@ def __getLogTail() -> Optional[str]:
 	- (str | None): Installation log's last lines, or None if there were any errors.
 	"""
 	# Obtaining log tail
-	retCode, output = runJob(f"tail -n {TAIL_LOG_NCHARS} {LOG_FILE}", logOutput=False)
+	retCode, output = runJob(f"tail -n {TAIL_LOG_NCHARS} {LOG_FILE}")
 
 	# Return content if it went right
 	return output if retCode == 0 else None

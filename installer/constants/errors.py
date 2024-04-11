@@ -44,7 +44,7 @@ __CHECK_LOG_MESSAGE = f'Check the inside file \'{LOG_FILE}\'.'
 ERROR_CODE = {
 	INTERRUPTED_ERROR: ['Process was interrupted by the user.', ''],
 	SOURCE_CLONE_ERROR: ['Error cloning xmipp repository with git.', 'Please review the internet connection and the git package.'],
-	CMAKE_ERROR: ['There was an erorr with CMake.', f'Please install or review your CMake version by following the instructions at {CMAKE_INSTALL_DOCS_URL}\033[0m'],
+	CMAKE_ERROR: ['There was an error with CMake.', f'Please install it by following the instructions at {CMAKE_INSTALL_DOCS_URL}'],
 	CMAKE_CONFIGURE_ERROR: ['Error configuring with CMake.', __CHECK_LOG_MESSAGE],
 	CMAKE_COMPILE_ERROR: ['Error compiling with CMake.', __CHECK_LOG_MESSAGE],
 	CMAKE_INSTALL_ERROR: ['Error installing with CMake.', __CHECK_LOG_MESSAGE],
