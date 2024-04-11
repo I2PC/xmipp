@@ -138,7 +138,7 @@ def runParallelJobs(funcs: List[Tuple[Callable, Tuple[Any]]], nJobs: int=multipr
 	# Return obtained result list
 	return results
 
-def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, substitute: bool=False) -> Tuple[int, str]:
+def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, substitute: bool=False) -> int:
 	"""
 	### This function runs the given command and shows its output as it is being generated.
 
@@ -151,16 +151,14 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: 
 
 	#### Returns:
 	- (int): Return code.
-	- (str): Output of the command if it is an error, empty otherwise.
 	"""
 	# Create a Popen instance and error stack
-	errorStack = []
 	logger(cmd)
 	process = Popen(cmd, cwd=cwd, stdout=PIPE, stderr=PIPE, shell=True)
 	
 	# Create and start threads for handling stdout and stderr
-	threadOut = Thread(target=__handleOutput, args=(process.stdout, errorStack, showOutput, substitute))
-	threadErr = Thread(target=__handleOutput, args=(process.stderr, errorStack, showError, substitute, True))
+	threadOut = Thread(target=__handleOutput, args=(process.stdout, showOutput, substitute))
+	threadErr = Thread(target=__handleOutput, args=(process.stderr, showError, substitute, True))
 	threadOut.start()
 	threadErr.start()
 
@@ -172,8 +170,7 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: 
 	except (KeyboardInterrupt):
 		process.returncode = INTERRUPTED_ERROR
 	
-	message = errorStack.pop() if process.returncode and errorStack else ''
-	return process.returncode, message
+	return process.returncode
 
 ####################### GIT FUNCTIONS #######################
 def getCurrentBranch(dir: str='./') -> str:
@@ -273,13 +270,12 @@ def getPackageVersionCmd(packageName: str) -> Optional[str]:
 	return output if retCode == 0 else None
 
 ####################### AUX FUNCTIONS (INTERNAL USE ONLY) #######################
-def __handleOutput(stream: BufferedReader, errorStack: List[str], show: bool=False, substitute: bool=False, err: bool=False):
+def __handleOutput(stream: BufferedReader, show: bool=False, substitute: bool=False, err: bool=False):
 	"""
 	### This function receives a process output stream and logs its lines.
 
 	#### Params:
 	- stream (BufferedReader): Function to run.
-	- errorStack (list(str)): List to insert all the error messages within the process.
 	- show (bool): Optional. If True, output will also be printed through terminal.
 	- substitute (bool): Optional. If True, output will replace previous line. Only used when show is True.
 	- err (bool): Optional. If True, the stream contains an error. Otherwise, it is regular output.
@@ -292,7 +288,6 @@ def __handleOutput(stream: BufferedReader, errorStack: List[str], show: bool=Fal
 	for line in iter(stream.readline, b''):
 		line = line.decode().replace("\n", "")
 		if err:
-			errorStack.append(line)
 			line = red(line)
 		logger(line, forceConsoleOutput=show, substitute=substitute)
 
