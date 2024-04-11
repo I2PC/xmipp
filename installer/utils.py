@@ -39,7 +39,7 @@ from .logger import blue, red, logger
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False,
-					 showCommand: bool=False, substitute: bool=False, logOutput: bool=True) -> Tuple[int, str]:
+					 showCommand: bool=False, substitute: bool=False, logOutput: bool=False) -> Tuple[int, str]:
 	"""
 	### This function runs the given command.
 
@@ -104,7 +104,7 @@ def runInsistentJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: 
 	"""
 	# Running command up to nRetries times (improves resistance to small network errors)
 	for _ in range(nRetries):
-		retCode, output = runJob(cmd, cwd=cwd, logOutput=False)
+		retCode, output = runJob(cmd, cwd=cwd)
 		# Break loop if success was achieved
 		if retCode == 0:
 			break
@@ -138,7 +138,7 @@ def runParallelJobs(funcs: List[Tuple[Callable, Tuple[Any]]], nJobs: int=multipr
 	# Return obtained result list
 	return results
 
-def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, substitute: bool=False) -> Tuple[int, str]:
+def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, substitute: bool=False) -> int:
 	"""
 	### This function runs the given command and shows its output as it is being generated.
 
@@ -151,16 +151,14 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: 
 
 	#### Returns:
 	- (int): Return code.
-	- (str): Output of the command if it is an error, empty otherwise.
 	"""
 	# Create a Popen instance and error stack
-	errorStack = []
 	logger(cmd)
 	process = Popen(cmd, cwd=cwd, stdout=PIPE, stderr=PIPE, shell=True)
 	
 	# Create and start threads for handling stdout and stderr
-	threadOut = Thread(target=__handleOutput, args=(process.stdout, errorStack, showOutput, substitute))
-	threadErr = Thread(target=__handleOutput, args=(process.stderr, errorStack, showError, substitute, True))
+	threadOut = Thread(target=__handleOutput, args=(process.stdout, showOutput, substitute))
+	threadErr = Thread(target=__handleOutput, args=(process.stderr, showError, substitute, True))
 	threadOut.start()
 	threadErr.start()
 
@@ -172,8 +170,7 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: 
 	except (KeyboardInterrupt):
 		process.returncode = INTERRUPTED_ERROR
 	
-	message = errorStack.pop() if process.returncode and errorStack else ''
-	return process.returncode, message
+	return process.returncode
 
 ####################### GIT FUNCTIONS #######################
 def getCurrentBranch(dir: str='./') -> str:
@@ -187,7 +184,7 @@ def getCurrentBranch(dir: str='./') -> str:
 	- (str): The name of the branch, 'HEAD' if a tag, or empty string if given directory is not a repository or a recognizable tag.
 	"""
 	# Getting current branch name
-	retcode, branchName = runJob("git rev-parse --abbrev-ref HEAD", cwd=dir, logOutput=False)
+	retcode, branchName = runJob("git rev-parse --abbrev-ref HEAD", cwd=dir)
 
 	# If there was an error, we are in no branch
 	return branchName if not retcode else ''
@@ -243,7 +240,7 @@ def isBranchUpToDate(dir: str='./') -> bool:
 		return False
 
 	# Get latest local commit
-	localCommit = runJob(f"git rev-parse {currentBranch}", logOutput=False)[1]
+	localCommit = runJob(f"git rev-parse {currentBranch}")[1]
 
 	# Get latest remote commit
 	retCode, remoteCommit = runInsistentJob(f"git rev-parse origin/{currentBranch}")
@@ -267,19 +264,18 @@ def getPackageVersionCmd(packageName: str) -> Optional[str]:
 	- (str | None): Version information of the package or None if not found or errors happened.
 	"""
 	# Running command
-	retCode, output = runJob(f'{packageName} --version', logOutput=False)
+	retCode, output = runJob(f'{packageName} --version')
 
 	# Check result if there were no errors
 	return output if retCode == 0 else None
 
 ####################### AUX FUNCTIONS (INTERNAL USE ONLY) #######################
-def __handleOutput(stream: BufferedReader, errorStack: List[str], show: bool=False, substitute: bool=False, err: bool=False):
+def __handleOutput(stream: BufferedReader, show: bool=False, substitute: bool=False, err: bool=False):
 	"""
 	### This function receives a process output stream and logs its lines.
 
 	#### Params:
 	- stream (BufferedReader): Function to run.
-	- errorStack (list(str)): List to insert all the error messages within the process.
 	- show (bool): Optional. If True, output will also be printed through terminal.
 	- substitute (bool): Optional. If True, output will replace previous line. Only used when show is True.
 	- err (bool): Optional. If True, the stream contains an error. Otherwise, it is regular output.
@@ -292,7 +288,6 @@ def __handleOutput(stream: BufferedReader, errorStack: List[str], show: bool=Fal
 	for line in iter(stream.readline, b''):
 		line = line.decode().replace("\n", "")
 		if err:
-			errorStack.append(line)
 			line = red(line)
 		logger(line, forceConsoleOutput=show, substitute=substitute)
 

@@ -33,8 +33,8 @@ from typing import Tuple, Dict, Optional
 from .utils import runJob, getCurrentBranch
 from .logger import logger, yellow, green
 from .constants import (REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH, MASTER_BRANCHNAME,
-	CONFIG_DEFAULT_VALUES, SOURCE_CLONE_ERROR, INTERNAL_LOGIC_VARS, TAG_BRANCH_NAME,
-	INTERRUPTED_ERROR, XMIPP_VERSIONS, XMIPP, VERSION_KEY, SECTION_MESSAGE_LEN)
+	SOURCE_CLONE_ERROR, INTERNAL_LOGIC_VARS, TAG_BRANCH_NAME, INTERRUPTED_ERROR,
+	XMIPP_VERSIONS, XMIPP, VERSION_KEY, SECTION_MESSAGE_LEN)
 from .api import sendApiPOST
 
 ####################### COMMAND FUNCTIONS #######################
@@ -152,7 +152,7 @@ def __branchExists(repo: str, branch: str) -> bool:
 	#### Returns:
 	- (bool): True if the branch exists, False otherwise.
 	"""
-	retCode, _ = runJob(f"git ls-remote --heads {repo}.git {branch} | grep -q refs/heads/{branch}", logOutput=False)
+	retCode, _ = runJob(f"git ls-remote --heads {repo}.git {branch} | grep -q refs/heads/{branch}")
 	return not retCode
 
 def __logDoneMessage():
@@ -203,10 +203,10 @@ def __cloneSourceRepo(repo: str, branch: str=None, path: str='') -> Tuple[int, s
 	if os.path.isdir(clonedFolder):
 		if branch:
 			os.chdir(clonedFolder)
-			retCode, output = runJob(f"git checkout {branch}")
+			retCode, output = runJob(f"git checkout {branch}", logOutput=True)
 	else:
 		branchStr = f" --branch {branch}" if branch else ''
-		retCode, output = runJob(f"git clone{branchStr} {repo}.git")
+		retCode, output = runJob(f"git clone{branchStr} {repo}.git", logOutput=True)
 
 	# Go back to previous path
 	os.chdir(currentPath)

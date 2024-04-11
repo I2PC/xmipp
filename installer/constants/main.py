@@ -33,8 +33,16 @@ XMIPP_CORE = 'xmippCore'
 XMIPP_VIZ = 'xmippViz'
 XMIPP_PLUGIN = 'scipion-em-xmipp'
 
+# Formatting characters
 UP = "\x1B[1A\r"
 REMOVE_LINE = '\033[K'
+BOLD = "\033[1m"
+BLUE = "\033[34m"
+RED = "\033[91m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+END_FORMAT = "\033[0m"
+FORMATTING_CHARACTERS = [UP, REMOVE_LINE, BOLD, BLUE, RED, GREEN, YELLOW, END_FORMAT]
 
 __BASE_GITHUB_URL = 'https://github.com'
 __ORGANIZATION_NAME = 'I2PC'

@@ -24,14 +24,15 @@
 # ***************************************************************************/
 
 """
-Provides a global logger
+Provides a global logger.
 """
 
 # General imports
-import re, shutil, math
+import shutil, math
 
 # Installer imports
-from .constants import ERROR_CODE, DOCUMENTATION_URL, UP, REMOVE_LINE
+from .constants import (ERROR_CODE, DOCUMENTATION_URL, UP, REMOVE_LINE,
+	BOLD, BLUE, RED, GREEN, YELLOW, END_FORMAT, FORMATTING_CHARACTERS)
 
 ####################### TEXT MODE #######################
 def green(text: str) -> str:
@@ -44,7 +45,7 @@ def green(text: str) -> str:
 	#### Returns:
 	- (str): Text formatted in green color.
 	"""
-	return f"\033[92m{text}\033[0m"
+	return f"{GREEN}{text}{END_FORMAT}"
 
 def yellow(text: str) -> str:
 	"""
@@ -56,7 +57,7 @@ def yellow(text: str) -> str:
 	#### Returns:
 	- (str): Text formatted in yellow color.
 	"""
-	return f"\033[93m{text}\033[0m"
+	return f"{YELLOW}{text}{END_FORMAT}"
 
 def red(text: str) -> str:
 	"""
@@ -68,7 +69,7 @@ def red(text: str) -> str:
 	#### Returns:
 	- (str): Text formatted in red color.
 	"""
-	return f"\033[91m{text}\033[0m"
+	return f"{RED}{text}{END_FORMAT}"
 
 def blue(text: str) -> str:
 	"""
@@ -80,7 +81,7 @@ def blue(text: str) -> str:
 	#### Returns:
 	- (str): Text formatted in blue color.
 	"""
-	return f"\033[34m{text}\033[0m"
+	return f"{BLUE}{text}{END_FORMAT}"
 
 def bold(text: str) -> str:
 	"""
@@ -92,32 +93,33 @@ def bold(text: str) -> str:
 	#### Returns:
 	- (str): Text formatted in bold.
 	"""
-	return f"\033[1m{text}\033[0m"
+	return f"{BOLD}{text}{END_FORMAT}"
 
-def removeTextFormatting(text: str) -> str:
+def removeNonPrintable(text: str) -> str:
 	"""
-	### This function returns the given text without fancy formatting
+	### This function returns the given text without non printable characters.
 
 	#### Params:
-	- text (str): Text to remove format
+	- text (str): Text to remove format.
 
 	#### Returns:
-	- (str): Text without format
+	- (str): Text without format.
 	"""
-	ansiEscape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
-	return ansiEscape.sub('', text)
+	for formattingChar in FORMATTING_CHARACTERS:
+		text = text.replace(formattingChar, "")
+	return text
 
 class Logger:
 	"""
-	### Logger class for keeping track of installation messages
+	### Logger class for keeping track of installation messages.
 	"""
  
 	def __init__(self, outputToConsole: bool = False):
 		"""
-		### Constructor
+		### Constructor.
 		
 		#### Params:
-		- ouputToConsoloe (str): Print messages to console 
+		- ouputToConsoloe (str): Print messages to console.
 		"""
 		self.__logFile = None
 		self.__outputToConsole = outputToConsole
@@ -134,19 +136,19 @@ class Logger:
 
 	def setConsoleOutput(self, outputToConsole: bool):
 		"""
-		### Modifies console output beaviour
+		### Modifies console output behaviour.
 		
 		#### Params:
-		- ouputToConsoloe (str): Enable printing messages to console 
+		- ouputToConsoloe (str): Enable printing messages to console.
 		"""
 		self.__outputToConsole = outputToConsole
  
 	def __call__(self, text: str, forceConsoleOutput: bool = False, substitute: bool = False):
 		"""
-		### Log a message
+		### Log a message.
 		
 		#### Params:
-		- text (str): Message to be logged. Supports fancy formatting
+		- text (str): Message to be logged. Supports fancy formatting.
 		- forceConsoleOutput (bool): Optional. If True, text is also printed through terminal.
 		- substitute (bool): Optional. If True, previous line is substituted with new text. Only used when forceConsoleOutput = True.
 		"""
@@ -154,14 +156,14 @@ class Logger:
 		if self.__logFile is None:
 			raise FileNotFoundError("Log file has not been initialized.")
 		
-		print(removeTextFormatting(text), file=self.__logFile, flush=True)
+		print(removeNonPrintable(text), file=self.__logFile, flush=True)
 		if self.__outputToConsole or forceConsoleOutput:
 			# Calculate number of lines to substitute if substitution was requested
 			substitutionStr = ''.join([f'{UP}{REMOVE_LINE}' for _ in range(self.__getNLastLines())])
 			text = text if not substitute else f"{substitutionStr}{text}"
 			print(text, flush=True)
 			# Store length of printed string for next substitution calculation
-			self.__lenLastPrintedElem = len(removeTextFormatting(text))
+			self.__lenLastPrintedElem = len(removeNonPrintable(text))
 	 
 	def logError(self, errorMsg: str, retCode: int=1, addPortalLink: bool=True):
 		"""
@@ -190,6 +192,6 @@ class Logger:
 		return math.ceil(self.__lenLastPrintedElem / shutil.get_terminal_size().columns)
 
 """
-### Global logger
+### Global logger.
 """
 logger = Logger()
