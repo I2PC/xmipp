@@ -44,6 +44,7 @@ void ProgTomoCalculateLandmarkResiduals::readParams()
  	fnInputCoord = getParam("--inputCoord");
 
 	thrFiducialDistance = getDoubleParam("--thrFiducialDistance");
+    numberFTdirOfDirections = getIntParam("--numberFTdirOfDirections");
 
 	targetFS = getDoubleParam("--targetLMsize");
 }
@@ -65,6 +66,7 @@ void ProgTomoCalculateLandmarkResiduals::defineParams()
 
 	addParamsLine("  [--thrSDHCC <thrSDHCC=5>]      						: Threshold number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.");
 	addParamsLine("  [--thrFiducialDistance <thrFiducialDistance=0.5>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate projection and the detected fiducial.");
+	addParamsLine("  [--numberFTdirOfDirections <numberFTdirOfDirections=8>]		: Number of directions to analyze in the Fourier directional filter.");
 
 	addParamsLine("  [--targetLMsize <targetLMsize=8>]		    : Targer size of landmark when downsampling (px).");
 }
@@ -157,6 +159,7 @@ void ProgTomoCalculateLandmarkResiduals::generateSideInfo()
 	lmDetector.fiducialSize = fiducialSize;
 	lmDetector.targetFS = targetFS;
 	lmDetector.thrSD = thrSDHCC;
+	lmDetector.numberFTdirOfDirections = numberFTdirOfDirections;
 
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "----- Run landmark detector" << std::endl;

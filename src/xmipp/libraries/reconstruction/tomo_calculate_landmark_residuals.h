@@ -64,6 +64,10 @@ public:
     /** Landmark detector */
     ProgTomoDetectLandmarks lmDetector;
 
+    /** Landmark detector params*/
+    int numberFTdirOfDirections;
+
+
     /** Params specific for landmark detectior */
     double targetFS;
 

@@ -39,7 +39,7 @@ void ProgTomoDetectLandmarks::readParams()
 
     targetFS = getDoubleParam("--targetLMsize");
     thrSD = getDoubleParam("--thrSD");
-    numberFTdirOfDirections = getIntParam("--thrSD");
+    numberFTdirOfDirections = getIntParam("--numberFTdirOfDirections");
 }
 
 
@@ -54,7 +54,7 @@ void ProgTomoDetectLandmarks::defineParams()
 
 	addParamsLine("  [--targetLMsize <targetLMsize=8>]		    : Targer size of landmark when downsampling (px).");
 	addParamsLine("  [--thrSD <thrSD=5>]		    			: Number of times over the mean has to be a pixel valur to consider it an outlier.");
-	addParamsLine("  [--numberFTdirOfDirections <thrSD=5>]		: Number of directions to analyze in the Fourier directional filter.");
+	addParamsLine("  [--numberFTdirOfDirections <numberFTdirOfDirections=8>]		: Number of directions to analyze in the Fourier directional filter.");
 }
 
 
@@ -1665,8 +1665,7 @@ void ProgTomoDetectLandmarks::filterFourierDirections(MultidimArray<double> &ima
 	MultidimArray<double> imageTmp;
 	MultidimArray<double> imageOut;
 	imageOut.initZeros(ySize_d, xSize_d);
-	
-	size_t numberFTdirOfDirections = 8;
+
 	double angleStep = PI / numberFTdirOfDirections;
 
 	for (size_t n = 0; n < numberFTdirOfDirections; n++)
