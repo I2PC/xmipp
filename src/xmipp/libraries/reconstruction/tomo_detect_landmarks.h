@@ -79,6 +79,7 @@ public:
     /** Input info */
     double fiducialSize;
     double samplingRate;
+    int numberFTdirOfDirections;
 
     /** Input tilt-series dimensions */
     size_t xSize;

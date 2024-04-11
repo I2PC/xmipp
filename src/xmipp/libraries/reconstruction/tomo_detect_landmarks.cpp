@@ -38,7 +38,8 @@ void ProgTomoDetectLandmarks::readParams()
 	fiducialSize = getDoubleParam("--fiducialSize");
 
     targetFS = getDoubleParam("--targetLMsize");
-    thrSD = getIntParam("--thrSD");
+    thrSD = getDoubleParam("--thrSD");
+    numberFTdirOfDirections = getIntParam("--thrSD");
 }
 
 
@@ -52,7 +53,8 @@ void ProgTomoDetectLandmarks::defineParams()
 	addParamsLine("  [--fiducialSize <fiducialSize=100>]		: Fiducial size in Angstroms (A).");
 
 	addParamsLine("  [--targetLMsize <targetLMsize=8>]		    : Targer size of landmark when downsampling (px).");
-	addParamsLine("  [--thrSD <thrSD=5>]		    		: Number of times over the mean has to be a pixel valur to consider it an outlier.");
+	addParamsLine("  [--thrSD <thrSD=5>]		    			: Number of times over the mean has to be a pixel valur to consider it an outlier.");
+	addParamsLine("  [--numberFTdirOfDirections <thrSD=5>]		: Number of directions to analyze in the Fourier directional filter.");
 }
 
 
@@ -1664,10 +1666,10 @@ void ProgTomoDetectLandmarks::filterFourierDirections(MultidimArray<double> &ima
 	MultidimArray<double> imageOut;
 	imageOut.initZeros(ySize_d, xSize_d);
 	
-	size_t numberOfDirections = 8;
-	double angleStep = PI / numberOfDirections;
+	size_t numberFTdirOfDirections = 8;
+	double angleStep = PI / numberFTdirOfDirections;
 
-	for (size_t n = 0; n < numberOfDirections; n++)
+	for (size_t n = 0; n < numberFTdirOfDirections; n++)
 	{
 	 	imageTmp = image;
 
@@ -1854,10 +1856,10 @@ void ProgTomoDetectLandmarks::directionalFilterFourier(MultidimArray<double> &im
 // 	// fftImgOut.resizeNoCopy(fftImg);
 // 	// fftImgOut.initConstant(0);
 	
-// 	// size_t numberOfDirections = 2;
-// 	// double angleStep = PI / numberOfDirections;
+// 	// size_t numberFTdirOfDirections = 2;
+// 	// double angleStep = PI / numberFTdirOfDirections;
 
-// 	// for (size_t i = 0; i < numberOfDirections; i++)
+// 	// for (size_t i = 0; i < numberFTdirOfDirections; i++)
 // 	// {
 // 	// 	 fftImgTmp= fftImg;
 // 	// 	directionalFilterFourier(fftImgTmp, cos(i*angleStep), sin(i*angleStep));
