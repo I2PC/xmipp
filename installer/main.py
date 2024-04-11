@@ -53,19 +53,6 @@ def getSources(branch: str=None):
 		message = output if retCode else ''
 		handleRetCode(retCode, predefinedErrorCode=SOURCE_CLONE_ERROR, message=message)
 
-def getCMakeVarsStr(configDict: Dict) -> str:
-	"""
-	### This function converts the variables in the config dictionary into a string as CMake args.
-	
-	#### Params:
-	- configDict (dict): Dictionary to obtain the parameters from.
-	"""
-	cmakeParams = []
-	for (key, value) in configDict.items():
-		if key not in INTERNAL_LOGIC_VARS and bool(value):
-			cmakeParams.append(f"-D {key}={value}")
-	return ' '.join(cmakeParams)
-
 def exitXmipp(retCode: int=0, configDict: Dict={}):
 	"""
 	### This function exits Xmipp with the given return code, processing it as a success or an error.

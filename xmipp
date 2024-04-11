@@ -34,12 +34,12 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 	CMAKE_CONFIGURE_ERROR, CMAKE_COMPILE_ERROR, CMAKE_INSTALL_ERROR, PARAM_LOGIN, PARAM_SHORT,
 	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_MODEL_PATH, PARAM_MODELS_DIRECTORY,
 	PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE, PARAM_XMIPP_DIRECTORY, BUILD_PATH,
-	INSTALL_PATH, BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE, CMAKE_ERROR)
+	INSTALL_PATH, BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE)
 from installer.utils import runStreamingJob, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
 from installer.config import readConfig, writeConfig
-from installer.cmake import getCMake
-from installer.main import getCMakeVarsStr, getSources, exitXmipp, handleRetCode, getSectionMessage, getSuccessMessage
+from installer.cmake import getCMake, getCMakeVarsStr
+from installer.main import getSources, exitXmipp, handleRetCode, getSectionMessage, getSuccessMessage
 from installer.logger import logger, yellow, red, blue
 
 ####################### EXECUTION MODES #######################
