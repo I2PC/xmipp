@@ -22,14 +22,15 @@
 # ***************************************************************************/
 
 import os
+from typing import Optional
 
 # Variable names
 __SEND_INSTALLATION_STATISTICS = 'SEND_INSTALLATION_STATISTICS'
 CMAKE = 'CMAKE'
 CC = 'CMAKE_C_COMPILER'
 CXX = 'CMAKE_CXX_COMPILER'
-CC_FLAGS = 'CMAKE_C_FLAGS'
-CXX_FLAGS = 'CMAKE_CXX_FLAGS'
+__CC_FLAGS = 'CMAKE_C_FLAGS'
+__CXX_FLAGS = 'CMAKE_CXX_FLAGS'
 CUDA = 'XMIPP_USE_CUDA'
 CUDA_COMPILER = 'CMAKE_CUDA_COMPILER'
 MPI = 'XMIPP_USE_MPI'
@@ -54,25 +55,38 @@ __TUNE_FLAG='-mtune=native'
 # Config file variable structure
 TOGGLES = 'toggles'
 LOCATIONS = 'locations'
+COMPILATION_FLAGS = 'flags'
 CONFIG_VARIABLES = {
 	TOGGLES: [
 		__SEND_INSTALLATION_STATISTICS, CUDA, MPI, MATLAB, LINK_SCIPION, __BUILD_TESTING
 	],
 	LOCATIONS: [
-		CMAKE, CC, CXX, CC_FLAGS, CXX_FLAGS, __PREFIX_PATH, __MPI_HOME, 
-  	CUDA_COMPILER, __PYTHON_HOME, __FFTW_HOME, __TIFF_HOME, __HDF5_HOME, 
-   	__JPEG_HOME, __SQLITE_HOME, __CUDA_CXX
-	]
+		CMAKE, CC, CXX, __PREFIX_PATH, __MPI_HOME, CUDA_COMPILER,
+		__PYTHON_HOME, __FFTW_HOME, __TIFF_HOME, __HDF5_HOME, 
+	 	__JPEG_HOME, __SQLITE_HOME, __CUDA_CXX
+	],
+	COMPILATION_FLAGS: [__CC_FLAGS, __CXX_FLAGS]
 }
 
-def __getNvccEnvVariable():
-	bin = os.environ.get(__XMIPP_CUDA_BIN)
-	return bin + '/nvcc' if bin else None
+def __getNvccEnvVariable() -> Optional[str]:
+	"""
+	### This function returns the CUDA compiler for Scipion's enviroment if exists.
 
-def __getPrefixPath():
-  return os.environ.get(__CONDA_PREFIX)
- 
- 
+	#### Returns:
+	- (str | None): Path to CUDA compiler for Scipion's env.
+	"""
+	cudaBin = os.environ.get(__XMIPP_CUDA_BIN)
+	return cudaBin + '/nvcc' if cudaBin else None
+
+def __getPrefixPath() -> Optional[str]:
+	"""
+	### This function returns the path for the current Conda enviroment.
+
+	#### Returns:
+	- (str | None): Path for current Conda enviroment.
+	"""
+	return os.environ.get(__CONDA_PREFIX)
+
 ON = 'ON'
 OFF = 'OFF'
 CONFIG_DEFAULT_VALUES = {
@@ -82,8 +96,8 @@ CONFIG_DEFAULT_VALUES = {
 	MPI: ON,
 	CC: None,
 	CXX: None,
-	CC_FLAGS: __TUNE_FLAG,
-	CXX_FLAGS: __TUNE_FLAG,
+	__CC_FLAGS: __TUNE_FLAG,
+	__CXX_FLAGS: __TUNE_FLAG,
 	CUDA_COMPILER: __getNvccEnvVariable(),
 	__PREFIX_PATH: __getPrefixPath(),
 	__MPI_HOME: None,

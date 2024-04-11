@@ -23,7 +23,8 @@
 
 from typing import Dict, Tuple, Optional
 from datetime import datetime
-from .constants import CONFIG_VARIABLES, CONFIG_DEFAULT_VALUES, TOGGLES, LOCATIONS, ON, OFF
+from .constants import (CONFIG_VARIABLES, CONFIG_DEFAULT_VALUES, TOGGLES,
+  LOCATIONS, COMPILATION_FLAGS, ON, OFF)
 
 ASSIGNMENT_SEPARATOR = '='
 COMMENT_ESCAPE = '#'
@@ -109,6 +110,11 @@ def writeConfig(path: str):
     lines.append("# If left empty, CMake will search for those packages within your system.\n")
     for location in CONFIG_VARIABLES[LOCATIONS]:
       lines.append(__makeConfigLine(location, CONFIG_DEFAULT_VALUES[location]) + '\n')
+    
+    lines.append("\n##### COMPILATION FLAGS #####\n")
+    lines.append("# We recommend not modifying this variables unless you know what you are doing.\n")
+    for flag in CONFIG_VARIABLES[COMPILATION_FLAGS]:
+      lines.append(__makeConfigLine(flag, CONFIG_DEFAULT_VALUES[flag]) + '\n')
 
     lines.append(f"\n# Config file automatically generated on {datetime.today()}\n")
     configFile.writelines(lines)
