@@ -15,6 +15,23 @@ def euler_to_rotation6d(angles):
     mat = xmippLib.Euler_angles2matrix(angles[0], angles[1], angles[2])
     return np.concatenate((mat[1], mat[2]))
 
+def rotation6d_to_euler(rot):
+    a2 = np.array([rot[0], rot[1], rot[2]]).reshape(1, 3)
+    a3 = np.array([rot[3], rot[4], rot[5]]).reshape(1, 3)
+
+    b3 = a3 / np.linalg.norm(a3)
+
+    c2 = np.inner(a2, b3)
+
+    b2 = a2 - c2 * b3
+    b2 = b2 / np.linalg.norm(b2)
+    b1 = np.cross(b2, b3, axis=1)
+    mat=np.concatenate((b1, b2, b3), axis=0)
+    print("recons mat",mat)
+    angles=xmippLib.Euler_matrix2angles(mat)
+    print(angles)
+    return angles
+
 class ScriptDeepGlobalAssignment(XmippScript):
     def __init__(self):
         XmippScript.__init__(self)
@@ -113,13 +130,21 @@ class ScriptDeepGlobalAssignment(XmippScript):
 #            return Xdim, [fnImg[i] for i in idx], [angles[i] for i in idx], [img_shift[i] for i in idx]
             return Xdim, fnImg, angles, img_shift
 
-        def testModel(model, X, y):
-            ypred = model.predict(X)
-            for i, _ in enumerate(ypred):
+        def testModel(model, generator, dataLoader, mode):
+            ypred = model.predict(generator.x)
+            for i in range(len(dataLoader.fnImgs)):
+                print(dataLoader.fnImgs[i])
                 np.set_printoptions(threshold=sys.maxsize)
-                print(y[i])
+                print('i=%d X[i].max'%i,np.max(generator.x[i]))
+                np.set_printoptions(threshold=sys.maxsize)
+                print(generator.y[i])
                 np.set_printoptions(threshold=sys.maxsize)
                 print(ypred[i])
+                if mode=="angles":
+                    print("true angles",dataLoader.angles[i])
+                    trueAngles=dataLoader.angles[i]
+                    print("true matrix", xmippLib.Euler_angles2matrix(trueAngles[0],trueAngles[1],trueAngles[2]))
+                    rotation6d_to_euler(ypred[i])
 
         def trainModel(model, dataLoader, mode, modeprec, fnThisModel, lossFunction):
             adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
@@ -134,7 +159,8 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 min_lr=1e-8,  # Lower bound on the learning rate
             )
 
-            generator = XmippTrainingSequence(dataLoader.X, dataLoader.y, batch_size, randomize=True)
+            generator = XmippTrainingSequence(dataLoader.X, dataLoader.y, batch_size, maxSize=len(dataLoader.fnImgs),
+                                              randomize=False)
 
             # generator.shuffle_data()
 
@@ -146,9 +172,9 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 epoch += 1
                 loss = history.history['loss'][-1]
                 print("Epoch %d loss=%f trainingTime=%d" % (epoch, loss, int(end_time-start_time)), flush=True)
-                # testModel(model, training_generator.X, training_generator.y)
                 if loss < modeprec:
                     break
+            # testModel(model, generator, dataLoader, mode)
             model.save(fnThisModel, save_format="tf")
 
         SL = xmippLib.SymList()
