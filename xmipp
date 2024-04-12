@@ -29,7 +29,7 @@ from typing import Dict
 
 # Installer imports
 from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,
-	MODE_CLEAN_ALL, MODE_VERSION, MODE_GET_MODELS, MODE_TEST, MODE_GIT, MODE_ADD_MODEL,
+	MODE_CLEAN_ALL, MODE_VERSION, MODE_GET_MODELS, MODE_TEST, MODE_GIT, MODE_ADD_MODEL, MODE_BUILD_CONFIG,
 	COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, CONFIG_FILE,
 	CMAKE_CONFIGURE_ERROR, CMAKE_COMPILE_ERROR, CMAKE_INSTALL_ERROR, PARAM_LOGIN, PARAM_SHORT,
 	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_MODEL_PATH, PARAM_MODELS_DIRECTORY,
@@ -54,7 +54,7 @@ def modeAddModel(args: argparse.Namespace):
 
 def modeCleanBin():
 	"""
-	### Checks the params for execution mode "cleanBin" and then runs it.
+	### Removes all compiled binaries.
 	
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
@@ -69,7 +69,7 @@ def modeCleanBin():
 
 def modeCleanAll():
 	"""
-	### Checks the params for execution mode "cleanAll" and then runs it.
+	### Removes all compiled binaries and cloned sources.
 	
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
@@ -121,9 +121,32 @@ def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}):
 													 showOutput=True, substitute=True)
 	handleRetCode(retCode, predefinedErrorCode=CMAKE_INSTALL_ERROR, configDict=configDict)
 	
+def modeBuildConfig(configDict: Dict={}):
+	"""
+	### Configures the project using CMake.
+	
+	#### Params:
+	- configDict (dict): Optional. If provided, it will use it's variables. If not, it will read from config file.
+	"""
+	# If config variable dictionary is not received this mode is the first being executed
+	if not configDict:
+		logger.startLogFile(LOG_FILE)
+		configDict = readConfig(CONFIG_FILE) if os.path.exists(CONFIG_FILE) else modeConfig()
+	
+	# Check if CMake exists
+	cmakeExecutable = getCMake(configDict)
+	if not getCMake(configDict):
+		handleRetCode(CMAKE_ERROR, predefinedErrorCode=CMAKE_ERROR)
+	
+	logger(getSectionMessage("Configuring with CMake"), forceConsoleOutput=True)
+	configureCmd = f"{cmakeExecutable} -S . -B {BUILD_PATH} -D CMAKE_INSTALL_PREFIX={INSTALL_PATH}"
+	configureCmd += f" -D CMAKE_BUILD_TYPE={BUILD_TYPE} {getCMakeVarsStr(configDict)}"
+	retCode = runStreamingJob(configureCmd, showOutput=True, substitute=True)
+	handleRetCode(retCode, predefinedErrorCode=CMAKE_CONFIGURE_ERROR, configDict=configDict)
+
 def modeConfig(overwrite: bool=False) -> Dict:
 	"""
-	### Checks the params for execution mode "config" and then runs it.
+	### Generates a template config file.
 	
 	#### Params:
 	- overwrite (bool): If True, file is created from scratch with default values.
@@ -150,7 +173,7 @@ def modeGetModels(args: argparse.Namespace):
 
 def modeGit(args: argparse.Namespace):
 	"""
-	### Checks the params for execution mode "git" and then runs it.
+	### Executes the given git command into all xmipp source repositories.
 	
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
@@ -188,7 +211,7 @@ def modeVersion(args: argparse.Namespace):
 
 def modeAll(args: argparse.Namespace):
 	"""
-	### Checks the params for execution mode "all" and then runs it.
+	### Runs get sources & modes config, configBuild, and compileAndInstall
 	
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
@@ -203,14 +226,10 @@ def modeAll(args: argparse.Namespace):
 	getSources(branch=args.branch)
 
 	# Configure with CMake
-	cmakeExecutable = getCMake(configDict)
-	if cmakeExecutable:
-		handleRetCode(CMAKE_ERROR, predefinedErrorCode=CMAKE_ERROR)
-	logger(getSectionMessage("Configuring with CMake"), forceConsoleOutput=True)
-	configureCmd = f"{cmakeExecutable} -S . -B {BUILD_PATH} -D CMAKE_INSTALL_PREFIX={INSTALL_PATH}"
-	configureCmd += f" -D CMAKE_BUILD_TYPE={BUILD_TYPE} {getCMakeVarsStr(configDict)}"
-	retCode = runStreamingJob(configureCmd, showOutput=True, substitute=True)
-	handleRetCode(retCode, predefinedErrorCode=CMAKE_CONFIGURE_ERROR, configDict=configDict)
+	modeBuildConfig(configDict=configDict)
+
+	# Compile and install with CMake
+	modeCompileAndInstall(args, configDict=configDict)
 
 def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
 	"""
@@ -230,6 +249,8 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 		modeCleanBin()
 	elif args.mode == MODE_COMPILE_AND_INSTALL:
 		modeCompileAndInstall(args)
+	elif args.mode == MODE_BUILD_CONFIG:
+		modeBuildConfig()
 	elif args.mode == MODE_CONFIG:
 		modeConfig(overwrite=args.overwrite)
 	elif args.mode == MODE_GET_MODELS:
@@ -285,6 +306,9 @@ if __name__ == "__main__":
 	compileAndInstallSubparser.add_argument(*getParamNames(PARAM_JOBS), type=int, default=JOBS)
 	compileAndInstallSubparser.add_argument(*getParamNames(PARAM_BRANCH))
 	compileAndInstallSubparser.add_argument(*getParamNames(PARAM_XMIPP_DIRECTORY), default=DEFAULT_BUILD_DIR)
+
+	# Arguments for mode 'buildConfig'
+	buildConfigSubparser = subparsers.add_parser(MODE_BUILD_CONFIG, formatter_class=ModeHelpFormatter)
 
 	# Arguments for mode 'config'
 	configSubparser = subparsers.add_parser(MODE_CONFIG, formatter_class=ModeHelpFormatter)
