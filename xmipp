@@ -121,7 +121,7 @@ def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}):
 													 showOutput=True, substitute=True)
 	handleRetCode(retCode, predefinedErrorCode=CMAKE_INSTALL_ERROR, configDict=configDict)
 	
-def modeBuildConfig(configDict: Dict={}):
+def modeConfigBuild(configDict: Dict={}):
 	"""
 	### Configures the project using CMake.
 	
@@ -226,7 +226,7 @@ def modeAll(args: argparse.Namespace):
 	getSources(branch=args.branch)
 
 	# Configure with CMake
-	modeBuildConfig(configDict=configDict)
+	modeConfigBuild(configDict=configDict)
 
 	# Compile and install with CMake
 	modeCompileAndInstall(args, configDict=configDict)
@@ -250,7 +250,7 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	elif args.mode == MODE_COMPILE_AND_INSTALL:
 		modeCompileAndInstall(args)
 	elif args.mode == MODE_BUILD_CONFIG:
-		modeBuildConfig()
+		modeConfigBuild()
 	elif args.mode == MODE_CONFIG:
 		modeConfig(overwrite=args.overwrite)
 	elif args.mode == MODE_GET_MODELS:
