@@ -307,7 +307,7 @@ if __name__ == "__main__":
 	compileAndInstallSubparser.add_argument(*getParamNames(PARAM_BRANCH))
 	compileAndInstallSubparser.add_argument(*getParamNames(PARAM_XMIPP_DIRECTORY), default=DEFAULT_BUILD_DIR)
 
-	# Arguments for mode 'buildConfig'
+	# Arguments for mode 'configBuild'
 	buildConfigSubparser = subparsers.add_parser(MODE_BUILD_CONFIG, formatter_class=ModeHelpFormatter)
 
 	# Arguments for mode 'config'
