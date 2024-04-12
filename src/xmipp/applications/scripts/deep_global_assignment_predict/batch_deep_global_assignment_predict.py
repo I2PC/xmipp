@@ -114,13 +114,15 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
                 numPredictions = min(maxSize, numImgs-i*maxSize)
                 X = np.zeros((numPredictions, Xdim, Xdim, 1), dtype=np.float64)
                 for j in range(numPredictions):
+                    # print(fnImgs[k])
                     I = xmippLib.Image(fnImgs[k]).getData()
                     I = (I - np.mean(I)) / np.std(I)
                     if mode=="angles":
                         # print(fnImgs[k], np.max(I), "shift", np.array([-x[k],-y[k]]))
                         I = shift(I, np.array([-x[k],-y[k]]), mode='wrap')
                     I *= mask
-                    X[j, ] =  np.reshape(I, (Xdim, Xdim, 1))
+                    X[j, ] = np.reshape(I, (Xdim, Xdim, 1))
+                    # print("j=%d X[j]="%j,np.max(X[j,]))
                     k += 1
                 ypred = model.predict(X)
                 # print(ypred)
@@ -128,6 +130,7 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
 
             if mode=="angles":
                 predictionsList.append(decodePredictions(predictions))
+                # print(decodePredictions(predictions))
             else:
                 predictionsList.append(predictions)
 
