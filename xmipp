@@ -93,16 +93,13 @@ def modeCleanAll():
 	else:
 		print(red("Operation cancelled."))
 
-def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}) -> Dict:
+def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}):
 	"""
 	### Checks the params for execution mode "compileAndInstall" and then runs it.
 	
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	- configDict (dict): Optional. If provided, it will use it's variables. If not, it will read from config file.
-
-	#### Returns:
-	- (dict): Dictionary containig all config variables.
 	"""
 	# If config variable dictionary is not received this mode is the first being executed
 	if not configDict:
@@ -124,8 +121,6 @@ def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}) -> Dict
 													 showOutput=True, substitute=True)
 	handleRetCode(retCode, predefinedErrorCode=CMAKE_INSTALL_ERROR, configDict=configDict)
 	
-	return configDict
-
 def modeConfig(overwrite: bool=False) -> Dict:
 	"""
 	### Checks the params for execution mode "config" and then runs it.
@@ -191,15 +186,12 @@ def modeVersion(args: argparse.Namespace):
 	"""
 	pass
 
-def modeAll(args: argparse.Namespace) -> Dict:
+def modeAll(args: argparse.Namespace):
 	"""
 	### Checks the params for execution mode "all" and then runs it.
 	
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
-
-	#### Returns:
-	- (dict): Dictionary containig all config variables.
 	"""
 	# Initiate logger
 	logger.startLogFile(LOG_FILE)
@@ -220,9 +212,6 @@ def modeAll(args: argparse.Namespace) -> Dict:
 	retCode = runStreamingJob(configureCmd, showOutput=True, substitute=True)
 	handleRetCode(retCode, predefinedErrorCode=CMAKE_CONFIGURE_ERROR, configDict=configDict)
 
-	# Compile and install
-	return modeCompileAndInstall(args, configDict=configDict)
-
 def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
 	"""
 	### This function runs the selected execution mode.
@@ -231,17 +220,16 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	- parser (ErrorHandlerArgumentParser): Parser object used to parse the arguments.
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	configDict = {}
 	if args.mode == MODE_ADD_MODEL:
 		modeAddModel(args)
 	elif args.mode == MODE_ALL:
-		configDict = modeAll(args)
+		modeAll(args)
 	elif args.mode == MODE_CLEAN_ALL:
 		modeCleanAll()
 	elif args.mode == MODE_CLEAN_BIN:
 		modeCleanBin()
 	elif args.mode == MODE_COMPILE_AND_INSTALL:
-		configDict = modeCompileAndInstall(args)
+		modeCompileAndInstall(args)
 	elif args.mode == MODE_CONFIG:
 		modeConfig(overwrite=args.overwrite)
 	elif args.mode == MODE_GET_MODELS:
@@ -255,12 +243,12 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	else:
 		# If method was none of the above, exit with error
 		logger.logError(f"Mode \"{args.mode}\" not recognized. {COMMON_USAGE_HELP_MESSAGE}")
-		exitXmipp(retCode=1, configDict=configDict)
+		exitXmipp(retCode=1)
 	
 	# Print success message for specific modes
 	if args.mode == MODE_ALL or args.mode == MODE_COMPILE_AND_INSTALL:
 		logger(getSuccessMessage(), forceConsoleOutput=True)
-	exitXmipp(configDict=configDict)
+	exitXmipp()
 	
 ####################### MAIN EXECUTION THREAD #######################
 if __name__ == "__main__":

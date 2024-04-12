@@ -21,12 +21,10 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
-import shutil, re
+import shutil
 from typing import Dict, Any, List
 from .constants import CMAKE, DEFAULT_CMAKE, INTERNAL_LOGIC_VARS
 from .utils import runJob
-
-__ITEM_REGEX = re.compile(r'([A-Za-z0-9_-]+)=(.*)')
 
 def getCMake(config: Dict[str, Any]) -> str:
 	"""
@@ -73,7 +71,7 @@ def checkPackage(package: str, config: Dict[str, Any]) -> bool:
 	args += getCMakeVars(config)
 	
 	cmd = cmake + ' ' + ' '.join(args)
-	ret, _ = runJob(cmd, logOutput=False)
+	ret, _ = runJob(cmd)
 	return ret == 0
 
 def parseCmakeVersions(path: str) -> Dict[str, Any]:
@@ -81,16 +79,18 @@ def parseCmakeVersions(path: str) -> Dict[str, Any]:
 	### This function parses the file where versions found by CMake have been extracted.
 
 	#### Params:
-	- 
+	- path (str): Path to the file containing all versions.
+
+	#### Returns:
+	- (dict): Dictionary containing all the versions from the file.
 	"""
 	result = dict()
 	
 	with open(path, 'r') as file:
 		for line in file.readlines():
-			match = __ITEM_REGEX.match(line)
-			if match is not None:
-				key = match.group(1)
-				value = match.group(2)
-				result[key] = value
+			if line:
+				packageLine = line.replace("\n", "").split('=')
+				value = packageLine[1] if  packageLine[1] else None
+				result[packageLine[0]] = value
 					
 	return result
