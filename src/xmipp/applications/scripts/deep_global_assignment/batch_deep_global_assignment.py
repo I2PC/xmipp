@@ -126,9 +126,9 @@ class ScriptDeepGlobalAssignment(XmippScript):
             img_shift = [np.array((sX,sY)) for sX, sY in zip(shiftX, shiftY)]
 
             Nimgs = min(Nimgs, len(angles))
-#            idx = random.sample([i for i in range(len(angles))], Nimgs)
-#            return Xdim, [fnImg[i] for i in idx], [angles[i] for i in idx], [img_shift[i] for i in idx]
-            return Xdim, fnImg, angles, img_shift
+            idx = random.sample([i for i in range(len(angles))], Nimgs)
+            return Xdim, [fnImg[i] for i in idx], [angles[i] for i in idx], [img_shift[i] for i in idx]
+            # return Xdim, fnImg, angles, img_shift
 
         def testModel(model, generator, dataLoader, mode):
             ypred = model.predict(generator.x)
@@ -175,7 +175,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 if loss < modeprec:
                     break
             # testModel(model, generator, dataLoader, mode)
-            model.save(fnThisModel, save_format="tf")
+            model.save_weights(fnThisModel, save_format="h5")
 
         SL = xmippLib.SymList()
         listSymmetryMatrices = SL.getSymmetryMatrices('c1')
@@ -186,25 +186,24 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
         try:
             for index in range(numModels):
-                fnModelIndex = fnModel + str(index) + ".tf"
+                fnModelIndex = fnModel + str(index) + ".h5"
                 # Learn shift
                 if mode=="shift":
+                    modelShift = deepGlobal.constructShiftModel(Xdim)
+                    modelShift.summary()
                     if os.path.exists(fnModelIndex):
-                        modelShift = keras.models.load_model(fnModelIndex, compile=True)
-                    else:
-                        modelShift = deepGlobal.constructShiftModel(Xdim)
-                        modelShift.summary()
+                        print("Loading weights from",fnModelIndex)
+                        modelShift.build(input_shape=(None, Xdim, Xdim, 1))
+                        modelShift.load_weights(fnModelIndex)
                     trainModel(modelShift, dataLoader, mode, precision, fnModelIndex, 'mae')
                 else:
                     # Learn angles
+                    model = deepGlobal.constructAnglesModel(Xdim)
+                    model.summary()
                     if os.path.exists(fnModelIndex):
-                        model = keras.models.load_model(fnModelIndex, custom_objects={
-                                                            'Angles2VectorLayer': deepGlobal.Angles2VectorLayer,
-                                                            'AngularLoss': deepGlobal.AngularLoss(listSymmetryMatrices, Xdim)},
-                                                        compile=True)
-                    else:
-                        model = deepGlobal.constructAnglesModel(Xdim)
-                        model.summary()
+                        model.build(input_shape=(None, Xdim, Xdim, 1))
+                        print("Loading weights from",fnModelIndex)
+                        model.load_weights(fnModelIndex)
                     trainModel(model, dataLoader, mode, precision, fnModelIndex, angularLoss)
         except Exception as e:
             print(e)

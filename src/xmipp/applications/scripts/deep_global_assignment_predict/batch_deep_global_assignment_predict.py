@@ -97,16 +97,18 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
             numBatches = numBatches + 1
 
         predictionsList=[]
-        models = glob.glob(fnModelDir+"*.tf")
+        models = glob.glob(fnModelDir+"*.h5")
         numAngModels = len(models)
         for index in range(numAngModels):
             if mode=="shift":
-                model = keras.models.load_model(models[index], compile=False)
+                model = deepGlobal.constructShiftModel(Xdim)
+                model.build(input_shape=(None, Xdim, Xdim, 1))
+                model.load_weights(models[index])
                 predictions = np.zeros((numImgs, 2))
             else:
-                model = keras.models.load_model(models[index],
-                                               custom_objects={'Angles2VectorLayer': deepGlobal.Angles2VectorLayer},
-                                               compile=False)
+                model = deepGlobal.constructAnglesModel(Xdim)
+                model.build(input_shape=(None, Xdim, Xdim, 1))
+                model.load_weights(models[index])
                 predictions = np.zeros((numImgs, 6))
 
             k = 0
