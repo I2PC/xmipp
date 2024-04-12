@@ -192,8 +192,8 @@ try:
                 for R in self.listSymmetryMatricesNP]
 
         def call(self, y_true, y_pred):
-            # tf.print("y_true", y_true[0,])
-            # tf.print("y_pred", y_pred[0,])
+            # tf.print("y_true", y_true)
+            # tf.print("y_pred", y_pred)
 
             y_6d = y_pred[:, :6]
             y_6dtrue = y_true[:, :6]
@@ -215,32 +215,34 @@ try:
             epsilon = 1e-7
 
             e3_true = y_6dtrue[:, 3:]  # Last 3 components
-            # tf.print("e3_true", e3_true[0,])
+            # tf.print("e3_true", e3_true, summarize=-1)
             e3_pred = y_6d[:, 3:]  # Last 3 components
-            # tf.print("e3_pred", e3_pred[0,])
+            # tf.print("e3_pred", e3_pred, summarize=-1)
             angle3 = tf.acos(
                 tf.clip_by_value(tf.reduce_sum(e3_true * e3_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
             angular_error = tf.reduce_mean(tf.abs(angle3))
             # vector_error = tf.reduce_mean(tf.abs(e3_true-e3_pred))
-            # tf.print("angle3", angle3[0,])
+            # tf.print("angle3", angle3*57.2958,tf.reduce_max(angle3)*57.2958)
 
             e2_true = y_6dtrue[:, :3]  # First 3 components
             e2_pred = y_6d[:, :3]  # First 3 components
             # vector_error += tf.reduce_mean(tf.abs(e2_true - e2_pred))
 
-            # tf.print("e2_true",e2_true[0,])
-            # tf.print("e2_pred",e2_pred[0,])
+            # tf.print("e2_true",e2_true, summarize=-1)
+            # tf.print("e2_pred",e2_pred, summarize=-1)
 
             e1_true = tf.linalg.cross(e2_true, e3_true)
             e1_pred = tf.linalg.cross(e2_pred, e3_pred)
+            # tf.print("e1_true",e1_true, summarize=-1)
+            # tf.print("e1_pred",e1_pred, summarize=-1)
             # vector_error += tf.reduce_mean(tf.abs(e1_true - e1_pred))
 
             angle1 = tf.acos(
                 tf.clip_by_value(tf.reduce_sum(e1_true * e1_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
             angle2 = tf.acos(
                 tf.clip_by_value(tf.reduce_sum(e2_true * e2_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
-            # tf.print("angle2",angle2[0,])
-            # tf.print("angle1",angle1[0,])
+            # tf.print("angle2",angle2*57.2958,tf.reduce_max(angle2)*57.2958)
+            # tf.print("angle1",angle1*57.2958,tf.reduce_max(angle1)*57.2958)
 
             angular_error += tf.reduce_mean(tf.abs(angle1)) + tf.reduce_mean(tf.abs(angle2))
 
