@@ -25,6 +25,7 @@
 #include <core/xmipp_program.h>
 #include <core/metadata_label.h>
 #include <core/metadata_vec.h>
+#include <core/geometry.h>
 #include "directions.h"
 
 class ProgMetadataAngles: public XmippProgram
@@ -57,6 +58,7 @@ protected:
     {
         SymList SL;
 		SL.readSymmetryFile(fn_sym);
+        int imax=SL.symsNo();
 		
 		std::vector<double> rotList, tiltList;
 		make_even_distribution(rotList, tiltList, 5.0, SL, false);
@@ -64,13 +66,33 @@ protected:
 		Matrix2D<double> Laux, Raux;
         for (size_t objId : mdIn.ids())
         {
-        	double rot, tilt;
+        	double rot, tilt, psi;
         	mdIn.getValue(MDL_ANGLE_ROT, rot, objId);
         	mdIn.getValue(MDL_ANGLE_TILT, tilt, objId);
+        	mdIn.getValue(MDL_ANGLE_PSI, psi, objId);
         	
-        	int idx=find_nearest_direction(rot, tilt, rotList, tiltList, SL, Laux, Raux);
-            mdIn.setValue(MDL_ANGLE_ROT,rotList[idx],objId);
-            mdIn.setValue(MDL_ANGLE_TILT,tiltList[idx],objId);
+        	double bestrot=rot, besttilt=tilt, bestpsi=psi;
+    		double bestDist=1e38;
+			for (int i = 0; i < imax; i++)
+			{
+				SL.getMatrices(i, Laux, Raux, false);
+	        	double newrot, newtilt, newpsi;
+				Euler_apply_transf(Laux, Raux, rot, tilt, psi, newrot, newtilt, newpsi);
+
+				int idx=find_nearest_direction(newrot, newtilt, rotList, tiltList, SL, Laux, Raux);
+				double dist = distance_directions(newrot, newtilt, rotList[idx], tiltList[idx], false);
+				if (dist<bestDist)
+				{
+					bestDist=dist;
+					bestrot=newrot;
+					besttilt=tilt;
+					bestpsi=psi;
+				}
+			}
+
+            mdIn.setValue(MDL_ANGLE_ROT,bestrot,objId);
+            mdIn.setValue(MDL_ANGLE_TILT,besttilt,objId);
+            mdIn.setValue(MDL_ANGLE_PSI,bestpsi,objId);
         }
     }
 
