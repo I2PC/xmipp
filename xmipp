@@ -34,7 +34,7 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 	CMAKE_CONFIGURE_ERROR, CMAKE_COMPILE_ERROR, CMAKE_INSTALL_ERROR, PARAM_LOGIN, PARAM_SHORT,
 	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_MODEL_PATH, PARAM_MODELS_DIRECTORY,
 	PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE, PARAM_OVERWRITE, BUILD_PATH, INSTALL_PATH,
-	BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE, CMAKE_ERROR, VERSION_FILE)
+	BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE, CMAKE_ERROR, VERSION_FILE, CMAKE_INSTALL_PREFIX)
 from installer.utils import runStreamingJob, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
 from installer.config import readConfig, writeConfig
@@ -99,7 +99,10 @@ def modeCleanAll():
 	if userInput == confirmationText:
 		# Get xmipp sources
 		xmippSources = [os.path.join(SOURCES_PATH, source) for source in XMIPP_SOURCES]
-		runJob(f"rm -rf {BUILD_PATH} {INSTALL_PATH} {' '.join(xmippSources)} {CONFIG_FILE}", showCommand=True)
+		# Get installation path
+		configDict = readConfig(CONFIG_FILE) if os.path.exists(CONFIG_FILE) else {}
+		installDir = configDict.get(CMAKE_INSTALL_PREFIX, INSTALL_PATH)
+		runJob(f"rm -rf {BUILD_PATH} {installDir} {' '.join(xmippSources)} {CONFIG_FILE}", showCommand=True)
 	else:
 		print(red("Operation cancelled."))
 
