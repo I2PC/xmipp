@@ -109,7 +109,7 @@ PARAMS = {
 	PARAM_XMIPP_DIRECTORY: {
 		SHORT_VERSION: "-d",
 		LONG_VERSION: "--directory",
-		DESCRIPTION: f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\"."
+		DESCRIPTION: f"Installation directory for Xmipp. Default is \"{DEFAULT_BUILD_DIR}\"."
 	},
 	PARAM_SHORT: {
 		LONG_VERSION: "--short",
@@ -128,7 +128,7 @@ PARAMS = {
 	PARAM_MODELS_DIRECTORY: {
 		SHORT_VERSION: "-d",
 		LONG_VERSION: "--directory",
-		DESCRIPTION: f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\"."
+		DESCRIPTION: f"Directory where models will be saved. Default is \"{DEFAULT_BUILD_DIR}\"."
 	},
 	PARAM_TEST_NAME: {
 		SHORT_VERSION: "testName",
