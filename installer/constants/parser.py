@@ -28,8 +28,8 @@ Submodule containing all constants needed for the argument parsing part of Xmipp
 
 # Other variables
 COMMON_USAGE_HELP_MESSAGE = 'Run \"./xmipp -h\" for usage help.'
-DEFAULT_BUILD_DIR = './build'
-DEFAULT_MODELS_DIR = 'build'
+DEFAULT_BUILD_DIR = 'build'
+DEFAULT_MODELS_DIR = DEFAULT_BUILD_DIR
 
 # Mode list (alphabetical order)
 MODE_ADD_MODEL = 'addModel'
@@ -40,6 +40,7 @@ MODE_COMPILE_AND_INSTALL = 'compileAndInstall'
 MODE_BUILD_CONFIG = 'configBuild'
 MODE_CONFIG = 'config'
 MODE_GET_MODELS = 'getModels'
+MODE_GET_SOURCES = 'getSources'
 MODE_GIT = 'git'
 MODE_TEST = 'test'
 MODE_VERSION = 'version'
@@ -56,7 +57,8 @@ MODES = {
 		MODE_CONFIG: ['Generates a config file template with default values.'],
 	},
 	'Downloads': {
-		MODE_GET_MODELS: [f'Download the DeepLearning Models at dir/models ({DEFAULT_MODELS_DIR} by default).']
+		MODE_GET_MODELS: [f'Download the DeepLearning Models at dir/models ({DEFAULT_MODELS_DIR} by default).'],
+		MODE_GET_SOURCES: ['Clone all Xmipp\'s sources.']
 	},
 	'Clean': {
 		MODE_CLEAN_BIN: ['Removes all compiled binaries.'],
@@ -93,7 +95,6 @@ SHORT_VERSION = 'short'
 LONG_VERSION = 'long'
 DESCRIPTION = 'description'
 # Possible param list
-PARAM_XMIPP_DIRECTORY = 'xmipp-directory'
 PARAM_SHORT = 'short'
 PARAM_JOBS = 'jobs'
 PARAM_BRANCH = 'branch'
@@ -106,11 +107,6 @@ PARAM_MODEL_PATH = 'model-path'
 PARAM_UPDATE = 'update'
 PARAM_OVERWRITE = 'overwrite'
 PARAMS = {
-	PARAM_XMIPP_DIRECTORY: {
-		SHORT_VERSION: "-d",
-		LONG_VERSION: "--directory",
-		DESCRIPTION: f"Installation directory for Xmipp. Default is \"{DEFAULT_BUILD_DIR}\"."
-	},
 	PARAM_SHORT: {
 		LONG_VERSION: "--short",
 		DESCRIPTION: "If set, only version number is shown."
@@ -163,12 +159,13 @@ PARAMS = {
 
 # Arguments of each mode, sorted by group
 MODE_ARGS = {
-	MODE_VERSION: [PARAM_XMIPP_DIRECTORY, PARAM_SHORT],
-	MODE_COMPILE_AND_INSTALL: [PARAM_JOBS, PARAM_BRANCH, PARAM_XMIPP_DIRECTORY],
-	MODE_ALL: [PARAM_JOBS, PARAM_BRANCH, PARAM_XMIPP_DIRECTORY],
+	MODE_VERSION: [PARAM_SHORT],
+	MODE_COMPILE_AND_INSTALL: [PARAM_JOBS, PARAM_BRANCH],
+	MODE_ALL: [PARAM_JOBS, PARAM_BRANCH],
 	MODE_BUILD_CONFIG: [],
-	MODE_CONFIG: [],
+	MODE_CONFIG: [PARAM_OVERWRITE],
 	MODE_GET_MODELS: [PARAM_MODELS_DIRECTORY],
+	MODE_GET_SOURCES: [],
 	MODE_CLEAN_BIN: [],
 	MODE_CLEAN_ALL: [],
 	MODE_TEST: [PARAM_TEST_NAME, PARAM_SHOW_TESTS],
@@ -181,32 +178,33 @@ MODE_EXAMPLES = {
 	MODE_VERSION: [
 		f'./xmipp {MODE_VERSION}',
 		f'./xmipp {MODE_VERSION} {PARAMS[PARAM_SHORT][LONG_VERSION]}',
-		f'./xmipp {MODE_VERSION} {PARAMS[PARAM_XMIPP_DIRECTORY][SHORT_VERSION]} /path/to/my/build/dir'
 	],
 	MODE_COMPILE_AND_INSTALL: [
 		f'./xmipp {MODE_COMPILE_AND_INSTALL}',
 		f'./xmipp {MODE_COMPILE_AND_INSTALL} {PARAMS[PARAM_JOBS][SHORT_VERSION]} 20',
-		f'./xmipp {MODE_COMPILE_AND_INSTALL} {PARAMS[PARAM_XMIPP_DIRECTORY][SHORT_VERSION]} /path/to/my/build/dir',
 		f'./xmipp {MODE_COMPILE_AND_INSTALL} {PARAMS[PARAM_BRANCH][SHORT_VERSION]} devel',
 		f'./xmipp {MODE_COMPILE_AND_INSTALL} {PARAMS[PARAM_JOBS][SHORT_VERSION]} '
-		f'20 {PARAMS[PARAM_XMIPP_DIRECTORY][SHORT_VERSION]} /path/to/my/build/dir {PARAMS[PARAM_BRANCH][SHORT_VERSION]} devel'
+		f'20 {PARAMS[PARAM_BRANCH][SHORT_VERSION]} devel'
 	],
 	MODE_ALL: [
 		'./xmipp',
 		f'./xmipp {MODE_ALL}',
 		f'./xmipp {PARAMS[PARAM_JOBS][SHORT_VERSION]} 20',
-		f'./xmipp {PARAMS[PARAM_XMIPP_DIRECTORY][SHORT_VERSION]} /path/to/my/build/dir',
 		f'./xmipp {PARAMS[PARAM_BRANCH][SHORT_VERSION]} devel',
 		f'./xmipp {MODE_ALL} {PARAMS[PARAM_JOBS][SHORT_VERSION]} 20 '
-		f'{PARAMS[PARAM_XMIPP_DIRECTORY][SHORT_VERSION]} /path/to/my/build/dir {PARAMS[PARAM_BRANCH][SHORT_VERSION]} devel'
+		f'{PARAMS[PARAM_BRANCH][SHORT_VERSION]} devel'
 	],
 	MODE_BUILD_CONFIG: [],
 	MODE_CONFIG: [
-		f'./xmipp {MODE_CONFIG} {PARAMS[PARAM_OVERWRITE][SHORT_VERSION]}'
+		f'./xmipp {MODE_CONFIG} {PARAMS[PARAM_OVERWRITE][LONG_VERSION]}'
 	],
 	MODE_GET_MODELS: [
 		f'./xmipp {MODE_GET_MODELS}',
 		f'./xmipp {MODE_GET_MODELS} {PARAMS[PARAM_MODELS_DIRECTORY][SHORT_VERSION]} /path/to/my/model/directory'
+	],
+	MODE_GET_SOURCES: [
+		f'./xmipp {MODE_GET_SOURCES}'
+		f'./xmipp {MODE_GET_SOURCES} {PARAMS[PARAM_BRANCH][SHORT_VERSION]} devel'
 	],
 	MODE_CLEAN_BIN: [],
 	MODE_CLEAN_ALL: [],

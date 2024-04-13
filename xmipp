@@ -33,14 +33,24 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 	COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, CONFIG_FILE,
 	CMAKE_CONFIGURE_ERROR, CMAKE_COMPILE_ERROR, CMAKE_INSTALL_ERROR, PARAM_LOGIN, PARAM_SHORT,
 	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_MODEL_PATH, PARAM_MODELS_DIRECTORY,
-	PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE, PARAM_XMIPP_DIRECTORY, BUILD_PATH,
-	INSTALL_PATH, BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE, CMAKE_ERROR, PARAM_OVERWRITE)
+	PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE, PARAM_OVERWRITE, BUILD_PATH, INSTALL_PATH,
+	BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE, CMAKE_ERROR, VERSION_FILE)
 from installer.utils import runStreamingJob, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
 from installer.config import readConfig, writeConfig
 from installer.cmake import getCMake, getCMakeVarsStr
 from installer.main import getSources, exitXmipp, handleRetCode, getSectionMessage, getSuccessMessage
 from installer.logger import logger, yellow, red, blue
+
+####################### EXECUTION MODES #######################
+def __getProjectRootDir() -> str:
+	"""
+	### Returns the root directory of Xmipp.
+
+	#### Returns:
+	- (str): Absolute path to Xmipp's root directory.
+	"""
+	return os.path.dirname(os.path.abspath(__file__))
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
@@ -117,7 +127,7 @@ def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}):
 	
 	# Install with CMake
 	logger(getSectionMessage("Installing with CMake"), forceConsoleOutput=True)
-	retCode = runStreamingJob(f"{cmakeExecutable} --install {BUILD_PATH} --config {BUILD_TYPE} --prefix {INSTALL_PATH}",
+	retCode = runStreamingJob(f"{cmakeExecutable} --install {BUILD_PATH} --config {BUILD_TYPE}",
 													 showOutput=True, substitute=True)
 	handleRetCode(retCode, predefinedErrorCode=CMAKE_INSTALL_ERROR, configDict=configDict)
 	
@@ -126,6 +136,7 @@ def modeConfigBuild(configDict: Dict={}):
 	### Configures the project using CMake.
 	
 	#### Params:
+	- args (Namespace): Command line arguments parsed by argparse library.
 	- configDict (dict): Optional. If provided, it will use it's variables. If not, it will read from config file.
 	"""
 	# If config variable dictionary is not received this mode is the first being executed
@@ -139,8 +150,8 @@ def modeConfigBuild(configDict: Dict={}):
 		handleRetCode(CMAKE_ERROR, predefinedErrorCode=CMAKE_ERROR)
 	
 	logger(getSectionMessage("Configuring with CMake"), forceConsoleOutput=True)
-	configureCmd = f"{cmakeExecutable} -S . -B {BUILD_PATH} -D CMAKE_INSTALL_PREFIX={INSTALL_PATH}"
-	configureCmd += f" -D CMAKE_BUILD_TYPE={BUILD_TYPE} {getCMakeVarsStr(configDict)}"
+	configureCmd = f"{cmakeExecutable} -S . -B {BUILD_PATH} -D CMAKE_BUILD_TYPE={BUILD_TYPE}"
+	configureCmd += f" {getCMakeVarsStr(configDict)}"
 	retCode = runStreamingJob(configureCmd, showOutput=True, substitute=True)
 	handleRetCode(retCode, predefinedErrorCode=CMAKE_CONFIGURE_ERROR, configDict=configDict)
 
@@ -170,6 +181,16 @@ def modeGetModels(args: argparse.Namespace):
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	pass
+
+def modeGetSources(args: argparse.Namespace):
+	"""
+	### Downloads all Xmipp's sources.
+
+	#### Params:
+	- args (Namespace): Command line arguments parsed by argparse library.
+	"""
+	# Clone sources from specified branch
+	getSources(branch=args.branch)
 
 def modeGit(args: argparse.Namespace):
 	"""
@@ -207,7 +228,10 @@ def modeVersion(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	pass
+	if not os.path.exists(VERSION_FILE):
+		warningStr = "This project has not yet been configured, so some detectable dependencies have not been properly detected.\n"
+		warningStr += "Run '' and then '' to be able to show all detectable."
+		print(yellow(warningStr))
 
 def modeAll(args: argparse.Namespace):
 	"""
@@ -223,7 +247,7 @@ def modeAll(args: argparse.Namespace):
 	configDict = modeConfig()
 
 	# Clone sources from specified branch
-	getSources(branch=args.branch)
+	modeGetSources(args)
 
 	# Configure with CMake
 	modeConfigBuild(configDict=configDict)
@@ -274,8 +298,8 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 ####################### MAIN EXECUTION THREAD #######################
 if __name__ == "__main__":
 	""" Calls main function when executed. """
-	# Defining default jobs
-	JOBS = multiprocessing.cpu_count()
+	# Defining default jobs: 120% current thread count (not all jobs take 100% of CPU time continuously)
+	JOBS = multiprocessing.cpu_count() + int(multiprocessing.cpu_count() * 0.2)
 
 	# Creating parser to parse the command-line arguments
 	parser = ErrorHandlerArgumentParser(formatter_class=GeneralHelpFormatter, prog="xmipp")
@@ -293,7 +317,6 @@ if __name__ == "__main__":
 	allSubparser = subparsers.add_parser(MODE_ALL, formatter_class=ModeHelpFormatter)
 	allSubparser.add_argument(*getParamNames(PARAM_JOBS), type=int, default=JOBS)
 	allSubparser.add_argument(*getParamNames(PARAM_BRANCH))
-	allSubparser.add_argument(*getParamNames(PARAM_XMIPP_DIRECTORY), default=DEFAULT_BUILD_DIR)
 
 	# Arguments for mode 'cleanAll'
 	cleanAllSubparser = subparsers.add_parser(MODE_CLEAN_ALL, formatter_class=ModeHelpFormatter)
@@ -305,7 +328,6 @@ if __name__ == "__main__":
 	compileAndInstallSubparser = subparsers.add_parser(MODE_COMPILE_AND_INSTALL, formatter_class=ModeHelpFormatter)
 	compileAndInstallSubparser.add_argument(*getParamNames(PARAM_JOBS), type=int, default=JOBS)
 	compileAndInstallSubparser.add_argument(*getParamNames(PARAM_BRANCH))
-	compileAndInstallSubparser.add_argument(*getParamNames(PARAM_XMIPP_DIRECTORY), default=DEFAULT_BUILD_DIR)
 
 	# Arguments for mode 'configBuild'
 	buildConfigSubparser = subparsers.add_parser(MODE_BUILD_CONFIG, formatter_class=ModeHelpFormatter)
@@ -316,7 +338,7 @@ if __name__ == "__main__":
 
 	# Arguments for mode 'getModels'
 	getModelsSubparser = subparsers.add_parser(MODE_GET_MODELS, formatter_class=ModeHelpFormatter)
-	getModelsSubparser.add_argument(*getParamNames(PARAM_MODELS_DIRECTORY), default=DEFAULT_MODELS_DIR)
+	getModelsSubparser.add_argument(*getParamNames(PARAM_MODELS_DIRECTORY), default=os.path.join(__getProjectRootDir(), DEFAULT_MODELS_DIR))
 
 	# Arguments for mode 'git'
 	gitSubparser = subparsers.add_parser(MODE_GIT, formatter_class=ModeHelpFormatter)
@@ -351,7 +373,7 @@ if __name__ == "__main__":
 		parser.error(f"Incorrect branch name \"{args.branch}\". Branch names can only be one word long.")
 
 	# Running always under this own directory.
-	os.chdir(os.path.dirname(os.path.abspath(__file__)))
+	os.chdir(__getProjectRootDir())
 
 	# Running installer in selected mode
 	runSelectedMode(parser, args)
