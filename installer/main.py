@@ -34,7 +34,7 @@ from .utils import runJob, getCurrentBranch
 from .logger import logger, yellow, green
 from .constants import (REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH, MASTER_BRANCHNAME,
 	SOURCE_CLONE_ERROR, TAG_BRANCH_NAME, INTERRUPTED_ERROR, VERSION_FILE,
-	XMIPP_VERSIONS, XMIPP, VERSION_KEY, SECTION_MESSAGE_LEN)
+	XMIPP_VERSIONS, XMIPP, VERSION_KEY, SECTION_MESSAGE_LEN, VERNAME_KEY)
 from .api import sendApiPOST
 
 ####################### COMMAND FUNCTIONS #######################
@@ -138,6 +138,24 @@ def getSectionMessage(text: str) -> str:
 	finalDashes = ''.join(['-' for _ in range(nFinalDashes)])
 	initialDashes = ''.join(['-' for _ in range(nInitialDashes)])
 	return f"{initialDashes} {text} {finalDashes}"
+
+def getVersionMessage(short: bool=False) -> str:
+	"""
+	### This function returns the message for the version mode.
+
+	#### Params:
+	- short (bool): Optional. If True, only Xmipp's version with name will be returned.
+
+	#### Returns:
+	- (str): Message for version mode.
+	"""
+	if short:
+		return XMIPP_VERSIONS[XMIPP][VERNAME_KEY]
+
+	if not os.path.exists(VERSION_FILE):
+		warningStr = "This project has not yet been configured, so some detectable dependencies have not been properly detected.\n"
+		warningStr += "Run '' and then '' to be able to show all detectable."
+		return yellow(warningStr)
 
 ####################### AUX FUNCTIONS #######################
 def __branchExists(repo: str, branch: str) -> bool:

@@ -30,16 +30,16 @@ from typing import Dict
 # Installer imports
 from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,
 	MODE_CLEAN_ALL, MODE_VERSION, MODE_GET_MODELS, MODE_TEST, MODE_GIT, MODE_ADD_MODEL, MODE_BUILD_CONFIG,
-	COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, CONFIG_FILE,
+	COMMON_USAGE_HELP_MESSAGE, DEFAULT_MODELS_DIR, CONFIG_FILE, CMAKE_INSTALL_PREFIX,
 	CMAKE_CONFIGURE_ERROR, CMAKE_COMPILE_ERROR, CMAKE_INSTALL_ERROR, PARAM_LOGIN, PARAM_SHORT,
 	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_MODEL_PATH, PARAM_MODELS_DIRECTORY,
 	PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE, PARAM_OVERWRITE, BUILD_PATH, INSTALL_PATH,
-	BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE, CMAKE_ERROR, VERSION_FILE, CMAKE_INSTALL_PREFIX)
+	BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE, CMAKE_ERROR)
 from installer.utils import runStreamingJob, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
 from installer.config import readConfig, writeConfig
 from installer.cmake import getCMake, getCMakeVarsStr
-from installer.main import getSources, exitXmipp, handleRetCode, getSectionMessage, getSuccessMessage
+from installer.main import getSources, exitXmipp, handleRetCode, getSectionMessage, getSuccessMessage, getVersionMessage
 from installer.logger import logger, yellow, red, blue
 
 ####################### EXECUTION MODES #######################
@@ -231,10 +231,7 @@ def modeVersion(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	if not os.path.exists(VERSION_FILE):
-		warningStr = "This project has not yet been configured, so some detectable dependencies have not been properly detected.\n"
-		warningStr += "Run '' and then '' to be able to show all detectable."
-		print(yellow(warningStr))
+	print(getVersionMessage(short=args.short))
 
 def modeAll(args: argparse.Namespace):
 	"""
