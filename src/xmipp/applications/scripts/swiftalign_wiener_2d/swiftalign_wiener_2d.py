@@ -126,7 +126,7 @@ def run(images_md_path: str,
     for batch_images in images_loader:
         batch_images = batch_images[0] # Due to the BatchSampler
         end = start + len(batch_images)
-        batch_images: torch.Tensor = batch_images.to(transform_device, non_blocking=True)
+        batch_images: torch.Tensor = batch_images.to(transform_device)
         batch_slice = slice(start, end)
         batch_images_md = images_md.iloc[batch_slice]
         
@@ -135,7 +135,7 @@ def run(images_md_path: str,
         defocus = torch.from_numpy(batch_images_md[[md.CTF_DEFOCUS_U, md.CTF_DEFOCUS_V, md.CTF_DEFOCUS_ANGLE]].to_numpy())
         _compute_differential_defocus_inplace(defocus[:,:2])
         defocus[:,2].deg2rad_()
-        defocus = defocus.to(transform_device, non_blocking=True)
+        defocus = defocus.to(transform_device)
         
         # Zero pad images if necessary
         padded_images = fourier.zero_pad(
