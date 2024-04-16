@@ -20,12 +20,5 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from . import ctf
-from . import fourier
-from . import alignment
-from . import classification
-from . import image
-from . import metadata
-from . import operators
-from . import transform
-from . import utils
+from .compute_ctf_image_2d import Ctf2dDesc, compute_ctf_image_2d
+from .wiener import wiener_2d
