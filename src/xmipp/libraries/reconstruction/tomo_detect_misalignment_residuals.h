@@ -84,8 +84,10 @@ public:
     /** Number of tilt-images */
     int nSize;
 
-    /** Number of tilt-images */
+    /** Execution modes */
     bool removeOutliers;
+    bool voteCriteria;
+
 
     /** Array of coordinate model structures */
     std::vector<resMod> vResMod;
