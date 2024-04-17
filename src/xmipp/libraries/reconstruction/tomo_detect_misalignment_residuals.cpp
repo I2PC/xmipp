@@ -213,6 +213,7 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 			}
 
 			std::cout << "Statistics of mahalanobis distances for tilt-image " << n << std::endl;
+			std::cout << "Number of residual models: " << numberResMod << std::endl;
 			std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
 			std::cout << "STD mahalanobis distance: " << stdMahaDist << std::endl;
 		}
