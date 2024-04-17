@@ -188,7 +188,7 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 
 		size_t numberResMod = resMod_image.size();
 
-		if (numberResMod > 0)
+		if (numberResMod > 1)
 		{
 
 			double sumMahaDist = 0;
