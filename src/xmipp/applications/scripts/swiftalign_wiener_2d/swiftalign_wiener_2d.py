@@ -182,14 +182,7 @@ def run(images_md_path: str,
         batch_images_fourier *= wiener_filters
 
         # Perform the inverse FFT computaion
-<<<<<<< HEAD
-        torch.fft.irfft2(batch_images_fourier, out=batch_images)
-
-        # Store the result
-        output_images[batch_slice] = batch_images.to('cpu', non_blocking=True)
-=======
         torch.fft.irfft2(batch_images_fourier, out=padded_images)
->>>>>>> olz_torch_wiener
         
         # Undo padding and store
         if padded_images is batch_images:
