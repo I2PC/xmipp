@@ -25,6 +25,9 @@ include(ExternalProject)
 function(fetch_cuFFTAdvisor)
 	set(SOURCE_DIR ${CMAKE_BINARY_DIR}/cuFFTAdvisor)
 
+	# Find make
+	find_program(MAKE_EXECUTABLE make)
+
 	ExternalProject_Add(
 		build_cuFFTAdvisor
 		GIT_REPOSITORY https://github.com/HiPerCoRe/cuFFTAdvisor.git
@@ -32,7 +35,9 @@ function(fetch_cuFFTAdvisor)
 		SOURCE_DIR ${SOURCE_DIR}
 		UPDATE_COMMAND ""
 		CONFIGURE_COMMAND ""
-		BUILD_COMMAND make -C <SOURCE_DIR> libcuFFTAdvisor.so
+		BUILD_COMMAND 
+			${CMAKE_COMMAND} -E env "PATH=${CUDAToolkit_BIN_DIR}:$ENV{PATH}" 
+			${MAKE_EXECUTABLE} -C <SOURCE_DIR> libcuFFTAdvisor.so
 		INSTALL_COMMAND ""
 		BUILD_IN_SOURCE TRUE
 	)
