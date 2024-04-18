@@ -61,7 +61,7 @@ protected:
         int imax=SL.symsNo();
 		
 		std::vector<double> rotList, tiltList;
-		make_even_distribution(rotList, tiltList, 5.0, SL, false);
+		make_even_distribution(rotList, tiltList, 2.0, SL, false);
 
 		Matrix2D<double> Laux, Raux;
         for (size_t objId : mdIn.ids())
@@ -85,8 +85,8 @@ protected:
 				{
 					bestDist=dist;
 					bestrot=newrot;
-					besttilt=tilt;
-					bestpsi=psi;
+					besttilt=newtilt;
+					bestpsi=newpsi;
 				}
 			}
 
