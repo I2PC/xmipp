@@ -26,7 +26,7 @@
 Submodule containing all constants needed for handling errors during Xmipp's installation.
 """
 
-from .main import CMAKE_INSTALL_DOCS_URL, LOG_FILE
+from .main import CMAKE_INSTALL_DOCS_URL, LOG_FILE, CONFIG_FILE
 
 # Error codes
 INTERRUPTED_ERROR = -1
@@ -43,6 +43,7 @@ IO_ERROR = 7
 __CHECK_LOG_MESSAGE = f'Check the inside file \'{LOG_FILE}\'.'
 ERROR_CODE = {
 	INTERRUPTED_ERROR: ['Process was interrupted by the user.', ''],
+	UNKOW_ERROR: ['', ''],
 	SOURCE_CLONE_ERROR: ['Error cloning xmipp repository with git.', 'Please review the internet connection and the git package.'],
 	CMAKE_ERROR: ['There was an error with CMake.', f'Please install it by following the instructions at {CMAKE_INSTALL_DOCS_URL}'],
 	CMAKE_CONFIGURE_ERROR: ['Error configuring with CMake.', __CHECK_LOG_MESSAGE],

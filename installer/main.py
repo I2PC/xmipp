@@ -27,15 +27,18 @@ This module contains the necessary functions to run most installer commands.
 
 # General imports
 import os, sys
-from typing import Tuple, Dict, Optional
+from typing import Tuple, Optional
 
 # Module imports
-from .utils import runJob, getCurrentBranch
-from .logger import logger, yellow, green
+from .utils import runJob, getCurrentBranch, isProductionMode
+from .logger import logger, yellow, green, bold
 from .constants import (REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH, MASTER_BRANCHNAME,
-	SOURCE_CLONE_ERROR, TAG_BRANCH_NAME, INTERRUPTED_ERROR, VERSION_FILE,
-	XMIPP_VERSIONS, XMIPP, VERSION_KEY, SECTION_MESSAGE_LEN, VERNAME_KEY)
-from .api import sendApiPOST
+	SOURCE_CLONE_ERROR, TAG_BRANCH_NAME, INTERRUPTED_ERROR, VERSION_FILE, RELEASE_DATE,
+	XMIPP_VERSIONS, XMIPP, VERSION_KEY, SECTION_MESSAGE_LEN, VERNAME_KEY, MODE_GET_SOURCES,
+	MODE_CONFIG_BUILD, CONFIG_FILE)
+from .api import sendApiPOST, getOSReleaseName
+from .cmake import parseCmakeVersions
+from .config import getConfigDate
 
 ####################### COMMAND FUNCTIONS #######################
 def getSources(branch: str=None):
@@ -53,28 +56,28 @@ def getSources(branch: str=None):
 		message = output if retCode else ''
 		handleRetCode(retCode, predefinedErrorCode=SOURCE_CLONE_ERROR, message=message)
 
-def exitXmipp(retCode: int=0):
+def exitXmipp(retCode: int=0, sendAPI: bool=True):
 	"""
 	### This function exits Xmipp with the given return code, processing it as a success or an error.
-	
+
 	#### Params:
 	- retCode (int): Optional. Error code.
+	- sendAPI (bool): Optional. If True, API message will be sent.
 	"""
 	# Send API message
-	if os.path.exists(VERSION_FILE) and retCode != INTERRUPTED_ERROR:
+	if sendAPI and os.path.exists(VERSION_FILE) and retCode != INTERRUPTED_ERROR:
 		sendApiPOST(retCode=retCode)
 	
 	# End execution
 	sys.exit(retCode)
 
-def handleRetCode(realRetCode: int, predefinedErrorCode: int=0, configDict: Dict={}, message: str=''):
+def handleRetCode(realRetCode: int, predefinedErrorCode: int=0, message: str=''):
 	"""
 	### This function checks the given return code and handles the appropiate actions.
 
 	#### Params:
 	- realRetCode (int): Real return code of the called function.
 	- predefinedErrorCode (int): Optional. Predefined error code for the caller code block in case of error.
-	- configDict (dict): Optional. Dictionary containing all variables in the config file.
 	- message (str): Optional. Message that will be displayed if there is an error th
 	"""
 	if realRetCode:
@@ -151,11 +154,36 @@ def getVersionMessage(short: bool=False) -> str:
 	"""
 	if short:
 		return XMIPP_VERSIONS[XMIPP][VERNAME_KEY]
+	
+	# Main info
+	rightSectionStart = 25
+	versionType = 'release' if isProductionMode() else getCurrentBranch()
+	versionMessage = bold(f"Xmipp {XMIPP_VERSIONS[XMIPP][VERSION_KEY]} ({versionType})\n\n")
+	versionMessage += f"{__getVersionLineWithSpaces('Release date: ', rightSectionStart)}{RELEASE_DATE}\n"
+	versionMessage += f"{__getVersionLineWithSpaces('Compilation date: ', rightSectionStart)}{getConfigDate(CONFIG_FILE)}\n"
+	versionMessage += f"{__getVersionLineWithSpaces('System version: ', rightSectionStart)}{getOSReleaseName()}\n"
 
-	if not os.path.exists(VERSION_FILE):
+	# Get sources branch
+	for source in XMIPP_SOURCES:
+		sourcePath = os.path.join(SOURCES_PATH, source)
+		currentCommit = __getCurrentCommit(dir=sourcePath)
+		branchName = getCurrentBranch(dir=sourcePath)
+		branchName = branchName if branchName != 'HEAD' else __getCommitName(currentCommit, dir=sourcePath)
+		sourceText = f"{source} branch: "
+		versionMessage += f"{__getVersionLineWithSpaces(sourceText, rightSectionStart)}{branchName} ({currentCommit})\n"
+	versionMessage += "\n"
+
+	# Getting versions from version file
+	if os.path.exists(VERSION_FILE):
+		versionDict = parseCmakeVersions(VERSION_FILE)
+		for package in versionDict:
+			versionMessage += f"{__getVersionLineWithSpaces(f'{package}: ', rightSectionStart)}{versionDict[package]}\n"
+		versionMessage = versionMessage[:-1]
+	else:
 		warningStr = "This project has not yet been configured, so some detectable dependencies have not been properly detected.\n"
-		warningStr += "Run '' and then '' to be able to show all detectable."
-		return yellow(warningStr)
+		warningStr += f"Run '{MODE_GET_SOURCES}' and then '{MODE_CONFIG_BUILD}' to be able to show all detectable."
+		versionMessage += yellow(warningStr)
+	return versionMessage
 
 ####################### AUX FUNCTIONS #######################
 def __branchExists(repo: str, branch: str) -> bool:
@@ -263,3 +291,56 @@ def __getPredefinedError(realRetCode: int=0, desiredRetCode: int=0) -> int:
 	- desiredRetCode (int): Optional. Predefined code corresponding to caller code.
 	"""
 	return realRetCode if realRetCode == INTERRUPTED_ERROR else desiredRetCode
+
+def __getCurrentCommit(dir: str="./") -> str:
+	"""
+	### This function returns the current commit short hash of a given repository:
+
+	#### Params:
+	- dir (str): Optional. Directory to repository.
+
+	#### Returns:
+	- (str): Current commit short hash, or empty string if it is not a repo or there were errors.
+	"""
+	retCode, output = runJob("git rev-parse --short HEAD", cwd=dir)
+	if retCode or not output:
+		return ''
+	return output
+
+def __getCommitName(commit: str, dir: str="./") -> str:
+	"""
+	### This function returns the name of the commit branch. It can be a branch name or a release name.
+
+	#### Params:
+	- commit (str): Commit hash
+	- dir (str): Optional. Directory to repository.
+
+	#### Returns:
+	- (str): Name of the commit branch or release.
+	"""
+	retCode, output = runJob(f"git name-rev {commit}", cwd=dir)
+	if retCode or not output:
+		return ''
+
+	# Extract name from commit
+	return output.replace(commit, "").replace(" ", "")
+
+def __getVersionLineWithSpaces(text: str, desiredLen: int) -> str:
+	"""
+	### This function returns the given text with additional spaces so that it has the desired length.
+
+	#### Params:
+	- text (str): Text where extra spaces could be added to.
+	- desiredLen (int): Target length for the text.
+
+	#### Returns:
+	- (str): Given text with as much spaces to the right so that it fits the desired length.
+	"""
+	# Check if text is already as long or longer than the desired length
+	textLen = len(text)
+	if textLen >= desiredLen:
+		return text
+	
+	# Crafting spaces and adding them to the right
+	spaces = ''.join([' ' for _ in range(desiredLen - textLen)])
+	return f"{text}{spaces}"

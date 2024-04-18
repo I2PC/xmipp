@@ -21,14 +21,17 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
+import os, re
 from typing import Dict, Tuple, Optional
 from datetime import datetime
 from copy import copy
+from .logger import logger, yellow
 from .constants import (CONFIG_VARIABLES, CONFIG_DEFAULT_VALUES, TOGGLES,
-  LOCATIONS, COMPILATION_FLAGS, ON, OFF)
+  LOCATIONS, COMPILATION_FLAGS, ON, OFF, CONFIG_FILE)
 
-ASSIGNMENT_SEPARATOR = '='
-COMMENT_ESCAPE = '#'
+__ASSIGNMENT_SEPARATOR = '='
+__COMMENT_ESCAPE = '#'
+__LAST_MODIFIED_TEXT = "Config file automatically generated on"
 
 def __parseConfigLine(lineNumber: int, line: str) -> Optional[Tuple[str, str]]:
   """
@@ -42,14 +45,14 @@ def __parseConfigLine(lineNumber: int, line: str) -> Optional[Tuple[str, str]]:
 	- (tuple(str, str)): Tuple containing the read key-value pair.
 	"""
   # Skip if comments
-  line = line.split(COMMENT_ESCAPE, maxsplit=2)[0].strip()
+  line = line.split(__COMMENT_ESCAPE, maxsplit=2)[0].strip()
   
   # Check if empty line
   if not line:
     return None
   
   # Try to parse the line
-  tokens = line.split(ASSIGNMENT_SEPARATOR, maxsplit=1)
+  tokens = line.split(__ASSIGNMENT_SEPARATOR, maxsplit=1)
   if len(tokens) != 2:
     raise RuntimeError(f'Unable to parse line {lineNumber+1}: {line}')
   
@@ -71,7 +74,7 @@ def __makeConfigLine(key: str, value: str, defaultValue: str) -> str:
 	"""
   defaultValue = '' if defaultValue is None else defaultValue
   value = defaultValue if value is None else value
-  return key + ASSIGNMENT_SEPARATOR + value
+  return key + __ASSIGNMENT_SEPARATOR + value
 
 def readConfig(path: str) -> Dict[str, str]:
   """
@@ -87,7 +90,14 @@ def readConfig(path: str) -> Dict[str, str]:
   
   with open(path, 'r') as configFile:
     for i, line in enumerate(configFile):
-      keyval = __parseConfigLine(i, line)
+      try:
+        keyval = __parseConfigLine(i, line)
+      except RuntimeError as rte:
+        warningStr = f"WARNING: There was an error parsing {CONFIG_FILE} file: {rte}\n"
+        warningStr += "Contents of config file won't be read, default values will be used instead.\n"
+        warningStr += "You can create a new file template from scratch running './xmipp config -o'."
+        logger(yellow(warningStr), forceConsoleOutput=True)
+        return CONFIG_DEFAULT_VALUES
       if keyval is not None:
         key, value = keyval
         result[key] = value
@@ -131,5 +141,32 @@ def writeConfig(path: str, configDict: Dict=None):
       for variable in variables.keys():
         lines.append(__makeConfigLine(variable, variables[variable], '') + '\n')
 
-    lines.append(f"\n# Config file automatically generated on {datetime.today()}\n")
+    lines.append(f"\n# {__LAST_MODIFIED_TEXT} {datetime.today()}\n")
     configFile.writelines(lines)
+
+def getConfigDate(path: str) -> str:
+  """
+  ### This function obtains from the config file the date of its last modification.
+
+  #### Params:
+  - path (str): Path to the config file.
+
+  #### Returns:
+  - (str): Date formatted in dd/mm/yyyy.
+  """
+  if not os.path.exists(path):
+    return ''
+  
+  # Extract line with date, and date from such line
+  dateStr = ''
+  with open(path, 'r') as configFile:
+    for line in configFile:
+        if __LAST_MODIFIED_TEXT in line:
+          match = re.search(r'\d{4}-\d{2}-\d{2}', line)
+          if match:
+            dateStr = match.group()
+  
+  if dateStr:
+    dateStr = datetime.strptime(dateStr, '%Y-%m-%d').strftime('%d/%m/%Y')
+
+  return dateStr

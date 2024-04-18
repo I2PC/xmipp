@@ -152,11 +152,9 @@ class Logger:
 		- forceConsoleOutput (bool): Optional. If True, text is also printed through terminal.
 		- substitute (bool): Optional. If True, previous line is substituted with new text. Only used when forceConsoleOutput = True.
 		"""
-		# Check if log file has been provided
-		if self.__logFile is None:
-			raise FileNotFoundError("Log file has not been initialized.")
-		
-		print(removeNonPrintable(text), file=self.__logFile, flush=True)
+		if self.__logFile is not None:
+			print(removeNonPrintable(text), file=self.__logFile, flush=True)
+			
 		if self.__outputToConsole or forceConsoleOutput:
 			# Calculate number of lines to substitute if substitution was requested
 			substitutionStr = ''.join([f'{UP}{REMOVE_LINE}' for _ in range(self.__getNLastLines())])

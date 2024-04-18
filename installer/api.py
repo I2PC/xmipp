@@ -70,6 +70,41 @@ def sendApiPOST(retCode: int=0):
 		conn.close()
 	
 ####################### UTILS FUNCTIONS #######################
+def getOSReleaseName() -> str:
+	"""
+	### This function returns the name of the current system OS release.
+
+	#### Returns:
+	- (str): OS release name.
+	"""
+	# Initializing default release name 
+	releaseName = UNKNOWN_VALUE
+	
+	# Text around release name
+	textBefore = 'PRETTY_NAME="'
+	textAfter = '"\n'
+
+	# Obtaining os release name
+	retCode, name = runJob('cat /etc/os-release')
+
+	# Look for release name if command did not fail
+	if retCode == 0:
+		# Find release name's line in command output
+		targetStart = name.find(textBefore)
+		if targetStart != 1:
+			# Search end of release name's line
+			nameEnd = name[targetStart:].find(textAfter)
+
+			# Calculate release name's start index
+			nameStart = targetStart + len(textBefore)
+			if nameEnd != -1 and nameStart != nameEnd:
+				# If everything was correctly found and string is 
+				# not empty, extract release name
+				releaseName = name[nameStart:nameEnd]
+
+	# Return release name
+	return releaseName
+
 def __getJSON(retCode: int=0) -> Optional[Dict]:
 	"""
 	### Creates a JSON with the necessary data for the API POST message.
@@ -88,7 +123,7 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 	# Obtaining variables in parallel
 	data = parseCmakeVersions(VERSION_FILE)
 	jsonData = runParallelJobs([
-		(__getOSReleaseName, ()),
+		(getOSReleaseName, ()),
 		(__getArchitectureName, ()),
 		(getCurrentBranch, ()),
 		(isBranchUpToDate, ()),
@@ -197,41 +232,6 @@ def __getLogTail() -> Optional[str]:
 
 	# Return content if it went right
 	return output if retCode == 0 else None
-
-def __getOSReleaseName() -> str:
-	"""
-	### This function returns the name of the current system OS release.
-
-	#### Returns:
-	- (str): OS release name.
-	"""
-	# Initializing default release name 
-	releaseName = UNKNOWN_VALUE
-	
-	# Text around release name
-	textBefore = 'PRETTY_NAME="'
-	textAfter = '"\n'
-
-	# Obtaining os release name
-	retCode, name = runJob('cat /etc/os-release')
-
-	# Look for release name if command did not fail
-	if retCode == 0:
-		# Find release name's line in command output
-		targetStart = name.find(textBefore)
-		if targetStart != 1:
-			# Search end of release name's line
-			nameEnd = name[targetStart:].find(textAfter)
-
-			# Calculate release name's start index
-			nameStart = targetStart + len(textBefore)
-			if nameEnd != -1 and nameStart != nameEnd:
-				# If everything was correctly found and string is 
-				# not empty, extract release name
-				releaseName = name[nameStart:nameEnd]
-
-	# Return release name
-	return releaseName
 
 def __getArchitectureName() -> str:
 	"""

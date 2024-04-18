@@ -30,6 +30,7 @@ from .main import XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN
 # Xmipp's current versions
 __LATEST_RELEASE_NUMBER = '3.XX.YY.0'
 __LATEST_RELEASE_NAME = 'v3.XX.YY-TBD'
+RELEASE_DATE = 'dd/mm/yyyy'
 #####################################
 DEVEL_BRANCHNAME = 'devel'					
 MASTER_BRANCHNAME = 'master'				

@@ -29,12 +29,12 @@ from typing import Dict
 
 # Installer imports
 from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,
-	MODE_CLEAN_ALL, MODE_VERSION, MODE_GET_MODELS, MODE_TEST, MODE_GIT, MODE_ADD_MODEL, MODE_BUILD_CONFIG,
+	MODE_CLEAN_ALL, MODE_VERSION, MODE_GET_MODELS, MODE_TEST, MODE_GIT, MODE_ADD_MODEL, MODE_CONFIG_BUILD,
 	COMMON_USAGE_HELP_MESSAGE, DEFAULT_MODELS_DIR, CONFIG_FILE, CMAKE_INSTALL_PREFIX,
 	CMAKE_CONFIGURE_ERROR, CMAKE_COMPILE_ERROR, CMAKE_INSTALL_ERROR, PARAM_LOGIN, PARAM_SHORT,
 	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_MODEL_PATH, PARAM_MODELS_DIRECTORY,
 	PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE, PARAM_OVERWRITE, BUILD_PATH, INSTALL_PATH,
-	BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE, CMAKE_ERROR)
+	BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE, CMAKE_ERROR, MODE_GET_SOURCES)
 from installer.utils import runStreamingJob, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
 from installer.config import readConfig, writeConfig
@@ -89,13 +89,13 @@ def modeCleanAll():
 	warningStr = "WARNING: This will DELETE ALL content from src and build.\n"
 	warningStr += "\tNotice that if you have unpushed changes, they will be deleted.\n"
 	warningStr += f"\nIf you are sure you want to do this, type '{confirmationText}' (case sensitive):"
-	print(yellow(warningStr))
+	logger(yellow(warningStr), forceConsoleOutput=True)
 
 	try:
 		userInput = input()
 	except KeyboardInterrupt:
 		userInput = ''
-		print("")
+		logger("", forceConsoleOutput=True)
 	if userInput == confirmationText:
 		# Get xmipp sources
 		xmippSources = [os.path.join(SOURCES_PATH, source) for source in XMIPP_SOURCES]
@@ -104,7 +104,7 @@ def modeCleanAll():
 		installDir = configDict.get(CMAKE_INSTALL_PREFIX, INSTALL_PATH)
 		runJob(f"rm -rf {BUILD_PATH} {installDir} {' '.join(xmippSources)} {CONFIG_FILE}", showCommand=True)
 	else:
-		print(red("Operation cancelled."))
+		logger(red("Operation cancelled."), forceConsoleOutput=True)
 
 def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}):
 	"""
@@ -132,7 +132,7 @@ def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}):
 	logger(getSectionMessage("Installing with CMake"), forceConsoleOutput=True)
 	retCode = runStreamingJob(f"{cmakeExecutable} --install {BUILD_PATH} --config {BUILD_TYPE}",
 													 showOutput=True, substitute=True)
-	handleRetCode(retCode, predefinedErrorCode=CMAKE_INSTALL_ERROR, configDict=configDict)
+	handleRetCode(retCode, predefinedErrorCode=CMAKE_INSTALL_ERROR)
 	
 def modeConfigBuild(configDict: Dict={}):
 	"""
@@ -156,7 +156,7 @@ def modeConfigBuild(configDict: Dict={}):
 	configureCmd = f"{cmakeExecutable} -S . -B {BUILD_PATH} -D CMAKE_BUILD_TYPE={BUILD_TYPE}"
 	configureCmd += f" {getCMakeVarsStr(configDict)}"
 	retCode = runStreamingJob(configureCmd, showOutput=True, substitute=True)
-	handleRetCode(retCode, predefinedErrorCode=CMAKE_CONFIGURE_ERROR, configDict=configDict)
+	handleRetCode(retCode, predefinedErrorCode=CMAKE_CONFIGURE_ERROR)
 
 def modeConfig(overwrite: bool=False) -> Dict:
 	"""
@@ -203,15 +203,15 @@ def modeGit(args: argparse.Namespace):
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	cmd = f"git {' '.join(args.command)}"
-	print(f"Running command '{cmd}' for all xmipp sources...")
+	logger(f"Running command '{cmd}' for all xmipp sources...", forceConsoleOutput=True)
 	for source in XMIPP_SOURCES:
-		print("")
+		logger("", forceConsoleOutput=True)
 		# Check if source exists to perform command, else skip
 		sourcePath = os.path.abspath(os.path.join(SOURCES_PATH, source))
 		if not os.path.exists(sourcePath):
-			print(yellow(f"WARNING: Source {source} does not exist in path {sourcePath}. Skipping."))
+			logger(yellow(f"WARNING: Source {source} does not exist in path {sourcePath}. Skipping."), forceConsoleOutput=True)
 			continue
-		print(blue(f"Running command for {source} in path {sourcePath}..."))
+		logger(blue(f"Running command for {source} in path {sourcePath}..."), forceConsoleOutput=True)
 		runJob(cmd, cwd=sourcePath, showOutput=True, showError=True)
 
 def modeTest(parser, args=argparse.Namespace):
@@ -231,7 +231,7 @@ def modeVersion(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	print(getVersionMessage(short=args.short))
+	logger(getVersionMessage(short=args.short), forceConsoleOutput=True)
 
 def modeAll(args: argparse.Namespace):
 	"""
@@ -263,22 +263,28 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	- parser (ErrorHandlerArgumentParser): Parser object used to parse the arguments.
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
+	sendAPI = False
 	if args.mode == MODE_ADD_MODEL:
 		modeAddModel(args)
 	elif args.mode == MODE_ALL:
 		modeAll(args)
+		sendAPI = True
 	elif args.mode == MODE_CLEAN_ALL:
 		modeCleanAll()
 	elif args.mode == MODE_CLEAN_BIN:
 		modeCleanBin()
 	elif args.mode == MODE_COMPILE_AND_INSTALL:
 		modeCompileAndInstall(args)
-	elif args.mode == MODE_BUILD_CONFIG:
+		sendAPI = True
+	elif args.mode == MODE_CONFIG_BUILD:
 		modeConfigBuild()
+		sendAPI = True
 	elif args.mode == MODE_CONFIG:
 		modeConfig(overwrite=args.overwrite)
 	elif args.mode == MODE_GET_MODELS:
 		modeGetModels(args)
+	elif args.mode == MODE_GET_SOURCES:
+		modeGetSources(args)
 	elif args.mode == MODE_GIT:
 		modeGit(args)
 	elif args.mode == MODE_TEST:
@@ -287,13 +293,13 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 		modeVersion(args)
 	else:
 		# If method was none of the above, exit with error
-		logger.logError(f"Mode \"{args.mode}\" not recognized. {COMMON_USAGE_HELP_MESSAGE}")
-		exitXmipp(retCode=1)
+		logger(red(f"Mode \"{args.mode}\" not recognized. {COMMON_USAGE_HELP_MESSAGE}"), forceConsoleOutput=True)
+		exitXmipp(retCode=1, sendAPI=False)
 	
 	# Print success message for specific modes
 	if args.mode == MODE_ALL or args.mode == MODE_COMPILE_AND_INSTALL:
 		logger(getSuccessMessage(), forceConsoleOutput=True)
-	exitXmipp()
+	exitXmipp(sendAPI=sendAPI)
 	
 ####################### MAIN EXECUTION THREAD #######################
 if __name__ == "__main__":
@@ -330,7 +336,7 @@ if __name__ == "__main__":
 	compileAndInstallSubparser.add_argument(*getParamNames(PARAM_BRANCH))
 
 	# Arguments for mode 'configBuild'
-	buildConfigSubparser = subparsers.add_parser(MODE_BUILD_CONFIG, formatter_class=ModeHelpFormatter)
+	buildConfigSubparser = subparsers.add_parser(MODE_CONFIG_BUILD, formatter_class=ModeHelpFormatter)
 
 	# Arguments for mode 'config'
 	configSubparser = subparsers.add_parser(MODE_CONFIG, formatter_class=ModeHelpFormatter)
@@ -339,6 +345,10 @@ if __name__ == "__main__":
 	# Arguments for mode 'getModels'
 	getModelsSubparser = subparsers.add_parser(MODE_GET_MODELS, formatter_class=ModeHelpFormatter)
 	getModelsSubparser.add_argument(*getParamNames(PARAM_MODELS_DIRECTORY), default=os.path.join(__getProjectRootDir(), DEFAULT_MODELS_DIR))
+
+	# Arguments for mode 'getSources'
+	getSourcesSubparser = subparsers.add_parser(MODE_GET_SOURCES, formatter_class=ModeHelpFormatter)
+	getSourcesSubparser.add_argument(*getParamNames(PARAM_BRANCH))
 
 	# Arguments for mode 'git'
 	gitSubparser = subparsers.add_parser(MODE_GIT, formatter_class=ModeHelpFormatter)

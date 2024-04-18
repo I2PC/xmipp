@@ -37,7 +37,7 @@ MODE_ALL = 'all'
 MODE_CLEAN_ALL = 'cleanAll'
 MODE_CLEAN_BIN = 'cleanBin'
 MODE_COMPILE_AND_INSTALL = 'compileAndInstall'
-MODE_BUILD_CONFIG = 'configBuild'
+MODE_CONFIG_BUILD = 'configBuild'
 MODE_CONFIG = 'config'
 MODE_GET_MODELS = 'getModels'
 MODE_GET_SOURCES = 'getSources'
@@ -50,8 +50,8 @@ MODES = {
 	'General': {
 		MODE_VERSION: ['Returns the version information. Add \'--short\' to print only the version number.'],
 		MODE_COMPILE_AND_INSTALL: ['Compiles and installs Xmipp based on already obtained sources.'],
-		MODE_ALL: [f'Default param. Runs {MODE_CONFIG}, {MODE_BUILD_CONFIG}, and {MODE_COMPILE_AND_INSTALL}.'],
-		MODE_BUILD_CONFIG: ['Configures the project with CMake.']
+		MODE_ALL: [f'Default param. Runs {MODE_CONFIG}, {MODE_CONFIG_BUILD}, and {MODE_COMPILE_AND_INSTALL}.'],
+		MODE_CONFIG_BUILD: ['Configures the project with CMake.']
 	},
 	'Config': {
 		MODE_CONFIG: ['Generates a config file template with default values.'],
@@ -162,10 +162,10 @@ MODE_ARGS = {
 	MODE_VERSION: [PARAM_SHORT],
 	MODE_COMPILE_AND_INSTALL: [PARAM_JOBS, PARAM_BRANCH],
 	MODE_ALL: [PARAM_JOBS, PARAM_BRANCH],
-	MODE_BUILD_CONFIG: [],
+	MODE_CONFIG_BUILD: [],
 	MODE_CONFIG: [PARAM_OVERWRITE],
 	MODE_GET_MODELS: [PARAM_MODELS_DIRECTORY],
-	MODE_GET_SOURCES: [],
+	MODE_GET_SOURCES: [PARAM_BRANCH],
 	MODE_CLEAN_BIN: [],
 	MODE_CLEAN_ALL: [],
 	MODE_TEST: [PARAM_TEST_NAME, PARAM_SHOW_TESTS],
@@ -194,7 +194,7 @@ MODE_EXAMPLES = {
 		f'./xmipp {MODE_ALL} {PARAMS[PARAM_JOBS][SHORT_VERSION]} 20 '
 		f'{PARAMS[PARAM_BRANCH][SHORT_VERSION]} devel'
 	],
-	MODE_BUILD_CONFIG: [],
+	MODE_CONFIG_BUILD: [],
 	MODE_CONFIG: [
 		f'./xmipp {MODE_CONFIG} {PARAMS[PARAM_OVERWRITE][LONG_VERSION]}'
 	],
