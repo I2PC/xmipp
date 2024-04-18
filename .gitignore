@@ -27,6 +27,7 @@
 
 #### Python
 *.pyc
+__pycache__
 
 #### Eclipse and so on
 .project
