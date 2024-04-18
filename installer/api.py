@@ -31,21 +31,22 @@ import re, hashlib, http.client, json, ssl
 from typing import Dict, Optional
 
 # Self imports
-from .cmake_versions import parseCmakeVersions
+from .cmake import parseCmakeVersions
 from .utils import runJob, getCurrentBranch, isBranchUpToDate, runParallelJobs
-from .constants import (API_URL, LOG_FILE, TAIL_LOG_NCHARS,
-	XMIPP_VERSIONS, XMIPP, VERSION_KEY, MASTER_BRANCHNAME, VERSION_FILE)
+from .constants import (API_URL, LOG_FILE, TAIL_LOG_NCHARS, UNKNOWN_VALUE,
+	XMIPP_VERSIONS, XMIPP, VERSION_KEY, MASTER_BRANCHNAME, VERSION_FILE, CMAKE_PYTHON,
+	CMAKE_CUDA, CMAKE_MPI, CMAKE_HDF5, CMAKE_JPEG, CMAKE_SQLITE, CMAKE_JAVA,
+	CMAKE_CMAKE, CMAKE_GCC, CMAKE_GPP)
 
-def sendApiPOST(configDict:Dict, retCode: int=0):
+def sendApiPOST(retCode: int=0):
 	"""
 	### Sends a POST request to Xmipp's metrics's API.
 	
 	#### Params:
-	- configDict (Dict): Dictionary containing all discovered or config variables.
 	- retCode (int): Optional. Return code for the API request.
 	"""
 	# Getting JSON data for curl command
-	bodyParams = __getJSON(configDict, retCode=retCode)
+	bodyParams = __getJSON(retCode=retCode)
 
 	# Send API POST request if there were no errors
 	if bodyParams is not None:
@@ -69,12 +70,11 @@ def sendApiPOST(configDict:Dict, retCode: int=0):
 		conn.close()
 	
 ####################### UTILS FUNCTIONS #######################
-def __getJSON(configDict: Dict, retCode: int=0) -> Optional[Dict]:
+def __getJSON(retCode: int=0) -> Optional[Dict]:
 	"""
 	### Creates a JSON with the necessary data for the API POST message.
 	
 	#### Params:
-	- configDict (Dict): Dictionary containing all discovered or config variables.
 	- retCode (int): Optional. Return code for the API request.
 	
 	#### Return:
@@ -88,19 +88,15 @@ def __getJSON(configDict: Dict, retCode: int=0) -> Optional[Dict]:
 	# Obtaining variables in parallel
 	data = parseCmakeVersions(VERSION_FILE)
 	jsonData = runParallelJobs([
-	#	(getOSReleaseName, ()),
-	#	(getArchitectureName, ()),
-	#	(getCUDAVersion, (getNVCC(configDict),)),
-	#	(getCmakeVersion, (getCMake(configDict),)),
-	#	(getGCCVersion, (getCC(configDict),)),
-	#	(getGXXVersion, (getCXX(configDict),)),
+		(__getOSReleaseName, ()),
+		(__getArchitectureName, ()),
 		(getCurrentBranch, ()),
 		(isBranchUpToDate, ()),
 		(__getLogTail, ())
 	])
 
 	# If branch is master or there is none, get release name
-	branchName = XMIPP_VERSIONS[XMIPP][VERSION_KEY] if not jsonData[6] or jsonData[6] == MASTER_BRANCHNAME else jsonData[6]
+	branchName = XMIPP_VERSIONS[XMIPP][VERSION_KEY] if not jsonData[2] or jsonData[2] == MASTER_BRANCHNAME else jsonData[2]
 
 	# Introducing data into a dictionary
 	return {
@@ -110,18 +106,23 @@ def __getJSON(configDict: Dict, retCode: int=0) -> Optional[Dict]:
 		"version": {
 			"os": jsonData[0],
 			"architecture": jsonData[1],
-			"cuda": data['CUDA'],
-			"cmake": data['CMAKE'],
-			"gcc": data['CC'],
-			"gpp": data['CXX'],
-			"scons": None
+			"cuda": data.get(CMAKE_CUDA),
+			"cmake": data.get(CMAKE_CMAKE),
+			"gcc": data.get(CMAKE_GCC),
+			"gpp": data.get(CMAKE_GPP),
+			"mpi": data.get(CMAKE_MPI),
+			"python": data.get(CMAKE_PYTHON),
+			"sqlite": data.get(CMAKE_SQLITE),
+			"java": data.get(CMAKE_JAVA),
+			"hdf5": data.get(CMAKE_HDF5),
+			"jpeg": data.get(CMAKE_JPEG)
 		},
 		"xmipp": {
 			"branch": branchName,
-			"updated": jsonData[7]
+			"updated": jsonData[3]
 		},
 		"returnCode": retCode,
-		"logTail": jsonData[8] if retCode else None # Only needs log tail if something went wrong
+		"logTail": jsonData[4] if retCode else None # Only needs log tail if something went wrong
 	}
 
 def __getMACAddress() -> Optional[str]:
@@ -196,3 +197,58 @@ def __getLogTail() -> Optional[str]:
 
 	# Return content if it went right
 	return output if retCode == 0 else None
+
+def __getOSReleaseName() -> str:
+	"""
+	### This function returns the name of the current system OS release.
+
+	#### Returns:
+	- (str): OS release name.
+	"""
+	# Initializing default release name 
+	releaseName = UNKNOWN_VALUE
+	
+	# Text around release name
+	textBefore = 'PRETTY_NAME="'
+	textAfter = '"\n'
+
+	# Obtaining os release name
+	retCode, name = runJob('cat /etc/os-release')
+
+	# Look for release name if command did not fail
+	if retCode == 0:
+		# Find release name's line in command output
+		targetStart = name.find(textBefore)
+		if targetStart != 1:
+			# Search end of release name's line
+			nameEnd = name[targetStart:].find(textAfter)
+
+			# Calculate release name's start index
+			nameStart = targetStart + len(textBefore)
+			if nameEnd != -1 and nameStart != nameEnd:
+				# If everything was correctly found and string is 
+				# not empty, extract release name
+				releaseName = name[nameStart:nameEnd]
+
+	# Return release name
+	return releaseName
+
+def __getArchitectureName() -> str:
+	"""
+	### This function returns the name of the system's architecture name.
+
+	#### Returns:
+	- (str): Architecture name.
+	"""
+	# Initializing to unknown value
+	archName = UNKNOWN_VALUE
+
+	# Obtaining architecture name
+	retCode, architecture = runJob('cat /sys/devices/cpu/caps/pmu_name')
+
+	# If command worked and returned info, extract it
+	if retCode == 0 and architecture:
+		archName = architecture
+	
+	# Returing architecture name
+	return archName

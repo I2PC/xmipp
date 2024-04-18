@@ -33,8 +33,8 @@ from typing import Tuple, Dict, Optional
 from .utils import runJob, getCurrentBranch
 from .logger import logger, yellow, green
 from .constants import (REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH, MASTER_BRANCHNAME,
-	SOURCE_CLONE_ERROR, INTERNAL_LOGIC_VARS, TAG_BRANCH_NAME, INTERRUPTED_ERROR,
-	XMIPP_VERSIONS, XMIPP, VERSION_KEY, SECTION_MESSAGE_LEN)
+	SOURCE_CLONE_ERROR, TAG_BRANCH_NAME, INTERRUPTED_ERROR, VERSION_FILE,
+	XMIPP_VERSIONS, XMIPP, VERSION_KEY, SECTION_MESSAGE_LEN, VERNAME_KEY)
 from .api import sendApiPOST
 
 ####################### COMMAND FUNCTIONS #######################
@@ -53,17 +53,16 @@ def getSources(branch: str=None):
 		message = output if retCode else ''
 		handleRetCode(retCode, predefinedErrorCode=SOURCE_CLONE_ERROR, message=message)
 
-def exitXmipp(retCode: int=0, configDict: Dict={}):
+def exitXmipp(retCode: int=0):
 	"""
 	### This function exits Xmipp with the given return code, processing it as a success or an error.
 	
 	#### Params:
 	- retCode (int): Optional. Error code.
-	- configDict (dict): Optional. Dictionary containing all config variables. If not empty, an API message is sent.
 	"""
 	# Send API message
-	if configDict and retCode != INTERRUPTED_ERROR:
-		sendApiPOST(configDict, retCode=retCode)
+	if os.path.exists(VERSION_FILE) and retCode != INTERRUPTED_ERROR:
+		sendApiPOST(retCode=retCode)
 	
 	# End execution
 	sys.exit(retCode)
@@ -82,7 +81,7 @@ def handleRetCode(realRetCode: int, predefinedErrorCode: int=0, configDict: Dict
 		resultCode = __getPredefinedError(realRetCode=realRetCode, desiredRetCode=predefinedErrorCode)
 		message = message if resultCode != realRetCode else ''
 		logger.logError(message, retCode=resultCode, addPortalLink=resultCode != realRetCode)
-		exitXmipp(retCode=resultCode, configDict=configDict)
+		exitXmipp(retCode=resultCode)
 	else:
 		if message:
 			logger(message)
@@ -139,6 +138,24 @@ def getSectionMessage(text: str) -> str:
 	finalDashes = ''.join(['-' for _ in range(nFinalDashes)])
 	initialDashes = ''.join(['-' for _ in range(nInitialDashes)])
 	return f"{initialDashes} {text} {finalDashes}"
+
+def getVersionMessage(short: bool=False) -> str:
+	"""
+	### This function returns the message for the version mode.
+
+	#### Params:
+	- short (bool): Optional. If True, only Xmipp's version with name will be returned.
+
+	#### Returns:
+	- (str): Message for version mode.
+	"""
+	if short:
+		return XMIPP_VERSIONS[XMIPP][VERNAME_KEY]
+
+	if not os.path.exists(VERSION_FILE):
+		warningStr = "This project has not yet been configured, so some detectable dependencies have not been properly detected.\n"
+		warningStr += "Run '' and then '' to be able to show all detectable."
+		return yellow(warningStr)
 
 ####################### AUX FUNCTIONS #######################
 def __branchExists(repo: str, branch: str) -> bool:

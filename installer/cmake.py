@@ -21,10 +21,10 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
+import shutil
 from typing import Dict, Any, List
 from .constants import CMAKE, DEFAULT_CMAKE, INTERNAL_LOGIC_VARS
 from .utils import runJob
-import shutil
 
 def getCMake(config: Dict[str, Any]) -> str:
 	"""
@@ -62,15 +62,35 @@ def getCMakeVarsStr(config: Dict) -> str:
 	return ' '.join(getCMakeVars(config))
 
 def checkPackage(package: str, config: Dict[str, Any]) -> bool:
-  cmake = getCMake(config)
-  args = []
-  args.append(f'-DNAME={package}')
-  args.append(f'-DCOMPILER_ID=GNU')
-  args.append(f'-DLANGUAGE=C')
-  args.append(f'-DMODE=EXIST')
-  args += getCMakeVars(config)
-  
-  cmd = cmake + ' ' + ' '.join(args)
-  ret, _ = runJob(cmd, logOutput=False)
-  return ret == 0
-  
+	cmake = getCMake(config)
+	args = []
+	args.append(f'-DNAME={package}')
+	args.append('-DCOMPILER_ID=GNU')
+	args.append('-DLANGUAGE=C')
+	args.append('-DMODE=EXIST')
+	args += getCMakeVars(config)
+	
+	cmd = cmake + ' ' + ' '.join(args)
+	ret, _ = runJob(cmd)
+	return ret == 0
+
+def parseCmakeVersions(path: str) -> Dict[str, Any]:
+	"""
+	### This function parses the file where versions found by CMake have been extracted.
+
+	#### Params:
+	- path (str): Path to the file containing all versions.
+
+	#### Returns:
+	- (dict): Dictionary containing all the versions from the file.
+	"""
+	result = dict()
+	
+	with open(path, 'r') as file:
+		for line in file.readlines():
+			if line:
+				packageLine = line.replace("\n", "").split('=')
+				value = packageLine[1] if  packageLine[1] else None
+				result[packageLine[0]] = value
+					
+	return result

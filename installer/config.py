@@ -23,7 +23,9 @@
 
 from typing import Dict, Tuple, Optional
 from datetime import datetime
-from .constants import CONFIG_VARIABLES, CONFIG_DEFAULT_VALUES, TOGGLES, LOCATIONS, ON, OFF
+from copy import copy
+from .constants import (CONFIG_VARIABLES, CONFIG_DEFAULT_VALUES, TOGGLES,
+  LOCATIONS, COMPILATION_FLAGS, ON, OFF)
 
 ASSIGNMENT_SEPARATOR = '='
 COMMENT_ESCAPE = '#'
@@ -55,18 +57,20 @@ def __parseConfigLine(lineNumber: int, line: str) -> Optional[Tuple[str, str]]:
   value = tokens[1].strip()
   return key, value
   
-def __makeConfigLine(key: str, value: str) -> str:
+def __makeConfigLine(key: str, value: str, defaultValue: str) -> str:
   """
 	### Composes a config file line given a key-value pair to write.
 
 	#### Params:
   - key (int): Name of the variable.
-	- value (str): Value of the variable.
+	- value (str): Value of the variable found in the config file.
+  - defaultValue (str): Default value of the variable.
 	
 	#### Returns:
 	- (str): String containing the appropiately formatted key-value pair.
 	"""
-  value = '' if value is None else value
+  defaultValue = '' if defaultValue is None else defaultValue
+  value = defaultValue if value is None else value
   return key + ASSIGNMENT_SEPARATOR + value
 
 def readConfig(path: str) -> Dict[str, str]:
@@ -90,25 +94,42 @@ def readConfig(path: str) -> Dict[str, str]:
   
   return result
 
-def writeConfig(path: str):
+def writeConfig(path: str, configDict: Dict=None):
   """
-	### Writes a template config file with empty variables.
+	### Writes a template config file with given variables, leaving the rest with default values.
 
 	#### Params:
 	- path (str): Path to the config file.
+  - configDict (dict): Optional. Dictionary containig already existing variables.
 	"""
+  variables = copy(configDict) if configDict else {}
   lines = []
   with open(path, 'w') as configFile:
     lines.append("##### TOGGLE SECTION #####\n")
     lines.append(f"# Activate or deactivate this features using values {ON}/{OFF}\n")
     for toggle in CONFIG_VARIABLES[TOGGLES]:
-      lines.append(__makeConfigLine(toggle, CONFIG_DEFAULT_VALUES[toggle]) + '\n')
+      lines.append(__makeConfigLine(toggle, variables.get(toggle), CONFIG_DEFAULT_VALUES[toggle]) + '\n')
+      variables.pop(toggle, None)
 
     lines.append("\n##### PACKAGE HOME SECTION #####\n")
     lines.append("# Use this variables to use custom installation paths for the required packages.\n")
     lines.append("# If left empty, CMake will search for those packages within your system.\n")
     for location in CONFIG_VARIABLES[LOCATIONS]:
-      lines.append(__makeConfigLine(location, CONFIG_DEFAULT_VALUES[location]) + '\n')
+      lines.append(__makeConfigLine(location, variables.get(location), CONFIG_DEFAULT_VALUES[location]) + '\n')
+      variables.pop(location, None)
+    
+    lines.append("\n##### COMPILATION FLAGS #####\n")
+    lines.append("# We recommend not modifying this variables unless you know what you are doing.\n")
+    for flag in CONFIG_VARIABLES[COMPILATION_FLAGS]:
+      lines.append(__makeConfigLine(flag, variables.get(flag), CONFIG_DEFAULT_VALUES[flag]) + '\n')
+      variables.pop(flag, None)
+    
+    # If there are extra unkown flags, add them in a different section
+    if variables:
+      lines.append("\n##### UNKNOWN VARIABLES #####\n")
+      lines.append("# This variables were not expected, but are kept here in case they might be needed.\n")
+      for variable in variables.keys():
+        lines.append(__makeConfigLine(variable, variables[variable], '') + '\n')
 
     lines.append(f"\n# Config file automatically generated on {datetime.today()}\n")
     configFile.writelines(lines)
