@@ -56,6 +56,8 @@ protected:
     
     void doAsymmetric()
     {
+    	if (fn_sym=="c1")
+    		return;
         SymList SL;
 		SL.readSymmetryFile(fn_sym);
         int imax=SL.symsNo();
