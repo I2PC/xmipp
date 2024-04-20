@@ -127,6 +127,7 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
                     # print("j=%d X[j]="%j,np.max(X[j,]))
                     k += 1
                 ypred = model.predict(X)
+                # np.set_printoptions(threshold=sys.maxsize)
                 # print(ypred)
                 predictions[i*maxSize:(i*maxSize + numPredictions), :] = ypred
 
