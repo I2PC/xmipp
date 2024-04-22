@@ -22,6 +22,7 @@
 
 function(link_to_scipion INSTALL_DIRECTORY SCIPION_SOFTWARE)
 	# Copy installation
+	file(REMOVE_RECURSE ${SCIPION_SOFTWARE}/em/xmipp) # Ensure there is no old install
 	install(
 		DIRECTORY
 			${INSTALL_DIRECTORY}/
