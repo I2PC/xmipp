@@ -126,7 +126,7 @@ def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}):
 	logger(getSectionMessage("Compiling with CMake"), forceConsoleOutput=True)
 	retCode = runStreamingJob(f"{cmakeExecutable} --build {BUILD_PATH} --config {BUILD_TYPE} -j {args.jobs}",
 													 showOutput=True, substitute=True)
-	handleRetCode(retCode, predefinedErrorCode=CMAKE_COMPILE_ERROR, configDict=configDict)
+	handleRetCode(retCode, predefinedErrorCode=CMAKE_COMPILE_ERROR)
 	
 	# Install with CMake
 	logger(getSectionMessage("Installing with CMake"), forceConsoleOutput=True)
