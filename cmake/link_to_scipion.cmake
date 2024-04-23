@@ -21,34 +21,47 @@
 # ***************************************************************************
 
 function(link_to_scipion INSTALL_DIRECTORY SCIPION_SOFTWARE)
-	# Copy installation
-	file(REMOVE_RECURSE ${SCIPION_SOFTWARE}/em/xmipp) # Ensure there is no old install
-	install(
-		DIRECTORY
+	set(SCIPION_SOFTWARE_XMIPP ${SCIPION_SOFTWARE}/em/xmipp)
+
+	# Link installation
+	file(
+		CREATE_LINK
 			${INSTALL_DIRECTORY}/
-		DESTINATION
-			${SCIPION_SOFTWARE}/em/xmipp
-		USE_SOURCE_PERMISSIONS
+			${SCIPION_SOFTWARE_XMIPP}
+		COPY_ON_ERROR
+		SYMBOLIC
 	)
 
-	# Copy python binding
-	install(
-		DIRECTORY
-			${INSTALL_DIRECTORY}/bindings/python/
-		DESTINATION
-			${SCIPION_SOFTWARE}/bindings
+	# Link python binding
+	file(GLOB PYTHON_DIR_CONTENT ${SCIPION_SOFTWARE_XMIPP}/bindings/python/*)
+	foreach(x IN LISTS PYTHON_DIR_CONTENT)
+		get_filename_component(y ${x} NAME)
+		file(
+			CREATE_LINK
+				${x}
+				${SCIPION_SOFTWARE}/bindings/${y}
+			COPY_ON_ERROR
+			SYMBOLIC
+		)
+	endforeach()
+	
+	# Link shared libraries
+	set(
+		LIBRARIES 
+			libcifpp.so
+			libcifpp.so.3
+			libcifpp.so.5.0.9
+			libsvm.so
+			libXmippCore.so
+			libXmipp.so
 	)
-
-	# Copy shared libraries
-	install(
-		FILES
-			${INSTALL_DIRECTORY}/${CMAKE_INSTALL_LIBDIR}/libcifpp.so
-			${INSTALL_DIRECTORY}/${CMAKE_INSTALL_LIBDIR}/libcifpp.so.3
-			${INSTALL_DIRECTORY}/${CMAKE_INSTALL_LIBDIR}/libcifpp.so.5.0.9
-			${INSTALL_DIRECTORY}/${CMAKE_INSTALL_LIBDIR}/libsvm.so
-			${INSTALL_DIRECTORY}/${CMAKE_INSTALL_LIBDIR}/libXmippCore.so
-			${INSTALL_DIRECTORY}/${CMAKE_INSTALL_LIBDIR}/libXmipp.so
-		DESTINATION
-			${SCIPION_SOFTWARE}/lib
-	)
+	foreach(x IN LISTS LIBRARIES)
+		file(
+			CREATE_LINK
+				${SCIPION_SOFTWARE_XMIPP}/lib/${x}
+				${SCIPION_SOFTWARE}/lib/${x}
+			COPY_ON_ERROR
+			SYMBOLIC
+		)
+	endforeach()
 endfunction()
