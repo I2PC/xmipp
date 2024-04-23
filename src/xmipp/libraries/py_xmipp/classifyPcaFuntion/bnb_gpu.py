@@ -296,7 +296,6 @@ class BnBgpu:
                 class_split = final_classes - classes
             
         newCL = [[] for i in range(classes + class_split)]
-        gClass =  [[] for i in range(final_classes)]
 
 
         step = int(np.ceil(nExp/expBatchSize))
@@ -325,8 +324,7 @@ class BnBgpu:
             
             batch_projExp_cpu[count] = self.batchExpToCpu(transforIm, freqBn, coef, cvecs)
             count+=1
-            
-                
+                          
              
             if iter >= 1 and iter < 5: 
             # if iter == 1 or iter == 3: 
@@ -345,46 +343,20 @@ class BnBgpu:
                         class_images = transforIm[matches[initBatch:endBatch, 1] == n]#.to("cpu")
                         newCL[n].append(class_images)
             
-            # else:  
-            elif iter < 14:     
+            else:  
+      
                 for n in range(classes):
                     class_images = transforIm[matches[initBatch:endBatch, 1] == n]#.to("cpu")
                     newCL[n].append(class_images)
                          
-            
-            #Perfect classes
-            
-            if iter == 14:
-   
-                thr = self.split_classes_for_range(classes, matches, 0.6)
-                
-                for n in range(classes):
-                    good_images = transforIm[(matches[initBatch:endBatch, 1] == n) & (matches[initBatch:endBatch, 2] < thr[n])]
-                    gClass[n].append(good_images)
                     
             del(transforIm)    
-            
-        
-        if iter == 14:  
-            goodCL = [torch.cat(good_images_list, dim=0) for good_images_list in gClass]
-            element = list(map(len, goodCL))
-            suma_total = sum(element)
-            print(suma_total)
-            print(element)
-            # goodclk = self.averages(mmap.data, goodCL, classes)
-            # #save data good
-            # goodclk = goodclk.cpu().detach().numpy().astype('float32')
-            # with mrcfile.new('good_classes_14.mrc', overwrite=True) as mrc:
-            #     mrc.set_data(goodclk)
-            clk = self.averages_createClasses(mmap, iter, goodCL)
-
-         
-        else:    
-            newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
-        
-                         
-            # clk = self.averages_increaseClas(mmap, iter, newCL, classes, final_classes)
-            clk = self.averages_createClasses(mmap, iter, newCL)
+                    
+   
+        newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL]    
+                     
+        # clk = self.averages_increaseClas(mmap, iter, newCL, classes, final_classes)
+        clk = self.averages_createClasses(mmap, iter, newCL)
         
         # if iter < 12:            
         # clk = self.apply_lowpass_filter(clk, 10, sampling)
@@ -418,19 +390,11 @@ class BnBgpu:
         
         # if iter == 4:  
         if iter == 3:
-            newCL = [[] for i in range(classes)]   
-            
-            thr = self.split_classes_for_range(classes, matches, 0.6)
-                
-            for n in range(classes):
-                class_images = transforIm[(matches[:, 1] == n) & (matches[:, 2] < thr[n])]
-                newCL[n].append(class_images)
-            
-            
+            newCL = [[] for i in range(classes)]              
                     
-            # for n in range(classes):
-            #     class_images = transforIm[matches[:, 1] == n]
-            #     newCL[n].append(class_images)
+            for n in range(classes):
+                class_images = transforIm[matches[:, 1] == n]
+                newCL[n].append(class_images)
                          
             del(transforIm)
             
@@ -695,11 +659,9 @@ class BnBgpu:
                 expBatchSize2 = 30000
                 numFirstBatch = 1
             elif dim <= 128:
-                # expBatchSize = 6000 
-                expBatchSize = 3000
+                expBatchSize = 6000 
                 expBatchSize2 = 9000
-                # numFirstBatch = 5
-                numFirstBatch = 10
+                numFirstBatch = 5
             elif dim <= 256:
                 expBatchSize = 1000 
                 expBatchSize2 = 2000
