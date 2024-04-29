@@ -17,6 +17,8 @@
 #include <core/matrix2d.h>
 #include <core/multidim_array.h>
 #include <core/xmipp_image.h>
+#include <data/fourier_filter.h>
+#include <data/fourier_projection.h>
 // Standard includes
 #include <vector>
 
@@ -51,6 +53,7 @@ class Program {
 	struct ConstantParameters {
 		MultidimArray<int> &VRecMaskF, &VRecMaskB;
 		Image<PrecisionType> &Vrefined;
+		Image<PrecisionType> &VZero;
 		Matrix1D<int> &vL1, &vN, &vL2, &vM;
 		std::vector<PrecisionType> &sigma;
 		int RmaxDef;
@@ -66,9 +69,14 @@ class Program {
 		std::vector<Image<PrecisionType>> &P;
 		std::vector<Image<PrecisionType>> &W;
 		const Image<PrecisionType> &Idiff;
+		const Image<PrecisionType> &Iws;
 		struct AngleParameters angles;
-		double dThr;
+		double ltv;
+		double ltk;
+		double ll1;
+		double lst;
 		PrecisionType loopStep;
+		double lambda;
 	};
 
 	struct CommonKernelParameters {
@@ -89,11 +97,13 @@ class Program {
 	/// IMPORTANT: Memory heavy operation.
 	void recoverVolumeFromGPU(Image<PrecisionType> &Vrefined);
 
+	void resize2DArray(const MultidimArray<PrecisionType> &mI, MultidimArray<PrecisionType> &mOut, int size);
+
 	explicit Program(const ConstantParameters parameters);
 	~Program();
 
    private:
-	const MultidimArrayCuda<PrecisionType> cudaMV;
+	const MultidimArrayCuda<PrecisionType> cudaMV, cudaDl1, cudaDx, cudaDy, cudaDz, cudaReg;
 
 	const int lastX, lastY, lastZ;
 
@@ -101,7 +111,7 @@ class Program {
 
 	const int *cudaVL1, *cudaVN, *cudaVL2, *cudaVM;
 
-	PrecisionType *elems, *avg, *sumSqrNorm, *stddev;
+	PrecisionType *elems, *avg, *sumSqrNorm, *stddev, *d_tv, *d_l1;
 
 	const std::vector<PrecisionType> sigma;
 

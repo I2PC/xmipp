@@ -81,8 +81,8 @@ class ProgForwardArtZernike3DGPU : public XmippMetadataProgram {
 	bool useZernike;
 	// Flag for enable/disabled image
 	int flagEnabled;
-	// Denoising threshold
-	double dThr;
+	// Regularization factors
+	double ltv, ltk, ll1, lst;
 	// Remove negative values
 	bool removeNegValues;
 
@@ -98,7 +98,7 @@ class ProgForwardArtZernike3DGPU : public XmippMetadataProgram {
 	// Volume size
 	size_t Xdim;
 	// Input image
-	Image<PrecisionType> V, Vrefined, Vout, Ifilteredp;
+	Image<PrecisionType> V, Vrefined, Vout, VZero, Ifilteredp;
 	// INput image
 	Image<double> I;
 	// Spherical mask
@@ -109,6 +109,8 @@ class ProgForwardArtZernike3DGPU : public XmippMetadataProgram {
 	std::vector<Image<PrecisionType>> W;
 	// Difference Image
 	Image<PrecisionType> Idiff;
+	// Weight sum Image
+	Image<PrecisionType> Iws;
 	// Transformation matrix
 	Matrix2D<double> A;
 	// Original angles

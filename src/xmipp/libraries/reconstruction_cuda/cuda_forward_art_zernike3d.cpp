@@ -269,6 +269,11 @@ namespace {
 template<typename PrecisionType>
 Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters parameters)
 	: cudaMV(initializeMultidimArrayCuda(parameters.Vrefined())),
+	  cudaDl1(initializeMultidimArrayCuda(parameters.VZero())),
+	  cudaDx(initializeMultidimArrayCuda(parameters.VZero())),
+	  cudaDy(initializeMultidimArrayCuda(parameters.VZero())),
+	  cudaDz(initializeMultidimArrayCuda(parameters.VZero())),
+	  cudaReg(initializeMultidimArrayCuda(parameters.VZero())),
 	  VRecMaskB(initializeMultidimArrayCuda(parameters.VRecMaskB)),
 	  sigma(parameters.sigma),
 	  cudaSigma(transferStdVectorToGpu(parameters.sigma)),
@@ -301,6 +306,11 @@ Program<PrecisionType>::~Program()
 	cudaFree(VRecMaskF);
 	cudaFree(VRecMaskB.data);
 	cudaFree(cudaMV.data);
+	cudaFree(cudaDx.data);
+	cudaFree(cudaDy.data);
+	cudaFree(cudaDz.data);
+	cudaFree(cudaDl1.data);
+	cudaFree(cudaReg.data);
 	cudaFree(cudaCoordinatesF);
 	cudaFree(const_cast<PrecisionType *>(cudaSigma));
 
@@ -376,7 +386,15 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 {
 	// Unique parameters
 	auto &mId = parameters.Idiff();
+	auto &mIws = parameters.Iws();
+	int size = 0.5 * XSIZE(mId);
+	MultidimArray<PrecisionType> mId_small, mIws_small;
+	resize2DArray(mId, mId_small, size);
+	resize2DArray(mIws, mIws_small, size);
 	auto cudaMId = initializeMultidimArrayCuda(mId);
+	auto cudaMIws = initializeMultidimArrayCuda(mIws);
+	auto cudaMId_small = initializeMultidimArrayCuda(mId_small);
+	auto cudaMIws_small = initializeMultidimArrayCuda(mIws_small);
 
 	const int step = 1;
 	size_t n = 1;
@@ -394,9 +412,18 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 
 	auto cudaR = transferMatrix2DToGpu(createRotationMatrix<PrecisionType>(parameters.angles));
 
+
+	computeTV<PrecisionType><<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaMV, cudaDx, cudaDy, cudaDz, cudaDl1, VRecMaskB, 
+																								parameters.lambda, parameters.ltv, parameters.ltk, parameters.ll1, parameters.lst);
+	computeDTV<PrecisionType><<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaReg, cudaDx, cudaDy, cudaDz, cudaDl1, VRecMaskB, 
+																									parameters.lambda, parameters.ltv, parameters.ltk, parameters.ll1, parameters.lst);
+
 	backwardKernel<PrecisionType, usesZernike>
 		<<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaMV,
 																			cudaMId,
+																			cudaMIws,
+																			cudaMId_small,
+																			cudaMIws_small,
 																			VRecMaskB,
 																			lastZ,
 																			lastY,
@@ -410,19 +437,30 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																			cudaVL2,
 																			cudaVM,
 																			commonParameters.cudaClnm,
-																			cudaR);
+																			cudaR,
+																			cudaReg);
 
+	// if (parameters.lst > 0.0)
+	// {	
+	// 	computeStdDevParams<PrecisionType>
+	// 		<<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaMV, elems, avg,
+	// 			sumSqrNorm, VRecMaskB);
+	// 	computeStdDev<PrecisionType><<<1, 1>>>(elems, avg, sumSqrNorm, stddev);
+	// 	softThreshold<PrecisionType>
+	// 		<<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaMV, stddev, parameters.lst, VRecMaskB);
+	// }	
 
-	computeStdDevParams<PrecisionType>
-	 	<<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaMV, elems, avg,
-	 		sumSqrNorm, VRecMaskB);
-	computeStdDev<PrecisionType><<<1, 1>>>(elems, avg, sumSqrNorm, stddev);
-	softThreshold<PrecisionType>
-		 <<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaMV, stddev, parameters.dThr,  VRecMaskB);
 	cudaDeviceSynchronize();
 
 	cudaFree(cudaR);
 	cudaFree(cudaMId.data);
+	cudaFree(cudaMIws.data);
+	cudaFree(cudaMId_small.data);
+	cudaFree(cudaMIws_small.data);
+	cudaFree(elems);
+	cudaFree(avg);
+	cudaFree(sumSqrNorm);
+	cudaFree(stddev);
 	freeCommonArgumentsKernel<PrecisionType>(commonParameters);
 }
 
@@ -430,6 +468,21 @@ template<typename PrecisionType>
 void Program<PrecisionType>::recoverVolumeFromGPU(Image<PrecisionType> &Vrefined)
 {
 	updateMultidimArrayWithGPUData(Vrefined(), cudaMV);
+}
+
+// Fourier 2D resizing
+template<typename PrecisionType>
+void Program<PrecisionType>::resize2DArray(const MultidimArray<PrecisionType> &mI, MultidimArray<PrecisionType> &mOut, int size)
+{
+	MultidimArray<double> mI_aux;
+	MultidimArray<PrecisionType> mId_small, mIws_small;
+	mI_aux.resizeNoCopy(mI);
+	mI_aux.setXmippOrigin();
+	typeCast(mI, mI_aux);
+	selfScaleToSizeFourier(1, size, size, mI_aux, 1);
+	mOut.resizeNoCopy(mI_aux);
+	mOut.setXmippOrigin();
+	typeCast(mI_aux, mOut);
 }
 
 // explicit template instantiation

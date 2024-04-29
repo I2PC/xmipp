@@ -61,7 +61,10 @@ void ProgForwardArtZernike3DGPU::readParams()
 	Ts = getDoubleParam("--sampling");
 	L1 = getIntParam("--l1");
 	L2 = getIntParam("--l2");
-	dThr = getDoubleParam("--dThr");
+	ltv = getDoubleParam("--ltv");
+	ltk = getDoubleParam("--ltk");
+	ll1 = getDoubleParam("--ll1");
+	lst = getDoubleParam("--lst");
 	loop_step = getIntParam("--step");
 	useZernike = checkParam("--useZernike");
 	lambda = getDoubleParam("--regularization");
@@ -131,7 +134,10 @@ void ProgForwardArtZernike3DGPU::defineParams()
 	addParamsLine("  [--blobr <b=4>]              : Blob radius for forward mapping splatting");
 	addParamsLine("  [--step <step=1>]            : Voxel index step");
 	addParamsLine("  [--sigma <Matrix1D=\"2\">]   : Gaussian sigma");
-	addParamsLine("  [--dThr <dThr=1e-6>]         : Denoising threshold");
+	addParamsLine("  [--ltv <ltv=1e-4>]           : Total variation regualrization");
+	addParamsLine("  [--ltk <ltv=1e-4>]           : Tikhonov regualrization");
+	addParamsLine("  [--ll1 <ll1=1e-4>]           : L1 regualrization");
+	addParamsLine("  [--lst <ll1=1e-4>]           : Soft threshold regualrization");
 	addParamsLine("  [--useZernike]               : Correct heterogeneity with Zernike3D coefficients");
 	addParamsLine("  [--useCTF]                   : Correct CTF during ART reconstruction");
 	addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
@@ -182,6 +188,9 @@ void ProgForwardArtZernike3DGPU::preProcess()
 
 	Vout().initZeros(V());
 	Vout().setXmippOrigin();
+
+	VZero().initZeros(V());
+	VZero().setXmippOrigin();
 
 	if (resume && fnVolO.exists()) {
 		Vrefined.read(fnVolO);
@@ -284,6 +293,7 @@ void ProgForwardArtZernike3DGPU::preProcess()
 		.VRecMaskF = VRecMaskF,
 		.VRecMaskB = VRecMaskB,
 		.Vrefined = Vrefined,
+		.VZero = VZero,
 		.vL1 = vL1,
 		.vN = vN,
 		.vL2 = vL2,
@@ -330,6 +340,10 @@ void ProgForwardArtZernike3DGPU::processImage(const FileName &fnImg,
 		std::vector<PrecisionType> vec(vectortemp.begin(), vectortemp.end());
 		clnm = vec;
 	}
+	else {
+		std::vector<PrecisionType> vec(39, 0.0);
+		clnm = vec;
+	} 
 	rowIn.getValueOrDefault(MDL_FLIP, flip, false);
 
 	if ((rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL)) && useCTF) {
@@ -612,6 +626,8 @@ void ProgForwardArtZernike3DGPU::artModel()
 		Idiff().setXmippOrigin();
 		I_shifted().initZeros((int)XSIZE(I()), (int)XSIZE(I()));
 		I_shifted().setXmippOrigin();
+		Iws().initZeros((int)XSIZE(I()), (int)XSIZE(I()));
+		Iws().setXmippOrigin();
 
 		if (useZernike)
 			zernikeModel<true, Direction::Forward>();
@@ -650,6 +666,7 @@ void ProgForwardArtZernike3DGPU::artModel()
 		double N = 0.0;
 		const auto &mIsh = I_shifted();
 		auto &mId = Idiff();
+		auto &mIws = Iws();
 		double c = 1.0;
 		FOR_ALL_ELEMENTS_IN_ARRAY2D(I())
 		{
@@ -665,7 +682,8 @@ void ProgForwardArtZernike3DGPU::artModel()
 				sumMw += c * c * A2D_ELEM(mW, i, j);
 			}
 			if (sumMw > 0.0) {
-				A2D_ELEM(mId, i, j) = lambda * (diffVal) / XMIPP_MAX(sumMw, 1.0);
+				A2D_ELEM(mId, i, j) = lambda * (diffVal);
+				A2D_ELEM(mIws, i, j) = XMIPP_MAX(sumMw, 1.0);
 				error += (diffVal) * (diffVal);
 				N++;
 			}
@@ -710,9 +728,14 @@ void ProgForwardArtZernike3DGPU::zernikeModel()
 		.P = P,
 		.W = W,
 		.Idiff = Idiff,
+		.Iws = Iws,
 		.angles = angles,
-		.dThr = dThr,
+		.ltv = ltv,
+		.ltk = ltk,
+		.ll1 = ll1,
+		.lst = lst,
 		.loopStep = static_cast<PrecisionType>(loop_step),
+		.lambda = lambda,
 	};
 
 	try {
