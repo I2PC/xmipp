@@ -445,6 +445,11 @@ void Micrograph::produce_all_images(int label, double minCost,
             else
                 SF.setValue(MDL_ENABLED, 1, id);
             //  if (ang!=0) I().rotate(-ang);
+            double mean=I().computeAvg();
+            if (compute_inverse)
+            	SF.setValue(MDL_LOCAL_AVERAGE, Dmax-(Dmax-Dmin)*mean, id);
+            else
+            	SF.setValue(MDL_LOCAL_AVERAGE, mean, id);
             I.write(fn_out, ii, true, WRITE_APPEND);
         }
     }
