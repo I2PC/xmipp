@@ -130,7 +130,8 @@ if __name__=="__main__":
         cl = torch.from_numpy(clIm).float().to(cuda)
     else:
         initStep = int(min(numFirstBatch, np.ceil(nExp/expBatchSize)))
-        cl = bnb.init_ramdon_classes(int(final_classes/2), mmap, initSubset)    
+        # cl = bnb.init_ramdon_classes(int(final_classes/2), mmap, initSubset)    
+        cl = bnb.init_ramdon_classes(final_classes, mmap, initSubset) 
     
     # file = output+"_0.mrcs"    
     # save_images(cl.cpu().numpy(), file)
@@ -163,7 +164,7 @@ if __name__=="__main__":
         Texp = torch.from_numpy(expImages).float().to(cuda)
         if mask:
             Texp = Texp * bnb.create_circular_mask(Texp)
-        del(expImages)  
+        # del(expImages)  
               
         if i < initStep:          
             batch_projExp_cpu.append( bnb.batchExpToCpu(Texp, freqBn, coef, cvecs) )           
@@ -227,14 +228,15 @@ if __name__=="__main__":
                 classes = len(cl)
         
                 if mode == "create_classes":
-                    cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, sampling, mask, sigma)
+                    cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version0(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, sampling, mask, sigma)
                 else:
-                    cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(mmap.data[initBatch:endBatch], cl, tMatrix, iter, initBatch, subset, matches, vectorshift, classes, freqBn, coef, cvecs, sampling, mask, sigma)
+                    # cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(mmap.data[initBatch:endBatch], cl, tMatrix, iter, initBatch, subset, matches, vectorshift, classes, freqBn, coef, cvecs, sampling, mask, sigma)
+                    cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(expImages, cl, tMatrix, iter, initBatch, subset, matches, vectorshift, classes, freqBn, coef, cvecs, sampling, mask, sigma)
 
                 #save classes
                 # if iter == 14:
-                #     file = output+"_%s_%s.mrcs"%(initBatch,iter+1)
-                #     save_images(cl.cpu().detach().numpy(), file)
+                file = output+"_%s_%s.mrcs"%(initBatch,iter+1)
+                save_images(cl.cpu().detach().numpy(), file)
 
                 
                 
@@ -280,7 +282,7 @@ if __name__=="__main__":
                     translation_vector[initBatch:endBatch] = tMatrix[:, :2, 2]
                     angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
                     angles_deg[initBatch:endBatch] = np.degrees(angles_rad.cpu().numpy())
-
+        del(expImages)
     counts = torch.bincount(refClas.int(), minlength=classes) 
     
         #save classes

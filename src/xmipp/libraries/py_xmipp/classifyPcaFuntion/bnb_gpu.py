@@ -366,6 +366,63 @@ class BnBgpu:
         return(clk, tMatrix, batch_projExp_cpu)
     
     
+    
+    def create_classes_version0(self, mmap, tMatrix, iter, nExp, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, sampling, mask, sigma):
+        
+        print("----------create-classes-------------")      
+            
+        newCL = [[] for i in range(classes)]
+
+
+        step = int(np.ceil(nExp/expBatchSize))
+        batch_projExp_cpu = [0 for i in range(step)]
+        
+        #rotate and translations
+        rotBatch = -matches[:,3].view(nExp,1)
+        translations = list(map(lambda i: vectorshift[i], matches[:, 4].int()))
+        translations = torch.tensor(translations, device = self.cuda).view(nExp,2)
+        
+        centerIm = mmap.data.shape[1]/2 
+        centerxy = torch.tensor([centerIm,centerIm], device = self.cuda)
+        
+        count = 0
+        for initBatch in range(0, nExp, expBatchSize):
+            
+            endBatch = min(initBatch+expBatchSize, nExp)
+                        
+            transforIm, matrixIm = self.center_particles_inverse_save_matrix(mmap.data[initBatch:endBatch], tMatrix[initBatch:endBatch], 
+                                                                             rotBatch[initBatch:endBatch], translations[initBatch:endBatch], centerxy)
+
+            if mask:
+                transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+            
+            tMatrix[initBatch:endBatch] = matrixIm
+            
+            batch_projExp_cpu[count] = self.batchExpToCpu(transforIm, freqBn, coef, cvecs)
+            count+=1
+
+ 
+            for n in range(classes):
+                    class_images = transforIm[matches[initBatch:endBatch, 1] == n]#.to("cpu")
+                    newCL[n].append(class_images)
+                
+            del(transforIm)    
+                    
+   
+        newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL]    
+                     
+        # clk = self.averages_increaseClas(mmap, iter, newCL, classes, final_classes)
+        # clk = self.averages_createClasses(mmap, iter, newCL)
+        clk = self.averages_increaseClas2(mmap, iter, newCL, classes)
+        
+
+        if mask:
+            clk = clk * self.create_gaussian_mask(clk, sigma)
+        
+        return(clk, tMatrix, batch_projExp_cpu)
+    
+    
+    
     def align_particles_to_classes(self, data, cl, tMatrix, iter, initBatch, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, sampling, mask, sigma):
         
         print("----------align-to-classes-------------")
@@ -441,7 +498,7 @@ class BnBgpu:
         M = M[:, :2, :]    
     
         Texp = torch.from_numpy(data.astype(np.float32)).to(self.cuda).unsqueeze(1)
-        # del(expImages)
+
         transforIm = kornia.geometry.warp_affine(Texp, M, dsize=(data.shape[1], data.shape[2]), mode='bilinear', padding_mode='zeros')
         transforIm = transforIm.view(batchsize, data.shape[1], data.shape[2])
         del(Texp)
@@ -528,7 +585,8 @@ class BnBgpu:
             if len(newCL[n]) > 0:
                 clk.append(torch.mean(newCL[n], dim=0))
             else:
-                clk.append(torch.zeros((mmap.data.shape[1], mmap.data.shape[2]), device=newCL[0].device))
+                # clk.append(torch.zeros((mmap.data.shape[1], mmap.data.shape[2]), device=newCL[0].device))
+                clk.append(torch.zeros((mmap.shape[1], mmap.shape[2]), device=newCL[0].device))
         clk = torch.stack(clk)
         return clk
     
