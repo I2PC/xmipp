@@ -235,8 +235,8 @@ if __name__=="__main__":
 
                 #save classes
                 # if iter == 14:
-                file = output+"_%s_%s.mrcs"%(initBatch,iter+1)
-                save_images(cl.cpu().detach().numpy(), file)
+                # file = output+"_%s_%s.mrcs"%(initBatch,iter+1)
+                # save_images(cl.cpu().detach().numpy(), file)
 
                 
                 
