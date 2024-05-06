@@ -65,6 +65,8 @@ void ProgForwardArtZernike3DGPU::readParams()
 	ltk = getDoubleParam("--ltk");
 	ll1 = getDoubleParam("--ll1");
 	lst = getDoubleParam("--lst");
+	mr = getIntParam("--mr");
+	dSize = getIntParam("--dSize");
 	loop_step = getIntParam("--step");
 	useZernike = checkParam("--useZernike");
 	lambda = getDoubleParam("--regularization");
@@ -78,13 +80,13 @@ void ProgForwardArtZernike3DGPU::readParams()
 	outPath = outPath.afterLastOf("/");
 	fnVolO = fnOutDir + "/" + outPath;
 
-	std::string aux;
-	aux = getParam("--sigma");
+	std::string aux_sigma;
+	aux_sigma = getParam("--sigma");
 	// Transform string of values separated by white spaces into substrings stored in a vector
-	std::stringstream ss(aux);
-	std::istream_iterator<std::string> begin(ss);
-	std::istream_iterator<std::string> end;
-	std::vector<std::string> vstrings(begin, end);
+	std::stringstream ss(aux_sigma);
+	std::istream_iterator<std::string> begins(ss);
+	std::istream_iterator<std::string> ends;
+	std::vector<std::string> vstrings(begins, ends);
 	sigma.resize(vstrings.size());
 	std::transform(
 		vstrings.begin(), vstrings.end(), sigma.begin(), [](const std::string &val) { return std::stod(val); });
@@ -134,6 +136,8 @@ void ProgForwardArtZernike3DGPU::defineParams()
 	addParamsLine("  [--blobr <b=4>]              : Blob radius for forward mapping splatting");
 	addParamsLine("  [--step <step=1>]            : Voxel index step");
 	addParamsLine("  [--sigma <Matrix1D=\"2\">]   : Gaussian sigma");
+	addParamsLine("  [--mr <mr=0>]                : Muliresolution levels");
+	addParamsLine("  [--dSize <ds=0>]             : Muliresolution size");
 	addParamsLine("  [--ltv <ltv=1e-4>]           : Total variation regualrization");
 	addParamsLine("  [--ltk <ltv=1e-4>]           : Tikhonov regualrization");
 	addParamsLine("  [--ll1 <ll1=1e-4>]           : L1 regualrization");
@@ -288,6 +292,50 @@ void ProgForwardArtZernike3DGPU::preProcess()
 	filter2.FilterBand = LOWPASS;
 	filter2.FilterShape = REALGAUSSIANZ2;
 
+	// Multiresolution filter
+	MultidimArray<double> aux_img;
+	aux_img.initZeros(Xdim, Xdim);
+	aux_img.setXmippOrigin();
+	filterMR.FilterBand = LOWPASS;
+	filterMR.FilterShape = REALGAUSSIAN;
+	filterMR.w1 = 1.0;
+	filterMR.do_generate_3dmask = false;
+	filterMR.generateMask(aux_img);
+
+	if (mr != 0)
+	{	
+		lmr = 1.0 / static_cast<double>(mr);
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(filterMR.maskFourierd)
+		{
+			DIRECT_MULTIDIM_ELEM(filterMR.maskFourierd,n) = 0.0;
+		}
+
+		for (int i = 1; i <= mr; i++)
+		{
+			FourierFilter aux_filter;
+			aux_filter.FilterBand = LOWPASS;
+			aux_filter.FilterShape = REALGAUSSIAN;
+			aux_filter.w1 = static_cast<double>(i);
+			aux_filter.do_generate_3dmask = false;
+			aux_filter.generateMask(aux_img);
+
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(filterMR.maskFourierd)
+			{
+				DIRECT_MULTIDIM_ELEM(filterMR.maskFourierd,n) += DIRECT_MULTIDIM_ELEM(aux_filter.maskFourierd,n);
+			}
+
+		}	
+	}	
+	else
+	{
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(filterMR.maskFourierd)
+		{
+			DIRECT_MULTIDIM_ELEM(filterMR.maskFourierd,n) = 1.0;
+		}
+		lmr = 0.0;
+	}		 
+
+
 	// Create GPU interface
 	const cuda_forward_art_zernike3D::Program<PrecisionType>::ConstantParameters parameters = {
 		.VRecMaskF = VRecMaskF,
@@ -301,6 +349,7 @@ void ProgForwardArtZernike3DGPU::preProcess()
 		.sigma = sigma,
 		.RmaxDef = RmaxDef,
 		.loopStep = loop_step,
+		.filterMR = filterMR.maskFourierd,
 	};
 	try {
 		cudaProgram = std::make_unique<cuda_forward_art_zernike3D::Program<PrecisionType>>(parameters);
@@ -734,6 +783,8 @@ void ProgForwardArtZernike3DGPU::zernikeModel()
 		.ltk = ltk,
 		.ll1 = ll1,
 		.lst = lst,
+		.lmr = lmr,
+		.dSize = dSize,
 		.loopStep = static_cast<PrecisionType>(loop_step),
 		.lambda = lambda,
 	};

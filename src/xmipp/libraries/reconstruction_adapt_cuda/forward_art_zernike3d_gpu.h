@@ -82,7 +82,7 @@ class ProgForwardArtZernike3DGPU : public XmippMetadataProgram {
 	// Flag for enable/disabled image
 	int flagEnabled;
 	// Regularization factors
-	double ltv, ltk, ll1, lst;
+	double ltv, ltk, ll1, lst, lmr;
 	// Remove negative values
 	bool removeNegValues;
 
@@ -127,6 +127,8 @@ class ProgForwardArtZernike3DGPU : public XmippMetadataProgram {
 	CTFDescription ctf;
 	// CTF filter
 	FourierFilter FilterCTF;
+	// Multiresolution filter
+	FourierFilter filterMR;
 	// Vector Size
 	int vecSize;
 	// Vector containing the degree of the spherical harmonics
@@ -147,6 +149,10 @@ class ProgForwardArtZernike3DGPU : public XmippMetadataProgram {
 	int loop_step;
 	// Sigma
 	std::vector<PrecisionType> sigma;
+	// Multiresolution
+	int mr;
+	// Multiresolution size
+	int dSize;
 
 	// Filter
 	FourierFilter filter, filter2;

@@ -1180,9 +1180,9 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 		}
 	}
 
-	auto r_x = j + gx;
-	auto r_y = i + gy;
-	auto r_z = k + gz;
+	auto r_x = CST(j) + gx;
+	auto r_y = CST(i) + gy;
+	auto r_z = CST(k) + gz;
 
 	auto pos_x = r0 * r_x + r1 * r_y + r2 * r_z;
 	auto pos_y = r3 * r_x + r4 * r_y + r5 * r_z;
@@ -1212,7 +1212,8 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 							   const int *cudaVM,
 							   const PrecisionType *cudaClnm,
 							   const PrecisionType *cudaR,
-							   MultidimArrayCuda<PrecisionType> cudaReg)
+							   MultidimArrayCuda<PrecisionType> cudaReg,
+							   double lmr)
 {
 	int cubeX = threadIdx.x + blockIdx.x * blockDim.x;
 	int cubeY = threadIdx.y + blockIdx.y * blockDim.y;
@@ -1220,7 +1221,7 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;
-	PrecisionType scale_factor = XSIZE(cudaMId_small) / XSIZE(cudaMId);
+	PrecisionType scale_factor = CST(XSIZE(cudaMId_small)) / CST(XSIZE(cudaMId));
 	PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
 	if (A3D_ELEM(VRecMaskB, k, i, j) != 0) {
 		if (usesZernike) {
@@ -1245,19 +1246,19 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 			}
 		}
 
-		auto r_x = j + gx;
-		auto r_y = i + gy;
-		auto r_z = k + gz;
+		auto r_x = CST(j) + gx;
+		auto r_y = CST(i) + gy;
+		auto r_z = CST(k) + gz;
 
 		auto pos_x = cudaR[0] * r_x + cudaR[1] * r_y + cudaR[2] * r_z;
 		auto pos_y = cudaR[3] * r_x + cudaR[4] * r_y + cudaR[5] * r_z;
 		PrecisionType voxel = device::interpolatedElement2DCuda(pos_x, pos_y, cudaMId);
 		PrecisionType weight = device::interpolatedElement2DCuda(pos_x, pos_y, cudaMIws);
-		PrecisionType voxel_small = device::interpolatedElement2DCuda(scale_factor * pos_x, scale_factor * pos_y, cudaMId_small);
-		PrecisionType weight_small = device::interpolatedElement2DCuda(scale_factor * pos_x, scale_factor * pos_y, cudaMIws_small);
-		// A3D_ELEM(cudaMV, k, i, j) += voxel / (weight + A3D_ELEM(cudaReg, k, i, j));
-		// A3D_ELEM(cudaMV, k, i, j) += device::safe_divide(voxel, weight) + device::safe_divide(voxel_small, weight_small) + A3D_ELEM(cudaReg, k, i, j);
-		A3D_ELEM(cudaMV, k, i, j) += voxel / (weight + CST(1e-5)) + A3D_ELEM(cudaReg, k, i, j);
+		// PrecisionType voxel_small = device::interpolatedElement2DCuda(scale_factor * pos_x, scale_factor * pos_y, cudaMId_small);
+		// PrecisionType weight_small = device::interpolatedElement2DCuda(scale_factor * pos_x, scale_factor * pos_y, cudaMIws_small);
+		
+		A3D_ELEM(cudaMV, k, i, j) += (voxel / (weight + CST(1e-5))) + A3D_ELEM(cudaReg, k, i, j);
+
 	}
 }
 
@@ -1325,32 +1326,21 @@ __global__ void computeTV(MultidimArrayCuda<PrecisionType> cudaMV, MultidimArray
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;
 
-    // if (cubeX >= FINISHINGX(cudaMV) || cubeY >= FINISHINGX(cudaMV) || cubeZ >= FINISHINGX(cudaMV)) return;
-
     PrecisionType grad_x = 0.0, grad_y = 0.0, grad_z = 0.0;
 
     // Compute gradients
-    // if (ix < nx - 1) grad_x = volume[index + 1] - volume[index];
-    // if (iy < ny - 1) grad_y = volume[index + nx] - volume[index];
-    // if (iz < nz - 1) grad_z = volume[index + nx * ny] - volume[index];
 	if (A3D_ELEM(VRecMaskB, k, i, j) != 0) {
 		if (j < FINISHINGX(cudaMV) && j > STARTINGX(cudaMV)) grad_x = CST(0.5) * A3D_ELEM(cudaMV, k, i, j + 1) - A3D_ELEM(cudaMV, k, i, j - 1);
 		if (i < FINISHINGX(cudaMV) && i > STARTINGX(cudaMV)) grad_y = CST(0.5) * A3D_ELEM(cudaMV, k, i + 1, j) - A3D_ELEM(cudaMV, k, i - 1, j);
 		if (k < FINISHINGX(cudaMV) && k > STARTINGX(cudaMV)) grad_z = CST(0.5) * A3D_ELEM(cudaMV, k + 1, i, j) - A3D_ELEM(cudaMV, k - 1, i, j);
 
 		// Compute magnitude of gradient vector
-		// PrecisionType magnitude = 1.0;
 		PrecisionType magnitude = sqrtf(grad_x * grad_x + grad_y * grad_y + grad_z * grad_z + CST(1e-5));
 
 
-		// if (j < FINISHINGX(cudaMV) && j > 0) A3D_ELEM(cudaDx, k, i, j) = device::safe_divide(grad_x, magnitude);
-		// if (i < FINISHINGX(cudaMV) && i > 0) A3D_ELEM(cudaDy, k, i, j) = device::safe_divide(grad_y, magnitude);
-		// if (k < FINISHINGX(cudaMV) && k > 0) A3D_ELEM(cudaDz, k, i, j) = device::safe_divide(grad_z, magnitude);
 		if (j < FINISHINGX(cudaMV) && j > STARTINGX(cudaMV)) A3D_ELEM(cudaDx, k, i, j) = grad_x / magnitude;
 		if (i < FINISHINGX(cudaMV) && i > STARTINGX(cudaMV)) A3D_ELEM(cudaDy, k, i, j) = grad_y / magnitude;
 		if (k < FINISHINGX(cudaMV) && k > STARTINGX(cudaMV)) A3D_ELEM(cudaDz, k, i, j) = grad_z / magnitude;
-		// if (A3D_ELEM(cudaMV, k, i, j) > 0.0) A3D_ELEM(cudaDl1, k, i, j) = CST(1.0) * A3D_ELEM(cudaMV, k, i, j);
-		// if (A3D_ELEM(cudaMV, k, i, j) < 0.0) A3D_ELEM(cudaDl1, k, i, j) = CST(-1.0) * A3D_ELEM(cudaMV, k, i, j);
 
 		if (A3D_ELEM(cudaMV, k, i, j) > 0.0) A3D_ELEM(cudaDl1, k, i, j) = lst * CST(1.0);
 		if (A3D_ELEM(cudaMV, k, i, j) < 0.0) A3D_ELEM(cudaDl1, k, i, j) = ll1 * CST(1.0) * A3D_ELEM(cudaMV, k, i, j);  // 0.1
@@ -1368,29 +1358,19 @@ __global__ void computeDTV(MultidimArrayCuda<PrecisionType> cudaReg, MultidimArr
 	int i = STARTINGY(cudaReg) + cubeY;
 	int j = STARTINGX(cudaReg) + cubeX;
 
-    // if (cubeX >= FINISHINGX(cudaMV) || cubeY >= FINISHINGX(cudaMV) || cubeZ >= FINISHINGX(cudaMV)) return;
-
     PrecisionType grad_x = 0.0, grad_y = 0.0, grad_z = 0.0;
 	PrecisionType grad_x2 = 0.0, grad_y2 = 0.0, grad_z2 = 0.0;
 
     // Compute gradients
-    // if (ix < nx - 1) grad_x = volume[index + 1] - volume[index];
-    // if (iy < ny - 1) grad_y = volume[index + nx] - volume[index];
-    // if (iz < nz - 1) grad_z = volume[index + nx * ny] - volume[index];
 	if (A3D_ELEM(VRecMaskB, k, i, j) != 0) {
 		if (j < FINISHINGX(cudaReg) && j > STARTINGX(cudaReg)) grad_x = CST(0.5) * A3D_ELEM(cudaDx, k, i, j + 1) - A3D_ELEM(cudaDx, k, i, j - 1);
 		if (i < FINISHINGX(cudaReg) && i > STARTINGX(cudaReg)) grad_y = CST(0.5) * A3D_ELEM(cudaDy, k, i + 1, j) - A3D_ELEM(cudaDy, k, i - 1, j);
 		if (k < FINISHINGX(cudaReg) && k > STARTINGX(cudaReg)) grad_z = CST(0.5) * A3D_ELEM(cudaDz, k + 1, i, j) - A3D_ELEM(cudaDz, k - 1, i, j);
-		// if (A3D_ELEM(cudaDx, k, i, j) > 0.0) grad_x = CST(1.0); if (A3D_ELEM(cudaDx, k, i, j) < 0.0) grad_x = CST(-1.0);
-		// if (A3D_ELEM(cudaDy, k, i, j) > 0.0) grad_y = CST(1.0); if (A3D_ELEM(cudaDy, k, i, j) < 0.0) grad_y = CST(-1.0);
-		// if (A3D_ELEM(cudaDz, k, i, j) > 0.0) grad_z = CST(1.0); if (A3D_ELEM(cudaDz, k, i, j) < 0.0) grad_z = CST(-1.0);
 		if (j < FINISHINGX(cudaReg) && j > STARTINGX(cudaReg)) grad_x2 = CST(0.5) * A3D_ELEM(cudaDz, k, i, j + 1) * A3D_ELEM(cudaDx, k, i, j + 1) - A3D_ELEM(cudaDx, k, i, j - 1) * A3D_ELEM(cudaDx, k, i, j - 1);
 		if (i < FINISHINGX(cudaReg) && i > STARTINGX(cudaReg)) grad_y2 = CST(0.5) * A3D_ELEM(cudaDy, k, i + 1, j) * A3D_ELEM(cudaDy, k, i + 1, j) - A3D_ELEM(cudaDy, k, i - 1, j) * A3D_ELEM(cudaDy, k, i - 1, j);
 		if (k < FINISHINGX(cudaReg) && k > STARTINGX(cudaReg)) grad_z2 = CST(0.5) * A3D_ELEM(cudaDz, k + 1, i, j) * A3D_ELEM(cudaDz, k + 1, i, j) - A3D_ELEM(cudaDz, k - 1, i, j) * A3D_ELEM(cudaDz, k - 1, i, j);
 		PrecisionType divergence = grad_x + grad_y + grad_z;
 		PrecisionType divergence2 = CST(2.0) * (grad_x2 + grad_y2 + grad_z2);
-		// A3D_ELEM(cudaReg, k, i, j) = -CST(thr) * CST(lambda) * (divergence + 0.1 * A3D_ELEM(cudaDl1, k, i, j));
-		// A3D_ELEM(cudaReg, k, i, j) = -CST(lambda) * (ltv * divergence + ll1 * A3D_ELEM(cudaDl1, k, i, j));
 		A3D_ELEM(cudaReg, k, i, j) = -CST(lambda) * (ltv * divergence + ltk * divergence2 + A3D_ELEM(cudaDl1, k, i, j));
 	}	
 }

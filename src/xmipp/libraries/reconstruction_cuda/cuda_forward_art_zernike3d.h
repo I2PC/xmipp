@@ -58,6 +58,7 @@ class Program {
 		std::vector<PrecisionType> &sigma;
 		int RmaxDef;
 		int loopStep;
+		MultidimArray<double> &filterMR;
 	};
 
 	struct AngleParameters {
@@ -75,6 +76,8 @@ class Program {
 		double ltk;
 		double ll1;
 		double lst;
+		double lmr;
+		int dSize;
 		PrecisionType loopStep;
 		double lambda;
 	};
@@ -98,6 +101,8 @@ class Program {
 	void recoverVolumeFromGPU(Image<PrecisionType> &Vrefined);
 
 	void resize2DArray(const MultidimArray<PrecisionType> &mI, MultidimArray<PrecisionType> &mOut, int size);
+
+	void filter2DArray(const MultidimArray<PrecisionType> &mI, MultidimArray<PrecisionType> &mOut);
 
 	explicit Program(const ConstantParameters parameters);
 	~Program();
@@ -130,6 +135,8 @@ class Program {
 	const int xdimF, ydimF;
 
 	size_t sizeF;
+
+	MultidimArray<double> filterMR;
 };
 
 }  // namespace cuda_forward_art_zernike3D

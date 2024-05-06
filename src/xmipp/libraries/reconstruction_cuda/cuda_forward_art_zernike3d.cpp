@@ -292,7 +292,8 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  blockZB(std::__gcd(blockSizeArchitecture().z, parameters.Vrefined().zdim)),
 	  gridXB(parameters.Vrefined().xdim / blockXB),
 	  gridYB(parameters.Vrefined().ydim / blockYB),
-	  gridZB(parameters.Vrefined().zdim / blockZB)
+	  gridZB(parameters.Vrefined().zdim / blockZB),
+	  filterMR(parameters.filterMR)
 {
 	std::tie(cudaCoordinatesF, sizeF, VRecMaskF) =
 		filterMasktransferCoordinates(parameters.VRecMaskF, parameters.loopStep, parameters.sigma.size() > 1);
@@ -387,10 +388,26 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	// Unique parameters
 	auto &mId = parameters.Idiff();
 	auto &mIws = parameters.Iws();
-	int size = 0.5 * XSIZE(mId);
+	auto size = parameters.dSize;
 	MultidimArray<PrecisionType> mId_small, mIws_small;
-	resize2DArray(mId, mId_small, size);
-	resize2DArray(mIws, mIws_small, size);
+	if (size != 0)
+	{
+		resize2DArray(mId, mId_small, size);
+		resize2DArray(mIws, mIws_small, size);
+	}	
+	else if (parameters.lmr != 0.0)
+	{
+		filter2DArray(mId, mId_small);
+		filter2DArray(mIws, mIws_small);
+	}
+	else
+	{
+		mId_small.initZeros(size, size);
+		mIws_small.initZeros(size, size);
+		mIws_small.setXmippOrigin();
+		mId_small.setXmippOrigin();
+	}		
+	
 	auto cudaMId = initializeMultidimArrayCuda(mId);
 	auto cudaMIws = initializeMultidimArrayCuda(mIws);
 	auto cudaMId_small = initializeMultidimArrayCuda(mId_small);
@@ -416,7 +433,7 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	computeTV<PrecisionType><<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaMV, cudaDx, cudaDy, cudaDz, cudaDl1, VRecMaskB, 
 																								parameters.lambda, parameters.ltv, parameters.ltk, parameters.ll1, parameters.lst);
 	computeDTV<PrecisionType><<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaReg, cudaDx, cudaDy, cudaDz, cudaDl1, VRecMaskB, 
-																									parameters.lambda, parameters.ltv, parameters.ltk, parameters.ll1, parameters.lst);
+																								 parameters.lambda, parameters.ltv, parameters.ltk, parameters.ll1, parameters.lst);
 
 	backwardKernel<PrecisionType, usesZernike>
 		<<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaMV,
@@ -438,7 +455,8 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																			cudaVM,
 																			commonParameters.cudaClnm,
 																			cudaR,
-																			cudaReg);
+																			cudaReg, 
+																			parameters.lmr);
 
 	// if (parameters.lst > 0.0)
 	// {	
@@ -475,15 +493,31 @@ template<typename PrecisionType>
 void Program<PrecisionType>::resize2DArray(const MultidimArray<PrecisionType> &mI, MultidimArray<PrecisionType> &mOut, int size)
 {
 	MultidimArray<double> mI_aux;
-	MultidimArray<PrecisionType> mId_small, mIws_small;
-	mI_aux.resizeNoCopy(mI);
-	mI_aux.setXmippOrigin();
 	typeCast(mI, mI_aux);
+	mI_aux.setXmippOrigin();
 	selfScaleToSizeFourier(1, size, size, mI_aux, 1);
-	mOut.resizeNoCopy(mI_aux);
-	mOut.setXmippOrigin();
 	typeCast(mI_aux, mOut);
+	mOut.setXmippOrigin();
 }
+
+// Fourier 2D filter
+template<typename PrecisionType>
+void Program<PrecisionType>::filter2DArray(const MultidimArray<PrecisionType> &mI, MultidimArray<PrecisionType> &mOut)
+{
+	FourierFilter filter;
+	MultidimArray<double> mI_aux;
+	typeCast(mI, mI_aux);
+	mI_aux.setXmippOrigin();
+	filter.FilterBand = LOWPASS;
+	filter.FilterShape = REALGAUSSIAN;
+	filter.w1 = 1.0;
+	filter.do_generate_3dmask = false;
+	filter.maskFourierd = filterMR;
+	filter.applyMaskSpace(mI_aux);
+	typeCast(mI_aux, mOut);
+	mOut.setXmippOrigin();
+}
+
 
 // explicit template instantiation
 template class Program<float>;
