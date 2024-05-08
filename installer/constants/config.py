@@ -72,16 +72,6 @@ CONFIG_VARIABLES = {
 	COMPILATION_FLAGS: [__CC_FLAGS, __CXX_FLAGS]
 }
 
-def __getNvccEnvVariable() -> Optional[str]:
-	"""
-	### This function returns the CUDA compiler for Scipion's enviroment if exists.
-
-	#### Returns:
-	- (str | None): Path to CUDA compiler for Scipion's env.
-	"""
-	cudaBin = os.environ.get(__XMIPP_CUDA_BIN)
-	return cudaBin + '/nvcc' if cudaBin else None
-
 def __getPrefixPath() -> Optional[str]:
 	"""
 	### This function returns the path for the current Conda enviroment.
@@ -103,7 +93,7 @@ CONFIG_DEFAULT_VALUES = {
 	CMAKE_INSTALL_PREFIX: INSTALL_PATH,
 	__CC_FLAGS: __TUNE_FLAG,
 	__CXX_FLAGS: __TUNE_FLAG,
-	CUDA_COMPILER: __getNvccEnvVariable(),
+	CUDA_COMPILER: None,
 	__PREFIX_PATH: __getPrefixPath(),
 	__MPI_HOME: None,
 	__PYTHON_HOME: None,
