@@ -21,5 +21,11 @@
 # ***************************************************************************/
 
 from .affine_2d import affine_2d
-from .affine_matrix_2d import affine_matrix_2d
+from .affine_matrix_2d import affine_matrix_2d, make_affine_matrix_2d
 from .rotation_matrix_2d import rotation_matrix_2d
+from .euler_to_quaternion import euler_to_quaternion
+from .euler_to_matrix import euler_to_matrix
+from .quaternion_to_matrix import quaternion_to_matrix
+from .matrix_to_euler import matrix_to_euler
+from .quaternion_arithmetic import quaternion_conj, quaternion_product
+from .twist_swing_decomposition import twist_decomposition, swing_decomposition

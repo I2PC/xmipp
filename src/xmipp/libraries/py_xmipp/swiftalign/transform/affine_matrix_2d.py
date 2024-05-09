@@ -20,35 +20,15 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional
+from typing import Optional, Union
 import torch
 
 from .rotation_matrix_2d import rotation_matrix_2d
 
-def affine_matrix_2d(angles: torch.Tensor,
-                     shifts: torch.Tensor,
-                     centre: torch.Tensor,
-                     shift_first: bool = False,
-                     out: Optional[torch.Tensor] = None ) -> torch.Tensor:
-
-    batch_size = len(angles)
-
-    if angles.shape != (batch_size, ):
-        raise RuntimeError('angles has not the expected size')
-
-    if shifts.shape != (batch_size, 2):
-        raise RuntimeError('shifts has not the expected size')
-
-    out = torch.empty((batch_size, 2, 3), out=out)
-
-    # Compute the rotation matrix
-    rotation_matrices = out[:,:2,:2]
-    rotation_matrices = rotation_matrix_2d(
-        angles=angles, 
-        out=rotation_matrices
-    )
-    
-    # Determine the shifts
+def _apply_shifts(m23: torch.Tensor,
+                  shifts: torch.Tensor,
+                  centre: torch.Tensor,
+                  shift_first: bool = False ) -> torch.Tensor:
     if shift_first:
         pre_shift = shifts - centre
         post_shift = centre
@@ -57,11 +37,70 @@ def affine_matrix_2d(angles: torch.Tensor,
         post_shift = shifts + centre
     
     # Apply the shifts
-    out[:,:,2,None] = torch.matmul(
-        rotation_matrices, 
+    torch.matmul(
+        m23[...,:2,:2], 
         pre_shift[...,None], 
-        out=out[:,:,2,None]
+        out=m23[...,:,2,None]
     )
-    out[:,:,2] += post_shift
+    m23[...,:,2] += post_shift
 
+def affine_matrix_2d(angles: torch.Tensor,
+                     shifts: torch.Tensor,
+                     centre: torch.Tensor,
+                     mirror: Union[torch.Tensor, bool] = False,
+                     shift_first: bool = False,
+                     out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+
+    batch_shape = angles.shape
+
+    if shifts.shape != batch_shape + (2, ):
+        raise RuntimeError('shifts has not the expected size')
+
+    out = torch.empty(batch_shape + (2, 3), out=out)
+
+    # Compute the rotation matrix
+    rotation_matrix_2d(
+        angles=angles, 
+        out=out[...,:2,:2]
+    )
+    
+    # Flip if necessary
+    if isinstance(mirror, bool):
+        if mirror:
+            out[...,0,:] = -out[...,0,:]
+    else:
+        out[mirror,0,:] = -out[mirror,0,:]
+    
+    _apply_shifts(
+        m23=out,
+        shifts=shifts,
+        centre=centre,
+        shift_first=shift_first
+    )
+
+    return out
+
+def make_affine_matrix_2d(m22: torch.Tensor,
+                          shifts: torch.Tensor,
+                          centre: torch.Tensor,
+                          shift_first: bool = False,
+                          out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+    batch_shape = m22.shape[:-2]
+
+    if m22.shape != batch_shape + (2, 2):
+        raise RuntimeError('angles has not the expected size')
+
+    if shifts.shape != batch_shape + (2, ):
+        raise RuntimeError('shifts has not the expected size')
+
+    out = torch.empty(batch_shape + (2, 3), out=out)
+    
+    out[...,:2,:2] = m22
+    _apply_shifts(
+        m23=out,
+        shifts=shifts,
+        centre=centre,
+        shift_first=shift_first
+    )
+    
     return out

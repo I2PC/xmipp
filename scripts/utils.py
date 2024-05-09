@@ -370,8 +370,6 @@ def askPath(default='', ask=True):
             print(red("No alternative found in the system."))
         return default
 
-def askShell(msg='', default=True):
-    runJob()
 
 def askYesNo(msg='', default=True, actually_ask=True):
     if not actually_ask:
@@ -433,6 +431,15 @@ def version_tuple(versionStr):
     # Convert the list of numerical parts to a tuple and return it
     return tuple(numerical_parts)
 
+
+def versionToNumber(strVersion):
+    listVersion = strVersion.split('.')
+    numberVersion = int(listVersion[0]) * 100 + int(listVersion[1]) * 10
+    try:
+        numberVersion = numberVersion + int(listVersion[2]) * 1
+    except Exception:
+        pass
+    return numberVersion
 def checkCMakeVersion(minimumRequired=None):
     """
     ### This function checks if the current installed version, if installed, is above the minimum required version.

@@ -1,4 +1,3 @@
-from . import alignment
 # ***************************************************************************
 # * Authors:     Oier Lauzirika Zarrabeitia (oierlauzi@bizkaia.eu)
 # *
@@ -21,10 +20,10 @@ from . import alignment
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from . import dct
+from . import alignment
+from . import classification
 from . import image
 from . import metadata
 from . import operators
-from . import search
 from . import transform
 from . import utils

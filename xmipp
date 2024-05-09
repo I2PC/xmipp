@@ -29,6 +29,7 @@ import re
 import shutil
 import sys
 from datetime import datetime
+import json
 from scripts import *
 from scripts.utils import checkCMakeVersion
 
@@ -36,10 +37,10 @@ from scripts.utils import checkCMakeVersion
 
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
 ####################################
-XMIPP_VERSION = '3.23.07.0'        #
-XMIPP_VERNAME = 'devel'           #
-RELEASE_DATE = '14/07/2023'        #
-CMAKE_VERSION_REQUIRED = '3.16'
+XMIPP_VERSION = '3.23.11.0'        #
+XMIPP_VERNAME = 'devel'            #
+RELEASE_DATE = '28/11/2023'        #
+CMAKE_VERSION_REQUIRED = '3.16'    #
 ####################################
 
 
@@ -640,7 +641,7 @@ def compile_libcifpp(Nproc):
     os.chdir(libcifppDir)
     # Installing
     fullDir = os.path.join(currDir, libcifppDir, '')
-    if runJob("cmake -S . -B build -DCMAKE_INSTALL_PREFIX=" + fullDir + " -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCIFPP_DOWNLOAD_CCD=OFF",
+    if runJob("cmake -S . -B build -DCMAKE_INSTALL_PREFIX=" + fullDir + " -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCIFPP_DOWNLOAD_CCD=OFF -DCIFPP_INSTALL_UPDATE_SCRIPT=OFF",
               show_output=False, show_command=False, log=log):
         log1 = []
         if runJob(f"cmake --build build -j {Nproc}", show_output=False, show_command=False, log=log1):
@@ -739,6 +740,20 @@ def compileXmipp(Nproc):
     print("\nCompiling xmippViz----------------------------------------")
     if not compileModule(Nproc,"xmippViz"):
         return False
+
+    # Merge Xmipp and XmippCore compiled databases
+    cdb_list = ["compile_commands.json", "compile_commands_2.json"]
+
+    merged = list()
+    for cdb in cdb_list:
+        if os.path.exists(cdb):
+            with open(cdb, 'r') as cdb_id:
+                merged.extend(json.load(cdb_id))
+    with open("compile_commands.json", 'w') as cdb_id:
+        json.dump(merged, cdb_id)
+
+    if os.path.exists("compile_commands_2.json"):
+        os.remove("compile_commands_2.json")
     return True
 
 
@@ -939,7 +954,7 @@ def install(dirname):
     if XMIPP_VERNAME =='devel':  show_command = True
     else: show_command = False
     cleanDeprecated()
-    cpCmd = "rsync -LptgoD" if checkProgram("rsync") else "cp"
+    cpCmd = "rsync -LptgoD " if checkProgram("rsync") else "cp"
     ok = True
 
     createDir(dirname)
@@ -951,7 +966,14 @@ def install(dirname):
     if os.path.exists(dirname + "/bin"):
         shutil.rmtree(dirname + "/bin")
     createDir(dirname+"/bin")
-    ok = ok and runJob(cpCmd+" src/*/bin/* "+dirname+"/bin/", show_command=show_command)
+    dirBin = os.path.join(os.getcwd(), "src/xmipp/bin/")
+    filenames = os.listdir(dirBin)
+
+    for f in filenames:
+        if os.path.islink(os.path.join(dirBin, f)):
+            ok = ok and runJob('ln -s ' + os.path.join(dirBin, f) + ' ' + os.path.join(dirname, 'bin', f), show_command=show_command, show_output=False)
+        else:
+            ok = ok and runJob(cpCmd + os.path.join(dirBin, f) + ' ' + os.path.join(dirname, 'bin', f), show_command=show_command)
 
     destPathPyModule = os.path.expanduser(os.path.abspath(os.path.join(dirname, "pylib", "xmippPyModules")))
     createDir(destPathPyModule)
@@ -960,7 +982,16 @@ def install(dirname):
         with open(initFn, 'w') as f:
             pass  # just to create a init file to be able to import it as module
 
-    runJob(cpCmd+" -r src/xmipp/libraries/py_xmipp/* "+destPathPyModule, show_command=show_command)
+
+    dirBin = os.path.join(os.getcwd(), 'src/xmipp/libraries/py_xmipp')
+    folders = list(os.walk(dirBin))
+    for folderPath, _, folderFiles in folders:
+        folderName = os.path.relpath(folderPath, dirBin)
+        createDir(os.path.join(destPathPyModule, folderName))
+        for file in folderFiles:
+            runJob("ln -s " + os.path.join(folderPath, file) + ' ' + os.path.join(destPathPyModule, folderName, file),
+                   show_output=False, show_command=show_command, log=[])
+
 
     createDir(dirname+"/bindings")
     createDir(dirname+"/bindings/matlab")

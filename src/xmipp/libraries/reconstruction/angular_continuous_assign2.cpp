@@ -66,7 +66,6 @@ void ProgAngularContinuousAssign2::readParams()
     optimizeAngles = checkParam("--optimizeAngles");
     optimizeDefocus = checkParam("--optimizeDefocus");
     ignoreCTF = checkParam("--ignoreCTF");
-    doNotWriteStack = checkParam("--doNotWriteStack");
     originalImageLabel = getParam("--applyTo");
     phaseFlipped = checkParam("--phaseFlipped");
     // penalization = getDoubleParam("--penalization");
@@ -100,7 +99,6 @@ void ProgAngularContinuousAssign2::show()
     << "Optimize angles:     " << optimizeAngles     << std::endl
     << "Optimize defocus:    " << optimizeDefocus    << std::endl
     << "Ignore CTF:          " << ignoreCTF          << std::endl
-    << "Do not write stack   " << doNotWriteStack    << std::endl
     << "Apply to:            " << originalImageLabel << std::endl
     << "Phase flipped:       " << phaseFlipped       << std::endl
     // << "Penalization:        " << penalization       << std::endl
@@ -136,7 +134,6 @@ void ProgAngularContinuousAssign2::defineParams()
     addParamsLine("  [--optimizeAngles]           : Optimize angles");
     addParamsLine("  [--optimizeDefocus]          : Optimize defocus");
     addParamsLine("  [--ignoreCTF]                : Ignore CTF");
-    addParamsLine("  [--doNotWriteStack]          : Do not write images");
     addParamsLine("  [--applyTo <label=image>]    : Which is the source of images to apply the final transformation");
     addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
     // addParamsLine("  [--penalization <l=100>]     : Penalization for the average term");
@@ -613,9 +610,7 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 						DIRECT_MULTIDIM_ELEM(mIp,n)=0.0;
 				}
 			}
-			if (!doNotWriteStack) {
-				Ip.write(fnImgOut);
-			}
+			Ip.write(fnImgOut);
 		}
 		catch (XmippError &XE)
 		{
@@ -624,17 +619,13 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 			rowOut.setValue(MDL_ENABLED,-1);
 		}
 	}
-	if(!doNotWriteStack) {
-    	rowOut.setValue(MDL_IMAGE_ORIGINAL, fnImg);
-    	rowOut.setValue(MDL_IMAGE, fnImgOut);
-	}
+    rowOut.setValue(MDL_IMAGE_ORIGINAL, fnImg);
+    rowOut.setValue(MDL_IMAGE, fnImgOut);
     rowOut.setValue(MDL_ANGLE_ROT,  old_rot+p(7));
     rowOut.setValue(MDL_ANGLE_TILT, old_tilt+p(8));
     rowOut.setValue(MDL_ANGLE_PSI,  old_psi+p(9));
-	if(!doNotWriteStack) {
-		rowOut.setValue(MDL_SHIFT_X,    0.);
-		rowOut.setValue(MDL_SHIFT_Y,    0.);
-	}
+    rowOut.setValue(MDL_SHIFT_X,    0.);
+    rowOut.setValue(MDL_SHIFT_Y,    0.);
     rowOut.setValue(MDL_FLIP,       false);
     rowOut.setValue(MDL_COST,       cost);
     if (optimizeGrayValues)

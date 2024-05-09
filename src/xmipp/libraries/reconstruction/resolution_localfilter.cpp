@@ -225,15 +225,11 @@ void ProgResLocalFilter::run()
 	filtered_aux.resizeNoCopy(resVol());
 	filteredMap.initZeros(resVol());
 
-	std::cout << "freq = " << highIdx << std::endl;
-	std::cout << "freq = " << lowIdx << std::endl;
-
-
-	for (double idx = lowIdx; idx < highIdx; idx++)
+	
+	for (int idx = lowIdx; idx < highIdx; idx++)
 	{
-		FFT_IDX2DIGFREQ(idx, ZSIZE(resVol()), freq);
+		FFT_IDX2DIGFREQ((double)idx, ZSIZE(resVol()), freq);
 
-		std::cout << "freq = " << freq << std::endl;
 		freqL = freq - 0.02;
 		if (freqL < 0)
 			freqL = 0.001;
@@ -282,8 +278,6 @@ void ProgResLocalFilter::run()
 			DIRECT_MULTIDIM_ELEM(filteredMap, n) += weight*DIRECT_MULTIDIM_ELEM(filtered_aux, n);
 			sumweight += weight;
 		}
-
-
 	}
 
 	Image<double> saveMap;
