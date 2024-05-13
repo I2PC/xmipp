@@ -32,9 +32,11 @@
 #include <core/xmipp_program.h>
 #include <core/xmipp_image.h>
 #include <core/xmipp_fftw.h>
+#include <core/metadata_extension.h>
 #include <limits>
 #include <complex>
 #include <string>
+
 
 // #define DEBUG
 
@@ -51,22 +53,36 @@ public:
     size_t Ydim;
     size_t Zdim;
 
+    MetaDataVec md;
+    MetaDataVec mdout;
+	MDRowVec rowout;
+
     bool invertContrast;
     bool normalize;
-    bool downsample;
+    bool fixedBoxSize;
 
     double scaleFactor;
     double downsampleFactor;
+    std::vector<size_t> maskIdx;
 
 	/** Is the volume previously masked?*/
 	int boxsize;
     int nthrs;
 
+	Image<double> subtomoImg;
+
 public:
 
     void defineParams();
     void readParams();
+    void createSphere(int halfboxsize);
+    void normalizeSubtomo(MultidimArray<double> &subtomo, int halfboxsize);
+    void extractSubtomoFixedSize(MultidimArray<double> &subtomoExtraction);
+    void writeSubtomo(int idx, int xcoor, int ycoor, int zcoor, size_t particleid);
     void run();
+
+    static void upsample(const MultidimArray<std::complex<double>> &from, MultidimArray<std::complex<double>> &to);
+    static void downsample(const MultidimArray<std::complex<double>> &from, MultidimArray<std::complex<double>> &to);
 };
 //@}
 #endif

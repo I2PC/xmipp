@@ -90,9 +90,10 @@ void Radon_Transform(const MultidimArray<double> &I, double rot_step,
 	MultidimArray<double> rot_I;
     RT.initZeros(CEIL(360.0 / rot_step), XSIZE(I));
     STARTINGX(RT) = STARTINGX(I);
-    int l = 0;
-    for (double rot = 0; rot < 360; rot += rot_step, l++)
+    int iterRot = static_cast<int>(360.0 / rot_step);
+    for (int l=0; l<iterRot; l++)
     {
+    	double rot = l*rot_step;
         // Rotate image
     	rotate(xmipp_transformation::LINEAR, rot_I, I, rot);
         // Sum by columns
