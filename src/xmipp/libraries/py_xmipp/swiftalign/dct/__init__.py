@@ -20,7 +20,6 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .remove_symmetic_half import remove_symmetric_half
-from .rfftnfreq import rfftnfreq
-from .time_shift_filter import time_shift_filter
-from .zero_pad import zero_pad
+from .basis import dct_ii_basis, dct_iii_basis
+from .dct import bases_generator, dct, idct
+from .project import project, project_nd

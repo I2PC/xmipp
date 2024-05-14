@@ -20,7 +20,33 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .remove_symmetic_half import remove_symmetric_half
-from .rfftnfreq import rfftnfreq
-from .time_shift_filter import time_shift_filter
-from .zero_pad import zero_pad
+from typing import Iterable
+import torch
+
+from .. import search
+        
+
+def align(db: search.Database, 
+          dataset: Iterable[torch.Tensor],
+          k: int ) -> search.SearchResult:
+
+    database_device = db.get_input_device()
+
+    index_vectors = []
+    distance_vectors = []
+
+    for vectors in dataset:
+        # Search them
+        s = db.search(vectors.to(database_device), k=k)
+        
+        # Add them to the result
+        index_vectors.append(s.indices.cpu())
+        distance_vectors.append(s.distances.cpu())
+        
+    # Concatenate all result vectors
+    return search.SearchResult(
+        indices=torch.cat(index_vectors, axis=0), 
+        distances=torch.cat(distance_vectors, axis=0)
+    )
+    
+    

@@ -20,7 +20,28 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .remove_symmetic_half import remove_symmetric_half
-from .rfftnfreq import rfftnfreq
-from .time_shift_filter import time_shift_filter
-from .zero_pad import zero_pad
+from typing import Optional
+import torch
+
+from ..dct import dct_ii_basis, project_nd
+
+from .Transformer2D import Transformer2D
+
+class DctTransformer2D(Transformer2D):
+    DIMS = (-1, -2) # Last two dimensions
+    
+    def __init__(self, dim: int, device: Optional[torch.device] = None) -> None:
+        self._bases = (dct_ii_basis(dim).to(device), )*len(self.DIMS)
+    
+    def __call__(   self, 
+                    input: torch.Tensor,
+                    out: Optional[torch.Tensor] = None) -> torch.Tensor:
+        
+        # To avoid warnings
+        if out is not None:
+            out.resize_(0)
+            
+        return project_nd(input, dims=self.DIMS, bases=self._bases, out=out)
+    
+    def has_complex_output(self) -> bool:
+        return False

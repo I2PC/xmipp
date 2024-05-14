@@ -20,7 +20,17 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .remove_symmetic_half import remove_symmetric_half
-from .rfftnfreq import rfftnfreq
-from .time_shift_filter import time_shift_filter
-from .zero_pad import zero_pad
+import torch
+
+def remove_symmetric_half(input: torch.Tensor) -> torch.Tensor:
+    """Removes the conjugate symmetry from a multidimensional Fourier transform
+
+    Args:
+        input (torch.Tensor): Input tensor
+
+    Returns:
+        torch.Tensor: Input without symmetry
+    """
+    x_size = input.shape[-1]
+    half_x_size = x_size // 2 + 1
+    return input[...,:half_x_size]

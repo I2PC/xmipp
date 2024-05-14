@@ -20,7 +20,9 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .remove_symmetic_half import remove_symmetric_half
-from .rfftnfreq import rfftnfreq
-from .time_shift_filter import time_shift_filter
-from .zero_pad import zero_pad
+import torch
+
+def flat_view_as_real(input: torch.Tensor) -> torch.Tensor:
+    real = torch.view_as_real(input)
+    flat = torch.flatten(real, start_dim=-2, end_dim=-1)
+    return flat

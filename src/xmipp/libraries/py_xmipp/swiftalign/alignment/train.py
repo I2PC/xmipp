@@ -20,7 +20,26 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .remove_symmetic_half import remove_symmetric_half
-from .rfftnfreq import rfftnfreq
-from .time_shift_filter import time_shift_filter
-from .zero_pad import zero_pad
+from typing import Iterable
+import torch
+
+from .. import search
+
+
+def train(db: search.Database, 
+          dataset: Iterable[torch.Tensor],
+          scratch: torch.Tensor ):
+
+    # Write
+    start = 0
+    for vectors in dataset:
+        end = start + len(vectors)
+        
+        # Write 
+        scratch[start:end,:] = vectors.to(scratch.device, non_blocking=True)
+
+        # Setup next iteration
+        start = end
+
+    # Train the database
+    db.train(scratch[:start])

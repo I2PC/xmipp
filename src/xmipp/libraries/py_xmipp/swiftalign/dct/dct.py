@@ -20,7 +20,29 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .remove_symmetic_half import remove_symmetric_half
-from .rfftnfreq import rfftnfreq
-from .time_shift_filter import time_shift_filter
-from .zero_pad import zero_pad
+from typing import Optional, Sequence, Iterable, Callable
+import torch
+
+from .basis import dct_ii_basis, dct_iii_basis
+from .project import project_nd
+
+def bases_generator(shape: Sequence[int], 
+                    dims: Iterable[int],
+                    func: Callable[[int], torch.Tensor]) -> Iterable[torch.Tensor]:
+    sizes = map(shape.__getitem__, dims)
+    bases = map(func, sizes)
+    return bases
+    
+def dct(x: torch.Tensor, 
+        dims: Iterable[int], 
+        out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+    
+    bases = bases_generator(x.shape, dims, dct_ii_basis)
+    return project_nd(x, dims, bases, out=out)
+
+def idct(x: torch.Tensor, 
+         dims: Iterable[int], 
+         out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+    
+    bases = bases_generator(x.shape, dims, dct_iii_basis)
+    return project_nd(x, dims, bases, out=out)

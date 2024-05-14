@@ -20,7 +20,16 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .remove_symmetic_half import remove_symmetric_half
-from .rfftnfreq import rfftnfreq
-from .time_shift_filter import time_shift_filter
-from .zero_pad import zero_pad
+from typing import Optional
+import torch
+
+def complex_normalize(data: torch.Tensor,
+                      out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+    
+    if out is data:
+        out /= torch.abs(out)
+        
+    else:
+        raise NotImplementedError('Only implemented for out=data')
+    
+    return out

@@ -20,7 +20,34 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .remove_symmetic_half import remove_symmetric_half
-from .rfftnfreq import rfftnfreq
-from .time_shift_filter import time_shift_filter
-from .zero_pad import zero_pad
+from typing import Optional
+import torch
+
+class ImageShifter:
+    def __init__(self,
+                 shifts: torch.Tensor,
+                 dim: int,
+                 device: Optional[torch.device] = None):
+        
+        self._shifts = shifts
+        self._shifts_in_px = (shifts*dim).to(dtype=int)
+    
+    def __call__(   self,
+                    input: torch.Tensor,
+                    index: int,
+                    out: Optional[torch.Tensor] = None ):
+        
+        out = torch.roll(
+            input,
+            shifts=self._shifts_in_px[index].tolist(),
+            dims=(-1, -2)
+        )
+        
+        return out
+    
+    def get_count(self) -> int:
+        return self._shifts.shape[0]
+    
+    def get_shift(self, index: int) -> torch.Tensor:
+        return self._shifts[index]
+    

@@ -20,7 +20,7 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .remove_symmetic_half import remove_symmetric_half
-from .rfftnfreq import rfftnfreq
-from .time_shift_filter import time_shift_filter
-from .zero_pad import zero_pad
+from .complex_normalize import complex_normalize
+from .l2_normalize import l2_normalize
+from .mu_sigma_normalize import mu_sigma_normalize
+from .flat_view_as_real import flat_view_as_real

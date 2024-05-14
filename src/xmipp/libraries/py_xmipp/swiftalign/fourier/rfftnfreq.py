@@ -53,4 +53,3 @@ def rfftnfreq(dim: Sequence[int],
     mesh = torch.meshgrid(*reversed(axis_freq), indexing='xy')
     return torch.stack(mesh)
     
-    

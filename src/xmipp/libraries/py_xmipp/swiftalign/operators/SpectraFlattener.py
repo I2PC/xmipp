@@ -20,7 +20,14 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .remove_symmetic_half import remove_symmetric_half
-from .rfftnfreq import rfftnfreq
-from .time_shift_filter import time_shift_filter
-from .zero_pad import zero_pad
+from typing import Optional
+import torch
+
+from .MaskFlattener import MaskFlattener
+
+class SpectraFlattener(MaskFlattener):
+    def __init__(   self, 
+                    mask: torch.Tensor,
+                    padded_length: Optional[int] = None,
+                    device: Optional[torch.device] = None):
+        super().__init__(mask, padded_length, device)

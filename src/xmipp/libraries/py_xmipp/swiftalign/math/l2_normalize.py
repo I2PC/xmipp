@@ -20,7 +20,17 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .remove_symmetic_half import remove_symmetric_half
-from .rfftnfreq import rfftnfreq
-from .time_shift_filter import time_shift_filter
-from .zero_pad import zero_pad
+from typing import Union, Sequence, Optional
+import torch
+
+def l2_normalize(data: torch.Tensor, 
+                 dim: Union[None, int, Sequence[int]],
+                 out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+    
+    if out is data:
+        out /= torch.norm(out, dim=dim, keepdim=True)
+        
+    else:
+        raise NotImplementedError('Only implemented for out=data')
+    
+    return out
