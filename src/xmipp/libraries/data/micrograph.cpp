@@ -117,6 +117,11 @@ void Micrograph::open_micrograph(const FileName &_fn_micrograph)
         result = IFloat.readMapped(fn_micrograph, FIRST_IMAGE);
         pixelDesvFilter(IFloat.data, stdevFilter);
         break;
+    case DT_HalfFloat:
+        datatype = DT_Float; // Converting
+        result = IFloat.read(fn_micrograph, DATA, FIRST_IMAGE);
+        pixelDesvFilter(IFloat.data, stdevFilter);
+        break;
     default:
         std::cerr << "Micrograph::open_micrograph: Unknown datatype "
         << datatype << std::endl;
