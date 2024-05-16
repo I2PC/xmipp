@@ -71,7 +71,8 @@ class FourierInPlaneTransformCorrector:
                 raise RuntimeError('Metadata and image batch sizes do not match')
             
             if self.device is not None:
-                batch_images = batch_images.to(self.device, non_blocking=True)
+                #batch_images = batch_images.to(self.device, non_blocking=True)
+                batch_images = batch_images.to(self.device)
             
             if all(map(batch_md.columns.__contains__, TRANSFORM_LABELS)):
                 transformations = torch.as_tensor(batch_md[TRANSFORM_LABELS].to_numpy(), dtype=torch.float32)
@@ -89,7 +90,8 @@ class FourierInPlaneTransformCorrector:
             
                 batch_images = transform.affine_2d(
                     images=batch_images,
-                    matrices=transform_matrix.to(batch_images, non_blocking=True),
+                    #matrices=transform_matrix.to(batch_images, non_blocking=True),
+                    matrices=transform_matrix.to(batch_images),
                     interpolation=self.interpolation,
                     padding='zeros'
                 )

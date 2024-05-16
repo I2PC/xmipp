@@ -68,7 +68,8 @@ class InPlaneTransformCorrector:
                 raise RuntimeError('Metadata and image batch sizes do not match')
             
             if self.device is not None:
-                batch_images = batch_images.to(self.device, non_blocking=True)
+                #batch_images = batch_images.to(self.device, non_blocking=True)
+                batch_images = batch_images.to(self.device)
             
             # Read necessary metadata
             transformations = torch.as_tensor(batch_md[TRANSFORM_LABELS].to_numpy(), dtype=torch.float32)
@@ -127,7 +128,8 @@ class InPlaneTransformCorrector:
 
             transformed_images = transform.affine_2d(
                 images=batch_images,
-                matrices=transform_matrices_2d.to(batch_images, non_blocking=True),
+                #matrices=transform_matrices_2d.to(batch_images, non_blocking=True),
+                matrices=transform_matrices_2d.to(batch_images),
                 interpolation=self.interpolation,
                 padding='zeros',
                 out=transformed_images

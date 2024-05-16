@@ -36,7 +36,8 @@ def train(db: search.Database,
         end = start + len(vectors)
         
         # Write 
-        scratch[start:end,:] = vectors.to(scratch.device, non_blocking=True)
+        #scratch[start:end,:] = vectors.to(scratch.device, non_blocking=True)
+        scratch[start:end,:] = vectors.to(scratch.device)
 
         # Setup next iteration
         start = end

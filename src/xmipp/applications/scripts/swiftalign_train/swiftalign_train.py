@@ -147,7 +147,8 @@ def run(reference_md_path: str,
         training_set = torch.empty(training_set_shape, device=torch.device('cpu'))
 
     # Run the training
-    uploader = map(lambda x : x.to(transform_device, non_blocking=True), loader)
+    #uploader = map(lambda x : x.to(transform_device, non_blocking=True), loader)
+    uploader = map(lambda x : x.to(transform_device), loader)
     alignment.train(
         db,
         dataset=transformer(uploader, times=n_repetitions),

@@ -84,7 +84,8 @@ class FourierInPlaneTransformGenerator:
         start = 0
         for batch in images:
             if self.device is not None:
-                batch = batch.to(self.device, non_blocking=True)
+                #batch = batch.to(self.device, non_blocking=True)
+                batch = batch.to(self.device)
             
             end = start + len(batch)
             indices = torch.arange(start=start, end=end, out=indices)

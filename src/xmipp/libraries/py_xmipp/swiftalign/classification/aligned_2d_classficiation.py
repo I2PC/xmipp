@@ -68,7 +68,8 @@ def aligned_2d_classification(dataset: Iterable[torch.Tensor],
         end = start + len(vectors)
         
         # Write 
-        scratch[start:end,:] = vectors.to(scratch, non_blocking=True)
+        #scratch[start:end,:] = vectors.to(scratch, non_blocking=True)
+        scratch[start:end,:] = vectors.to(scratch)
 
         # Setup next iteration
         start = end
