@@ -52,8 +52,6 @@ def sendApiPOST(retCode: int=0):
 	if bodyParams is not None:
 		# Define the parameters for the POST request
 		params = json.dumps(bodyParams)
-		params = params.replace("null", "\"null\"") # TEMPORARY, REMOVE WHEN BACK END ALLOWS REAL NULLS
-
 		# Set up the headers
 		headers = {"Content-type": "application/json"}
 
