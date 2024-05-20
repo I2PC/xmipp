@@ -56,8 +56,7 @@ def sendApiPOST(retCode: int = 0, XMIPP_VERSION:str = ''):
 		url = API_URL.split("/", maxsplit=1)
 		path = f"/{url[1]}"
 		url = url[0]
-		conn = http.client.HTTPSConnection(url,
-		                                   context=ssl._create_unverified_context())  # Unverified context because url does not have an ssl certificate
+		conn = http.client.HTTPSConnection(url,context=ssl._create_unverified_context())  # Unverified context because url does not have an ssl certificate
 
 		# Send the POST request
 		conn.request("POST", path, params, headers)
@@ -374,38 +373,6 @@ def runInsistentJob(cmd: str, cwd: str = './', showOutput: bool = False,
 	# Returning output and return code
 	return retCode, output
 
-
-def runParallelJobs(funcs: List[Tuple[Callable, Tuple[Any]]],
-                    nJobs: int = multiprocessing.cpu_count()) -> List:
-	"""
-	### This function runs the given command list in parallel.
-
-	#### Params:
-	- funcs (list(tuple(callable, tuple(any)))): Functions to run with parameters, if there are any.
-
-	#### Returns:
-	- (list): List containing the return of each function.
-	"""
-	# Creating a pool of n concurrent jobs
-	with multiprocessing.Pool(nJobs) as p:
-		# Run each function and obtain results
-		results = p.starmap(__runLambda, funcs)
-
-	# Return obtained result list
-	return results
-
-def __runLambda(function: Callable, args: Tuple[Any]=()):
-	"""
-	### This function is used to run other functions (intented for use inside a worker pool, so it can be picked).
-
-	#### Params:
-	- function (callable): Function to run.
-	- args (tuple(any)): Optional. Function arguments.
-
-	#### Returns:
-	- (Any): Return value/(s) of the called function.
-	"""
-	return function(*args)
 
 
 if __name__ == '__main__':
