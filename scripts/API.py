@@ -61,7 +61,12 @@ def sendApiPOST(retCode: int = 0, XMIPP_VERSION:str = ''):
 
 		# Send the POST request
 		conn.request("POST", path, params, headers)
-
+		response = conn.getresponse()
+		data = response.read()
+		print(response.headers.get('Location'))
+		# Imprimir la respuesta
+		print("Status:", response.status)
+		print("Response:", data)
 		# Close the connection
 		conn.close()
 
@@ -83,9 +88,9 @@ def getOSReleaseName() -> str:
 	log = []
 	# Obtaining os release name
 	retCode = runJob('cat /etc/os-release', show_output=False, show_command=False, log=log)
-	name = log[0]
+	name = '\n'.join(log)
 	# Look for release name if command did not fail
-	if retCode == 0:
+	if retCode == True:
 		# Find release name's line in command output
 		targetStart = name.find(textBefore)
 		if targetStart != 1:
@@ -94,6 +99,7 @@ def getOSReleaseName() -> str:
 
 			# Calculate release name's start index
 			nameStart = targetStart + len(textBefore)
+
 			if nameEnd != -1 and nameStart != nameEnd:
 				# If everything was correctly found and string is
 				# not empty, extract release name
@@ -155,7 +161,7 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = '') -> Optional[Dict]:
 	currentBranch = getCurrentBranch()
 
 	# If branch is master or there is none, get release name
-	branchName = XMIPP_VERSION if not currentBranch or currentBranch == MASTER_BRANCHNAME else currentBranch
+	branchName = XMIPP_VERSION if not currentBranch or currentBranch == 'master' else currentBranch
 
 	# Introducing data into a dictionary
 	return {
@@ -250,19 +256,6 @@ def __getUserId() -> Optional[str]:
 	return sha256.hexdigest()
 
 
-def __getLogTail() -> Optional[str]:
-	"""
-	### This function returns the last lines of the installation log.
-
-	#### Returns:
-	- (str | None): Installation log's last lines, or None if there were any errors.
-	"""
-	# Obtaining log tail
-	retCode, output = runJob(f"tail -n {TAIL_LOG_NCHARS} {LOG_FILE}")
-
-	# Return content if it went right
-	return output if retCode == 0 else None
-
 
 def __getArchitectureName() -> str:
 	"""
@@ -278,7 +271,7 @@ def __getArchitectureName() -> str:
 	retCode = runJob('cat /sys/devices/cpu/caps/pmu_name', show_output=False, show_command=False, log=log)
 	architecture = log[0]
 	# If command worked and returned info, extract it
-	if retCode == 0 and architecture:
+	if retCode == True and architecture:
 		archName = architecture
 
 	# Returing architecture name
@@ -364,7 +357,7 @@ def runInsistentJob(cmd: str, cwd: str = './', showOutput: bool = False,
 	# Running command up to nRetries times (improves resistance to small network errors)
 	for _ in range(nRetries):
 		output=[]
-		retCode = runJob(cmd, cwd=cwd, log=output)
+		retCode = runJob(cmd, cwd=cwd, log=output, show_output=False,show_command=False)
 		# Break loop if success was achieved
 		if retCode == 0:
 			break
