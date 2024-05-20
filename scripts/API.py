@@ -80,10 +80,10 @@ def getOSReleaseName() -> str:
 	# Text around release name
 	textBefore = 'PRETTY_NAME="'
 	textAfter = '"\n'
-
+	log = []
 	# Obtaining os release name
-	retCode, name = runJob('cat /etc/os-release')
-
+	retCode = runJob('cat /etc/os-release', show_output=False, show_command=False, log=log)
+	name = log[0]
 	# Look for release name if command did not fail
 	if retCode == 0:
 		# Find release name's line in command output
@@ -124,6 +124,7 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = '') -> Optional[Dict]:
 	GCC_version = ''
 	GPP_version = ''
 	configFile = '../xmipp.conf'#TODO change path
+	compileFile = '../compileLOG.txt'
 	with open(configFile, 'r') as file:
 		lines = file.readlines()
 	for l in lines:
@@ -147,17 +148,14 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = '') -> Optional[Dict]:
 			CUDA_version = log[-2][log[-2].find('release')+ 8 :log[-2].find('release') + 12]
 
 
-	jsonData = runParallelJobs([
-		(getOSReleaseName, ()),
-		(__getArchitectureName, ()),
-		(getCurrentBranch, ()),
-		(isBranchUpToDate, ()),
-		(__getLogTail, ())
-	])
+	with open(compileFile, 'r') as file:
+		lines = file.readlines()
+		logTail = lines[-100:]
+
+	currentBranch = getCurrentBranch()
 
 	# If branch is master or there is none, get release name
-	branchName = XMIPP_VERSION if not jsonData[2] or jsonData[2] == MASTER_BRANCHNAME else \
-	jsonData[2]
+	branchName = XMIPP_VERSION if not currentBranch or currentBranch == MASTER_BRANCHNAME else currentBranch
 
 	# Introducing data into a dictionary
 	return {
@@ -165,8 +163,8 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = '') -> Optional[Dict]:
 			"userId": userId
 		},
 		"version": {
-			"os": jsonData[0],
-			"architecture": jsonData[1],
+			"os": getOSReleaseName(),
+			"architecture": __getArchitectureName(),
 			"cuda": CUDA_version,
 			"cmake": None,
 			"gcc": GCC_version,
@@ -180,10 +178,10 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = '') -> Optional[Dict]:
 		},
 		"xmipp": {
 			"branch": branchName,
-			"updated": jsonData[3]
+			"updated": isBranchUpToDate()
 		},
 		"returnCode": retCode,
-		"logTail": jsonData[4] if retCode else None
+		"logTail": logTail if retCode else None
 		# Only needs log tail if something went wrong
 	}
 
@@ -274,11 +272,11 @@ def __getArchitectureName() -> str:
 	- (str): Architecture name.
 	"""
 	# Initializing to unknown value
-	archName = UNKNOWN_VALUE
-
+	archName = 'Unknow'
+	log = []
 	# Obtaining architecture name
-	retCode, architecture = runJob('cat /sys/devices/cpu/caps/pmu_name')
-
+	retCode = runJob('cat /sys/devices/cpu/caps/pmu_name', show_output=False, show_command=False, log=log)
+	architecture = log[0]
 	# If command worked and returned info, extract it
 	if retCode == 0 and architecture:
 		archName = architecture
@@ -297,9 +295,10 @@ def getCurrentBranch(dir: str = './') -> str:
 	#### Returns:
 	- (str): The name of the branch, 'HEAD' if a tag, or empty string if given directory is not a repository or a recognizable tag.
 	"""
+	log = []
 	# Getting current branch name
-	retcode, branchName = runJob("git rev-parse --abbrev-ref HEAD", cwd=dir)
-
+	retcode = runJob("git rev-parse --abbrev-ref HEAD", show_output=False, show_command=False, cwd=dir, log=log)
+	branchName = log[0]
 	# If there was an error, we are in no branch
 	return branchName if not retcode else ''
 
@@ -364,11 +363,13 @@ def runInsistentJob(cmd: str, cwd: str = './', showOutput: bool = False,
 	"""
 	# Running command up to nRetries times (improves resistance to small network errors)
 	for _ in range(nRetries):
-		retCode, output = runJob(cmd, cwd=cwd)
+		output=[]
+		retCode = runJob(cmd, cwd=cwd, log=output)
 		# Break loop if success was achieved
 		if retCode == 0:
 			break
-
+	if len(output) > 0:
+		output = output[0]
 	# Enforce message showing deppending on value
 	if showCommand:
 		print(cmd)
