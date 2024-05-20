@@ -79,6 +79,10 @@ public:
 
     void createSphere(int halfboxsize);
 
+    void downsample(const MultidimArray<std::complex<double>> &from, MultidimArray<std::complex<double>> &to);
+
+    void upsample(const MultidimArray<std::complex<double>> &from, MultidimArray<std::complex<double>> &to);
+
     void normalizeSubtomo(MultidimArray<double> &subtomo, int halfboxsize);
 
     void extractSubtomo(const MultidimArray<double> &tom, MultidimArray<double> &subtomo,
