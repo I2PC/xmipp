@@ -84,6 +84,59 @@ void ProgTomoExtractSubtomograms::createSphere(int halfboxsize)
 	}
 }
 
+void ProgTomoExtractSubtomograms::upsample(const MultidimArray<std::complex<double>> &from, MultidimArray<std::complex<double>> &to)
+{
+	for (size_t k = 0; k < ZSIZE(from)/2; k++)
+	{
+		for (size_t j = 0; j < YSIZE(from)/2; j++)
+		{
+			for (size_t i = 0; i < XSIZE(from); i++)
+			{
+				// Origin cube
+				DIRECT_A3D_ELEM(to, k, j, i) = DIRECT_A3D_ELEM(from, k, j, i);
+
+				// Oposite cube
+				DIRECT_A3D_ELEM(to,  ZSIZE(to) - ZSIZE(from)/2 + k, YSIZE(to) - YSIZE(from)/2 + j, i) =
+				DIRECT_A3D_ELEM(from, ZSIZE(from)/2 + k, YSIZE(from)/2 + j, i);
+
+				// Offset-Z cube
+				DIRECT_A3D_ELEM(to,  ZSIZE(to) - ZSIZE(from)/2 + k, j, i) =
+				DIRECT_A3D_ELEM(from, ZSIZE(from)/2 + k, j, i);
+
+				// Offset-Y cube
+				DIRECT_A3D_ELEM(to,  k, YSIZE(to) - YSIZE(from)/2 + j, i) =
+				DIRECT_A3D_ELEM(from, k, YSIZE(from)/2 + j, i);
+			}
+		}
+	}
+}
+
+void ProgTomoExtractSubtomograms::downsample(const MultidimArray<std::complex<double>> &from, MultidimArray<std::complex<double>> &to)
+{
+	for (size_t k = 0; k < ZSIZE(to)/2; k++)
+	{
+		for (size_t j = 0; j < YSIZE(to)/2; j++)
+		{
+			for (size_t i = 0; i < XSIZE(to); i++)
+			{
+				// Origin cube
+				DIRECT_A3D_ELEM(to, k, j, i) = DIRECT_A3D_ELEM(from, k, j, i);
+
+				// Oposite cube
+				DIRECT_A3D_ELEM(to,  ZSIZE(to)/2 + k, YSIZE(to)/2 + j, i) =
+				DIRECT_A3D_ELEM(from, ZSIZE(from) - ZSIZE(to)/2 + k, YSIZE(from) - YSIZE(to)/2 + j, i);
+
+				// Offset-Z cube
+				DIRECT_A3D_ELEM(to,  ZSIZE(to)/2 + k, j, i) =
+				DIRECT_A3D_ELEM(from, ZSIZE(from) - ZSIZE(to)/2 + k, j, i);
+
+				// Offset-Y cube
+				DIRECT_A3D_ELEM(to,  k, YSIZE(to)/2 + j, i) =
+				DIRECT_A3D_ELEM(from, k, YSIZE(from) - YSIZE(to)/2 + j, i);
+			}
+		}
+	}
+}
 
 void ProgTomoExtractSubtomograms::normalizeSubtomo(MultidimArray<double> &subtomo, int halfboxsize)
 {
@@ -138,55 +191,11 @@ void ProgTomoExtractSubtomograms::extractSubtomoFixedSize(MultidimArray<double> 
 
 	if (downsampleFactor > 1)
 	{
-		for (size_t k = 0; k < ZSIZE(fftSubtomo)/2; k++)
-		{
-			for (size_t j = 0; j < YSIZE(fftSubtomo)/2; j++)
-			{
-				for (size_t i = 0; i < XSIZE(fftSubtomo); i++)
-				{
-					// Origin cube
-					DIRECT_A3D_ELEM(fftSubtomo, k, j, i) = DIRECT_A3D_ELEM(fftSubtomoExtraction, k, j, i);
-
-					// Oposite cube
-					DIRECT_A3D_ELEM(fftSubtomo,  ZSIZE(fftSubtomo)/2 + k, YSIZE(fftSubtomo)/2 + j, i) =
-					DIRECT_A3D_ELEM(fftSubtomoExtraction, ZSIZE(fftSubtomoExtraction) - ZSIZE(fftSubtomo)/2 + k, YSIZE(fftSubtomoExtraction) - YSIZE(fftSubtomo)/2 + j, i);
-
-					// Offset-Z cube
-					DIRECT_A3D_ELEM(fftSubtomo,  ZSIZE(fftSubtomo)/2 + k, j, i) =
-					DIRECT_A3D_ELEM(fftSubtomoExtraction, ZSIZE(fftSubtomoExtraction) - ZSIZE(fftSubtomo)/2 + k, j, i);
-
-					// Offset-Y cube
-					DIRECT_A3D_ELEM(fftSubtomo,  k, YSIZE(fftSubtomo)/2 + j, i) =
-					DIRECT_A3D_ELEM(fftSubtomoExtraction, k, YSIZE(fftSubtomoExtraction) - YSIZE(fftSubtomo)/2 + j, i);
-				}
-			}
-		}
+		downsample(fftSubtomoExtraction, fftSubtomo);
 	}
 	else  // downsampleFactor < 1
 	{
-		for (size_t k = 0; k < ZSIZE(fftSubtomoExtraction)/2; k++)
-		{
-			for (size_t j = 0; j < YSIZE(fftSubtomoExtraction)/2; j++)
-			{
-				for (size_t i = 0; i < XSIZE(fftSubtomoExtraction); i++)
-				{
-					// Origin cube
-					DIRECT_A3D_ELEM(fftSubtomo, k, j, i) = DIRECT_A3D_ELEM(fftSubtomoExtraction, k, j, i);
-
-					// Oposite cube
-					DIRECT_A3D_ELEM(fftSubtomo,  ZSIZE(fftSubtomo) - ZSIZE(fftSubtomoExtraction)/2 + k, YSIZE(fftSubtomo) - YSIZE(fftSubtomoExtraction)/2 + j, i) =
-					DIRECT_A3D_ELEM(fftSubtomoExtraction, ZSIZE(fftSubtomoExtraction)/2 + k, YSIZE(fftSubtomoExtraction)/2 + j, i);
-
-					// Offset-Z cube
-					DIRECT_A3D_ELEM(fftSubtomo,  ZSIZE(fftSubtomo) - ZSIZE(fftSubtomoExtraction)/2 + k, j, i) =
-					DIRECT_A3D_ELEM(fftSubtomoExtraction, ZSIZE(fftSubtomoExtraction)/2 + k, j, i);
-
-					// Offset-Y cube
-					DIRECT_A3D_ELEM(fftSubtomo,  k, YSIZE(fftSubtomo) - YSIZE(fftSubtomoExtraction)/2 + j, i) =
-					DIRECT_A3D_ELEM(fftSubtomoExtraction, k, YSIZE(fftSubtomoExtraction)/2 + j, i);
-				}
-			}
-		}
+		upsample(fftSubtomoExtraction, fftSubtomo);
 	}
 
 	subtomoExtraction.initZeros(1, boxsize, boxsize, boxsize);
@@ -269,7 +278,6 @@ void ProgTomoExtractSubtomograms::run()
 	}
 
 	std::vector<std::vector<int>> position;
-	std::vector<MultidimArray<double>> listOfSubtomos;
 
 	FileName fn, fnCoorBase;
 	fnCoorBase = fnCoor.getBaseName();
@@ -307,16 +315,17 @@ void ProgTomoExtractSubtomograms::run()
 		if (normalize)
 			normalizeSubtomo(subtomo, halfboxsize);
 
-
-		listOfSubtomos.push_back(subtomo);
-
 		#ifdef DEBUG
 		std::cout << fn << std::endl;
 		std::cout << fnOut << std::endl;
 		std::cout << fnOut+fn << std::endl;
 		#endif
 
-		//subtomoImg.write(fnOut+"/"+fn);
+
+		Image<double> saveImg;
+		saveImg() = subtomo;
+		saveImg.write(fnOut+"/"+fnCoorBase + ".mrc", idx+FIRST_IMAGE, true, WRITE_APPEND);
+
 
 		FileName composedFn;
 		composedFn.compose(idx, fn);
@@ -328,33 +337,12 @@ void ProgTomoExtractSubtomograms::run()
 
 	}
 
-	size_t numberOfSubtomos = listOfSubtomos.size();
 
-	MultidimArray<float> subtomosStack;
-
-	subtomosStack.initZeros(numberOfSubtomos, boxsize, boxsize, boxsize);
-
-	for (size_t subtomoIdx=0; subtomoIdx<numberOfSubtomos; subtomoIdx++)
-	{
-		auto subtomo = listOfSubtomos[subtomoIdx];
-		for (int k=0; k<boxsize; k++){
-			for (int i=0; i<boxsize; i++){
-				for (int j=0; j<boxsize; j++)
-				{
-					NZYX_ELEM(subtomosStack, subtomoIdx, k, i, j) = (float) A3D_ELEM(subtomo, k, i, j);
-				}
-			}
-		}
-	}
-
-	Image<float> saveImg;
-	saveImg() = subtomosStack;
-	saveImg.write(fnOut+"/"+fnCoorBase + ".mrc");
 	fn = fnCoorBase + "_extracted.xmd";
 	mdout.write(fnOut+"/"+fn);
 
-
 	std::cout << "Subtomogram extraction succesfully finished!!" << std::endl;
+
 
 }
 
