@@ -26,12 +26,11 @@ Module containing all functions needed for the metric's API request.
 """
 
 # General imports
-import multiprocessing
 import re, hashlib, http.client, json, ssl
 from typing import Dict, Optional, Tuple
 
 # Self imports
-from utils import runJob #TODO replace with from .utils import runJob
+from .utils import runJob #TODO replace with from .utils import runJob
 
 API_URL = 'xmipp.i2pc.es/api/attempts/'
 
@@ -42,32 +41,35 @@ def sendApiPOST(retCode: int = 0, XMIPP_VERSION:str = ''):
 	#### Params:
 	- retCode (int): Optional. Return code for the API request.
 	"""
-	# Getting JSON data for curl command
-	bodyParams = __getJSON(retCode=retCode, XMIPP_VERSION=XMIPP_VERSION)
+	try:
+		# Getting JSON data for curl command
+		bodyParams = __getJSON(retCode=retCode, XMIPP_VERSION=XMIPP_VERSION)
 
-	# Send API POST request if there were no errors
-	if bodyParams is not None:
-		# Define the parameters for the POST request
-		params = json.dumps(bodyParams)
-		# Set up the headers
-		headers = {"Content-type": "application/json"}
+		# Send API POST request if there were no errors
+		if bodyParams is not None:
+			# Define the parameters for the POST request
+			params = json.dumps(bodyParams)
+			# Set up the headers
+			headers = {"Content-type": "application/json"}
 
-		# Establish a connection
-		url = API_URL.split("/", maxsplit=1)
-		path = f"/{url[1]}"
-		url = url[0]
-		conn = http.client.HTTPSConnection(url,context=ssl._create_unverified_context())  # Unverified context because url does not have an ssl certificate
+			# Establish a connection
+			url = API_URL.split("/", maxsplit=1)
+			path = f"/{url[1]}"
+			url = url[0]
+			conn = http.client.HTTPSConnection(url,context=ssl._create_unverified_context())  # Unverified context because url does not have an ssl certificate
 
-		# Send the POST request
-		conn.request("POST", path, params, headers)
-		response = conn.getresponse()
-		data = response.read()
-		print(response.headers.get('Location'))
-		# Imprimir la respuesta
-		print("Status:", response.status)
-		print("Response:", data)
-		# Close the connection
-		conn.close()
+			# Send the POST request
+			conn.request("POST", path, params, headers)
+			response = conn.getresponse()
+			data = response.read()
+			print(response.headers.get('Location'))
+			# Imprimir la respuesta
+			print("Status:", response.status)
+			print("Response:", data)
+			# Close the connection
+			conn.close()
+	except Exception as e:
+		pass
 
 
 ####################### UTILS FUNCTIONS #######################
@@ -119,73 +121,52 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = '') -> Optional[Dict]:
 	#### Return:
 	- (dict | None): JSON with the required info or None if user id could not be produced.
 	"""
-	# Getting user id and checking if it exists
-	userId = __getUserId()
-	if userId is None:
-		return
+	try:
+		# Getting user id and checking if it exists
+		userId = __getUserId()
+		if userId is None:
+			return
 
-	# Obtaining variables in parallel
-	CUDA_version = ''
-	GCC_version = ''
-	GPP_version = ''
-	configFile = '../xmipp.conf'#TODO change path
-	compileFile = '../compileLOG.txt'
-	with open(configFile, 'r') as file:
-		lines = file.readlines()
-	for l in lines:
-		log = []
-		if l.find('CC')!= -1 and l.find('CCFLAGS')== -1 and l.find('MPI_CC')== -1\
-			and l.find('NVCC') == -1 and l.find('NVCC_CXXFLAGS')== -1 and l.find('NVCC_LINKFLAGS')== -1:
-			compiler = l.split('=')[-1]
-			compiler = compiler.replace('\n', '')
-			runJob('{} --version'.format(compiler), show_output=False, show_command=False, log=log)
-			GCC_version = log[0].split(' ')[-1]
-		if l.find('CXX')!= -1 and l.find('CXXFLAGS')== -1 and l.find('CXX_CUDA')== -1\
-			and l.find('MPI_CXX') == -1 and l.find('MPI_CXXFLAGS')== -1 and l.find('NVCC_CXXFLAGS')== -1:
-			compiler = l.split('=')[-1]
-			compiler = compiler.replace('\n', '')
-			runJob('{} --version'.format(compiler), show_output=False, show_command=False, log=log)
-			GPP_version = log[0].split(' ')[-1]
-		if l.find('NVCC')!= -1 and l.find('NVCC_CXXFLAGS')== -1 and l.find('NVCC_LINKFLAGS')== -1:
-			compiler = l.split('=')[-1]
-			compiler = compiler.replace('\n', '')
-			runJob('{} --version'.format(compiler), show_output=False, show_command=False, log=log)
-			CUDA_version = log[-2][log[-2].find('release')+ 8 :log[-2].find('release') + 12]
+		# Obtaining variables in parallel
+		CUDA_version = ''
+		GCC_version = ''
+		GPP_version = ''
+		configFile = '../xmipp.conf'#TODO change path
+		compileFile = '../compileLOG.txt'
+		with open(configFile, 'r') as file:
+			lines = file.readlines()
+		for l in lines:
+			log = []
+			if l.find('CC')!= -1 and l.find('CCFLAGS')== -1 and l.find('MPI_CC')== -1\
+				and l.find('NVCC') == -1 and l.find('NVCC_CXXFLAGS')== -1 and l.find('NVCC_LINKFLAGS')== -1:
+				compiler = l.split('=')[-1]
+				compiler = compiler.replace('\n', '')
+				runJob('{} --version'.format(compiler), show_output=False, show_command=False, log=log)
+				GCC_version = log[0].split(' ')[-1]
+			if l.find('CXX')!= -1 and l.find('CXXFLAGS')== -1 and l.find('CXX_CUDA')== -1\
+				and l.find('MPI_CXX') == -1 and l.find('MPI_CXXFLAGS')== -1 and l.find('NVCC_CXXFLAGS')== -1:
+				compiler = l.split('=')[-1]
+				compiler = compiler.replace('\n', '')
+				runJob('{} --version'.format(compiler), show_output=False, show_command=False, log=log)
+				GPP_version = log[0].split(' ')[-1]
+			if l.find('NVCC')!= -1 and l.find('NVCC_CXXFLAGS')== -1 and l.find('NVCC_LINKFLAGS')== -1:
+				compiler = l.split('=')[-1]
+				compiler = compiler.replace('\n', '')
+				runJob('{} --version'.format(compiler), show_output=False, show_command=False, log=log)
+				CUDA_version = log[-2][log[-2].find('release')+ 8 :log[-2].find('release') + 12]
 
 
-	with open(compileFile, 'r') as file:
-		lines = file.readlines()
-		logTail = lines[-100:]
+		with open(compileFile, 'r') as file:
+			lines = file.readlines()
+			logTail = lines[-100:]
 
-	currentBranch = getCurrentBranch()
+		currentBranch = getCurrentBranch()
 
-	# If branch is master or there is none, get release name
-	branchName = XMIPP_VERSION if not currentBranch or currentBranch == 'master' else currentBranch
+		# If branch is master or there is none, get release name
+		branchName = XMIPP_VERSION if not currentBranch or currentBranch == 'master' else currentBranch
 
-	# Introducing data into a dictionary
-	return {
-		"user": {
-			"userId": userId
-		},
-		"version": {
-			"os": getOSReleaseName(),
-			"architecture": __getArchitectureName(),
-			"cuda": CUDA_version,
-			"cmake": None,
-			"gcc": GCC_version,
-			"gpp": GPP_version,
-			"scons": None
-		},
-		"xmipp": {
-			"branch": branchName,
-			"updated": isBranchUpToDate()
-		},
-		"returnCode": retCode,
-		"logTail": logTail if retCode else None
-		# Only needs log tail if something went wrong
-	}
-"""
-	return {
+		# Introducing data into a dictionary
+		return {
 			"user": {
 				"userId": userId
 			},
@@ -196,12 +177,7 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = '') -> Optional[Dict]:
 				"cmake": None,
 				"gcc": GCC_version,
 				"gpp": GPP_version,
-				"mpi": None,
-				"python": None,
-				"sqlite": None,
-				"java": None,
-				"hdf5": None,
-				"jpeg": None
+				"scons": None
 			},
 			"xmipp": {
 				"branch": branchName,
@@ -211,7 +187,36 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = '') -> Optional[Dict]:
 			"logTail": logTail if retCode else None
 			# Only needs log tail if something went wrong
 		}
-""" #TODO replace for this json format
+		"""
+		return {
+				"user": {
+					"userId": userId
+				},
+				"version": {
+					"os": getOSReleaseName(),
+					"architecture": __getArchitectureName(),
+					"cuda": CUDA_version,
+					"cmake": None,
+					"gcc": GCC_version,
+					"gpp": GPP_version,
+					"mpi": None,
+					"python": None,
+					"sqlite": None,
+					"java": None,
+					"hdf5": None,
+					"jpeg": None
+				},
+				"xmipp": {
+					"branch": branchName,
+					"updated": isBranchUpToDate()
+				},
+				"returnCode": retCode,
+				"logTail": logTail if retCode else None
+				# Only needs log tail if something went wrong
+			}
+	""" #TODO replace for this json format
+	except Exception as e:
+		pass
 def __getMACAddress() -> Optional[str]:
 	"""
 	### This function returns a physical MAC address for this machine. It prioritizes ethernet over wireless.
@@ -274,7 +279,6 @@ def __getUserId() -> Optional[str]:
 
 	# Return hexadecimal representation of the hash
 	return sha256.hexdigest()
-
 
 
 def __getArchitectureName() -> str:
@@ -354,8 +358,6 @@ def isBranchUpToDate(dir: str = './') -> bool:
 	return localCommit == remoteCommit
 
 
-
-
 def runInsistentJob(cmd: str, cwd: str = './', showOutput: bool = False,
                     showError: bool = False, showCommand: bool = False,
                     nRetries: int = 5) -> Tuple[int, str]:
@@ -393,7 +395,6 @@ def runInsistentJob(cmd: str, cwd: str = './', showOutput: bool = False,
 
 	# Returning output and return code
 	return retCode, output
-
 
 
 if __name__ == '__main__':

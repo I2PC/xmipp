@@ -32,6 +32,7 @@ from datetime import datetime
 import json
 from scripts import *
 from scripts.utils import checkCMakeVersion
+from scripts.API import sendApiPOST
 
 
 
@@ -1166,6 +1167,7 @@ def exitProgram(error=0, status=None):
             show_output=False, show_command=False, log=log)
     except Exception as e:
         pass
+    sendApiPOST(error, XMIPP_VERSION)
     if error:
         errorEndMessage(XMIPP_VERNAME, error, status)
         printVersion()
