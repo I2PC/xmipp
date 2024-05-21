@@ -536,7 +536,7 @@ def compileModule(Nproc,module):
                         strSupport = "This file belongs to %s dependency. Please, " \
                                      "try '%s' and re-compile." % (missingDir, hint)
                     else: strSupport = 'Run /xmipp cleanAll to remove all repositories ' \
-                                       '(local changes will be removed) and compile Xmipp from scrach'
+                                       '(local changes will be removed) and compile Xmipp from scratch'
 
                     exitProgram(1, [False, 1, "\n'%s' file not found." % missingPath, strSupport])
 
