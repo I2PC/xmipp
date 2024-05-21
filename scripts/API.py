@@ -28,7 +28,7 @@ Module containing all functions needed for the metric's API request.
 # General imports
 import multiprocessing
 import re, hashlib, http.client, json, ssl
-from typing import Dict, Optional, Tuple, Any, List, Callable
+from typing import Dict, Optional, Tuple
 
 # Self imports
 from utils import runJob #TODO replace with from .utils import runJob
@@ -174,12 +174,7 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = '') -> Optional[Dict]:
 			"cmake": None,
 			"gcc": GCC_version,
 			"gpp": GPP_version,
-			"mpi": None,
-			"python": None,
-			"sqlite": None,
-			"java": None,
-			"hdf5": None,
-			"jpeg": None
+			"scons": None
 		},
 		"xmipp": {
 			"branch": branchName,
@@ -189,8 +184,34 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = '') -> Optional[Dict]:
 		"logTail": logTail if retCode else None
 		# Only needs log tail if something went wrong
 	}
-
-
+"""
+	return {
+			"user": {
+				"userId": userId
+			},
+			"version": {
+				"os": getOSReleaseName(),
+				"architecture": __getArchitectureName(),
+				"cuda": CUDA_version,
+				"cmake": None,
+				"gcc": GCC_version,
+				"gpp": GPP_version,
+				"mpi": None,
+				"python": None,
+				"sqlite": None,
+				"java": None,
+				"hdf5": None,
+				"jpeg": None
+			},
+			"xmipp": {
+				"branch": branchName,
+				"updated": isBranchUpToDate()
+			},
+			"returnCode": retCode,
+			"logTail": logTail if retCode else None
+			# Only needs log tail if something went wrong
+		}
+""" #TODO replace for this json format
 def __getMACAddress() -> Optional[str]:
 	"""
 	### This function returns a physical MAC address for this machine. It prioritizes ethernet over wireless.
