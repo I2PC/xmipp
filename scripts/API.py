@@ -293,7 +293,8 @@ def __getArchitectureName() -> str:
 	log = []
 	# Obtaining architecture name
 	retCode = runJob('cat /sys/devices/cpu/caps/pmu_name', show_output=False, show_command=False, log=log)
-	architecture = log[0]
+	if len(log) > 0:
+		architecture = log[0]
 	# If command worked and returned info, extract it
 	if retCode == True and architecture:
 		archName = architecture
@@ -315,7 +316,10 @@ def getCurrentBranch(dir: str = './') -> str:
 	log = []
 	# Getting current branch name
 	retcode = runJob("git rev-parse --abbrev-ref HEAD", show_output=False, show_command=False, cwd=dir, log=log)
-	branchName = log[0]
+	if len(log) > 0:
+		branchName = log[0]
+	else:
+		return ''
 	# If there was an error, we are in no branch
 	return branchName if not retcode else ''
 
