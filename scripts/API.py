@@ -61,7 +61,7 @@ def sendApiPOST(retCode: int = 0, XMIPP_VERSION:str = ''):
 			url = API_URL.split("/", maxsplit=1)
 			path = f"/{url[1]}"
 			url = url[0]
-			conn = http.client.HTTPSConnection(url,context=ssl._create_unverified_context())  # Unverified context because url does not have an ssl certificate
+			conn = http.client.HTTPSConnection(url,context=ssl._create_unverified_context(), timeout=4)  # Unverified context because url does not have an ssl certificate
 
 			# Send the POST request
 			conn.request("POST", path, params, headers)
