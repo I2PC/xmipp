@@ -31,6 +31,11 @@ from typing import Dict, Optional, Tuple
 
 # Self imports
 from .utils import runJob #TODO replace with from .utils import runJob
+import re, hashlib, http.client, json, ssl
+from typing import Dict, Optional, Tuple
+
+# Self imports
+from .utils import runJob #TODO replace with from .utils import runJob
 
 API_URL = 'xmipp.i2pc.es/api/attempts/'
 
@@ -403,3 +408,11 @@ def runInsistentJob(cmd: str, cwd: str = './', showOutput: bool = False,
 
 if __name__ == '__main__':
 	sendApiPOST(retCode=0)
+
+
+
+'''
+curl --header "Content-Type: application/json" -X POST --data '{"user": {"userId": "f0ccfe1cac91db754d039cf3bb5e7f46327ef3c5442d245b4c5e3b28086003c5"}, "version": {"os": "Ubuntu 22.04.3 LTS", "architecture": "skylake", "cuda": "11.4", "cmake": "3.22.1", "gcc": "10.5.0", "gpp": "10.5.0", "scons": "4.6.0"}, "xmipp": {"branch": "agm_ms_xmipp_refactor", "updated": true}, "returnCode": 0, "logTail": "Compilation date: 2024-02-13 13:14:34.254810\nActive enviroment: scipion3\n---------------------------------------\n\n###### Configutarion ######\n\n#### Checking libraries from config file...\ngcc 10.5.0 found\ng++ 10.5.0 found\nmpirun 4.1.2 found\njava 11.0.21 found\ngit 2.34.1 found\nHDF5 1.10.7 found\nTIFF 4.3.0 found\nFFTW3 3.5.8 found\nSCons 4.6.0 found\ncmake 3.22.1 found\nrsync 3.2 found\n## Getting internal flags for config file...\n## Done\n#### Done\nCompilation and install time: 0.1 mins\n\n---------------------------------------\n\nXmipp v3.23.11-Nereus/devel has been installed, enjoy it!\nMore about Xmipp: https://i2pc.github.io/docs/"}' --request POST xmipp.i2pc.es/api/attempts/
+
+
+'''
