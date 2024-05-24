@@ -26,20 +26,16 @@ Module containing all functions needed for the metric's API request.
 """
 
 # General imports
-import re, hashlib, http.client, json, ssl
+import re, hashlib, http.client, json, ssl#TODO replace with from .utils import runJob
 from typing import Dict, Optional, Tuple
 
 # Self imports
-from .utils import runJob #TODO replace with from .utils import runJob
-import re, hashlib, http.client, json, ssl
 from typing import Dict, Optional, Tuple
-
-# Self imports
-from .utils import runJob #TODO replace with from .utils import runJob
+from utils import runJob #TODO replace with from .utils import runJob
 
 API_URL = 'xmipp.i2pc.es/api/attempts/'
 
-def sendApiPOST(retCode: int = 0, XMIPP_VERSION:str = ''):
+def sendApiPOST(retCode: int = 0, XMIPP_VERSION:str = 'Unknow'):
 	"""
 	### Sends a POST request to Xmipp's metrics's API.
 
@@ -115,7 +111,7 @@ def getOSReleaseName() -> str:
 	return releaseName
 
 
-def __getJSON(retCode: int = 0, XMIPP_VERSION: str = '') -> Optional[Dict]:
+def __getJSON(retCode: int = 0, XMIPP_VERSION: str = 'Unknow') -> Optional[Dict]:
 	"""
 	### Creates a JSON with the necessary data for the API POST message.
 
