@@ -31,10 +31,11 @@
 #include <core/xmipp_program.h>
 #include <core/xmipp_filename.h>
 #include <data/fourier_projection.h>
+#include <data/sampling.h>
 
 #include <vector>
 
-class ProgTomoTwofoldAlign : public XmippProgram
+class ProgTomoVolumeAlignTwofold : public XmippProgram
 {
 
 private:
@@ -42,6 +43,10 @@ private:
     FileName fnInMetadata;
     /** Filenames */
     FileName fnOutMetadata;
+    /** Angular sampling rate in degrees*/
+    double angularSamplingRate;
+    /** Max tilt angle in degrees*/
+    double maxTiltAngle;
     /** Input metadata*/
     MetaDataVec inputVolumesMd;
     /** Output metadata */
@@ -52,20 +57,22 @@ private:
     std::vector<FourierProjector> projectors;
     /** Central slice */
     std::vector<MultidimArray<double>> centralProjections;
+    /** Sampling on sphere */
+    Sampling sphereSampling;
 
 private:
     // --------------------------- INFO functions ----------------------------
-
     void readParams() override;
-
     void defineParams() override;
 
 
     // --------------------------- HEAD functions ----------------------------
-    void twofoldAlign(std::size_t i, std::size_t j, double &rot, double &tilt, double &psi);
+    double twofoldAlign(std::size_t i, std::size_t j, double &rot, double &tilt, double &psi);
+    static double computeSquareSum(const MultidimArray<double> &x);
 
     // --------------------------- I/O functions -----------------------------
-    void read();
+    void defineSampling();
+    void readVolumes();
     
     // --------------------------- MAIN --------------------------------------
     void run() override;
