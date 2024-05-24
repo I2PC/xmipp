@@ -36,6 +36,9 @@ void ProgTomoVolumeAlignTwofold::readParams()
     fnOutMetadata = getParam("-o");
     angularSamplingRate = getDoubleParam("--angularSampling");
     maxTiltAngle = getDoubleParam("--maxTilt");
+    maxFrequency = getDoubleParam("--maxFreq");
+    padding = getDoubleParam("--padding");
+	interp = getIntParam("--interp");
 }
 
 
@@ -47,39 +50,42 @@ void ProgTomoVolumeAlignTwofold::defineParams()
 	addParamsLine("  -o <output_metadata>   			: Output containing alignment among all possible pairs of volumes.");
 	addParamsLine("  --angularSampling <degrees>   		: Angular sampling rate in degrees.");
 	addParamsLine("  --maxTilt <degrees>   				: Maximum tilt angle for the angular search in degrees.");
+	addParamsLine("  --maxFreq <freq=0.5>  				: Maximum digital frequency");
+	addParamsLine("  --padding <factor=2.0>  			: Padding factor");
+	addParamsLine("  --interp <interp=1>  				: Interpolation method factor");
 }
 
 
 // --------------------------- HEAD functions ----------------------------
 
 double ProgTomoVolumeAlignTwofold::twofoldAlign(std::size_t i, std::size_t j, 
-											  double &rot, double &tilt, double &psi)
+											    double &rot, double &tilt, double &psi)
 {
 	const auto nPsi = static_cast<std::size_t>(360.0 / angularSamplingRate);
 	const auto &directions = sphereSampling.no_redundant_sampling_points_angles;
 
+	auto &projector1 = projectors[i];
+	auto &projector2 = projectors[j];
+	const auto &centralProjection1 = centralProjections[i];
+	const auto &centralProjection2 = centralProjections[j];
+
 	double bestCost = std::numeric_limits<double>::max();
-	for(std::size_t i = 0; i < directions.size(); ++i)
+	for(std::size_t k = 0; k < directions.size(); ++k)
 	{
-		for(std::size_t j = 0; j < nPsi; ++j)
+		for(std::size_t l = 0; l < nPsi; ++l)
 		{
-            const double rot1 = XX(directions[i]);
-            const double tilt1 = YY(directions[i]);
-            const double psi1 = ZZ(directions[i]) + (nPsi * angularSamplingRate);
+            const double rot1 = XX(directions[k]);
+            const double tilt1 = YY(directions[k]);
+            const double psi1 = l * angularSamplingRate;
 			const double rot2 = -psi1;
 			const double tilt2 = -tilt1;
 			const double psi2 = -rot1;
-			auto &projector1 = projectors[i];
-			auto &projector2 = projectors[j];
 			projector1.project(rot1, tilt1, psi1);
 			projector2.project(rot2, tilt2, psi2);
-			auto &projectionImage1 = projector1.projection();
-			auto &projectionImage2 = projector2.projection();
 
-			projectionImage1 -= centralProjections[j];
-			projectionImage2 -= centralProjections[i];
+			const auto cost = computeSquareDistance(projector1.projection(), centralProjection2) + 
+							  computeSquareDistance(projector2.projection(), centralProjection1) ;
 
-			const auto cost = computeSquareSum(projectionImage1) + computeSquareSum(projectionImage2);
 			if (cost < bestCost)
 			{
 				rot = rot1;
@@ -93,13 +99,14 @@ double ProgTomoVolumeAlignTwofold::twofoldAlign(std::size_t i, std::size_t j,
 	return bestCost;
 }
 
-double ProgTomoVolumeAlignTwofold::computeSquareSum(const MultidimArray<double> &x)
+double ProgTomoVolumeAlignTwofold::computeSquareDistance(const MultidimArray<double> &x, 
+														 const MultidimArray<double> &y )
 {
 	double sum = 0.0;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(x)
 	{
-		const auto &elem = DIRECT_MULTIDIM_ELEM(x, n);
-		sum += elem*elem;
+		const auto delta = DIRECT_MULTIDIM_ELEM(x, n) - DIRECT_MULTIDIM_ELEM(y, n);
+		sum += delta*delta;
 	}
 	return sum;
 }
@@ -119,12 +126,12 @@ void ProgTomoVolumeAlignTwofold::readVolumes()
 		inputVolumesMd.getValue(MDL_IMAGE, imageFilename, objId);
 		inputVolumes.emplace_back();
 		inputVolumes.back().read(imageFilename);
+		inputVolumes.back()().setXmippOrigin();
 
 		// Create a projector for the volume
 		projectors.emplace_back(
-			inputVolumes.back()(), 
-			2.0, 1.0, // TODO
-			xmipp_transformation::BSPLINE3
+			inputVolumes.back()(),
+			padding, maxFrequency, interp
 		);
 
 		// Obtain the central projection TODO do not use projector
@@ -135,20 +142,22 @@ void ProgTomoVolumeAlignTwofold::readVolumes()
 
 void ProgTomoVolumeAlignTwofold::defineSampling()
 {
-
+	FileName fnSymmetry = "c1"; //TODO
+	int symmetry, sym_order;
     sphereSampling.setSampling(angularSamplingRate);
-    //if (!mysampling.SL.isSymmetryGroup(fn_sym, symmetry, sym_order))
-    //    REPORT_ERROR(ERR_VALUE_INCORRECT,
-    //                 (std::string)"Invalid symmetry" +  fn_sym);
+    if (!sphereSampling.SL.isSymmetryGroup(fnSymmetry, symmetry, sym_order))
+        REPORT_ERROR(ERR_VALUE_INCORRECT,
+                     (std::string)"Invalid symmetry" +  fnSymmetry);
     sphereSampling.computeSamplingPoints(false, maxTiltAngle);
-    //mysampling.SL.readSymmetryFile(fn_sym);
-    //mysampling.fillLRRepository();
-    //mysampling.removeRedundantPoints(symmetry, sym_order);
+    sphereSampling.SL.readSymmetryFile(fnSymmetry);
+    sphereSampling.fillLRRepository();
+    sphereSampling.removeRedundantPoints(symmetry, sym_order);
 }
 
 void ProgTomoVolumeAlignTwofold::run()
 {
 	readVolumes();
+	defineSampling();
 
 	std::string image1, image2;
 	for(std::size_t i = 1; i < projectors.size(); ++i)
@@ -171,6 +180,8 @@ void ProgTomoVolumeAlignTwofold::run()
             alignmentMd.setValue(MDL_ANGLE_TILT, tilt, id);
             alignmentMd.setValue(MDL_ANGLE_PSI, psi, id);
             alignmentMd.setValue(MDL_COST, cost, id);
+
+			std::cout << "(" << j << ", " << i << ")\n";
 		}
 	}
 

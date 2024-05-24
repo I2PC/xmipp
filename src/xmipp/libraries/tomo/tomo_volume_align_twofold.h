@@ -47,6 +47,11 @@ private:
     double angularSamplingRate;
     /** Max tilt angle in degrees*/
     double maxTiltAngle;
+    /** Maximum frequency for comparisons */
+    double maxFrequency;
+    /** Padding factor */
+    double padding;
+    int interp;
     /** Input metadata*/
     MetaDataVec inputVolumesMd;
     /** Output metadata */
@@ -68,7 +73,7 @@ private:
 
     // --------------------------- HEAD functions ----------------------------
     double twofoldAlign(std::size_t i, std::size_t j, double &rot, double &tilt, double &psi);
-    static double computeSquareSum(const MultidimArray<double> &x);
+    static double computeSquareDistance(const MultidimArray<double> &x, const MultidimArray<double> &y);
 
     // --------------------------- I/O functions -----------------------------
     void defineSampling();
