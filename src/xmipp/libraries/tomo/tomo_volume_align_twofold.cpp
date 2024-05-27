@@ -195,7 +195,7 @@ void ProgTomoVolumeAlignTwofold::defineSampling()
     if (!sphereSampling.SL.isSymmetryGroup(fnSymmetry, symmetry, sym_order))
         REPORT_ERROR(ERR_VALUE_INCORRECT,
                      (std::string)"Invalid symmetry" +  fnSymmetry);
-    sphereSampling.computeSamplingPoints(false, maxTiltAngle);
+    sphereSampling.computeSamplingPoints(false, 90+maxTiltAngle, 90-maxTiltAngle);
     sphereSampling.SL.readSymmetryFile(fnSymmetry);
     sphereSampling.fillLRRepository();
     sphereSampling.removeRedundantPoints(symmetry, sym_order);
