@@ -39,6 +39,7 @@ void ProgTomoVolumeAlignTwofold::readParams()
     maxFrequency = getDoubleParam("--maxFreq");
     padding = getDoubleParam("--padding");
 	interp = getIntParam("--interp");
+	nThreads = getIntParam("--threads");
 }
 
 
@@ -53,10 +54,35 @@ void ProgTomoVolumeAlignTwofold::defineParams()
 	addParamsLine("  --maxFreq <freq=0.5>  				: Maximum digital frequency");
 	addParamsLine("  --padding <factor=2.0>  			: Padding factor");
 	addParamsLine("  --interp <interp=1>  				: Interpolation method factor");
+	addParamsLine("  --threads <threads=8>  			: Number of threads");
 }
 
 
 // --------------------------- HEAD functions ----------------------------
+
+void ProgTomoVolumeAlignTwofold::alignPair(std::size_t i, std::size_t j)
+{
+	FileName image1;
+	FileName image2;
+
+	// Perform the volume alignment
+	double rot, tilt, psi;
+	const auto cost = twofoldAlign(i, j, rot, tilt, psi);
+
+	// Write to metadata
+	std::lock_guard<std::mutex> lock(outputMetadataMutex);
+	std::size_t id = alignmentMd.addObject();
+	inputVolumesMd.getValue(MDL_IMAGE, image1, i+1);
+	inputVolumesMd.getValue(MDL_IMAGE, image2, j+1);
+	alignmentMd.setValue(MDL_IMAGE1, image1, id);
+	alignmentMd.setValue(MDL_IMAGE2, image2, id);
+	alignmentMd.setValue(MDL_ANGLE_ROT, rot, id);
+	alignmentMd.setValue(MDL_ANGLE_TILT, tilt, id);
+	alignmentMd.setValue(MDL_ANGLE_PSI, psi, id);
+	alignmentMd.setValue(MDL_COST, cost, id);
+	  
+	std::cout << "(" << j << ", " << i << ")" << std::endl;
+}
 
 double ProgTomoVolumeAlignTwofold::twofoldAlign(std::size_t i, std::size_t j, 
 											    double &rot, double &tilt, double &psi)
@@ -68,6 +94,8 @@ double ProgTomoVolumeAlignTwofold::twofoldAlign(std::size_t i, std::size_t j,
 	auto &projector2 = projectors[j];
 	const auto &centralProjection1 = centralProjections[i];
 	const auto &centralProjection2 = centralProjections[j];
+	auto &mutex1 = projectorMutex[i];
+	auto &mutex2 = projectorMutex[j];
 
 	double bestCost = std::numeric_limits<double>::max();
 	for(std::size_t k = 0; k < directions.size(); ++k)
@@ -80,11 +108,20 @@ double ProgTomoVolumeAlignTwofold::twofoldAlign(std::size_t i, std::size_t j,
 			const double rot2 = -psi1;
 			const double tilt2 = -tilt1;
 			const double psi2 = -rot1;
-			projector1.project(rot1, tilt1, psi1);
-			projector2.project(rot2, tilt2, psi2);
 
-			const auto cost = computeSquareDistance(projector1.projection(), centralProjection2) + 
-							  computeSquareDistance(projector2.projection(), centralProjection1) ;
+			double cost = 0.0;
+			{
+				std::lock_guard<std::mutex> lock(mutex1);
+				projector1.project(rot1, tilt1, psi1);
+
+				cost += computeSquareDistance(projector1.projection(), centralProjection2);
+			}
+			{
+				std::lock_guard<std::mutex> lock(mutex2);
+				projector2.project(rot2, tilt2, psi2);
+
+				cost += computeSquareDistance(projector2.projection(), centralProjection1);
+			}
 
 			if (cost < bestCost)
 			{
@@ -114,29 +151,39 @@ double ProgTomoVolumeAlignTwofold::computeSquareDistance(const MultidimArray<dou
 void ProgTomoVolumeAlignTwofold::readVolumes()
 {
 	FileName imageFilename;
-
 	inputVolumesMd.read(fnInMetadata);
 
 	inputVolumes.reserve(inputVolumesMd.size());
-	projectors.reserve(inputVolumesMd.size());
-	centralProjections.reserve(inputVolumesMd.size());
 	for (std::size_t objId : inputVolumesMd.ids())
 	{
-		// Read volume from MD
 		inputVolumesMd.getValue(MDL_IMAGE, imageFilename, objId);
 		inputVolumes.emplace_back();
 		inputVolumes.back().read(imageFilename);
 		inputVolumes.back()().setXmippOrigin();
+	}
+}
 
-		// Create a projector for the volume
+void ProgTomoVolumeAlignTwofold::createProjectors()
+{
+	projectors.reserve(inputVolumes.size());
+	for(std::size_t i = 0; i < inputVolumes.size(); ++i)
+	{
 		projectors.emplace_back(
-			inputVolumes.back()(),
+			inputVolumes[i](),
 			padding, maxFrequency, interp
 		);
+	}
+	projectorMutex = std::vector<std::mutex>(projectors.size());
+}
 
-		// Obtain the central projection TODO do not use projector
-		projectors.back().project(0.0, 0.0, 0.0);
-		centralProjections.emplace_back(projectors.back().projection());
+void ProgTomoVolumeAlignTwofold::projectCentralSlices()
+{
+	centralProjections.reserve(inputVolumesMd.size());
+	for(std::size_t i = 0; i < projectors.size(); ++i)
+	{
+		auto &projector = projectors[i];
+		projector.project(0.0, 0.0, 0.0);
+		centralProjections.emplace_back(projector.projection());
 	}
 }
 
@@ -156,34 +203,34 @@ void ProgTomoVolumeAlignTwofold::defineSampling()
 
 void ProgTomoVolumeAlignTwofold::run()
 {
+	// Initialize
 	readVolumes();
+	createProjectors();
+	projectCentralSlices();
 	defineSampling();
 
-	std::string image1, image2;
+	threadPool.resize(nThreads);
+	std::vector<std::future<void>> futures;
 	for(std::size_t i = 1; i < projectors.size(); ++i)
 	{
-		inputVolumesMd.getValue(MDL_IMAGE, image1, i+1);
-
 		for (std::size_t j = 0; j < i; ++j)
 		{
-			inputVolumesMd.getValue(MDL_IMAGE, image2, j+1);
-
-			// Perform the volume alignment
-			double rot, tilt, psi;
-			const auto cost = twofoldAlign(i, j, rot, tilt, psi);
-
-			// Write to metadata
-			std::size_t id = alignmentMd.addObject();
-			alignmentMd.setValue(MDL_IMAGE1, image1, id);
-			alignmentMd.setValue(MDL_IMAGE2, image2, id);
-            alignmentMd.setValue(MDL_ANGLE_ROT, rot, id);
-            alignmentMd.setValue(MDL_ANGLE_TILT, tilt, id);
-            alignmentMd.setValue(MDL_ANGLE_PSI, psi, id);
-            alignmentMd.setValue(MDL_COST, cost, id);
-
-			std::cout << "(" << j << ", " << i << ")\n";
+			futures.push_back(threadPool.push(
+				[this, i, j] (std::size_t) 
+				{ 
+					this->alignPair(i, j); 
+				} 
+			));
 		}
 	}
 
+	// Wait task completion
+	std::for_each(
+		futures.begin(), futures.end(), 
+		std::mem_fn(&std::future<void>::wait)
+	);
+
+	// Write output
+	std::lock_guard<std::mutex> lock(outputMetadataMutex);
 	alignmentMd.write(fnOutMetadata);
 }

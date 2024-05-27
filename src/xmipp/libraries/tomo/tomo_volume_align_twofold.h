@@ -33,7 +33,9 @@
 #include <data/fourier_projection.h>
 #include <data/sampling.h>
 
+#include <CTPL/ctpl_stl.h>
 #include <vector>
+#include <mutex>
 
 class ProgTomoVolumeAlignTwofold : public XmippProgram
 {
@@ -51,7 +53,10 @@ private:
     double maxFrequency;
     /** Padding factor */
     double padding;
+    /** Interpolation methods from xmipp_transform*/
     int interp;
+    /** Number of processing workers*/
+    int nThreads;
     /** Input metadata*/
     MetaDataVec inputVolumesMd;
     /** Output metadata */
@@ -64,6 +69,12 @@ private:
     std::vector<MultidimArray<double>> centralProjections;
     /** Sampling on sphere */
     Sampling sphereSampling;
+    
+    
+	ctpl::thread_pool threadPool;
+    std::mutex outputMetadataMutex;
+    std::vector<std::mutex> projectorMutex;
+    
 
 private:
     // --------------------------- INFO functions ----------------------------
@@ -72,12 +83,15 @@ private:
 
 
     // --------------------------- HEAD functions ----------------------------
+    void alignPair(std::size_t i, std::size_t j);
     double twofoldAlign(std::size_t i, std::size_t j, double &rot, double &tilt, double &psi);
     static double computeSquareDistance(const MultidimArray<double> &x, const MultidimArray<double> &y);
 
     // --------------------------- I/O functions -----------------------------
     void defineSampling();
     void readVolumes();
+    void createProjectors();
+    void projectCentralSlices();
     
     // --------------------------- MAIN --------------------------------------
     void run() override;
