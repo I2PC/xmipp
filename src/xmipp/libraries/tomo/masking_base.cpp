@@ -1,6 +1,7 @@
 /***************************************************************************
  *
  * Authors:     Jose Luis Vilas (jlvilas@cnb.csic.es)
+ *              Oier Lauzirika  (olauzirika@cnb.csic.es)
  *
  * Spanish Research Council for Biotechnology, Madrid, Spain
  *
@@ -34,12 +35,16 @@
 
 
 template<typename T>
-void spherical3DMask(MultidimArray<T> &vol, MultidimArray<T> &mask)
+void spherical3DMask(MultidimArray<T> &vol, MultidimArray<T> &mask, int softRange=0)
 {
 	Image<double> maskImg;
 
 	int boxsize = XSIZE(vol)*0.5;
 	auto halfboxsize = boxsize/2;
+	auto halfboxsize2 = halfboxsize*halfboxsize;
+
+	auto smoothLim = halfboxsize + softRange;
+
 
 	mask.initZeros(vol);
 
@@ -55,9 +60,17 @@ void spherical3DMask(MultidimArray<T> &vol, MultidimArray<T> &mask)
 			for (int j=0; j<boxsize; j++)
 			{
 				int j2 = (j- halfboxsize);
-				if (sqrt(i2k2 + j2*j2)>halfboxsize)
+				auto radius = sqrt(i2k2 + j2*j2);
+				if (radius<halfboxsize)
 				{
-					DIRECT_MULTIDIMELEM(mask, n) = 0;
+					DIRECT_MULTIDIMELEM(mask, n) = 1.0;
+				}
+				else
+				{
+					if (radius<smoothLim)
+					{
+						DIRECT_MULTIDIMELEM(mask, n) = 1 + cos( (smoothLim - radius)*PI / softRange) ;
+					}
 				}
 				n++;
 			}

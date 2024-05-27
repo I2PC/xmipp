@@ -3,6 +3,7 @@
  * Authors:    Jose Luis Vilas (jlvilas@cnb.csic.es)
  *             Oier Lauzirika  (olauzirika@cnb.csic.es)
 
+ *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
  * This program is free software; you can redistribute it and/or modify
@@ -24,60 +25,48 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef _PROG_ALIGN_SUBTOMOS
-#define _PROG_ALIGN_SUBTOMOS
+#ifndef _PROG_AVERAGE_SUBTOMOS
+#define _PROG_AVERAGE_SUBTOMOS
 
 #include <core/xmipp_program.h>
-#include <core/matrix2d.h>
-#include <core/xmipp_fftw.h>
 #include <core/xmipp_filename.h>
 #include <core/metadata_vec.h>
-#include <data/fourier_filter.h>
 
 
-class ProgAlignSubtomos : public XmippProgram
+class ProgAverageSubtomos : public XmippProgram
 {
 private:
-    // Filenames
-    FileName fnIn, fnRef, fnOut;
+    /* Filenames of the input subtomograms (.xmd file)
+	and output file (volume of the average) */
+    FileName fnSubtomos, fnOut;
 
-    // Double Params
-    double sampling, angularSampling;
+    /* Sampling rate */
+    double sampling;
 
-    // Int params
+    /* Number of threads */
     int Nthreads;
 
-    // Estimate average of aligned subtomograms
-    bool doSTA;
-       
+    /* Flag to avoid applying the alignment of hte subtomograms
+     * and for normalizing the subtomograms, or save each aligned
+     * subtomogram as a file */
+    bool notapplyAlignment, saveAligned;
+
 
 public:
-	template<typename T>
-	void readReference(MultidimArray<T> &ref);
+	    /* This function takes a set of subtomograms with or without alignment, and
+	     * estimates the average of all subtomograms. The flag saveAligned allows
+	     * to saved the applied alignment of each subtomogram
+	     */
+		void averageSubtomograms(MetaDataVec &md, bool saveAligned=false);
 
-	void readSubtomos(std::vector<FileName> &fnVec, double &randomSubset);
+        /* Defining the params and help of the algorithm */
+        void defineParams();
 
-	template<typename T>
-	void initialReference(MultidimArray<T> &ref, std::vector<FileName> &fnVec);
+        /* It reads the input parameters */
+        void readParams();
 
-	template<typename T>
-	void alignSubtomos(MultidimArray<T> &ref, std::vector<FileName> &fnVec);
-
-	template<typename T>
-	void applyAlignmentAndAverage(MultidimArray<T> &ref, MetaDataVec &md, bool saveAligned=false);
-
-	template<typename T>
-	double twofoldAlign(MultidimArray<T> &ref, MultidimArray<T> &subtomo,
-												    double &rot, double &tilt, double &psi);
-
-	/* Defining the params and help of the algorithm */
-	void defineParams();
-
-	/* It reads the input parameters */
-	void readParams();
-
-	/* Run the program */
-	void run();
+        /* Run the program */
+        void run();
 };
 
 #endif

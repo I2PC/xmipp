@@ -1,6 +1,7 @@
 /***************************************************************************
  *
  * Authors:    Jose Luis Vilas (jlvilas@cnb.csic.es)
+ *              Oier Lauzirika  (olauzirika@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *

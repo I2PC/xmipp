@@ -1,7 +1,7 @@
 /***************************************************************************
  *
- * Authors:     J.L. Vilas  (jlvilas@cnb.csic.es)
- *              O. Lauzirika  (olauzirika@cnb.csic.es)
+ * Authors:    J.L. Vilas (jlvilas@cnb.csic.es)
+ *             Oier Lauzirika  (olauzirika@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -24,11 +24,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <tomo/tomo_align_subtomos.h>
+#include "../../../libraries/tomo/tomo_average_subtomos.h"
 
-int main(int argc, char **argv)
-{
-    ProgAlignSubtomos prm;
-    prm.read(argc,argv);
-    return prm.tryRun();
-}
+RUN_XMIPP_PROGRAM(ProgAverageSubtomos)

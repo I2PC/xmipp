@@ -72,6 +72,7 @@ void ProgAlignSubtomos::readParams()
 	Nthreads = getIntParam("--threads");
 }
 
+/*
 template<typename T>
 void ProgAlignSubtomos::readReference(MultidimArray<T> &ref)
 {
@@ -81,62 +82,6 @@ void ProgAlignSubtomos::readReference(MultidimArray<T> &ref)
 
 }
 
-template<typename T>
-void ProgAlignSubtomos::averageSubtomos(MultidimArray<T> &ref, MetaDataVec &md)
-{
-	//auto nsubtomos = fnVec.size();
-	Image<T> subtomoImg;
-	auto &subtomo = subtomoImg();
-	MultidimArray<T> subtomoAli;
-
-	MetaDataVec mdAli;
-
-	int status;
-	std::string dirnameString;
-	dirnameString = fnOut+"/alignedSubtomos";
-
-	status = mkdir(dirnameString.c_str(), 0755);
-
-	FileName fnSub;
-	size_t idx = 0;
-	for (const auto& row : md)
-	{
-		row.getValue(MDL_IMAGE, fnSub);
-		subtomoImg.read(fnSub);
-
-		Matrix2D<double> eulerMat;
-		eulerMat.initIdentity(4);
-
-		subtomoAli.resizeNoCopy(subtomo);
-		subtomo.setXmippOrigin();
-		subtomoAli.setXmippOrigin();
-
-		geo2TransformationMatrix(row, eulerMat);
-
-		applyGeometry(xmipp_transformation::BSPLINE3, subtomoAli, subtomo, eulerMat, xmipp_transformation::IS_NOT_INV, true, 0.);
-
-		FileName fnaligned = fnSub.getBaseName() + formatString("_aligned_%i.mrc", idx);
-		auto fn = dirnameString + "/" + fnaligned;
-		subtomoImg() = subtomoAli;
-		subtomoImg.write(fn);
-
-
-		if (ref.getDim() < 1)
-		{
-			ref.initZeros(subtomo);
-		}
-		std::cout << "subtomo = " << idx << std::endl;
-
-		ref += subtomoAli;
-		MDRowVec rowAlign;
-		rowAlign.setValue(MDL_IMAGE, fnaligned);
-		mdAli.addRow(rowAlign);
-
-		idx++;
-	}
-
-	mdAli.write("alignedSubtomos.xmd");
-}
 
 template<typename T>
 void ProgAlignSubtomos::initialReference(MultidimArray<T> &ref, std::vector<FileName> &fnVec)
@@ -189,47 +134,6 @@ void ProgAlignSubtomos::readSubtomos(std::vector<FileName> &fnVec, double &rando
 	}
 }
 
-template<typename T>
-double ProgAlignSubtomos::twofoldAlign(MultidimArray<T> &ref, MultidimArray<T> &subtomo,
-											    double &rot, double &tilt, double &psi)
-{
-//	const auto nPsi = static_cast<std::size_t>(360.0 / angularSampling);
-//	const auto &directions = sphereSampling.no_redundant_sampling_points_angles;
-//
-//	auto &projector1 = projectors[i];
-//	auto &projector2 = projectors[j];
-//	const auto &centralProjection1 = centralProjections[i];
-//	const auto &centralProjection2 = centralProjections[j];
-
-	double bestCost = std::numeric_limits<double>::max();
-//	for(std::size_t k = 0; k < directions.size(); ++k)
-//	{
-//		for(std::size_t l = 0; l < nPsi; ++l)
-//		{
-//            const double rot1 = XX(directions[k]);
-//            const double tilt1 = YY(directions[k]);
-//            const double psi1 = l * angularSampling;
-//			const double rot2 = -psi1;
-//			const double tilt2 = -tilt1;
-//			const double psi2 = -rot1;
-//			projector1.project(rot1, tilt1, psi1);
-//			projector2.project(rot2, tilt2, psi2);
-//
-//			const auto cost = computeSquareDistance(projector1.projection(), centralProjection2) +
-//							  computeSquareDistance(projector2.projection(), centralProjection1) ;
-//
-//			if (cost < bestCost)
-//			{
-//				rot = rot1;
-//				tilt = tilt1;
-//				psi = psi1;
-//				bestCost = cost;
-//			}
-//		}
-//	}
-
-	return bestCost;
-}
 
 template<typename T>
 void ProgAlignSubtomos::alignSubtomos(MultidimArray<T> &ref, std::vector<FileName> &fnVec)
@@ -268,13 +172,14 @@ void ProgAlignSubtomos::alignSubtomos(MultidimArray<T> &ref, std::vector<FileNam
 		mdAli.write(fnAli);
 	}
 }
-
+*/
 
 
 void ProgAlignSubtomos::run()
 {
 	std::cout << "Starting ... " << std::endl;
 
+	/*
 	std::vector<FileName> fnVec;
 	readSubtomos(fnVec);
 
@@ -285,6 +190,7 @@ void ProgAlignSubtomos::run()
 		initialReference(ref, fnVec);
 
 	alignSubtomos(ref, fnVec);
+	*/
 
 }
 
