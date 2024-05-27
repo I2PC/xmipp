@@ -57,9 +57,9 @@ void ProgAverageSubtomos::readParams()
 }
 
 
-void ProgAverageSubtomos::averageSubtomograms(MetaDataVec &md, bool saveAligned=false)
+void ProgAverageSubtomos::averageSubtomograms(MetaDataVec &md, bool saveAligned)
 {
-	MultidimArray<double> &ref;
+	MultidimArray<double> ref;
 	Image<double> subtomoImg;
 	auto &subtomo = subtomoImg();
 

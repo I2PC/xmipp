@@ -35,7 +35,7 @@
 
 
 template<typename T>
-void spherical3DMask(MultidimArray<T> &vol, MultidimArray<T> &mask, int softRange=0)
+void spherical3DMask(MultidimArray<T> &vol, MultidimArray<T> &mask, int softRange)
 {
 	Image<double> maskImg;
 

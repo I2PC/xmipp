@@ -64,7 +64,7 @@ void ProgAlignSubtomos::defineParams()
 void ProgAlignSubtomos::readParams()
 {
 	fnIn = getParam("--i");
-	fnRef = checkParam("--ref");
+	fnRef = getParam("--ref");
 	doSTA = checkParam("--sta");
 	angularSampling = getDoubleParam("--angularSampling");
 	fnOut = getParam("-o");
