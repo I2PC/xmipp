@@ -46,18 +46,15 @@ private:
     /* Number of threads */
     int Nthreads;
 
-    /* Flag to avoid applying the alignment of hte subtomograms
-     * and for normalizing the subtomograms, or save each aligned
-     * subtomogram as a file */
-    bool notapplyAlignment, saveAligned;
-
+    /* Flag to avoid applying the alignment of hte subtomograms */
+    bool notApplyAlignment;
 
 public:
 	    /* This function takes a set of subtomograms with or without alignment, and
 	     * estimates the average of all subtomograms. The flag saveAligned allows
 	     * to saved the applied alignment of each subtomogram
 	     */
-		void averageSubtomograms(MetaDataVec &md, bool saveAligned=false);
+		void averageSubtomograms(MetaDataVec &md);
 
         /* Defining the params and help of the algorithm */
         void defineParams();

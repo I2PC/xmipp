@@ -36,9 +36,8 @@ void ProgAverageSubtomos::defineParams()
 {
 	addUsageLine("This method carries out a subtomogram averaging. It means, given a set of subtomogram the program will estimate the average map.");
 	addParamsLine("   -i <input_file>                    : Metadata with the list of subtomograms");
+	addParamsLine("   -o <output_volume>          	 	 : Output volume.");
 	addParamsLine("   [--notApplyAlignment]     		 : (Optional) Use this flag to estimate the standard average instead of the weighted one.");
-	addParamsLine("   [-o <output_folder=\"\">]          : Folder where the results will be stored.");
-	addParamsLine("   [--saveAligned]                    : Folder where the results will be stored.");
 	addParamsLine("   [--sampling <Ts=1>]                : (Optional) Pixel size (Angstrom). If it is not provided by default will be 1 A/px.");
 	addParamsLine("   [--threads <Nthreads=1>]           : (Optional) Number of threads to be used");
 
@@ -48,30 +47,24 @@ void ProgAverageSubtomos::defineParams()
 
 void ProgAverageSubtomos::readParams()
 {
-	fnSubtomos = getParam("--subtomos");
-	notapplyAlignment = checkParam("--notApplyAlignment");
-	saveAligned = checkParam("--saveAligned");
+	fnSubtomos = getParam("-i");
+	notApplyAlignment = checkParam("--notApplyAlignment");
 	fnOut = getParam("-o");
 	sampling = getDoubleParam("--sampling");
 	Nthreads = getIntParam("--threads");
 }
 
 
-void ProgAverageSubtomos::averageSubtomograms(MetaDataVec &md, bool saveAligned)
+void ProgAverageSubtomos::averageSubtomograms(MetaDataVec &md)
 {
 	MultidimArray<double> ref;
 	Image<double> subtomoImg;
+	Matrix2D<double> eulerMat;
 	auto &subtomo = subtomoImg();
 
 	MultidimArray<double> subtomoAli;
 
 	MetaDataVec mdAli;
-
-	int status;
-	std::string dirnameString;
-	dirnameString = fnOut+"/alignedSubtomos";
-
-	status = mkdir(dirnameString.c_str(), 0755);
 
 	FileName fnSub;
 	size_t idx = 0;
@@ -79,60 +72,34 @@ void ProgAverageSubtomos::averageSubtomograms(MetaDataVec &md, bool saveAligned)
 	{
 		row.getValue(MDL_IMAGE, fnSub);
 		subtomoImg.read(fnSub);
-
-		subtomoAli.resizeNoCopy(subtomo);
 		subtomo.setXmippOrigin();
-		subtomoAli.setXmippOrigin();
-
-		if (notapplyAlignment)
-		{
-			auto &subtomoAli = subtomo;
-		}
-		else
-		{
-			Matrix2D<double> eulerMat;
-			eulerMat.initIdentity(4);
-			geo2TransformationMatrix(row, eulerMat);
-
-			applyGeometry(xmipp_transformation::BSPLINE3, subtomoAli, subtomo, eulerMat, xmipp_transformation::IS_NOT_INV, true, 0.);
-
-			if (saveAligned)
-			{
-				FileName fnaligned = fnSub.getBaseName() + formatString("_aligned_%i.mrc", idx);
-				auto fn = dirnameString + "/" + fnaligned;
-				subtomoImg() = subtomoAli;
-				subtomoImg.write(fn);
-
-				MDRowVec rowAlign;
-				rowAlign.setValue(MDL_IMAGE, fnaligned);
-				mdAli.addRow(rowAlign);
-			}
-		}
-
 
 		if (ref.getDim() < 1)
 		{
 			ref.initZeros(subtomo);
 		}
 
-		ref += subtomoAli;
+		if (notApplyAlignment)
+		{
+			ref += subtomo;
+		}
+		else
+		{
+			eulerMat.initIdentity(4);
+			geo2TransformationMatrix(row, eulerMat);
+
+			subtomoAli.resizeNoCopy(subtomo);
+			applyGeometry(xmipp_transformation::BSPLINE3, subtomoAli, subtomo, eulerMat, xmipp_transformation::IS_NOT_INV, true, 0.);
+			ref += subtomoAli;
+		}
 
 		idx++;
 	}
 
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(ref)
-	{
-		DIRECT_MULTIDIM_ELEM(ref, n) /= idx;
-	}
+	ref /= idx;
 
-	subtomoImg() = ref;
+	subtomoImg() = std::move(ref);
 	subtomoImg.write(fnOut);
-
-	if (saveAligned)
-	{
-		mdAli.write("alignedSubtomos.xmd");
-	}
-
 }
 
 void ProgAverageSubtomos::run()
@@ -140,10 +107,7 @@ void ProgAverageSubtomos::run()
 	std::cout << "Starting ... " << std::endl;
 
 	MetaDataVec mdSubtomos;
-
 	mdSubtomos.read(fnSubtomos);
-
-	averageSubtomograms(mdSubtomos, saveAligned);
-
+	averageSubtomograms(mdSubtomos);
 }
 
