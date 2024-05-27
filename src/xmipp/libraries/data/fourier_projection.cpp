@@ -88,12 +88,13 @@ void FourierProjector::updateVolume(MultidimArray<double> &V)
     produceSideInfo();
 }
 
-void FourierProjector::project(double rot, double tilt, double psi, const MultidimArray<double> *ctf)
+void FourierProjector::projectToFourier(double rot, double tilt, double psi, const MultidimArray<double> *ctf)
 {
     double freqy;
     double freqx;
     std::complex< double > f;
     Euler_angles2matrix(rot,tilt,psi,E);
+
     projectionFourier.initZeros();
     double maxFreq2=maxFrequency*maxFrequency;
     auto Xdim=(int)XSIZE(VfourierRealCoefs);
@@ -220,6 +221,7 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
 					d += yxsumIm * aux;
                 }
             }
+
             // Phase shift to move the origin of the image to the corner
             double a=DIRECT_A2D_ELEM(phaseShiftImgA,i,j);
             double b=DIRECT_A2D_ELEM(phaseShiftImgB,i,j);
@@ -241,6 +243,10 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
             *(ptrI_ij+1) = ab_cd - ac - bd;
         }
     }
+}
+
+void FourierProjector::project(double rot, double tilt, double psi, const MultidimArray<double> *ctf) {
+    projectToFourier(rot, tilt, psi, ctf);
     transformer2D.inverseFourierTransform();
 }
 
