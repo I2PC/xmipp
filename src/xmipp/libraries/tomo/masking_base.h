@@ -32,7 +32,7 @@
 
 
 template<typename T>
-void spherical3DMask(MultidimArray<T> &vol, MultidimArray<T> &mask);
+void spherical3DMask(MultidimArray<T> &vol, MultidimArray<T> &vol, MultidimArray<T> &mask, int softRange=0);
 
 template<typename T>
 void spherical3DMaskIdx(MultidimArray<T> &vol, std::vector<size_t> &maskIdx);
