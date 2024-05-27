@@ -66,7 +66,7 @@ private:
     /** Projectors for volumes */
     std::vector<FourierProjector> projectors;
     /** Central slice */
-    std::vector<MultidimArray<double>> centralProjections;
+    std::vector<MultidimArray<std::complex<double>>> centralSlices;
     /** Sampling on sphere */
     Sampling sphereSampling;
     
@@ -85,7 +85,7 @@ private:
     // --------------------------- HEAD functions ----------------------------
     void alignPair(std::size_t i, std::size_t j);
     double twofoldAlign(std::size_t i, std::size_t j, double &rot, double &tilt, double &psi);
-    static double computeSquareDistance(const MultidimArray<double> &x, const MultidimArray<double> &y);
+    static double computeSquareDistance(const MultidimArray<std::complex<double>> &x, const MultidimArray<std::complex<double>> &y);
 
     // --------------------------- I/O functions -----------------------------
     void defineSampling();

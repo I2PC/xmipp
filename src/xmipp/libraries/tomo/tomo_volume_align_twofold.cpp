@@ -92,8 +92,8 @@ double ProgTomoVolumeAlignTwofold::twofoldAlign(std::size_t i, std::size_t j,
 
 	auto &projector1 = projectors[i];
 	auto &projector2 = projectors[j];
-	const auto &centralProjection1 = centralProjections[i];
-	const auto &centralProjection2 = centralProjections[j];
+	const auto &centralSlices1 = centralSlices[i];
+	const auto &centralSlices2 = centralSlices[j];
 	auto &mutex1 = projectorMutex[i];
 	auto &mutex2 = projectorMutex[j];
 
@@ -112,15 +112,15 @@ double ProgTomoVolumeAlignTwofold::twofoldAlign(std::size_t i, std::size_t j,
 			double cost = 0.0;
 			{
 				std::lock_guard<std::mutex> lock(mutex1);
-				projector1.project(rot1, tilt1, psi1);
+				projector1.projectToFourier(rot1, tilt1, psi1);
 
-				cost += computeSquareDistance(projector1.projection(), centralProjection2);
+				cost += computeSquareDistance(projector1.projectionFourier, centralSlices2);
 			}
 			{
 				std::lock_guard<std::mutex> lock(mutex2);
-				projector2.project(rot2, tilt2, psi2);
+				projector2.projectToFourier(rot2, tilt2, psi2);
 
-				cost += computeSquareDistance(projector2.projection(), centralProjection1);
+				cost += computeSquareDistance(projector2.projectionFourier, centralSlices1);
 			}
 
 			if (cost < bestCost)
@@ -136,14 +136,14 @@ double ProgTomoVolumeAlignTwofold::twofoldAlign(std::size_t i, std::size_t j,
 	return bestCost;
 }
 
-double ProgTomoVolumeAlignTwofold::computeSquareDistance(const MultidimArray<double> &x, 
-														 const MultidimArray<double> &y )
+double ProgTomoVolumeAlignTwofold::computeSquareDistance(const MultidimArray<std::complex<double>> &x, 
+														 const MultidimArray<std::complex<double>> &y )
 {
 	double sum = 0.0;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(x)
 	{
 		const auto delta = DIRECT_MULTIDIM_ELEM(x, n) - DIRECT_MULTIDIM_ELEM(y, n);
-		sum += delta*delta;
+		sum += delta.real()*delta.real() + delta.imag()*delta.imag();
 	}
 	return sum;
 }
@@ -178,12 +178,12 @@ void ProgTomoVolumeAlignTwofold::createProjectors()
 
 void ProgTomoVolumeAlignTwofold::projectCentralSlices()
 {
-	centralProjections.reserve(inputVolumesMd.size());
+	centralSlices.reserve(inputVolumesMd.size());
 	for(std::size_t i = 0; i < projectors.size(); ++i)
 	{
 		auto &projector = projectors[i];
-		projector.project(0.0, 0.0, 0.0);
-		centralProjections.emplace_back(projector.projection());
+		projector.projectToFourier(0.0, 0.0, 0.0);
+		centralSlices.emplace_back(projector.projectionFourier);
 	}
 }
 
