@@ -28,13 +28,12 @@
 
 #include "core/xmipp_program.h"
 #include <core/metadata_vec.h>
+#include <core/xmipp_image.h>
 #include "core/xmipp_image_generic.h"
+#include <core/metadata_vec.h>
 
 
 #include <iostream>
-#include <core/xmipp_program.h>
-#include <core/xmipp_image.h>
-#include <core/metadata_vec.h>
 #include <core/geometry.h>
 #include <math.h>
 #include <limits>
@@ -42,7 +41,6 @@
 #include <data/filters.h>
 #include <string>
 #include "symmetrize.h"
-#include "core/xmipp_image_generic.h"
 #include <stdio.h>
 #include <fstream>
 
