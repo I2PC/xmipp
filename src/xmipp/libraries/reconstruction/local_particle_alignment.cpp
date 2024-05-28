@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:    Federico P. de Isidro Gomez			  fp.deisidro@cnb.csic.es
+ * Authors:    Federico P. de Isidro Gomez	federico.pdeisidro@astx.com (2024)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
