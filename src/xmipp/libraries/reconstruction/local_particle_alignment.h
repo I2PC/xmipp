@@ -35,9 +35,6 @@
 
 #include <iostream>
 #include <core/geometry.h>
-#include <math.h>
-#include <limits>
-#include <complex>
 #include <data/filters.h>
 #include <string>
 #include "symmetrize.h"
