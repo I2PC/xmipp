@@ -95,7 +95,7 @@ void ProgLocalParticleAlignment::recenterParticle()
 		{
 			for (size_t j = 0; i < xDim; i++)
 			{
-				DIRECT_A3D_ELEM(particles, idx, i, j) = DIRECT_A2D_ELEM(particleShifted, idx, i, j);
+				DIRECT_A3D_ELEM(particles, idx, i, j) = DIRECT_A2D_ELEM(particleShifted, i, j);
 			}
 		}
 
@@ -118,31 +118,34 @@ void ProgLocalParticleAlignment::getParticleSize()
 {
 	MetaDataVec md;
 
+	Metadata m;
+
 	FileName fn;
 
 	Image<double> particleImg;
-	// auto &particle = particleImg();
+	auto &particle = particleImg();
 
 	md.read(fnIn);
 
-	const auto& row = md.firstObject();
+	auto firstRowId = md.firstRowId();
+	const MDRowVec& row;
+	md.getRow(row, firstRowId);
 	row.getValue(MDL_IMAGE, fn);
 
 	particleImg.read(fn);
 	particle.setXmippOrigin();
 
-	MultidimArray<double> particle;
-
-	particle.getDimensions(xDim, yDim);
+	xDim = XSIZE(particle);
+	yDim = YSIZE(particle);
 }
 
 
 void ProgLocalParticleAlignment::calculateShiftDisplacement(Matrix2D<double> particleAlignment, Matrix2D<double> shifts)
 {
-	Matrix1D<double> projectedCenter = particleAlignment * alignemntCenter;
+	Matrix1D<double> projectedCenter = particleAlignment * alignmentCenter;
 	
 	shifts.initIdentity(4);
-	MAT_ELEM(shifts, 0, 4) = MAT_ELEM(projectedCenter, 0, 4);
-	MAT_ELEM(shifts, 1, 4) = MAT_ELEM(projectedCenter, 1, 4);
+	MAT_ELEM(shifts, 0, 4) = MAT_ELEM(projectedCenter, 0);
+	MAT_ELEM(shifts, 1, 4) = MAT_ELEM(projectedCenter, 1);
 }
 
