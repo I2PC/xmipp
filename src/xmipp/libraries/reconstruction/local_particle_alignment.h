@@ -52,7 +52,6 @@
 #include <stdio.h>
 #include <fstream>
 
-
 class ProgLocalParticleAlignment : public XmippProgram
 {
 

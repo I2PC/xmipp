@@ -118,22 +118,20 @@ void ProgLocalParticleAlignment::getParticleSize()
 {
 	MetaDataVec md;
 
-	Metadata m;
-
 	FileName fn;
 
 	Image<double> particleImg;
 	auto &particle = particleImg();
 
-	md.read(fnIn);
+	// md.read(fnIn);
 
-	auto firstRowId = md.firstRowId();
-	const MDRowVec& row;
-	md.getRow(row, firstRowId);
-	row.getValue(MDL_IMAGE, fn);
+	// auto firstRowId = md.firstRowId();
+	// const MDRowVec& row;
+	// md.getRow(row, firstRowId);
+	// row.getValue(MDL_IMAGE, fn);
 
-	particleImg.read(fn);
-	particle.setXmippOrigin();
+	// particleImg.read(fn);
+	// particle.setXmippOrigin();
 
 	xDim = XSIZE(particle);
 	yDim = YSIZE(particle);
@@ -145,7 +143,7 @@ void ProgLocalParticleAlignment::calculateShiftDisplacement(Matrix2D<double> par
 	Matrix1D<double> projectedCenter = particleAlignment * alignmentCenter;
 	
 	shifts.initIdentity(4);
-	MAT_ELEM(shifts, 0, 4) = MAT_ELEM(projectedCenter, 0);
-	MAT_ELEM(shifts, 1, 4) = MAT_ELEM(projectedCenter, 1);
+	MAT_ELEM(shifts, 0, 4) = XX(projectedCenter);
+	MAT_ELEM(shifts, 1, 4) = YY(projectedCenter);
 }
 
