@@ -31,15 +31,8 @@
 #include <core/xmipp_image.h>
 #include "core/xmipp_image_generic.h"
 #include <core/metadata_vec.h>
-
-
-#include <iostream>
-#include <core/geometry.h>
-#include <data/filters.h>
-#include <string>
 #include "symmetrize.h"
-#include <stdio.h>
-#include <fstream>
+
 
 class ProgLocalParticleAlignment : public XmippProgram
 {
