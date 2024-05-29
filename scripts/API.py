@@ -54,7 +54,7 @@ def sendApiPOST(retCode: int = 0, XMIPP_VERSION:str = 'Unknow'):
 			url = API_URL.split("/", maxsplit=1)
 			path = f"/{url[1]}"
 			url = url[0]
-			conn = http.client.HTTPConnection(url, timeout=4)  # Unverified context because url does not have an ssl certificate
+			conn = http.client.HTTPConnection(url, timeout=4)
 
 			# Send the POST request
 			conn.request("POST", path, bodyParams, headers)
@@ -120,35 +120,11 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = 'Unknow') -> Optional[str]:
 		if userId is None:
 			return
 
-		# Obtaining variables in parallel
-		CUDA_version = ''
-		GCC_version = ''
-		GPP_version = ''
-		configFile = 'xmipp.conf'
+		versionsDict = __getVersions()
+
+		# Obtaining variables
+
 		compileFile = 'compileLOG.txt'
-		with open(configFile, 'r') as file:
-			lines = file.readlines()
-		for l in lines:
-			log = []
-			if l.find('CC')!= -1 and l.find('CCFLAGS')== -1 and l.find('MPI_CC')== -1\
-				and l.find('NVCC') == -1 and l.find('NVCC_CXXFLAGS')== -1 and l.find('NVCC_LINKFLAGS')== -1:
-				compiler = l.split('=')[-1]
-				compiler = compiler.replace('\n', '')
-				runJob('{} --version'.format(compiler), show_output=False, show_command=False, log=log)
-				GCC_version = log[0].split(' ')[-1]
-			if l.find('CXX')!= -1 and l.find('CXXFLAGS')== -1 and l.find('CXX_CUDA')== -1\
-				and l.find('MPI_CXX') == -1 and l.find('MPI_CXXFLAGS')== -1 and l.find('NVCC_CXXFLAGS')== -1:
-				compiler = l.split('=')[-1]
-				compiler = compiler.replace('\n', '')
-				runJob('{} --version'.format(compiler), show_output=False, show_command=False, log=log)
-				GPP_version = log[0].split(' ')[-1]
-			if l.find('NVCC')!= -1 and l.find('NVCC_CXXFLAGS')== -1 and l.find('NVCC_LINKFLAGS')== -1:
-				compiler = l.split('=')[-1]
-				compiler = compiler.replace('\n', '')
-				runJob('{} --version'.format(compiler), show_output=False, show_command=False, log=log)
-				CUDA_version = log[-2][log[-2].find('release')+ 8 :log[-2].find('release') + 12]
-
-
 		with open(compileFile, 'r') as file:
 			lines = file.readlines()
 			logTail = lines[-100:]
@@ -166,12 +142,12 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = 'Unknow') -> Optional[str]:
 			"version": {
 				"os": getOSReleaseName(),
 				"architecture": __getArchitectureName(),
-				"cuda": CUDA_version,
-				"cmake": None,
-				"gcc": GCC_version,
-				"gpp": GPP_version,
-				"mpi": None,
-				"python": None,
+				"cuda": versionsDict['CUDA_version'],
+				"cmake": versionsDict['cmake_version'],
+				"gcc": versionsDict['GCC_version'],
+				"gpp": versionsDict['GPP_version'],
+				"mpi": versionsDict['MPI_version'],
+				"python": versionsDict['python_version'],
 				"sqlite": None,
 				"java": None,
 				"hdf5": None,
@@ -274,7 +250,76 @@ def __getArchitectureName() -> str:
 	# Returing architecture name
 	return archName
 
+def __getVersions():
+	"""
+	### This function returns the version of each dependency.
 
+	#### Returns:
+	- (str): Architecture name.
+	"""
+	CUDA_version = ''
+	GCC_version = ''
+	GPP_version = ''
+	python_version = ''
+	MPI_version = ''
+	configFile = 'xmipp.conf'
+	with open(configFile, 'r') as file:
+		lines = file.readlines()
+	for l in lines:
+		log = []
+		# FIND CC
+		if l.find('CC') != -1 and l.find('CCFLAGS') == -1 and l.find(
+				'MPI_CC') == -1 \
+				and l.find('NVCC') == -1 and l.find(
+			'NVCC_CXXFLAGS') == -1 and l.find('NVCC_LINKFLAGS') == -1:
+			compilerCC = l.split('=')[-1]
+			compilerCC = compilerCC.replace('\n', '')
+			runJob('{} --version'.format(compilerCC), show_output=False,
+			       show_command=False, log=log)
+			GCC_version = log[0].split(' ')[-1]
+		# FIND CXX
+		if l.find('CXX') != -1 and l.find('CXXFLAGS') == -1 and l.find(
+				'CXX_CUDA') == -1 \
+				and l.find('MPI_CXX') == -1 and l.find(
+			'MPI_CXXFLAGS') == -1 and l.find('NVCC_CXXFLAGS') == -1:
+			compilerCPP = l.split('=')[-1]
+			compilerCPP = compilerCPP.replace('\n', '')
+			runJob('{} --version'.format(compilerCPP), show_output=False,
+			       show_command=False, log=log)
+			GPP_version = log[0].split(' ')[-1]
+		# FIND NVCC
+		if l.find('NVCC') != -1 and l.find('NVCC_CXXFLAGS') == -1 and l.find(
+				'NVCC_LINKFLAGS') == -1:
+			NVCC = l.split('=')[-1]
+			NVCC = NVCC.replace('\n', '')
+			runJob('{} --version'.format(NVCC), show_output=False,
+			       show_command=False, log=log)
+			CUDA_version = log[-2][log[-2].find('release') + 8:log[-2].find(
+				'release') + 12]
+		# FIND PYTHON
+		if l.find('PYTHON_LIB') != -1:
+			python = l.split('=')[-1]
+			python = python.replace('\n', '')
+			python_version = python.replace('python', '')
+		# FIND MPI_RUN
+		if l.find('MPI_RUN') != -1:
+			MPI = l.split('=')[-1]
+			MPI = MPI.replace('\n', '')
+			runJob('{} --version'.format(MPI), show_output=False,
+			       show_command=False, log=log)
+			MPI_version = log[0].split(' ')[-1]
+	# FIND CMAKE
+	runJob('cmake --version', show_output=False, log=log,
+	       show_command=False)
+	result = '\n'.join(log)
+	cmake_version = result.split('\n')[0].split()[-1]
+
+	return {'CUDA_version': CUDA_version,
+	        'GCC_version': GCC_version,
+			'GPP_version': GPP_version,
+			'python_version': python_version,
+			'MPI_version': MPI_version,
+	        'cmake_version': cmake_version}
 def getCurrentBranch(dir: str = './') -> str:
 	"""
 	### This function returns the current branch of the repository of the given directory or empty string if it is not a repository or a recognizable tag.
@@ -372,9 +417,6 @@ def runInsistentJob(cmd: str, cwd: str = './', showOutput: bool = False,
 	# Returning output and return code
 	return retCode, output
 
-
-if __name__ == '__main__':
-	sendApiPOST(retCode=0)
 
 
 
