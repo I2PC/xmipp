@@ -48,8 +48,6 @@ def sendApiPOST(retCode: int = 0, XMIPP_VERSION:str = 'Unknow'):
 
 		# Send API POST request if there were no errors
 		if bodyParams is not None:
-			# Define the parameters for the POST request
-			params = json.dumps(bodyParams)
 			# Set up the headers
 			headers = {"Content-type": "application/json"}
 
@@ -60,11 +58,11 @@ def sendApiPOST(retCode: int = 0, XMIPP_VERSION:str = 'Unknow'):
 			conn = http.client.HTTPConnection(url, timeout=4)  # Unverified context because url does not have an ssl certificate
 
 			# Send the POST request
-			conn.request("POST", path, params, headers)
+			conn.request("POST", path, bodyParams, headers)
 			response = conn.getresponse()
 			data = response.read()
 			print(response.headers.get('Location'))
-			# Imprimir la respuesta
+			# Print response
 			print("Status:", response.status)
 			print("Response:", data)
 			# Close the connection
@@ -111,7 +109,7 @@ def getOSReleaseName() -> str:
 	return releaseName
 
 
-def __getJSON(retCode: int = 0, XMIPP_VERSION: str = 'Unknow') -> Optional[Dict]:
+def __getJSON(retCode: int = 0, XMIPP_VERSION: str = 'Unknow') -> Optional[str]:
 	"""
 	### Creates a JSON with the necessary data for the API POST message.
 
@@ -120,7 +118,7 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = 'Unknow') -> Optional[Dict]
 	- XMIPP_VERSION (str): version of release
 
 	#### Return:
-	- (dict | None): JSON with the required info or None if user id could not be produced.
+	- (json | None): json with the required info or None if user id could not be produced.
 	"""
 	try:
 		# Getting user id and checking if it exists
@@ -175,7 +173,7 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = 'Unknow') -> Optional[Dict]
 				"os": getOSReleaseName(),
 				"architecture": __getArchitectureName(),
 				"cuda": CUDA_version,
-				"cmake": "null",
+				"cmake": None,
 				"gcc": GCC_version,
 				"gpp": GPP_version,
 				"mpi": None,
