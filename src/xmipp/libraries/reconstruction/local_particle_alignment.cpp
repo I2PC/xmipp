@@ -82,12 +82,12 @@ void ProgLocalParticleAlignment::recenterParticle()
 	size_t nDim = md.size();
 	getParticleSize();
 
-	particles.initZeros(nDim, zDim, yDim, xDim);
+	shifedParticles.initZeros(nDim, zDim, yDim, xDim);
 
 	Image<double> particleImg;
 	auto &particle = particleImg();
 
-	MultidimArray<double> particleShifted;
+	MultidimArray<double> shiftParticle;
 
 	Matrix2D<double> eulerMat;
 	Matrix2D<double> shiftMat;
@@ -107,10 +107,10 @@ void ProgLocalParticleAlignment::recenterParticle()
 
 		calculateShiftDisplacement(eulerMat, shiftMat);
 
-		particleShifted.resizeNoCopy(particle);
+		shiftParticle.resizeNoCopy(particle);
 
 		applyGeometry(xmipp_transformation::BSPLINE3, 
-					  particleShifted, 
+					  shiftParticle, 
 					  particle, 
 					  shiftMat, 
 					  xmipp_transformation::IS_NOT_INV, 
@@ -122,12 +122,16 @@ void ProgLocalParticleAlignment::recenterParticle()
 		{
 			for (size_t j = 0; i < xDim; i++)
 			{
-				DIRECT_NZYX_ELEM(particles, idx, 1, i, j) = DIRECT_A2D_ELEM(particleShifted, i, j);
+				DIRECT_NZYX_ELEM(shifedParticles, idx, 1, i, j) = DIRECT_A2D_ELEM(shiftParticle, i, j);
 			}
 		}
 
 		idx++;
 	}
+
+	Image<double> shifedParticlesImg;
+	shifedParticlesImg() = shifedParticles;
+	shifedParticlesImg.write(fnOutParticles);
 }
 
 

@@ -50,7 +50,7 @@ public:
 	Matrix1D<double> alignmentCenter;
 
 	/** Alingment and particle information */
-	MultidimArray<double> particles;
+	MultidimArray<double> shifedParticles;
 
 	/** Dimensions */
 	size_t xDim;
