@@ -23,26 +23,53 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "local_particle_alignment.h"
 
+#include "local_particle_alignment.h"
 
 
 // --------------------- IN/OUT FUNCTIONS -----------------------------
 
 void ProgLocalParticleAlignment::readParams()
 {
-	fnIn = getParam("--inputPaticles");
-	fnOut = getParam("--outputPaticles");
+	fnIn = getParam("--inputParticles");
+	fnOut = getParam("--outputParticles");
 
 	fnOutMetatada = fnOut.removeAllExtensions() + ".xmd";
-	fnOutMetatada = fnOut.removeAllExtensions() + ".stk";
+	fnOutParticles = fnOut.removeAllExtensions() + ".stk";
+
+	String centerProjectionStr = getParam("--proyectionCenter");
+
+	/*
+		This regex matches the format x, y, z for 3D coordinate input.
+		Allows:
+			- White spaces an the begining and end of the string
+			- White spaces between numbers and commands
+			- Decimal digits in any of the numbers
+	*/
+    std::regex pattern(R"(^\s*([-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)\s*,\s*([-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)\s*,\s*([-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)\s*$)");
+	std::smatch matches;
+
+    if (!std::regex_match(centerProjectionStr, matches, pattern)) {
+        REPORT_ERROR(ERR_IO_NOWRITE, "Invalid coordinate formatting, expected format is x, y, z");
+    }
+
+    double x = std::stod(matches[1].str());
+    double y = std::stod(matches[2].str());
+    double z = std::stod(matches[3].str());
+
+	alignmentCenter.initZeros(4);
+	XX(alignmentCenter) = x;
+	YY(alignmentCenter) = y;
+	ZZ(alignmentCenter) = z;
 }
 
 void ProgLocalParticleAlignment::defineParams()
 {
 	addUsageLine("This program refine the alignment of particles focalized in a volume region.");
-	addParamsLine("  --inputPaticles       	: File path to input particle with alignments.");
-	addParamsLine("  --outputPaticles       : File path to save output particles and metadata (.stk and .xmd).");
+	addParamsLine("  --inputParticles	<xmd_file=\"\">     : File path to input particle with alignments.");
+	addParamsLine("  --outputParticles	<output=\"\">       : File path to save output particles and metadata (.stk and .xmd).");
+
+	addParamsLine("  --proyectionCenter	<pc=\"\">       	: Proyection center (\"x,y,z\" format) referenced from the center of the volume.");
 }
 
 void ProgLocalParticleAlignment::saveMetadata()
@@ -72,9 +99,10 @@ void ProgLocalParticleAlignment::saveMetadata()
 	#endif
 }
 
+
 // ---------------------- MAIN FUNCTIONS -----------------------------
 
-void ProgLocalParticleAlignment::recenterParticle()
+void ProgLocalParticleAlignment::recenterParticles()
 {
 	MetaDataVec md;
 	md.read(fnIn);
@@ -139,7 +167,22 @@ void ProgLocalParticleAlignment::recenterParticle()
 
 void ProgLocalParticleAlignment::run()
 {
+	using std::chrono::high_resolution_clock;
+    using std::chrono::duration_cast;
+    using std::chrono::duration;
+    using std::chrono::milliseconds;
 
+	auto t1 = high_resolution_clock::now();
+
+	recenterParticles();
+	saveMetadata();
+
+	auto t2 = high_resolution_clock::now();
+    auto ms_int = duration_cast<milliseconds>(t2 - t1);
+
+	#ifdef VERBOSE_OUTPUT
+ 	std::cout << "Execution time: " << ms_int.count() << "ms\n";
+	#endif
 }
 
 
@@ -164,13 +207,12 @@ void ProgLocalParticleAlignment::getParticleSize()
 	yDim = YSIZE(particle);
 }
 
-
-void ProgLocalParticleAlignment::calculateShiftDisplacement(Matrix2D<double> particleAlignment, Matrix2D<double> shifts)
+void ProgLocalParticleAlignment::calculateShiftDisplacement(Matrix2D<double> particleAlignment, Matrix2D<double> &shifts)
 {
 	Matrix1D<double> projectedCenter = particleAlignment * alignmentCenter;
-	
-	shifts.initIdentity(4);
-	MAT_ELEM(shifts, 0, 4) = XX(projectedCenter);
-	MAT_ELEM(shifts, 1, 4) = YY(projectedCenter);
+
+	shifts.initIdentity(3);
+	MAT_ELEM(shifts, 0, 2) = XX(projectedCenter);
+	MAT_ELEM(shifts, 1, 2) = YY(projectedCenter);
 }
 

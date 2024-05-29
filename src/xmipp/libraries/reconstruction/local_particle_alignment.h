@@ -26,6 +26,12 @@
 #ifndef _LOCAL_PARTICLE_ALINGMENT
 #define _LOCAL_PARTICLE_ALINGMENT
 
+#include <chrono>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <regex>
+
 #include "core/xmipp_program.h"
 #include <core/metadata_vec.h>
 #include <core/xmipp_image.h>
@@ -91,7 +97,7 @@ public:
     /**
      *  
     */
-    void recenterParticle();
+    void recenterParticles();
 
 
     // --------------------------- UTILS functions ----------------------------
@@ -99,7 +105,7 @@ public:
     /**
      *  
     */
-    void calculateShiftDisplacement(Matrix2D<double> particleAlignment, Matrix2D<double> shifts);
+    void calculateShiftDisplacement(Matrix2D<double> particleAlignment, Matrix2D<double> &shifts);
 
 	void getParticleSize();
 
