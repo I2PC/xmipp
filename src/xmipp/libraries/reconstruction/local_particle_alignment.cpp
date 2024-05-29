@@ -55,7 +55,7 @@ void ProgLocalParticleAlignment::recenterParticle()
 	size_t nDim = md.size();
 	getParticleSize();
 
-	particles.initZeros(nDim, yDim, xDim);
+	particles.initZeros(nDim, zDim, yDim, xDim);
 
 	Image<double> particleImg;
 	auto &particle = particleImg();
@@ -95,7 +95,7 @@ void ProgLocalParticleAlignment::recenterParticle()
 		{
 			for (size_t j = 0; i < xDim; i++)
 			{
-				DIRECT_A3D_ELEM(particles, idx, i, j) = DIRECT_A2D_ELEM(particleShifted, i, j);
+				DIRECT_NZYX_ELEM(particles, idx, 1, i, j) = DIRECT_A2D_ELEM(particleShifted, i, j);
 			}
 		}
 
@@ -123,15 +123,11 @@ void ProgLocalParticleAlignment::getParticleSize()
 	Image<double> particleImg;
 	auto &particle = particleImg();
 
-	// md.read(fnIn);
+	md.read(fnIn);
+	md.getValue(MDL_IMAGE, fn, 1);
 
-	// auto firstRowId = md.firstRowId();
-	// const MDRowVec& row;
-	// md.getRow(row, firstRowId);
-	// row.getValue(MDL_IMAGE, fn);
-
-	// particleImg.read(fn);
-	// particle.setXmippOrigin();
+	particleImg.read(fn);
+	particle.setXmippOrigin();
 
 	xDim = XSIZE(particle);
 	yDim = YSIZE(particle);

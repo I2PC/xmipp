@@ -51,6 +51,7 @@ public:
 	/** Dimensions */
 	size_t xDim;
 	size_t yDim;
+    size_t zDim = 1;
 	size_t nDim;
 
 private:
