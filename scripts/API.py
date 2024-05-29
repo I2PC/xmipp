@@ -167,7 +167,7 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = 'Unknow') -> Optional[Dict]
 		branchName = XMIPP_VERSION if not currentBranch or currentBranch == 'master' else currentBranch
 
 		# Introducing data into a dictionary
-		return {
+		data = {
 			"user": {
 				"userId": userId
 			},
@@ -175,10 +175,15 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = 'Unknow') -> Optional[Dict]
 				"os": getOSReleaseName(),
 				"architecture": __getArchitectureName(),
 				"cuda": CUDA_version,
-				"cmake": None,
+				"cmake": "null",
 				"gcc": GCC_version,
 				"gpp": GPP_version,
-				"scons": None
+				"mpi": None,
+				"python": None,
+				"sqlite": None,
+				"java": None,
+				"hdf5": None,
+				"jpeg": None
 			},
 			"xmipp": {
 				"branch": branchName,
@@ -188,34 +193,8 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = 'Unknow') -> Optional[Dict]
 			"logTail": logTail if retCode else None
 			# Only needs log tail if something went wrong
 		}
-		"""
-		return {
-				"user": {
-					"userId": userId
-				},
-				"version": {
-					"os": getOSReleaseName(),
-					"architecture": __getArchitectureName(),
-					"cuda": CUDA_version,
-					"cmake": None,
-					"gcc": GCC_version,
-					"gpp": GPP_version,
-					"mpi": None,
-					"python": None,
-					"sqlite": None,
-					"java": None,
-					"hdf5": None,
-					"jpeg": None
-				},
-				"xmipp": {
-					"branch": branchName,
-					"updated": isBranchUpToDate()
-				},
-				"returnCode": retCode,
-				"logTail": logTail if retCode else None
-				# Only needs log tail if something went wrong
-			}
-	""" #TODO replace for this json format
+		return json.dumps(data)
+
 	except Exception as e:
 		pass
 def __getMACAddress() -> Optional[str]:
@@ -409,4 +388,8 @@ if __name__ == '__main__':
 
 '''
 curl --header "Content-Type: application/json" -X POST --data '{"user": {"userId": "curl attempt"}, "version": {"os": "Ubuntu 22.04.3 LTS", "architecture": "skylake", "cuda": "11.4", "cmake": "null", "gcc": "10.5.0", "gpp": "10.5.0", "scons": "null"}, "xmipp": {"branch": "Unknow", "updated": false}, "returnCode": 0, "logTail": "null"}' --request POST xmipp.i2pc.es/api/attempts/
+
+
+curl --header "Content-Type: application/json" -X POST --data '{"user": {"userId": "f0ccfe1cac91db754d039cf3bb5e7f46327ef3c5442d245b4c5e3b28086003c5"}, "version": {"os": "Ubuntu 22.04.3 LTS", "architecture": "skylake", "cuda": "11.4", "cmake": "null", "gcc": "10.5.0", "gpp": "10.5.0", "mpi": null, "python": null, "sqlite": null, "java": null, "hdf5": null, "jpeg": null}, "xmipp": {"branch": "Unknow", "updated": false}, "returnCode": 0, "logTail": null}' --request POST xmipp.i2pc.es/api/attempts/
+
 '''
