@@ -26,12 +26,11 @@ Module containing all functions needed for the metric's API request.
 """
 
 # General imports
-import re, hashlib, http.client, json, ssl#TODO replace with from .utils import runJob
-from typing import Dict, Optional, Tuple
+import re, hashlib, http.client, json
 
 # Self imports
-from typing import Dict, Optional, Tuple
-from utils import runJob #TODO replace with from .utils import runJob
+from typing import Optional, Tuple
+from .utils import runJob
 
 API_URL = 'xmipp.i2pc.es/api/attempts/'
 
@@ -59,12 +58,7 @@ def sendApiPOST(retCode: int = 0, XMIPP_VERSION:str = 'Unknow'):
 
 			# Send the POST request
 			conn.request("POST", path, bodyParams, headers)
-			response = conn.getresponse()
-			data = response.read()
-			print(response.headers.get('Location'))
-			# Print response
-			print("Status:", response.status)
-			print("Response:", data)
+
 			# Close the connection
 			conn.close()
 	except Exception as e:
@@ -130,8 +124,8 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = 'Unknow') -> Optional[str]:
 		CUDA_version = ''
 		GCC_version = ''
 		GPP_version = ''
-		configFile = '../xmipp.conf'#TODO change path
-		compileFile = '../compileLOG.txt'
+		configFile = 'xmipp.conf'
+		compileFile = 'compileLOG.txt'
 		with open(configFile, 'r') as file:
 			lines = file.readlines()
 		for l in lines:
