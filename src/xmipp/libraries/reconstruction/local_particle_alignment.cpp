@@ -32,18 +32,45 @@
 void ProgLocalParticleAlignment::readParams()
 {
 	fnIn = getParam("--inputPaticles");
+	fnOut = getParam("--outputPaticles");
 
-	
+	fnOutMetatada = fnOut.removeAllExtensions() + ".xmd";
+	fnOutMetatada = fnOut.removeAllExtensions() + ".stk";
 }
-
 
 void ProgLocalParticleAlignment::defineParams()
 {
 	addUsageLine("This program refine the alignment of particles focalized in a volume region.");
 	addParamsLine("  --inputPaticles       	: File path to input particle with alignments.");
-
+	addParamsLine("  --outputPaticles       : File path to save output particles and metadata (.stk and .xmd).");
 }
 
+void ProgLocalParticleAlignment::saveMetadata()
+{
+	MetaDataVec mdIn;
+	MetaDataVec mdOut;
+
+	FileName fn;
+
+	mdIn.read(fnIn);
+
+	size_t idx = 1;
+
+	for (auto& row : mdIn)
+	{
+		fn.compose(idx, fnOutParticles);
+		row.setValue(MDL_IMAGE, fn, false);
+		size_t id = mdOut.addRow(row);
+
+		idx++;
+	}
+
+	mdOut.write(fnOut);
+	
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Output metada saved at: " << fnOutMetatada << std::endl;
+	#endif
+}
 
 // ---------------------- MAIN FUNCTIONS -----------------------------
 

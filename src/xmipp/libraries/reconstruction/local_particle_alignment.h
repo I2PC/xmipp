@@ -33,6 +33,8 @@
 #include <core/metadata_vec.h>
 #include "symmetrize.h"
 
+#define VERBOSE_OUTPUT
+
 
 class ProgLocalParticleAlignment : public XmippProgram
 {
@@ -41,6 +43,8 @@ public:
     /** Filenames */
     FileName fnIn;
 	FileName fnOut;
+	FileName fnOutParticles;
+	FileName fnOutMetatada;
 
 	/** Input info */
 	Matrix1D<double> alignmentCenter;
@@ -74,6 +78,12 @@ public:
      * Define input program parameters.
     */
     void defineParams();
+
+    /**
+     * Save metadata for output particles.
+    */
+    void saveMetadata();
+
 
 
     // ---------------------- MAIN FUNCTIONS -----------------------------
