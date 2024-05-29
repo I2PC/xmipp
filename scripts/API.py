@@ -30,7 +30,7 @@ import re, hashlib, http.client, json
 
 # Self imports
 from typing import Optional, Tuple
-from .utils import runJob
+from utils import runJob
 
 API_URL = 'xmipp.i2pc.es/api/attempts/'
 
@@ -130,10 +130,10 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = 'Unknow') -> Optional[str]:
 
 		# Obtaining variables
 
-		compileFile = 'compileLOG.txt'
+		compileFile = '../compileLOG.txt'
 		with open(compileFile, 'r') as file:
 			lines = file.readlines()
-			logTail = lines[-100:]
+			logTail = lines[-100:][0]
 
 		currentBranch = getCurrentBranch()
 
@@ -164,7 +164,7 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = 'Unknow') -> Optional[str]:
 				"updated": isBranchUpToDate()
 			},
 			"returnCode": retCode,
-			"logTail": logTail if retCode else None
+			"logTail": logTail if True else None
 			# Only needs log tail if something went wrong
 		}
 		return json.dumps(data)
@@ -268,7 +268,7 @@ def __getVersions():
 	GPP_version = ''
 	python_version = ''
 	MPI_version = ''
-	configFile = 'xmipp.conf'
+	configFile = '../xmipp.conf'
 	with open(configFile, 'r') as file:
 		lines = file.readlines()
 	for l in lines:
@@ -434,3 +434,5 @@ curl --header "Content-Type: application/json" -X POST --data '{"user": {"userId
 
 '''
 
+if __name__ == '__main__':
+	sendApiPOST(retCode=0)
