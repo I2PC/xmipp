@@ -64,8 +64,6 @@ void ProgAverageSubtomos::averageSubtomograms(MetaDataVec &md)
 
 	MultidimArray<double> subtomoAli;
 
-	MetaDataVec mdAli;
-
 	FileName fnSub;
 	size_t idx = 0;
 	for (const auto& row : md)
