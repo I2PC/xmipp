@@ -58,11 +58,17 @@ def sendApiPOST(retCode: int = 0, XMIPP_VERSION:str = 'Unknow'):
 
 			# Send the POST request
 			conn.request("POST", path, bodyParams, headers)
-
+			response = conn.getresponse()
+			status = response.status
 			# Close the connection
 			conn.close()
+			if status == 200 or status == 201:
+				return True
+			else:
+				print('-')
+				return False
 	except Exception as e:
-		pass
+		return False
 
 
 ####################### UTILS FUNCTIONS #######################
@@ -338,7 +344,7 @@ def getCurrentBranch(dir: str = './') -> str:
 	else:
 		return ''
 	# If there was an error, we are in no branch
-	return branchName if not retcode else ''
+	return branchName if retcode else ''
 
 def isBranchUpToDate(dir: str = './') -> bool:
 	"""
@@ -427,3 +433,4 @@ curl --header "Content-Type: application/json" -X POST --data '{"user": {"userId
 curl --header "Content-Type: application/json" -X POST --data '{"user": {"userId": "f0ccfe1cac91db754d039cf3bb5e7f46327ef3c5442d245b4c5e3b28086003c5"}, "version": {"os": "Ubuntu 22.04.3 LTS", "architecture": "skylake", "cuda": "11.4", "cmake": "null", "gcc": "10.5.0", "gpp": "10.5.0", "mpi": null, "python": null, "sqlite": null, "java": null, "hdf5": null, "jpeg": null}, "xmipp": {"branch": "Unknow", "updated": false}, "returnCode": 0, "logTail": null}' --request POST xmipp.i2pc.es/api/attempts/
 
 '''
+
