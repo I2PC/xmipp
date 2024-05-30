@@ -133,7 +133,7 @@ def __getJSON(retCode: int = 0, xmippVersion: str = 'Unknow') -> Optional[str]:
 		compileFile = 'compileLOG.txt'
 		with open(compileFile, 'r') as file:
 			lines = file.readlines()
-			logTail = lines[-100:][0]
+			logTail = '\n'.join(lines[-100:])
 
 		currentBranch = getCurrentBranch()
 
@@ -325,7 +325,7 @@ def __getVersions():
 			'GPPVersion': GPPVersion,
 			'pythonVersion': pythonVersion,
 			'MPIVersion': MPIVersion,
-	        'cmake_version': cmakeVersion}
+	        'cmakeVersion': cmakeVersion}
 def getCurrentBranch(dir: str = './') -> str:
 	"""
 	### This function returns the current branch of the repository of the given directory or empty string if it is not a repository or a recognizable tag.
