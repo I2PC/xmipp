@@ -65,7 +65,6 @@ def sendApiPOST(retCode: int = 0, xmippVersion :str = 'Unknow'):
 			if status == 200 or status == 201:
 				return True
 			else:
-				print('-')
 				return False
 	except Exception as e:
 		return False
