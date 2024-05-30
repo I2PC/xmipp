@@ -130,7 +130,7 @@ def __getJSON(retCode: int = 0, xmippVersion: str = 'Unknow') -> Optional[str]:
 
 		# Obtaining variables
 
-		compileFile = '../compileLOG.txt'
+		compileFile = 'compileLOG.txt'
 		with open(compileFile, 'r') as file:
 			lines = file.readlines()
 			logTail = lines[-100:][0]
@@ -268,7 +268,7 @@ def __getVersions():
 	GPPVersion = ''
 	pythonVersion = ''
 	MPIVersion = ''
-	configFile = '../xmipp.conf'
+	configFile = 'xmipp.conf'
 	with open(configFile, 'r') as file:
 		lines = file.readlines()
 	for l in lines:
