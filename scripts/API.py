@@ -30,11 +30,11 @@ import re, hashlib, http.client, json
 
 # Self imports
 from typing import Optional, Tuple
-from utils import runJob
+from .utils import runJob
 
 API_URL = 'xmipp.i2pc.es/api/attempts/'
 
-def sendApiPOST(retCode: int = 0, XMIPP_VERSION:str = 'Unknow'):
+def sendApiPOST(retCode: int = 0, xmippVersion :str = 'Unknow'):
 	"""
 	### Sends a POST request to Xmipp's metrics's API.
 
@@ -43,7 +43,7 @@ def sendApiPOST(retCode: int = 0, XMIPP_VERSION:str = 'Unknow'):
 	"""
 	try:
 		# Getting JSON data for curl command
-		bodyParams = __getJSON(retCode=retCode, XMIPP_VERSION=XMIPP_VERSION)
+		bodyParams = __getJSON(retCode=retCode, xmippVersion=xmippVersion)
 
 		# Send API POST request if there were no errors
 		if bodyParams is not None:
@@ -109,7 +109,7 @@ def getOSReleaseName() -> str:
 	return releaseName
 
 
-def __getJSON(retCode: int = 0, XMIPP_VERSION: str = 'Unknow') -> Optional[str]:
+def __getJSON(retCode: int = 0, xmippVersion: str = 'Unknow') -> Optional[str]:
 	"""
 	### Creates a JSON with the necessary data for the API POST message.
 
@@ -138,7 +138,7 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = 'Unknow') -> Optional[str]:
 		currentBranch = getCurrentBranch()
 
 		# If branch is master or there is none, get release name
-		branchName = XMIPP_VERSION if not currentBranch or currentBranch == 'master' else currentBranch
+		branchName = xmippVersion if not currentBranch or currentBranch == 'master' else currentBranch
 
 		# Introducing data into a dictionary
 		data = {
@@ -148,12 +148,12 @@ def __getJSON(retCode: int = 0, XMIPP_VERSION: str = 'Unknow') -> Optional[str]:
 			"version": {
 				"os": getOSReleaseName(),
 				"architecture": __getArchitectureName(),
-				"cuda": versionsDict['CUDA_version'],
-				"cmake": versionsDict['cmake_version'],
-				"gcc": versionsDict['GCC_version'],
-				"gpp": versionsDict['GPP_version'],
-				"mpi": versionsDict['MPI_version'],
-				"python": versionsDict['python_version'],
+				"cuda": versionsDict['CUDAVersion'],
+				"cmake": versionsDict['cmakeVersion'],
+				"gcc": versionsDict['GCCVersion'],
+				"gpp": versionsDict['GPPVersion'],
+				"mpi": versionsDict['MPIVersion'],
+				"python": versionsDict['pythonVersion'],
 				"sqlite": None,
 				"java": None,
 				"hdf5": None,
@@ -243,7 +243,7 @@ def __getArchitectureName() -> str:
 	- (str): Architecture name.
 	"""
 	# Initializing to unknown value
-	archName = 'Unknow'
+	archName = 'Unknown'
 	log = []
 	# Obtaining architecture name
 	retCode = runJob('cat /sys/devices/cpu/caps/pmu_name', show_output=False, show_command=False, log=log)
@@ -263,11 +263,11 @@ def __getVersions():
 	#### Returns:
 	- (str): Architecture name.
 	"""
-	CUDA_version = ''
-	GCC_version = ''
-	GPP_version = ''
-	python_version = ''
-	MPI_version = ''
+	CUDAVersion = ''
+	GCCVersion = ''
+	GPPVersion = ''
+	pythonVersion = ''
+	MPIVersion = ''
 	configFile = '../xmipp.conf'
 	with open(configFile, 'r') as file:
 		lines = file.readlines()
@@ -282,7 +282,7 @@ def __getVersions():
 			compilerCC = compilerCC.replace('\n', '')
 			runJob('{} --version'.format(compilerCC), show_output=False,
 			       show_command=False, log=log)
-			GCC_version = log[0].split(' ')[-1]
+			GCCVersion = log[0].split(' ')[-1]
 		# FIND CXX
 		if l.find('CXX') != -1 and l.find('CXXFLAGS') == -1 and l.find(
 				'CXX_CUDA') == -1 \
@@ -292,7 +292,7 @@ def __getVersions():
 			compilerCPP = compilerCPP.replace('\n', '')
 			runJob('{} --version'.format(compilerCPP), show_output=False,
 			       show_command=False, log=log)
-			GPP_version = log[0].split(' ')[-1]
+			GPPVersion = log[0].split(' ')[-1]
 		# FIND NVCC
 		if l.find('NVCC') != -1 and l.find('NVCC_CXXFLAGS') == -1 and l.find(
 				'NVCC_LINKFLAGS') == -1:
@@ -300,32 +300,32 @@ def __getVersions():
 			NVCC = NVCC.replace('\n', '')
 			runJob('{} --version'.format(NVCC), show_output=False,
 			       show_command=False, log=log)
-			CUDA_version = log[-2][log[-2].find('release') + 8:log[-2].find(
+			CUDAVersion = log[-2][log[-2].find('release') + 8:log[-2].find(
 				'release') + 12]
 		# FIND PYTHON
 		if l.find('PYTHON_LIB') != -1:
 			python = l.split('=')[-1]
 			python = python.replace('\n', '')
-			python_version = python.replace('python', '')
+			pythonVersion = python.replace('python', '')
 		# FIND MPI_RUN
 		if l.find('MPI_RUN') != -1:
 			MPI = l.split('=')[-1]
 			MPI = MPI.replace('\n', '')
 			runJob('{} --version'.format(MPI), show_output=False,
 			       show_command=False, log=log)
-			MPI_version = log[0].split(' ')[-1]
+			MPIVersion = log[0].split(' ')[-1]
 	# FIND CMAKE
 	runJob('cmake --version', show_output=False, log=log,
 	       show_command=False)
 	result = '\n'.join(log)
-	cmake_version = result.split('\n')[0].split()[-1]
+	cmakeVersion = result.split('\n')[0].split()[-1]
 
-	return {'CUDA_version': CUDA_version,
-	        'GCC_version': GCC_version,
-			'GPP_version': GPP_version,
-			'python_version': python_version,
-			'MPI_version': MPI_version,
-	        'cmake_version': cmake_version}
+	return {'CUDAVersion': CUDAVersion,
+	        'GCCVersion': GCCVersion,
+			'GPPVersion': GPPVersion,
+			'pythonVersion': pythonVersion,
+			'MPIVersion': MPIVersion,
+	        'cmake_version': cmakeVersion}
 def getCurrentBranch(dir: str = './') -> str:
 	"""
 	### This function returns the current branch of the repository of the given directory or empty string if it is not a repository or a recognizable tag.
@@ -423,16 +423,3 @@ def runInsistentJob(cmd: str, cwd: str = './', showOutput: bool = False,
 	# Returning output and return code
 	return retCode, output
 
-
-
-
-'''
-curl --header "Content-Type: application/json" -X POST --data '{"user": {"userId": "curl attempt"}, "version": {"os": "Ubuntu 22.04.3 LTS", "architecture": "skylake", "cuda": "11.4", "cmake": "null", "gcc": "10.5.0", "gpp": "10.5.0", "scons": "null"}, "xmipp": {"branch": "Unknow", "updated": false}, "returnCode": 0, "logTail": "null"}' --request POST xmipp.i2pc.es/api/attempts/
-
-
-curl --header "Content-Type: application/json" -X POST --data '{"user": {"userId": "f0ccfe1cac91db754d039cf3bb5e7f46327ef3c5442d245b4c5e3b28086003c5"}, "version": {"os": "Ubuntu 22.04.3 LTS", "architecture": "skylake", "cuda": "11.4", "cmake": "null", "gcc": "10.5.0", "gpp": "10.5.0", "mpi": null, "python": null, "sqlite": null, "java": null, "hdf5": null, "jpeg": null}, "xmipp": {"branch": "Unknow", "updated": false}, "returnCode": 0, "logTail": null}' --request POST xmipp.i2pc.es/api/attempts/
-
-'''
-
-if __name__ == '__main__':
-	sendApiPOST(retCode=0)
