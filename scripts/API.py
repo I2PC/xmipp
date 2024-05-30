@@ -164,7 +164,7 @@ def __getJSON(retCode: int = 0, xmippVersion: str = 'Unknow') -> Optional[str]:
 				"updated": isBranchUpToDate()
 			},
 			"returnCode": retCode,
-			"logTail": logTail if True else None
+			"logTail": logTail if retCode != 0 else None
 			# Only needs log tail if something went wrong
 		}
 		return json.dumps(data)
