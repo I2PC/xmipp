@@ -108,6 +108,11 @@ void ProgLocalParticleAlignment::recenterParticles()
 	md.read(fnIn);
 
 	size_t nDim = md.size();
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Centering " << nDim << " input particles..." << std::endl;
+	#endif
+
 	getParticleSize();
 
 	shifedParticles.initZeros(nDim, zDim, yDim, xDim);
@@ -148,9 +153,9 @@ void ProgLocalParticleAlignment::recenterParticles()
 
 		for (size_t i = 0; i < yDim; i++)
 		{
-			for (size_t j = 0; i < xDim; i++)
+			for (size_t j = 0; j < xDim; j++)
 			{
-				DIRECT_NZYX_ELEM(shifedParticles, idx, 1, i, j) = DIRECT_A2D_ELEM(shiftParticle, i, j);
+				DIRECT_NZYX_ELEM(shifedParticles, idx, 0, i, j) = DIRECT_A2D_ELEM(shiftParticle, i, j);
 			}
 		}
 
