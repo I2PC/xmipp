@@ -23,7 +23,6 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
-
 import re
 import shutil
 from datetime import datetime
@@ -1166,7 +1165,8 @@ def exitProgram(error=0, status=None):
         pass
     from scripts.API import sendApiPOST
     try:
-        sendApiPOST(error, XMIPP_VERSION)
+        if os.environ.get('SEND_INSTALLATION_STATISTICS') != 'False':
+            sendApiPOST(error, XMIPP_VERSION)
     except Exception:
         pass
 
