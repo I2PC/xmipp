@@ -102,33 +102,36 @@ double ProgTomoVolumeAlignTwofold::twofoldAlign(std::size_t i, std::size_t j,
 	{
 		for(std::size_t l = 0; l < nPsi; ++l)
 		{
-            const double rot1 = XX(directions[k]);
-            const double tilt1 = YY(directions[k]);
-            const double psi1 = l * angularSamplingRate;
-			const double rot2 = -psi1;
-			const double tilt2 = -tilt1;
-			const double psi2 = -rot1;
-
-			double cost = 0.0;
+			for(std::size_t mirror = 0; mirror < 2; ++mirror)
 			{
-				std::lock_guard<std::mutex> lock(mutex1);
-				projector1.projectToFourier(rot1, tilt1, psi1);
+				const double rot1 = XX(directions[k]);
+				const double tilt1 = YY(directions[k]) + 180*mirror;
+				const double psi1 = l * angularSamplingRate;
+				const double rot2 = -psi1;
+				const double tilt2 = -tilt1;
+				const double psi2 = -rot1;
 
-				cost += computeSquareDistance(projector1.projectionFourier, centralSlices2);
-			}
-			{
-				std::lock_guard<std::mutex> lock(mutex2);
-				projector2.projectToFourier(rot2, tilt2, psi2);
+				double cost = 0.0;
+				{
+					std::lock_guard<std::mutex> lock(mutex1);
+					projector1.projectToFourier(rot1, tilt1, psi1);
 
-				cost += computeSquareDistance(projector2.projectionFourier, centralSlices1);
-			}
+					cost += computeSquareDistance(projector1.projectionFourier, centralSlices2);
+				}
+				{
+					std::lock_guard<std::mutex> lock(mutex2);
+					projector2.projectToFourier(rot2, tilt2, psi2);
 
-			if (cost < bestCost)
-			{
-				rot = rot1;
-				tilt = tilt1;
-				psi = psi1;
-				bestCost = cost;
+					cost += computeSquareDistance(projector2.projectionFourier, centralSlices1);
+				}
+
+				if (cost < bestCost)
+				{
+					rot = rot1;
+					tilt = tilt1;
+					psi = psi1;
+					bestCost = cost;
+				}
 			}
 		}
 	}
@@ -195,7 +198,7 @@ void ProgTomoVolumeAlignTwofold::defineSampling()
     if (!sphereSampling.SL.isSymmetryGroup(fnSymmetry, symmetry, sym_order))
         REPORT_ERROR(ERR_VALUE_INCORRECT,
                      (std::string)"Invalid symmetry" +  fnSymmetry);
-    sphereSampling.computeSamplingPoints(false, 90+maxTiltAngle, 90-maxTiltAngle);
+    sphereSampling.computeSamplingPoints(true, maxTiltAngle);
     sphereSampling.SL.readSymmetryFile(fnSymmetry);
     sphereSampling.fillLRRepository();
     sphereSampling.removeRedundantPoints(symmetry, sym_order);
