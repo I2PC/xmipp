@@ -61,10 +61,9 @@ def sendApiPOST(retCode: int = 0, xmippVersion :str = 'Unknow'):
 		status = response.status
 		# Close the connection
 		conn.close()
-		if status == 200 or status == 201:
-			return True
-		else:
-			return False
+
+		return status == http.HTTPStatus.OK or status == http.HTTPStatus.CREATED
+
 
 
 ####################### UTILS FUNCTIONS #######################
