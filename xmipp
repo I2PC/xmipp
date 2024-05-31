@@ -1163,8 +1163,8 @@ def exitProgram(error=0, status=None):
             show_output=False, show_command=False, log=log)
     except Exception as e:
         pass
-    from scripts.API import sendApiPOST
     try:
+        from scripts.API import sendApiPOST
         if os.environ.get('SEND_INSTALLATION_STATISTICS') != 'False':
             sendApiPOST(error, XMIPP_VERSION)
     except Exception:

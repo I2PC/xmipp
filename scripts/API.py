@@ -41,33 +41,30 @@ def sendApiPOST(retCode: int = 0, xmippVersion :str = 'Unknow'):
 	#### Params:
 	- retCode (int): Optional. Return code for the API request.
 	"""
-	try:
-		# Getting JSON data for curl command
-		bodyParams = __getJSON(retCode=retCode, xmippVersion=xmippVersion)
+	# Getting JSON data for curl command
+	bodyParams = __getJSON(retCode=retCode, xmippVersion=xmippVersion)
 
-		# Send API POST request if there were no errors
-		if bodyParams is not None:
-			# Set up the headers
-			headers = {"Content-type": "application/json"}
+	# Send API POST request if there were no errors
+	if bodyParams is not None:
+		# Set up the headers
+		headers = {"Content-type": "application/json"}
 
-			# Establish a connection
-			url = API_URL.split("/", maxsplit=1)
-			path = f"/{url[1]}"
-			url = url[0]
-			conn = http.client.HTTPConnection(url, timeout=4)
+		# Establish a connection
+		url = API_URL.split("/", maxsplit=1)
+		path = f"/{url[1]}"
+		url = url[0]
+		conn = http.client.HTTPConnection(url, timeout=4)
 
-			# Send the POST request
-			conn.request("POST", path, bodyParams, headers)
-			response = conn.getresponse()
-			status = response.status
-			# Close the connection
-			conn.close()
-			if status == 200 or status == 201:
-				return True
-			else:
-				return False
-	except Exception as e:
-		return False
+		# Send the POST request
+		conn.request("POST", path, bodyParams, headers)
+		response = conn.getresponse()
+		status = response.status
+		# Close the connection
+		conn.close()
+		if status == 200 or status == 201:
+			return True
+		else:
+			return False
 
 
 ####################### UTILS FUNCTIONS #######################
@@ -119,57 +116,54 @@ def __getJSON(retCode: int = 0, xmippVersion: str = 'Unknow') -> Optional[str]:
 	#### Return:
 	- (json | None): json with the required info or None if user id could not be produced.
 	"""
-	try:
-		# Getting user id and checking if it exists
-		userId = __getUserId()
-		if userId is None:
-			return
+	# Getting user id and checking if it exists
+	userId = __getUserId()
+	if userId is None:
+		return
 
-		versionsDict = __getVersions()
+	versionsDict = __getVersions()
 
-		# Obtaining variables
+	# Obtaining variables
 
-		compileFile = 'compileLOG.txt'
-		with open(compileFile, 'r') as file:
-			lines = file.readlines()
-			logTail = '\n'.join(lines[-100:])
+	compileFile = 'compileLOG.txt'
+	with open(compileFile, 'r') as file:
+		lines = file.readlines()
+		logTail = '\n'.join(lines[-100:])
 
-		currentBranch = getCurrentBranch()
+	currentBranch = getCurrentBranch()
 
-		# If branch is master or there is none, get release name
-		branchName = xmippVersion if not currentBranch or currentBranch == 'master' else currentBranch
+	# If branch is master or there is none, get release name
+	branchName = xmippVersion if not currentBranch or currentBranch == 'master' else currentBranch
 
-		# Introducing data into a dictionary
-		data = {
-			"user": {
-				"userId": userId
-			},
-			"version": {
-				"os": getOSReleaseName(),
-				"architecture": __getArchitectureName(),
-				"cuda": versionsDict['CUDAVersion'],
-				"cmake": versionsDict['cmakeVersion'],
-				"gcc": versionsDict['GCCVersion'],
-				"gpp": versionsDict['GPPVersion'],
-				"mpi": versionsDict['MPIVersion'],
-				"python": versionsDict['pythonVersion'],
-				"sqlite": None,
-				"java": None,
-				"hdf5": None,
-				"jpeg": None
-			},
-			"xmipp": {
-				"branch": branchName,
-				"updated": isBranchUpToDate()
-			},
-			"returnCode": retCode,
-			"logTail": logTail if retCode != 0 else None
-			# Only needs log tail if something went wrong
-		}
-		return json.dumps(data)
+	# Introducing data into a dictionary
+	data = {
+		"user": {
+			"userId": userId
+		},
+		"version": {
+			"os": getOSReleaseName(),
+			"architecture": __getArchitectureName(),
+			"cuda": versionsDict['CUDAVersion'],
+			"cmake": versionsDict['cmakeVersion'],
+			"gcc": versionsDict['GCCVersion'],
+			"gpp": versionsDict['GPPVersion'],
+			"mpi": versionsDict['MPIVersion'],
+			"python": versionsDict['pythonVersion'],
+			"sqlite": None,
+			"java": None,
+			"hdf5": None,
+			"jpeg": None
+		},
+		"xmipp": {
+			"branch": branchName,
+			"updated": isBranchUpToDate()
+		},
+		"returnCode": retCode,
+		"logTail": logTail if retCode != 0 else None
+		# Only needs log tail if something went wrong
+	}
+	return json.dumps(data)
 
-	except Exception as e:
-		pass
 def __getMACAddress() -> Optional[str]:
 	"""
 	### This function returns a physical MAC address for this machine. It prioritizes ethernet over wireless.
