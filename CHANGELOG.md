@@ -33,6 +33,8 @@
    - Added support for half precision float micrographs
    - Wipe out memory ouptut in cuFFT
    - Deprecated deep_denoising
+   - Fix for rare axis orderings in MRC/MAP files
+   - Adding fixed extension to tomo
 
   
  ## Release 3.23.11 - Nereus
