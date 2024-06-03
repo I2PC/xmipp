@@ -1,4 +1,47 @@
-   ## Release 3.23.11 - Nereus
+   ## Release 3.24.06 - Oceanus
+   ### Xmipp Programs 
+   
+   - New programs
+      - xtomo tigre reconstruction: This program provides a variety of algorithms to reconstruct tomogram from a set of tilt series
+      - graph_max_cut: split volume program
+      - tomo_simulate_tilt_series: simualtion of ts, tomograms and coordinates
+      - 
+        
+   - Programs updated
+      - Deep_center: interface simplified, calculate shift for particles
+      - deep_misalignment_detection: update model
+      - pdb_label_from_volume:Added CIF format support
+      - resolution_monotomo: Fast subtomo extraction
+      - resolution_monotomo: accelarating monotomo with float
+      - tomogram_reconstruction: tigre reconstruction added
+      - tomo_extract_subtomograms: solving some bugs and enhancing performance
+      - tomo_extract_particlestacks: solving some bugs and enhancing performance
+
+   - Programs fixed
+      - movie_estimate_gain: Initialize sigma values
+      - resolution_localfilter: double not integer
+      - movie_estimate_gain: Initialize sigma values
+      - project_tomography: internal loop
+      - pdb: Fixed PDB write function when no categories are present
+      - fourier_filter:Fix WEDGE option in FourierFilter
+      - resolution_pdb_bfactor:fix unaccounted column in res bfac pdb
+      - fourier_filter: Fixing missing cone
+        
+   ### Installation and user guide
+   - Fixed PyXmipp installation
+   - update pythorch version on DLTK pyTorch enviroment
+   
+   ### More Xmipp 
+   - Deprecated deep_denoising
+   - Fix DLTK installation
+   - Wipe out memory ouptut in cuFFT
+   - Local average added: Now the micrograph scissor annotates the local intensity value around the particles in the original micrographs.
+   - Added support for half precision float micrographs
+   - API for collecting xmipp installation statistics
+   - Removed force flag on conda installations (new conda version)
+   
+  
+ ## Release 3.23.11 - Nereus
    ### Xmipp Programs 
    
    - New programs
