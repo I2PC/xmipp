@@ -19,7 +19,6 @@ class PCAgpu:
         torch.cuda.is_available()
         torch.cuda.current_device()
         self.cuda = torch.device('cuda:0')
-        # self.cuda = torch.device('cpu')
          
                
     def first_mean(self, firstBands, firstSet):
@@ -61,8 +60,7 @@ class PCAgpu:
                 
         return self.mean, self.var, self.vals, self.vecs
                     
-               
-    #mean = (n/n+1)*mean[0] + (1/n+1)*image    
+   
     def mean_update(self, band, mean, nIm):    
         
         self.meanUp = [torch.zeros(mean[n].size(dim=0), device = self.cuda) for n in range(self.nBand)]
@@ -171,7 +169,6 @@ class PCAgpu:
         return(self.eigs, self.perc, self.error)
                   
     
-    # def batchPCA(self, band, coef, firstSet, eigTotal):
     def batchPCA(self, band, coef, firstSet, eigTotal):
         
         print("-----batch PCA for initializing-----")
@@ -198,7 +195,7 @@ class PCAgpu:
             
         eigTotal = torch.zeros(self.nBand, dtype=int)
         for n in range(self.nBand):
-            # eigTotal[n] = int(np.ceil(0.8 * coef[n]))
+
             eigTotal[n] = coef[n]
         
         print("Batch PCA")

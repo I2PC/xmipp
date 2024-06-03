@@ -23,9 +23,7 @@ class BnBgpu:
         
         torch.cuda.is_available()
         torch.cuda.current_device()
-        self.cuda = torch.device('cuda:0')
-        # self.cuda = torch.device('cpu')
-    
+        self.cuda = torch.device('cuda:0')    
     
     def setRotAndShift2(self, angle, shift, shiftTotal):
 
@@ -82,8 +80,7 @@ class BnBgpu:
                 temp = fourier_band[n][i].repeat(nShift,1)
                                
                 band_shifted_complex = torch.mul(temp, filter)
-                band_shifted_complex[:, int(coef[n] / 2):] = 0.0   
-                # band_shifted_complex = band_shifted_complex[:, :int(coef[n] / 2)]             
+                band_shifted_complex[:, int(coef[n] / 2):] = 0.0                
                 band_shifted[n][i*nShift : (i*nShift)+nShift] = torch.cat((band_shifted_complex.real, band_shifted_complex.imag), dim=1)
                      
         return(band_shifted)
@@ -100,9 +97,8 @@ class BnBgpu:
            
         for n in range(self.nBand):
             fourier_band[n] = ft[:,:,:dimFreq][freq_band == n]
-            fourier_band[n] = fourier_band[n].reshape(ft.size(dim=0),int(coef[n]/2))
-        # del(ft)
-        # torch.cuda.empty_cache()            
+            fourier_band[n] = fourier_band[n].reshape(ft.size(dim=0),int(coef[n]/2)) 
+                      
         return fourier_band        
             
 
@@ -144,7 +140,6 @@ class BnBgpu:
         del(rotFFT)  
         projBatch = self.phiProjRefs(band_shifted, cvecs)
         del(band_shifted)
-        # torch.cuda.empty_cache()
 
         return(projBatch)
     
@@ -167,7 +162,6 @@ class BnBgpu:
         nShift = torch.tensor(nShift, device=self.cuda)
                                   
         for n in range(self.nBand):
-            # score = (torch.cdist(batchRef[n], batchExp[n])**2)
             score = torch.cdist(batchRef[n], batchExp[n])
             
         min_score, ref = torch.min(score,0)
@@ -183,8 +177,7 @@ class BnBgpu:
 
         cond = iter_matches[:, 2] < matches[initBatch:initBatch + nExp, 2]
         matches[initBatch:initBatch + nExp] = torch.where(cond.view(nExp, 1), iter_matches, matches[initBatch:initBatch + nExp])      
-        
-        # torch.cuda.empty_cache()        
+                
         return(matches)
     
     
@@ -267,11 +260,6 @@ class BnBgpu:
             # thr[n] = torch.tensor([vmax - percentileTrash, vmax - percentile]) 
             else:
                thr[n] = 0 
-            # conteo_total = torch.sum((matches[:, 1] == n))
-            # conteo_positivo = torch.sum((matches[:, 1] == n) & (matches[:, 2] < thr[n]))
-            # conteo_negativo = torch.sum((matches[:, 1] == n) & (matches[:, 2] >= thr[n]))
-            # print(conteo_total, conteo_positivo, conteo_negativo)
-            # print(vmax - vmin, vmax, vmin)
             
         return(thr)        
     
@@ -284,14 +272,11 @@ class BnBgpu:
         if iter >= 1 and iter < 5:
         # if iter == 1 or iter == 3:
             thr = self.split_classes_for_range(classes, matches)
-            # print(thr)
-            # exit()
-            
+         
             # class_split = int(final_classes/(2*3))
             class_split = int(final_classes/(iter*4))
             # if iter == 1:
             #     class_split = int(classes*0.7)
-            # if iter == 4:
             if iter == 4:
                 class_split = final_classes - classes
             
@@ -337,8 +322,6 @@ class BnBgpu:
                         non_class_images = transforIm[(matches[initBatch:endBatch, 1] == n) & (matches[initBatch:endBatch, 2] >= thr[n])] 
                         newCL[n + classes].append(non_class_images)
                         
-                        # trash_images = transforIm[(matches[initBatch:endBatch, 1] == n) & (matches[initBatch:endBatch, 2] >= thr[n][0])]
-                        # newCL[classes].append(trash_images)
                     else:
                         class_images = transforIm[matches[initBatch:endBatch, 1] == n]#.to("cpu")
                         newCL[n].append(class_images)
@@ -755,110 +738,7 @@ class BnBgpu:
                 
         return(expBatchSize, expBatchSize2, numFirstBatch)
     
-    
-    
-    def determine_ROTandSHIFT2(self, iter, mode, dim):
-        
-        maxShift = round( (dim * 15)/100 )
-        maxShift = (maxShift//5)*5
-        
-        if mode == "create_classes":
-            print("---Iter %s for creating classes---"%(iter+1))
-            if iter < 3:
-                ang, shiftMove = (-180, 180, 4), (-maxShift, maxShift+5, 5)
-            elif iter < 6: 
-                ang, shiftMove = (-180, 180, 4), (-9, 12, 3)
-            elif iter < 9: 
-                ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
-            elif iter < 11: 
-                ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
-                
-        else:
-            print("---Iter %s for align to classes---"%(iter+1))
-            if iter < 1:
-                ang, shiftMove = (-180, 180, 4), (-maxShift, maxShift+5, 5)
-            elif iter < 2: 
-                ang, shiftMove = (-180, 180, 4), (-9, 12, 3)
-            elif iter < 3: 
-                ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
-            elif iter < 4: 
-                ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
-           
-        vectorRot, vectorshift = self.setRotAndShift(ang, shiftMove)
-        return (vectorRot, vectorshift)
-   
-   
-    def determine_ROTandSHIFT2(self, iter, mode, dim):
-        
-        maxShift = round( (dim * 15)/100 )
-        maxShift = (maxShift//4)*4
-        
-        if mode == "create_classes":
-            print("---Iter %s for creating classes---"%(iter+1))
-            # if iter < 4:
-            #     ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            # elif iter < 7: 
-            #     ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            # elif iter < 10: 
-            #     ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
-            # elif iter < 13: 
-            #     ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
-
-            if iter < 5:
-                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            elif iter < 8: 
-                ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            elif iter < 11: 
-                ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
-            elif iter < 14: 
-                ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
-                
-        else:
-            print("---Iter %s for align to classes---"%(iter+1))
-            if iter < 1:
-                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            elif iter < 2: 
-                ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            elif iter < 3: 
-                ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
-            elif iter < 4: 
-                ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
-           
-        vectorRot, vectorshift = self.setRotAndShift(ang, shiftMove)
-        return (vectorRot, vectorshift)
-    
-    
-    
-    def determine_ROTandSHIFT3(self, iter, mode, dim):
-        
-        maxShift = round( (dim * 15)/100 )
-        maxShift = (maxShift//4)*4
-        
-        if mode == "create_classes":
-            print("---Iter %s for creating classes---"%(iter+1))
-            if iter < 5:
-                ang, shiftMove = (-180, 180, 4), (-maxShift, maxShift+4, 4)
-            elif iter < 10: 
-                ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            elif iter < 15: 
-                ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
-            elif iter < 20: 
-                ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
-                
-        else:
-            print("---Iter %s for align to classes---"%(iter+1))
-            if iter < 1:
-                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            elif iter < 2: 
-                ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            elif iter < 3: 
-                ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
-            elif iter < 4: 
-                ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
-           
-        vectorRot, vectorshift = self.setRotAndShift(ang, shiftMove)
-        return (vectorRot, vectorshift)
-    
+       
     
     def determine_ROTandSHIFT(self, iter, mode, dim):
         
@@ -875,15 +755,6 @@ class BnBgpu:
                 ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
             elif iter < 14: 
                 ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
-
-            # if iter < 6:
-            #     ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            # elif iter < 9: 
-            #     ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            # elif iter < 12: 
-            #     ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
-            # elif iter < 15: 
-            #     ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
                 
         else:
             print("---Iter %s for align to classes---"%(iter+1))

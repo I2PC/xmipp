@@ -10,8 +10,9 @@ import mrcfile
 import argparse
 import sys, os
 import numpy as np
-from xmippPyModules.classifyPcaFuntion.bnb_gpu import *
-from xmippPyModules.classifyPcaFuntion.assessment import *
+import torch
+from xmippPyModules.classifyPcaFuntion.bnb_gpu import BnBgpu
+from xmippPyModules.classifyPcaFuntion.assessment import evaluation
 
 
 def read_images(mrcfilename):
@@ -291,7 +292,6 @@ if __name__=="__main__":
     save_images(cl.cpu().detach().numpy(), file)
     
     print("Adjust contrast")
-    # cl =  bnb.gamma_contrast(cl, 0.5)
     # cl = bnb.increase_contrast_sigmoid(cl, 10, 0.6)
     cl = bnb.increase_contrast_sigmoid(cl, 8, 0.6)
     file_contrast = output+"_contrast.mrcs"

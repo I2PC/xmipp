@@ -12,10 +12,8 @@ import argparse
 import sys, os
 import numpy as np
 import torch
-# from functions.pca_gpu import *
-# from functions.bnb_gpu import *
-from xmippPyModules.classifyPcaFuntion.bnb_gpu import *
-from xmippPyModules.classifyPcaFuntion.pca_gpu import *
+from xmippPyModules.classifyPcaFuntion.bnb_gpu import BnBgpu
+from xmippPyModules.classifyPcaFuntion.pca_gpu import PCAgpu
 import time
 
 def precalculateBands(nBand, dim, sampling, maxRes, minRes):
