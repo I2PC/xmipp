@@ -26,11 +26,6 @@ def save_images(data, outfilename):
     data = data.astype('float32')
     with mrcfile.new(outfilename, overwrite=True) as mrc:
         mrc.set_data(data)
-        # if origin is not None:
-        #     mrc.header['origin']['x'] = origin[0]
-        #     mrc.header['origin']['y'] = origin[1]
-        # mrc.update_header_from_data()
-        # mrc.update_header_stats()
 
 
 def flatGrid(freq_band, coef, nBand):
@@ -55,10 +50,8 @@ if __name__=="__main__":
       
     parser = argparse.ArgumentParser(description="align images")
     parser.add_argument("-i", "--exp", help="input mrc file for experimental images)", required=True)
-    parser.add_argument("-s", "--sampling", type=float, help="pixel size of the images", required=True)
     parser.add_argument("-c", "--classes", help="number of 2D classes", required=True)
     parser.add_argument("-r", "--ref", help="2D classes of external method")   
-    # parser.add_argument("-n", "--niter", help="number of iterations", required=True)
     parser.add_argument("-b", "--bands", help="file with frequency bands", required=True)
     parser.add_argument("-v", "--vecs", help="file with pretrain eigenvectors", required=True)
     parser.add_argument("--mask",  action="store_true", help="A Gaussian mask is used.")
@@ -71,11 +64,9 @@ if __name__=="__main__":
     args = parser.parse_args()
     
     expFile = args.exp
-    sampling = args.sampling
     classes = int(args.classes)
     final_classes = classes  
     refImages = args.ref
-    # niter = int(args.niter)
     niter = 14
     bands = args.bands
     vecs = args.vecs
@@ -131,20 +122,14 @@ if __name__=="__main__":
         cl = torch.from_numpy(clIm).float().to(cuda)
     else:
         initStep = int(min(numFirstBatch, np.ceil(nExp/expBatchSize)))
-        # cl = bnb.init_ramdon_classes(int(final_classes/2), mmap, initSubset)    
         cl = bnb.init_ramdon_classes(final_classes, mmap, initSubset) 
-    
-    # file = output+"_0.mrcs"    
-    # save_images(cl.cpu().numpy(), file)
-    
+        
     
     if refImages:
         num_batches = int(np.ceil(nExp / expBatchSize2))
     else:       
         num_batches = min(int(np.ceil(nExp / expBatchSize)), 
                           int(numFirstBatch + np.ceil( (nExp - (numFirstBatch * expBatchSize))/(expBatchSize2) )))
-    # print(num_batches)
-    # mode = False
     
     batch_projExp_cpu = []
     endBatch = 0
@@ -158,14 +143,10 @@ if __name__=="__main__":
             initBatch = endBatch
             endBatch = min( endBatch + expBatchSize2, nExp)
         
-        # initBatch = i * expBatchSize
-        # endBatch =  min( (i+1) * expBatchSize, nExp)
-        
         expImages = mmap.data[initBatch:endBatch].astype(np.float32)
         Texp = torch.from_numpy(expImages).float().to(cuda)
         if mask:
             Texp = Texp * bnb.create_circular_mask(Texp)
-        # del(expImages)  
               
         if i < initStep:          
             batch_projExp_cpu.append( bnb.batchExpToCpu(Texp, freqBn, coef, cvecs) )           
@@ -177,13 +158,11 @@ if __name__=="__main__":
             mode = "align_classes"
         
         if mode:
-            print(initBatch, endBatch)
-            print(mode)
+            # print(mode)
 
       
             #Initialization Transformation Matrix
             if mode == "create_classes":
-                # subset = expBatchSize * initStep
                 subset = endBatch
             else:
                 subset = endBatch - initBatch
@@ -192,7 +171,6 @@ if __name__=="__main__":
             tMatrix = torch.eye(2, 3, device = cuda).repeat(subset, 1, 1)
             
             if mode == "align_classes":
-                # niter = 5
                 niter = 4
                 
             for iter in range(niter):
@@ -229,19 +207,10 @@ if __name__=="__main__":
                 classes = len(cl)
         
                 if mode == "create_classes":
-                    cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version0(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, sampling, mask, sigma)
+                    cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version0(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
                 else:
-                    # cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(mmap.data[initBatch:endBatch], cl, tMatrix, iter, initBatch, subset, matches, vectorshift, classes, freqBn, coef, cvecs, sampling, mask, sigma)
-                    cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(expImages, cl, tMatrix, iter, initBatch, subset, matches, vectorshift, classes, freqBn, coef, cvecs, sampling, mask, sigma)
+                    cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(expImages, cl, tMatrix, iter, subset, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
 
-                #save classes
-                # if iter == 14:
-                # file = output+"_%s_%s.mrcs"%(initBatch,iter+1)
-                # save_images(cl.cpu().detach().numpy(), file)
-
-                
-                
-                # if mode == "create_classes" and iter == 14:
                 if mode == "create_classes" and iter == 13:
                     
                     refClas[:endBatch] = matches[:, 1]
@@ -264,7 +233,6 @@ if __name__=="__main__":
                     angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
                     angles_deg[:endBatch] = np.degrees(angles_rad.cpu().numpy())
                     
-                # elif mode == "align_classes" and iter == 4:
                 elif mode == "align_classes" and iter == 3:
                     
                     refClas[initBatch:endBatch] = matches[:, 1]
@@ -292,16 +260,11 @@ if __name__=="__main__":
     save_images(cl.cpu().detach().numpy(), file)
     
     print("Adjust contrast")
-    # cl = bnb.increase_contrast_sigmoid(cl, 10, 0.6)
     cl = bnb.increase_contrast_sigmoid(cl, 8, 0.6)
     file_contrast = output+"_contrast.mrcs"
     save_images(cl.cpu().detach().numpy(), file_contrast)           
-    
-    # for number, count in enumerate(counts):
-    #     if count > 0:
-    #         print(number, count)
 
-    print(counts.int())
+    # print(counts.int())
     
     assess = evaluation()
     assess.updateExpStar(expStar, refClas, -angles_deg, translation_vector, output)

@@ -50,7 +50,7 @@ class PCAgpu:
         return self.covariance, self.mean, self.var
     
     
-    def first_eigenvector(self, firstBands, firstSet, num_eig):
+    def first_eigenvector(self, firstBands, firstSet):
         
         self.first_covariance(firstBands, firstSet)
                       
@@ -169,7 +169,7 @@ class PCAgpu:
         return(self.eigs, self.perc, self.error)
                   
     
-    def batchPCA(self, band, coef, firstSet, eigTotal):
+    def batchPCA(self, band, coef, firstSet):
         
         print("-----batch PCA for initializing-----")
         self.Bmean = [torch.zeros(coef[n], device = self.cuda) for n in range(self.nBand)]
@@ -179,7 +179,7 @@ class PCAgpu:
                   
         for n in range(self.nBand):
             
-            self.first_eigenvector(band[n][:firstSet], firstSet, eigTotal[n])  
+            self.first_eigenvector(band[n][:firstSet], firstSet)  
             self.Bmean[n], self.Bvar[n], self.Bvals[n], self.Bvecs[n] = self.mean, self.var,  self.vals, self.vecs
 
         return(self.Bmean, self.Bvar, self.Bvals, self.Bvecs)
@@ -199,7 +199,7 @@ class PCAgpu:
             eigTotal[n] = coef[n]
         
         print("Batch PCA")
-        self.batchPCA(band, coef, firstSet, eigTotal)
+        self.batchPCA(band, coef, firstSet)
         
         if batchPCA:
             for n in range(self.nBand):
