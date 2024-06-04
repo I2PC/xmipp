@@ -30,7 +30,7 @@ import re, hashlib, http.client, json
 
 # Self imports
 from typing import Optional, Tuple
-from utils import runJob
+from .utils import runJob
 
 API_URL = 'xmipp.i2pc.es/api/attempts/'
 
@@ -124,7 +124,7 @@ def __getJSON(retCode: int = 0, xmippVersion: str = 'Unknow') -> Optional[str]:
 
 	# Obtaining variables
 
-	compileFile = '../compileLOG.txt'
+	compileFile = 'compileLOG.txt'
 	with open(compileFile, 'r') as file:
 		lines = file.readlines()
 		logTail = '\n'.join(lines[-100:])
@@ -260,7 +260,7 @@ def __getVersions():
 	GPPVersion = ''
 	pythonVersion = ''
 	MPIVersion = ''
-	configFile = '../xmipp.conf'
+	configFile = 'xmipp.conf'
 	with open(configFile, 'r') as file:
 		lines = file.readlines()
 	for l in lines:
@@ -415,6 +415,3 @@ def runInsistentJob(cmd: str, cwd: str = './', showOutput: bool = False,
 	# Returning output and return code
 	return retCode, output
 
-
-if __name__ == '__main__':
-	sendApiPOST(retCode=0 )
