@@ -48,8 +48,6 @@ def aligned_2d_classification(dataset: Iterable[torch.Tensor],
     scratch -= avg
     v = _mean_centered_pca(scratch, k=1)
     direction = v[:,0]
-    print(direction.shape)
-
 
     projections = torch.matmul(scratch, direction[...,None])[:,0]
 
