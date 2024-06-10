@@ -34,9 +34,9 @@ from scripts.utils import checkCMakeVersion
 
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
 ####################################
-XMIPP_VERSION = '3.23.11.0'        #
-XMIPP_VERNAME = 'devel'            #
-RELEASE_DATE = '28/11/2023'        #
+XMIPP_VERSION = '3.24.06.0'        #
+XMIPP_VERNAME = 'Oceanus'            #
+RELEASE_DATE = '11/06/2024'        #
 CMAKE_VERSION_REQUIRED = '3.16'    #
 ####################################
 
