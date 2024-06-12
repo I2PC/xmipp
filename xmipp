@@ -23,12 +23,10 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
-
-import os
 import re
 import shutil
-import sys
 from datetime import datetime
+import json
 from scripts import *
 from scripts.utils import checkCMakeVersion
 
@@ -36,10 +34,10 @@ from scripts.utils import checkCMakeVersion
 
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
 ####################################
-XMIPP_VERSION = '3.23.11.0'        #
-XMIPP_VERNAME = 'Nereus'           #
-RELEASE_DATE = '28/11/2023'        #
-CMAKE_VERSION_REQUIRED = '3.16'
+XMIPP_VERSION = '3.24.06.0'        #
+XMIPP_VERNAME = 'Oceanus'            #
+RELEASE_DATE = '11/06/2024'        #
+CMAKE_VERSION_REQUIRED = '3.16'    #
 ####################################
 
 
@@ -535,7 +533,7 @@ def compileModule(Nproc,module):
                         strSupport = "This file belongs to %s dependency. Please, " \
                                      "try '%s' and re-compile." % (missingDir, hint)
                     else: strSupport = 'Run /xmipp cleanAll to remove all repositories ' \
-                                       '(local changes will be removed) and compile Xmipp from scrach'
+                                       '(local changes will be removed) and compile Xmipp from scratch'
 
                     exitProgram(1, [False, 1, "\n'%s' file not found." % missingPath, strSupport])
 
@@ -739,6 +737,20 @@ def compileXmipp(Nproc):
     print("\nCompiling xmippViz----------------------------------------")
     if not compileModule(Nproc,"xmippViz"):
         return False
+
+    # Merge Xmipp and XmippCore compiled databases
+    cdb_list = ["compile_commands.json", "compile_commands_2.json"]
+
+    merged = list()
+    for cdb in cdb_list:
+        if os.path.exists(cdb):
+            with open(cdb, 'r') as cdb_id:
+                merged.extend(json.load(cdb_id))
+    with open("compile_commands.json", 'w') as cdb_id:
+        json.dump(merged, cdb_id)
+
+    if os.path.exists("compile_commands_2.json"):
+        os.remove("compile_commands_2.json")
     return True
 
 
@@ -952,7 +964,7 @@ def install(dirname):
         shutil.rmtree(dirname + "/bin")
     createDir(dirname+"/bin")
     dirBin = os.path.join(os.getcwd(), "src/xmipp/bin/")
-    filenames = [f for f in os.listdir(dirBin)]
+    filenames = os.listdir(dirBin)
 
     for f in filenames:
         if os.path.islink(os.path.join(dirBin, f)):
@@ -969,12 +981,12 @@ def install(dirname):
 
 
     dirBin = os.path.join(os.getcwd(), 'src/xmipp/libraries/py_xmipp')
-    folderNames = [x for x in os.walk(dirBin)]
-    for folder in folderNames[1:]:
-        folderName = os.path.basename(folder[0])
-        for file in folder[2]:
-            createDir(os.path.join(destPathPyModule, folderName))
-            runJob("ln -s " + os.path.join(folder[0], file) + ' ' + os.path.join(destPathPyModule, folderName, file),
+    folders = list(os.walk(dirBin))
+    for folderPath, _, folderFiles in folders:
+        folderName = os.path.relpath(folderPath, dirBin)
+        createDir(os.path.join(destPathPyModule, folderName))
+        for file in folderFiles:
+            runJob("ln -s " + os.path.join(folderPath, file) + ' ' + os.path.join(destPathPyModule, folderName, file),
                    show_output=False, show_command=show_command, log=[])
 
 
@@ -1151,6 +1163,13 @@ def exitProgram(error=0, status=None):
             show_output=False, show_command=False, log=log)
     except Exception as e:
         pass
+    try:
+        from scripts.API import sendApiPOST
+        if os.environ.get('SEND_INSTALLATION_STATISTICS') != 'False':
+            sendApiPOST(error, XMIPP_VERSION)
+    except Exception:
+        pass
+
     if error:
         errorEndMessage(XMIPP_VERNAME, error, status)
         printVersion()

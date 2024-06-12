@@ -73,8 +73,10 @@ void ProgProjectTomography::run()
     int idx = 1;
     size_t objId;
 
-    for (double angle=projParam.tilt0; angle<=projParam.tiltF; angle+=projParam.tiltStep)
+    int iterAngle=static_cast<int>((projParam.tiltF - projParam.tilt0) / projParam.tiltStep);
+    for (int iangle=0; iangle<=iterAngle; iangle++)
     {
+    	double angle=projParam.tilt0+iangle*projParam.tiltStep;
         if (projParam.singleProjection)
             fn_proj = projParam.fnOut;
         else
