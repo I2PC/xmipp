@@ -159,7 +159,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='Synchronize bases on a graph')
     parser.add_argument('-i', required=True)
     parser.add_argument('-o', required=True)
-    parser.add_argument('-k', required=True)
+    parser.add_argument('-k', required=True, type=int)
     parser.add_argument('-w')
     parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('--special', action='store_true')
@@ -174,7 +174,7 @@ if __name__ == '__main__':
         output_bases=args.o,
         k=args.k,
         weight_path=args.w,
-        verbose=args.v,
+        verbose=args.verbose,
         special=args.special,
         triangular_upper=args.triangular_upper
     )
