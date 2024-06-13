@@ -22,7 +22,7 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional, Sequence
+from typing import Optional, Sequence, List
 
 import torch
 import argparse
@@ -41,14 +41,21 @@ def _dataframe_batch_generator(df: pd.DataFrame, batch_size: int) -> pd.DataFram
         start = i
         end = start + batch_size
         yield df[start:end]
-        
+
+def matrix_to_str_rows(matrix, 
+                       prefix: str = '', 
+                       suffix: str = '', 
+                       delimiter: str = ' ') -> List[str]:
+    return [prefix + delimiter.join(map(str, row)) + suffix for row in matrix ]
+
 def run(images_md_path: str, 
         output_root: str, 
         scratch_path: Optional[str],
         mask_path: Optional[str],
         align_to: Optional[Sequence[int]],
         batch_size: int,
-        device_names: list ):
+        device_names: list,
+        k: int ):
     
     # Devices
     if device_names:
@@ -112,9 +119,10 @@ def run(images_md_path: str,
     else:
         scratch = torch.empty(training_set_shape, device=transform_device)
 
-    average, direction, projections = classification.aligned_2d_classification(
+    average, directions, projections = classification.aligned_2d_classification(
         image_transformer(zip(images_loader, _dataframe_batch_generator(images_md, batch_size))),
-        scratch
+        scratch=scratch,
+        k=k
     )
 
     # Write average
@@ -124,14 +132,19 @@ def run(images_md_path: str,
     image.write(output_average.numpy(), output_average_path)
     
     # Write direction
-    output_direction_path = output_root + 'eigen_image.mrc'
-    output_direction = torch.zeros(mask.shape, dtype=direction.dtype)
-    output_direction[mask] = direction.to(output_direction.device)
-    image.write(output_direction.numpy(), output_direction_path)
+    output_direction_path = output_root + 'eigen_images.mrc'
+    output_directions = torch.zeros((k, ) + mask.shape, dtype=directions.dtype)
+    output_directions[:,mask] = directions.t().to(output_directions.device)
+    image.write(output_directions.numpy(), output_direction_path, image_stack=True)
     
     # Write metadata
     output_particles_md_path = output_root + 'classification.xmd'
-    images_md[md.SCORE_BY_PCA_RESIDUAL] = projections.cpu().numpy()
+    images_md[md.CLASSIFICATION_DATA] = matrix_to_str_rows(
+        projections.cpu().numpy(),
+        prefix="'",   
+        suffix="'",
+        delimiter=' '
+    )
     md.write(images_md, output_particles_md_path)
 
 if __name__ == '__main__':
@@ -141,6 +154,7 @@ if __name__ == '__main__':
                         description = 'Align Cryo-EM images using a fast Nearest Neighbor approach')
     parser.add_argument('-i', required=True)
     parser.add_argument('-o', required=True)
+    parser.add_argument('-k', default=1, type=int)
     parser.add_argument('--scratch')
     parser.add_argument('--mask')
     parser.add_argument('--align_to', nargs=3)
@@ -158,5 +172,6 @@ if __name__ == '__main__':
         mask_path = args.mask,
         align_to = args.align_to,
         batch_size = args.batch,
-        device_names = args.device
+        device_names = args.device,
+        k=args.k
     )

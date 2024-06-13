@@ -28,10 +28,10 @@ def _mean_centered_pca(samples: torch.Tensor,
 
     _, _, vh = torch.linalg.svd(samples, full_matrices=False)
     return vh[:k].t()
-    
 
 def aligned_2d_classification(dataset: Iterable[torch.Tensor],
-                              scratch: torch.Tensor ):
+                              scratch: torch.Tensor,
+                              k: int):
     # Write
     start = 0
     for vectors in dataset:
@@ -46,9 +46,8 @@ def aligned_2d_classification(dataset: Iterable[torch.Tensor],
     # Perform the PCA analysis
     avg = scratch.mean(dim=0)
     scratch -= avg
-    v = _mean_centered_pca(scratch, k=1)
-    direction = v[:,0]
+    directions = _mean_centered_pca(scratch, k=k)
 
-    projections = torch.matmul(scratch, direction[...,None])[:,0]
+    projections = torch.matmul(scratch, directions)
 
-    return avg, direction, projections
+    return avg, directions, projections
