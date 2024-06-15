@@ -64,8 +64,9 @@ def get_optimization_objective_function(p: cp.Variable,
     if weights is None:
         return cp.sum_squares(p[positions] - values)
     else:
+        weights = weights.tocsr()
         weights_sqrt = np.sqrt(weights[positions].A1)
-        return cp.sum_squares(weights_sqrt*(p[positions] - values))
+        return cp.sum_squares(cp.multiply(weights_sqrt, (p[positions] - values)))
 
 def get_optimization_constraints(p: cp.Variable,
                                  n: int,
@@ -130,7 +131,7 @@ def main(input_graph_path: str,
 
     weights = None
     if weight_path is not None:
-        weights = scipy.sparse.load_npz(weights)
+        weights = scipy.sparse.load_npz(weight_path)
         check_weights(graph=graph, weights=weights)
     
     pairwise, error = optimize_pairwise_matrix(

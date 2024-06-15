@@ -30,7 +30,7 @@ RESOLUTION_FREQ = 'resolutionFreq'
 SIGMANOISE = 'sigmaNoise'
 
 COST = 'cost'
-CLASSIFICATION_DATA = 'classificationData'
+DIMRED = 'dimredCoeffs'
 
 ANGLE_PSI = 'anglePsi'
 ANGLE_PSI2 = 'anglePsi2'

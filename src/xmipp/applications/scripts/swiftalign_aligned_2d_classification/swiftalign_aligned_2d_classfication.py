@@ -139,7 +139,7 @@ def run(images_md_path: str,
     
     # Write metadata
     output_particles_md_path = output_root + 'classification.xmd'
-    images_md[md.CLASSIFICATION_DATA] = matrix_to_str_rows(
+    images_md[md.DIMRED] = matrix_to_str_rows(
         projections.cpu().numpy(),
         prefix="'",   
         suffix="'",
