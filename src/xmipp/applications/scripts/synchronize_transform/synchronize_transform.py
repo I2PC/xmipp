@@ -110,11 +110,14 @@ def orthogonalize(matrices: np.ndarray, special: bool = False) -> np.ndarray:
 def compute_bases(pairwise: np.ndarray,
                   n: int,
                   k: int,
+                  orth: bool = True,
                   special: bool = False ) -> np.ndarray:
     w, v = scipy.linalg.eigh(pairwise, subset_by_index=[k*n-k, k*n-1])
     v *= np.sqrt(n)
     v = v.reshape(n, k, k)
-    v = orthogonalize(v, special=special)
+    
+    if orth:
+        v = orthogonalize(v, special=special)
     
     return v, w
 
@@ -123,6 +126,7 @@ def main(input_graph_path: str,
          k: int,
          weight_path: Optional[str] = None, 
          verbose: bool = False,
+         orth: bool = True,
          special: bool = False,
          triangular_upper: bool = False ):
     
@@ -148,6 +152,7 @@ def main(input_graph_path: str,
         pairwise=pairwise,
         n=n,
         k=k,
+        orth=orth,
         special=special
     )
     eigen_values /= n
@@ -164,6 +169,7 @@ if __name__ == '__main__':
     parser.add_argument('-w')
     parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('--special', action='store_true')
+    parser.add_argument('--orthogonal', action='store_true')
     parser.add_argument('--triangular_upper', action='store_true')
 
     # Parse
@@ -176,6 +182,7 @@ if __name__ == '__main__':
         k=args.k,
         weight_path=args.w,
         verbose=args.verbose,
+        orth=args.orthogonal,
         special=args.special,
         triangular_upper=args.triangular_upper
     )
