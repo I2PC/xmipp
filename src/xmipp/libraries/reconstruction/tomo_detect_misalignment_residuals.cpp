@@ -48,7 +48,7 @@ void ProgTomoDetectMisalignmentResiduals::readParams()
 
 void ProgTomoDetectMisalignmentResiduals::defineParams()
 {
-	addUsageLine("This function determines the location of high contrast features in a volume.");
+	addUsageLine("This program detect the misaligned images in a tilt-series based on a set of residual vectors.");
 
 	addParamsLine("  --inputResInfo <input=\"\">							: Input file containing residual information of the detected landmarks.");
 
