@@ -32,7 +32,6 @@ import mrcfile
 import numpy as np
 import re
 import scipy as sp
-import astra
 import tigre
 from tigre.utilities.im3Dnorm import im3DNORM
 
@@ -360,7 +359,7 @@ class TomogramReconstruction(XmippScript):
         print(self.filterToApply)
 
     def getGPUs(self):
-        return self.gpuId
+        return str(self.gpuId)
 
     
     def tigreReconstruction(self, ts, tiltAngles):
@@ -368,7 +367,7 @@ class TomogramReconstruction(XmippScript):
         from tigre.utilities import gpu
 
         gpuids = gpu.GpuIds()
-        gpuids.devices = int(self.getGPUs())
+        gpuids.devices = [int(self.getGPUs())]
 
 
         geo = tigre.geometry(mode="parallel", nVoxel=np.array([self.xdim, self.ydim, self.thickness]))
