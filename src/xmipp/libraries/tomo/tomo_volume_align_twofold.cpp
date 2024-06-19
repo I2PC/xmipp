@@ -87,7 +87,7 @@ void ProgTomoVolumeAlignTwofold::alignPair(std::size_t i, std::size_t j)
 double ProgTomoVolumeAlignTwofold::twofoldAlign(std::size_t i, std::size_t j, 
 											    double &rot, double &tilt, double &psi)
 {
-	const auto nPsi = static_cast<std::size_t>(360.0 / angularSamplingRate);
+	const auto nPsi = static_cast<std::size_t>(std::ceil(360.0 / angularSamplingRate));
 	const auto &directions = sphereSampling.no_redundant_sampling_points_angles;
 
 	auto &projector1 = projectors[i];
@@ -97,33 +97,42 @@ double ProgTomoVolumeAlignTwofold::twofoldAlign(std::size_t i, std::size_t j,
 	auto &mutex1 = projectorMutex[i];
 	auto &mutex2 = projectorMutex[j];
 
-	double bestCost = std::numeric_limits<double>::max();
+	const auto phiMax = (90-maxTiltAngle)*PI/180;
+	const auto cmax = std::cos(phiMax);
+	const auto tmax = std::tan(phiMax);
+	const auto tmax2 = tmax*tmax;
+
+	double bestCost = 0.0;
 	for(std::size_t k = 0; k < directions.size(); ++k)
 	{
+		const auto rot1 = XX(directions[k]);
+		const auto tilt1 = YY(directions[k]);
+		const auto tilt2 = -tilt1;
+		const auto psi2 = -rot1;
+
+		const auto phi = (90-tilt1)*PI/180;
+		const auto missingConeCorrection = computeMissingConeCorrectionFactor(phi, cmax, tmax2);
 		for(std::size_t l = 0; l < nPsi; ++l)
 		{
-            const double rot1 = XX(directions[k]);
-            const double tilt1 = YY(directions[k]);
-            const double psi1 = l * angularSamplingRate;
-			const double rot2 = -psi1;
-			const double tilt2 = -tilt1;
-			const double psi2 = -rot1;
+			const auto psi1 = l * angularSamplingRate;
+			const auto rot2 = -psi1;
 
 			double cost = 0.0;
 			{
 				std::lock_guard<std::mutex> lock(mutex1);
 				projector1.projectToFourier(rot1, tilt1, psi1);
 
-				cost += computeSquareDistance(projector1.projectionFourier, centralSlices2);
+				cost += computeCorrelation(projector1.projectionFourier, centralSlices2);
 			}
 			{
 				std::lock_guard<std::mutex> lock(mutex2);
 				projector2.projectToFourier(rot2, tilt2, psi2);
 
-				cost += computeSquareDistance(projector2.projectionFourier, centralSlices1);
+				cost += computeCorrelation(projector2.projectionFourier, centralSlices1);
 			}
+			cost *= missingConeCorrection;
 
-			if (cost < bestCost)
+			if (cost > bestCost)
 			{
 				rot = rot1;
 				tilt = tilt1;
@@ -146,6 +155,34 @@ double ProgTomoVolumeAlignTwofold::computeSquareDistance(const MultidimArray<std
 		sum += delta.real()*delta.real() + delta.imag()*delta.imag();
 	}
 	return sum;
+}
+
+double ProgTomoVolumeAlignTwofold::computeCorrelation(const MultidimArray<std::complex<double>> &x, 
+													  const MultidimArray<std::complex<double>> &y )
+{
+	double sum = 0.0;
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(x)
+	{
+		sum += DIRECT_MULTIDIM_ELEM(x, n).real() * DIRECT_MULTIDIM_ELEM(y, n).real();
+		sum += DIRECT_MULTIDIM_ELEM(x, n).imag() * DIRECT_MULTIDIM_ELEM(y, n).imag();
+	}
+	return sum;
+}
+
+double ProgTomoVolumeAlignTwofold::computeMissingConeCorrectionFactor(double phi, double cmax, double tmax2)
+{
+	const auto t = std::tan(phi); 
+	const auto t2 = t*t;
+
+	if (tmax2 <= t2)
+	{
+		return 1.0;
+	}
+	else
+	{
+		const auto x = 2*std::asin(cmax*std::sqrt(tmax2-t2));
+		return PI / (PI - x);
+	}
 }
 
 void ProgTomoVolumeAlignTwofold::readVolumes()
@@ -195,7 +232,7 @@ void ProgTomoVolumeAlignTwofold::defineSampling()
     if (!sphereSampling.SL.isSymmetryGroup(fnSymmetry, symmetry, sym_order))
         REPORT_ERROR(ERR_VALUE_INCORRECT,
                      (std::string)"Invalid symmetry" +  fnSymmetry);
-    sphereSampling.computeSamplingPoints(false, 90+maxTiltAngle, 90-maxTiltAngle);
+    sphereSampling.computeSamplingPoints(false);
     sphereSampling.SL.readSymmetryFile(fnSymmetry);
     sphereSampling.fillLRRepository();
     sphereSampling.removeRedundantPoints(symmetry, sym_order);

@@ -86,6 +86,8 @@ private:
     void alignPair(std::size_t i, std::size_t j);
     double twofoldAlign(std::size_t i, std::size_t j, double &rot, double &tilt, double &psi);
     static double computeSquareDistance(const MultidimArray<std::complex<double>> &x, const MultidimArray<std::complex<double>> &y);
+    static double computeCorrelation(const MultidimArray<std::complex<double>> &x, const MultidimArray<std::complex<double>> &y);
+    static double computeMissingConeCorrectionFactor(double tilt, double cmax, double tmax2);
 
     // --------------------------- I/O functions -----------------------------
     void defineSampling();
