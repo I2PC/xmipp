@@ -274,18 +274,6 @@ void ProgTomoExtractParticleStacks::extractTiltSeriesParticle(double &xcoor, dou
 			continue;
 		}
 
-		auto beginElem = MULTIDIM_ARRAY(tsImages[idx]);
-		auto lastElem = beginElem + NZYXSIZE(tsImages[idx]);
-
-		const auto has_nan = std::find_if(beginElem, lastElem,
-			[] (double x) -> bool
-			{
-				return std::isnan(x);
-			}
-		) != lastElem;
-
-		if(has_nan)
-			continue;
 
 		for (int i=0; i<boxsize; i++)
 		{
@@ -296,6 +284,19 @@ void ProgTomoExtractParticleStacks::extractTiltSeriesParticle(double &xcoor, dou
 				A2D_ELEM(singleImage, i, j) = signValue*A2D_ELEM(tsImages[idx], ii, jj);
 			}
 		}
+
+		auto beginElem = MULTIDIM_ARRAY(singleImage);
+		auto lastElem = beginElem + NZYXSIZE(singleImage);
+
+		const auto has_nan = std::find_if(beginElem, lastElem,
+			[] (double x) -> bool
+			{
+				return std::isnan(x);
+			}
+		) != lastElem;
+
+		if(has_nan)
+			continue;
 
 		if (normalize)
 			normalizeTiltParticle(maskNormalize, singleImage);
