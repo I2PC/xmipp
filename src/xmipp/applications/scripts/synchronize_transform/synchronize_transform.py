@@ -70,19 +70,14 @@ def get_optimization_objective_function(p: cp.Variable,
 
 def get_optimization_constraints(p: cp.Variable,
                                  n: int,
-                                 k: int,
-                                 norm: Optional[str] = None ) -> List[cp.Constraint]:
+                                 k: int ) -> List[cp.Constraint]:
     constraints = [p >> 0] # Semi-definite positive
-    
-    if norm == '1':
-        constraints.append(cp.diag(p) == 1)
-        
-    elif norm == 'O' or norm == 'SO':
-        # Diagonal blocks with identity
-        for i in range(n):
-            start = k*i
-            end = start+k
-            constraints.append(p[start:end, start:end] == np.eye(k))
+
+    # Diagonal blocks with identity
+    for i in range(n):
+        start = k*i
+        end = start+k
+        constraints.append(p[start:end, start:end] == np.eye(k))
         
     return constraints
 
@@ -91,7 +86,6 @@ def optimize_pairwise_matrix(graph: scipy.sparse.spmatrix,
                              k: int,
                              weights: Optional[scipy.sparse.spmatrix] = None,
                              verbose: bool = False,
-                             norm: Optional[str] = None,
                              triangular_upper: bool = False ) -> np.ndarray:
     p = cp.Variable(graph.shape, symmetric=True)
     objective_function = get_optimization_objective_function(
@@ -100,7 +94,7 @@ def optimize_pairwise_matrix(graph: scipy.sparse.spmatrix,
         weights=weights,
         triangular_upper=triangular_upper
     )
-    constraints = get_optimization_constraints(p=p, n=n, k=k, norm=norm)
+    constraints = get_optimization_constraints(p=p, n=n, k=k)
     
     problem = cp.Problem(cp.Minimize(objective_function), constraints)
     objective_value = problem.solve(verbose=verbose)
@@ -150,7 +144,6 @@ def main(input_graph_path: str,
         k=k, 
         weights=weights,
         verbose=verbose,
-        norm=norm,
         triangular_upper=triangular_upper
     )
     print('Matrix completion error (ideally 0): ', error)
