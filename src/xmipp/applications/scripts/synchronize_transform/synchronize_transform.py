@@ -111,12 +111,23 @@ def compute_bases(pairwise: np.ndarray,
                   n: int,
                   k: int,
                   k2: Optional[int] = None,
+                  tolerance: Optional[float] = None,
                   norm: Optional[str] = None ) -> np.ndarray:
 
+    w, v = scipy.linalg.eigh(pairwise)
+    
+    # Compute the number of principal components
     if k2 is None:
-        k2 = k
-                  
-    w, v = scipy.linalg.eigh(pairwise, subset_by_index=[k*n-k2, k*n-1])
+        if tolerance is not None:
+            wc = np.cumsum(w)
+            wc /= wc[-1]
+            k2 = len(wc) - int(np.argmax(wc > tolerance))
+            
+        else:
+            k2=k
+    
+    v = v[:,-k2:]
+    w = w[-k2:]
     
     v *= np.sqrt(w)
     v = v.reshape(n, k, k2)
@@ -132,6 +143,8 @@ def main(input_graph_path: str,
          output_bases: str,
          k: int,
          k2: Optional[int] = None,
+         tolerance: Optional[float] = None,
+         output_eigenvalues: Optional[str] = None,
          output_pairwise: Optional[str] = None,
          weight_path: Optional[str] = None, 
          verbose: bool = False,
@@ -164,10 +177,12 @@ def main(input_graph_path: str,
         n=n,
         k=k,
         k2=k2,
+        tolerance=tolerance,
         norm=norm
     )
-    eigen_values /= n
-    print('Matrix decomposition\'s normalized eigenvalues (ideally 1s): ', eigen_values)
+    
+    if output_eigenvalues is not None:
+        np.save(output_eigenvalues, eigen_values)
     
     np.save(output_bases, bases)
     
@@ -178,6 +193,8 @@ if __name__ == '__main__':
     parser.add_argument('-o', required=True)
     parser.add_argument('-k', required=True, type=int)
     parser.add_argument('-k2', type=int)
+    parser.add_argument('--tolerance', type=float)
+    parser.add_argument('--eigenvalues')
     parser.add_argument('-p')
     parser.add_argument('-w')
     parser.add_argument('-v', '--verbose', action='store_true')
@@ -193,6 +210,8 @@ if __name__ == '__main__':
         output_bases=args.o,
         k=args.k,
         k2=args.k2,
+        tolerance=args.tolerance,
+        output_eigenvalues=args.eigenvalues,
         output_pairwise=args.p,
         weight_path=args.w,
         verbose=args.verbose,
