@@ -12,6 +12,8 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-22.04
+    env:
+      SEND_INSTALLATION_STATISTICS: "False"
     steps:
       # Installing apt dependencies
       - name: Install dependencies
