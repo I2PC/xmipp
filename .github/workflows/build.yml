@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    env:
+      SEND_INSTALLATION_STATISTICS: "False"
     steps:
       # Installing apt dependencies
       - name: Install dependencies
@@ -19,8 +21,10 @@ jobs:
       # Setting up Python
       - uses: actions/setup-python@main
         with:
-          python-version: '3.9.15' # Version range or exact version of a Python version to use, using SemVer's version range syntax
-      - run: python -m pip install --upgrade pip
+          python-version: '3.9.15'
+      - run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy
 
        # Installing CUDA                
       - uses: Jimver/cuda-toolkit@master

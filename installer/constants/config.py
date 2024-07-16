@@ -49,6 +49,7 @@ __CUDA_CXX = 'CMAKE_CUDA_HOST_COMPILER'
 MATLAB = 'XMIPP_USE_MATLAB'
 LINK_SCIPION = 'XMIPP_LINK_TO_SCIPION'
 __BUILD_TESTING = 'BUILD_TESTING'
+__SKIP_RPATH='CMAKE_SKIP_RPATH'
 
 # This is not used in cmake
 __CONDA_PREFIX = 'CONDA_PREFIX'
@@ -61,7 +62,7 @@ LOCATIONS = 'locations'
 COMPILATION_FLAGS = 'flags'
 CONFIG_VARIABLES = {
 	TOGGLES: [
-		__SEND_INSTALLATION_STATISTICS, CUDA, MPI, MATLAB, LINK_SCIPION, __BUILD_TESTING
+		__SEND_INSTALLATION_STATISTICS, CUDA, MPI, MATLAB, LINK_SCIPION, __BUILD_TESTING, __SKIP_RPATH
 	],
 	LOCATIONS: [
 		CMAKE, CC, CXX, CMAKE_INSTALL_PREFIX, __PREFIX_PATH, __MPI_HOME,
@@ -70,16 +71,6 @@ CONFIG_VARIABLES = {
 	],
 	COMPILATION_FLAGS: [__CC_FLAGS, __CXX_FLAGS]
 }
-
-def __getNvccEnvVariable() -> Optional[str]:
-	"""
-	### This function returns the CUDA compiler for Scipion's enviroment if exists.
-
-	#### Returns:
-	- (str | None): Path to CUDA compiler for Scipion's env.
-	"""
-	cudaBin = os.environ.get(__XMIPP_CUDA_BIN)
-	return cudaBin + '/nvcc' if cudaBin else None
 
 def __getPrefixPath() -> Optional[str]:
 	"""
@@ -102,7 +93,7 @@ CONFIG_DEFAULT_VALUES = {
 	CMAKE_INSTALL_PREFIX: INSTALL_PATH,
 	__CC_FLAGS: __TUNE_FLAG,
 	__CXX_FLAGS: __TUNE_FLAG,
-	CUDA_COMPILER: __getNvccEnvVariable(),
+	CUDA_COMPILER: None,
 	__PREFIX_PATH: __getPrefixPath(),
 	__MPI_HOME: None,
 	__PYTHON_HOME: None,
@@ -114,7 +105,8 @@ CONFIG_DEFAULT_VALUES = {
 	__CUDA_CXX: None,
 	MATLAB: ON,
 	LINK_SCIPION: ON,
-	__BUILD_TESTING: ON
+	__BUILD_TESTING: ON,
+ 	__SKIP_RPATH: ON
 }
 
 # Do not pass this variables to CMake, only for installer logic
