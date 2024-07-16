@@ -99,6 +99,10 @@ target_link_libraries(
 	PUBLIC
 		Python3::Python
 		Python3::NumPy
+		FFTW::Double
+		FFTW::Float
+		FFTW::DoubleThreads
+		FFTW::FloatThreads
 )
 install(
 	TARGETS swig_frm
