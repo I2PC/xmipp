@@ -92,7 +92,6 @@ file(
 )
 
 # Compile FRM
-find_package(FFTW REQUIRED)
 add_library(swig_frm SHARED ${FRM_SOURCES})
 set_target_properties(swig_frm PROPERTIES PREFIX "_")
 target_link_libraries(
@@ -100,10 +99,7 @@ target_link_libraries(
 	PUBLIC
 		Python3::Python
 		Python3::NumPy
-		FFTW::Double
-		FFTW::Float
-		FFTW::DoubleThreads
-		FFTW::FloatThreads
+		XmippCore
 )
 install(
 	TARGETS swig_frm
