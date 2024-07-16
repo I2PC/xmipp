@@ -92,6 +92,7 @@ file(
 )
 
 # Compile FRM
+find_package(FFTW REQUIRED)
 add_library(swig_frm SHARED ${FRM_SOURCES})
 set_target_properties(swig_frm PROPERTIES PREFIX "_")
 target_link_libraries(
