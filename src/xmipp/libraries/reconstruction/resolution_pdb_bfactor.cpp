@@ -178,7 +178,7 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera_aux)
 			res_resi /= fscResolution;
 		}
 
-		// 0.3 and 0.4 are weigths to smooth the output
+		// 0.3 and 0.4 are weights to smooth the output
 		ma_l.push_back(res_resi*0.3);
 		ma_c.push_back(res_resi*0.4);
 
@@ -325,22 +325,22 @@ void ProgResBFactor::generateOutputPDB(const std::vector<double> &residuesToChim
 
 		if ( (typeOfline == "ATOM") || (typeOfline == "HETA"))
 		{
-			std::string lineInit = line.substr(0,61);
+			std::string lineInit = line.substr(0,60);
 			std::string lineEnd = line.substr(66,  std::string::npos);
 
-                        // The residue is read
+			// The residue is read
 			auto resi = (int) textToFloat(line.substr(23,5));
 			std::string lineMiddle;
 			int digitNumber = 5;
 			
 			std::string auxstr = std::to_string(residuesToChimera[resi-1]);
 
-			// The bfactor column has 5 digits so we set the normalized resolution to 
-            // 5 digits
+			// The bfactor column has 6 characters so we set the normalized resolution to 
+			// 5 characters with an empty character at the front
 			auxstr = auxstr.substr(0, 5);
-                        std::stringstream ss;
-			ss << std::setfill('0') << std::setw(5) << residuesToChimera[resi-1];
-                        lineMiddle = ss.str();
+			std::stringstream ss;
+			ss << std::setfill(' ') << std::setw(6) << auxstr;
+			lineMiddle = ss.str();
 
 			std::string linePDB;
 			linePDB = lineInit + lineMiddle + lineEnd;

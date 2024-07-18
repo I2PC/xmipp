@@ -74,15 +74,29 @@ public:
 public:
 
     void defineParams();
-    void readParams();
-    void createSphere(int halfboxsize);
-    void normalizeSubtomo(MultidimArray<double> &subtomo, int halfboxsize);
-    void extractSubtomoFixedSize(MultidimArray<double> &subtomoExtraction);
-    void writeSubtomo(int idx, int xcoor, int ycoor, int zcoor, size_t particleid);
-    void run();
 
-    static void upsample(const MultidimArray<std::complex<double>> &from, MultidimArray<std::complex<double>> &to);
-    static void downsample(const MultidimArray<std::complex<double>> &from, MultidimArray<std::complex<double>> &to);
+    void readParams();
+
+    void createSphere(int halfboxsize);
+
+    void downsample(const MultidimArray<std::complex<double>> &from, MultidimArray<std::complex<double>> &to);
+
+    void upsample(const MultidimArray<std::complex<double>> &from, MultidimArray<std::complex<double>> &to);
+
+    void normalizeSubtomo(MultidimArray<double> &subtomo, int halfboxsize);
+
+    void extractSubtomo(const MultidimArray<double> &tom, MultidimArray<double> &subtomo,
+    					const int xinit, const int yinit, const int zinit, double invertSign);
+
+    void extractSubtomoFixedSize(MultidimArray<double> &subtomoExtraction);
+
+    void defineListOfCoordinates(const MetaDataVec &md, const int halfboxsize,
+    		                     const MultidimArray<double> &tom,
+								 std::vector<std::vector<int>> &position);
+
+    void writeSubtomo(int idx, int xcoor, int ycoor, int zcoor);
+
+    void run();
 };
 //@}
 #endif
