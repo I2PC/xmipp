@@ -62,12 +62,14 @@ def get_optimization_objective_function(p: cp.Variable,
     
     # Ensemble the cost function
     if weights is None:
-        return cp.sum_squares(p[positions] - values)
+        result = cp.sum_squares(p[positions] - values)
     else:
         weights = weights.tocsr()
         weights_sqrt = np.sqrt(weights[positions].A1)
-        return cp.sum_squares(cp.multiply(weights_sqrt, (p[positions] - values)))
-
+        result = cp.sum_squares(cp.multiply(weights_sqrt, (p[positions] - values)))
+    
+    return result
+    
 def get_optimization_constraints(p: cp.Variable,
                                  n: int,
                                  k: int ) -> List[cp.Constraint]:
@@ -111,23 +113,16 @@ def compute_bases(pairwise: np.ndarray,
                   n: int,
                   k: int,
                   k2: Optional[int] = None,
-                  tolerance: Optional[float] = None,
                   norm: Optional[str] = None ) -> np.ndarray:
 
     w, v = scipy.linalg.eigh(pairwise)
     
     # Compute the number of principal components
-    if k2 is None:
-        if tolerance is not None:
-            wc = np.cumsum(w)
-            wc /= wc[-1]
-            k2 = len(wc) - int(np.argmax(wc > tolerance))
-            
-        else:
-            k2=k
-    
-    v = v[:,-k2:]
-    w = w[-k2:]
+    if k2 is not None:
+        v = v[:,-k2:]
+        w = w[-k2:]
+    else:
+        k2 = len(w)
     
     v *= np.sqrt(w)
     v = v.reshape(n, k, k2)
@@ -143,7 +138,6 @@ def main(input_graph_path: str,
          output_bases: str,
          k: int,
          k2: Optional[int] = None,
-         tolerance: Optional[float] = None,
          output_eigenvalues: Optional[str] = None,
          output_pairwise: Optional[str] = None,
          weight_path: Optional[str] = None, 
@@ -177,7 +171,6 @@ def main(input_graph_path: str,
         n=n,
         k=k,
         k2=k2,
-        tolerance=tolerance,
         norm=norm
     )
     
@@ -193,7 +186,6 @@ if __name__ == '__main__':
     parser.add_argument('-o', required=True)
     parser.add_argument('-k', required=True, type=int)
     parser.add_argument('-k2', type=int)
-    parser.add_argument('--tolerance', type=float)
     parser.add_argument('--eigenvalues')
     parser.add_argument('-p')
     parser.add_argument('-w')
@@ -210,7 +202,6 @@ if __name__ == '__main__':
         output_bases=args.o,
         k=args.k,
         k2=args.k2,
-        tolerance=args.tolerance,
         output_eigenvalues=args.eigenvalues,
         output_pairwise=args.p,
         weight_path=args.w,
