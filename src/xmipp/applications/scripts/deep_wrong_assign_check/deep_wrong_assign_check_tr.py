@@ -53,6 +53,8 @@ import keras
 from keras.models import load_model
 import tensorflow as tf
 
+#TODO: include shuffle in the input (info in doc de dudas)
+
 class ScriptDeepWrongAssignCheckTrain(XmippScript):
     
     conda_env="xmipp_DLTK_v1.0" 
@@ -70,12 +72,12 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         
         self.addParamsLine(' -c <fnCorrResd> : filename containg the properly assigned residuals for training. ')
         self.addParamsLine(' -w <fnWronResd> : filename containg the wrongly assigned residuals for training. ')
-        self.addParamsLine(' -m <nnModel> : h5 filename where the final model will be stored.')
+        self.addParamsLine(' -o <finalModel> : h5 filename where the final model will be stored.')
         self.addParamsLine(' -b <batchSize>: data`s subset size which will be fed to the network.')
         self.addParamsLine(' [ --pretrained ]: (optional) write flag if a pretained model will be used.')
         self.addParamsLine(' [ -f <fnPretrainedModel> ]: (optional) filename of the pretrained model to be used instead of a new one.')
         #TODO: Set value here and in protocol
-        self.addParamsLine(' [-e <numEpoch> ]: (optional) number of epochs to train the model')
+        self.addParamsLine(' [ -e <numEpoch> ]: (optional) number of epochs to train the model')
         self.addParamsLine(' [ -l <learningRate=0.3> ]: (optional) learning rate used for the optimizer.')
         self.addParamsLine(' [ -p <patience> ]: (optional) number of epochs with no improvement after which training will be stopped.')
         #TODO: Make sure how to use this beforehand
@@ -218,8 +220,8 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         
         #TODO: When is this file created if empty? protocol?
         ## file name where the infernce model is stored either pretrained or from scratch in the program
-        fnModel = self.getParam("-m")
-        if not os.path.isfile(fnModel):
+        fnOutputModel = self.getParam("-o")
+        if not os.path.isfile(fnOutputModel):
             ## if the file doesn't exist the program will be interrupted
             print("Final model file does not exist inside path")
             sys.exit(-1)
@@ -274,9 +276,11 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
             model = constructModel(xDim)
             isNewModel = True
         
+        #TODO: include comprobation for batchsize = 0 
         ## if the batch size is bigger than the data, only one batch is used
         if batchSz > len(trainInfo): batchSz = len(trainInfo)
         
+        #TODO: include saving in output model file 
         performTrain(trainInfo, model, learnRate, patienceValue, batchSz, xDim, isNewModel)
         
         trainingElapsedTime = time() - trainingStartTime

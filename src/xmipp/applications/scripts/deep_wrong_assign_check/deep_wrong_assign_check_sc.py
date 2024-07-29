@@ -75,20 +75,20 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
 
         self.addParamsLine(' -o <inferOutput> : filename where the inference results will be stored')
 
-        self.addParamsLine(' [ -t <ifTraining>]: (optional) write flag if training required')
+        #self.addParamsLine(' [ -t <ifTraining>]: (optional) write flag if training required')
 
-        self.addParamsLine(' [-r <fnResdTrain> ]: (optional) filename containg the residuals (images) to be used')
+        #self.addParamsLine(' [-r <fnResdTrain> ]: (optional) filename containg the residuals (images) to be used')
 
-        self.addParamsLine(' [ --pretrained ]: (optional) write flag if a pretained model will be used')
+        #self.addParamsLine(' [ --pretrained ]: (optional) write flag if a pretained model will be used')
 
-        self.addParamsLine('[ -f <fnPretrainedModel> ]: (optional) filename of the pretrained model to be used instead of a new one')
+        #self.addParamsLine('[ -f <fnPretrainedModel> ]: (optional) filename of the pretrained model to be used instead of a new one')
 
         #TODO: Is this set in the program or in the protocol? (Also applied to learning rate and patience)
-        self.addParamsLine(' [-e <numEpoch> ]: (optional) number of epochs to train the model')
+        #self.addParamsLine(' [-e <numEpoch> ]: (optional) number of epochs to train the model')
         
-        self.addParamsLine(' [ -l <learningRate=0.3> ]: (optional) learning rate used for the optimizer.')
+        #self.addParamsLine(' [ -l <learningRate=0.3> ]: (optional) learning rate used for the optimizer.')
 
-        self.addParamsLine(' [ -p <patience> ]: (optional) number of epochs with no improvement after which training will be stopped.')
+        #self.addParamsLine(' [ -p <patience> ]: (optional) number of epochs with no improvement after which training will be stopped.')
         
         #TODO: Make sure how to use this beforehand
         self.addParamsLine(' [ --gpus <gpuId> ]: (optional) GPU ids to employ. Comma separated list. E.g. "0,1". Use -1 for CPU-only computation or -2 to use all devices found in CUDA_VISIBLE_DEVICES')
