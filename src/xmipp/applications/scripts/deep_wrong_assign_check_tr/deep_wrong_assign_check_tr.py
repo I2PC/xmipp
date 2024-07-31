@@ -35,7 +35,7 @@
 
 #TODO: eventually evaluate if test set is also going to be used Proposal (80%, 10% 10%)
 #TODO: eventually evaluate the use of ensembles (add index to the model's fn name in bestModel)
-#TODO: Evaluate if TensorBoard could be used to save info in a specific 
+#TODO: Evaluate if TensorBoard could be used to save info in a specific file
 
 #TODO: Check imports
 
@@ -54,6 +54,7 @@ from keras.models import load_model
 import tensorflow as tf
 
 #TODO: include shuffle in the input (info in doc de dudas)
+#TODO: check whether the the ok and wrong subset are balanced in size (is this truly necessary if I creathe the wrong subset myself?)
 
 class ScriptDeepWrongAssignCheckTrain(XmippScript):
     
@@ -70,6 +71,8 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
 
         ## params to be read
         
+        #TODO: check names make sense 
+
         self.addParamsLine(' -c <fnCorrResd> : filename containg the properly assigned residuals for training. ')
         self.addParamsLine(' -w <fnWronResd> : filename containg the wrongly assigned residuals for training. ')
         self.addParamsLine(' -o <finalModel> : h5 filename where the final model will be stored.')
@@ -80,7 +83,7 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         self.addParamsLine(' [ -e <numEpoch> ]: (optional) number of epochs to train the model')
         self.addParamsLine(' [ -l <learningRate=0.3> ]: (optional) learning rate used for the optimizer.')
         self.addParamsLine(' [ -p <patience> ]: (optional) number of epochs with no improvement after which training will be stopped.')
-        #TODO: Make sure how to use this beforehand
+
         self.addParamsLine(' [ --gpus <gpuId> ]: (optional) GPU ids to employ. Comma separated list. E.g. "0,1". Use -1 for CPU-only computation or -2 to use all devices found in CUDA_VISIBLE_DEVICES.')
 
         ## examples ##TODO: modify example
@@ -96,7 +99,7 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         
         ## If no specific GPUs are requested all available GPUs will be used
         if self.checkParam("--gpus"):
-            os.environ["CUDA_VISIBLE_DEVICES"] = self.getParam("--gpus")
+            os.environ["CUDA_VISIBLE_DEVICES"] = int(self.getParam("--gpus"))
 
         #--------------- Function definitions ----------------
         
@@ -125,7 +128,7 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
             return (img - np.mean(img)) / np.std(img)
 
         #TODO: Write function definition
-        def dataManage(data,labels,dim):
+        def manageData(data,labels,dim):
         
             for counter, elem in enumerate(data):
                 yield (getImage(elem,dim), labels[counter])
@@ -177,10 +180,10 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
 
             randomizedData = np.random.choice(trainData, len(trainData), replace = False)
 
-            trainingSet = tf.data.Dataset.from_generator(dataManage(randomizedData[0][:lenTrain],randomizedData[1][:lenTrain],xDims),tf.TensorSpec(shape = (None, 2), dtype = tf.variant))
+            trainingSet = tf.data.Dataset.from_generator(manageData(randomizedData[0][:lenTrain],randomizedData[1][:lenTrain],xDims),tf.TensorSpec(shape = (None, 2), dtype = tf.variant))
             trainingSet = trainingSet.batch(batchSize, drop_reminder = False)
 
-            validationSet = tf.data.Dataset.from_generator(dataManage(randomizedData[0][lenTrain:],randomizedData[1][lenTrain:],xDims),tf.TensorSpec(shape = (None, 2), dtype = tf.variant))
+            validationSet = tf.data.Dataset.from_generator(manageData(randomizedData[0][lenTrain:],randomizedData[1][lenTrain:],xDims),tf.TensorSpec(shape = (None, 2), dtype = tf.variant))
 
             #TODO: Evaluate other optimizers
             adam_opt = tf.keras.optimizers.Adam(lr=learningRate)
@@ -276,17 +279,15 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
             model = constructModel(xDim)
             isNewModel = True
         
-        #TODO: include comprobation for batchsize = 0 
-        ## if the batch size is bigger than the data, only one batch is used
-        if batchSz > len(trainInfo): batchSz = len(trainInfo)
+        ## if the batch size is bigger than the data or the user requested no batches (using 0), only one batch is used
+        if batchSz > len(trainInfo) or batchSz == 0: batchSz = len(trainInfo)
         
         #TODO: include saving in output model file 
+        #TODO: include saving metrics in file if flag activated
         performTrain(trainInfo, model, learnRate, patienceValue, batchSz, xDim, isNewModel)
         
         trainingElapsedTime = time() - trainingStartTime
         print("Time in training model: %0.10f seconds." % trainingElapsedTime)
-
-        return
 
 if __name__ == '__main__':
     exitCode = ScriptDeepWrongAssignCheckTrain().tryRun()

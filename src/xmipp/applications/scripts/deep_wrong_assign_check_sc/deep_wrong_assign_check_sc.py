@@ -66,35 +66,18 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
         #TODO: define programUsage
         self.addUsageLine('')
 
+        #TODO: check names make sense
+
         ## params to be read
-        self.addParamsLine(' -i <fnResdInfer> : filename containg the unlabeled residuals (images) to be classified')
-        
+        self.addParamsLine(' -i <fnInferResd> : filename containg the unlabeled residuals (images) to be classified')
         self.addParamsLine(' -m <nnModel> : h5 filename where the model for inference is stored. In case of training, the final model will overwrite any existing data in this file.')
-
         self.addParamsLine(' -b <batchSize>: data`s subset size which will be fed to the network')
-
         self.addParamsLine(' -o <inferOutput> : filename where the inference results will be stored')
-
-        #self.addParamsLine(' [ -t <ifTraining>]: (optional) write flag if training required')
-
-        #self.addParamsLine(' [-r <fnResdTrain> ]: (optional) filename containg the residuals (images) to be used')
-
-        #self.addParamsLine(' [ --pretrained ]: (optional) write flag if a pretained model will be used')
-
-        #self.addParamsLine('[ -f <fnPretrainedModel> ]: (optional) filename of the pretrained model to be used instead of a new one')
-
-        #TODO: Is this set in the program or in the protocol? (Also applied to learning rate and patience)
-        #self.addParamsLine(' [-e <numEpoch> ]: (optional) number of epochs to train the model')
         
-        #self.addParamsLine(' [ -l <learningRate=0.3> ]: (optional) learning rate used for the optimizer.')
-
-        #self.addParamsLine(' [ -p <patience> ]: (optional) number of epochs with no improvement after which training will be stopped.')
-        
-        #TODO: Make sure how to use this beforehand
         self.addParamsLine(' [ --gpus <gpuId> ]: (optional) GPU ids to employ. Comma separated list. E.g. "0,1". Use -1 for CPU-only computation or -2 to use all devices found in CUDA_VISIBLE_DEVICES')
 
-        ## examples ##TODO: modify example
-        self.addExampleLine('deep_wrong_assign_check_sc -i path/to/inferenceResd -m path/to/finalModel -b $BATCH_SIZE -o path/to/programOutput')
+        ## examples
+        self.addExampleLine('deep_wrong_assign_check_sc -i path/to/inferenceSet -m path/to/trainingModel -b $BATCH_SIZE -o path/to/outputFile')
 
     def run(self):
 
@@ -106,7 +89,7 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
         
         #If no specific GPUs are requested all available GPUs will be used
         if self.checkParam("--gpus"):
-            os.environ["CUDA_VISIBLE_DEVICES"] = self.getParam("--gpus")
+            os.environ["CUDA_VISIBLE_DEVICES"] = int(self.getParam("--gpus"))
 
         #--------------- Function definitions ----------------
         
@@ -127,7 +110,7 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
             return (img - np.mean(img)) / np.std(img)
 
         #TODO: Write function definition
-        def dataManage(data,dim):
+        def manageData(data,dim):
             
             for elem in data:
                 yield getImage(elem,dim)
@@ -135,16 +118,16 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
         #TODO: Write function definition + check general comments
         def performInference(inferData, model, batchSize, xDims):
             
-            inferenceSet = tf.data.Dataset.from_generator(dataManage(inferData,None,xDims),tf.TensorSpec(shape = (), dtype = tf.variant))
+            inferenceSet = tf.data.Dataset.from_generator(manageData(inferData,None,xDims),tf.TensorSpec(shape = (), dtype = tf.variant))
             inferenceSet = inferenceSet.batch(batchSize, drop_reminder = False)
             
-            # Returns a numPy array of predictions
-            # if a value is 0.85, it means the model is 85% confident that the sample belongs to the positive class (1)
-            # Values around 0.5 indicate uncertainty or low confidence in the prediction, suggesting the sample could belong to either class
+            ## Returns a numPy array of predictions
+            ## if a value is 0.85, it means the model is 85% confident that the sample belongs to class 1 
+            ## Values around 0.5 indicate uncertainty or low confidence in the prediction, suggesting the sample could belong to either class
             predictions = model.predict(x = inferenceSet)
 
-            # Code to round into classes in case is needed (0.5 is upper int)
-            # classPred = [round(x[0]) for x in predictions]
+            ## Code to round into binary classes in case is needed (0.5 is upper int)
+            ## classPred = [round(x[0]) for x in predictions]
 
             return predictions
         
@@ -157,6 +140,7 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
             for i, elem in enumerate(results):
                 
                 #TODO: Create label in core code + bindings (keep in mind recompile Xmipp)
+                ## Keep in mind that XMD files start indexing in 1, therefore "i+1" to make them coincide
                 outMd.setValue(xmippLib.MDL_CLASS_PROBABILITY, float(elem), i+1)
 
             outMd.write(fnOutput)
@@ -167,13 +151,13 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
         #--------------- BASIC INPUT reading ----------------
 
         ## xmipp metadata of the residue images ready for inference (file name)
-        fnXmdInfer = self.getParam("-i")
-        if not os.path.isfile(fnXmdInfer):
+        fnInput = self.getParam("-i")
+        if not os.path.isfile(fnInput):
             ## if the file doesn't exist the program will be interrupted
             print("Inference datafile does not exist inside path")
             sys.exit(-1)
         
-        #TODO: When is this file created if empty? protocol?
+        #TODO: When is this file created if empty? protocol? (yes, not done yet)
         ## file name where the infernce model is stored either pretrained or from scratch in the program
         fnModel = self.getParam("-m")
         if not os.path.isfile(fnModel):
@@ -181,7 +165,7 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
             print(" Final model file does not exist inside path")
             sys.exit(-1)
         
-        #TODO: When is this file created? protocol?
+        #TODO: When is this file created? protocol? (yes, not done yet)
         ## file name where the inferece results will be stored at the end
         fnOutput = self.getParam("-o")
         if not os.path.isfile(fnOutput):
@@ -189,23 +173,22 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
             print("Output file does not exist inside path")
             sys.exit(-1)
         
-        ## size of the batches to be used for the nn (both inference and training, if necessary)
+        ## size of the batches to be used for the nn
         batchSz = int(self.getParam("-b"))
 
         #--------------- Executing core ----------------
         
         #TODO: Strategy?
 
-        print("Starting inference procedure")
+        print("Starting inference")
 
-        ## inference is always executed
-        xDim, inferFnImgs = readFileInfo(fnXmdInfer)
+        xDim, inferFnImgs = readFileInfo(fnInput)
         inferenceStartTime = time()
 
         model = load_model(fnModel, compile = False)
 
-        ## if the batch size is bigger than the data, only one batch is used
-        if batchSz > len(inferFnImgs): batchSz = len(inferFnImgs)
+        ## if the batch size is bigger than the data or the user requested no batches (using 0), only one batch is used
+        if batchSz > len(inferFnImgs) or batchSz == 0: batchSz = len(inferFnImgs)
 
         predictions = performInference(inferFnImgs, model, batchSz, xDim)
         
@@ -214,7 +197,6 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
 
         saveResults(fnXmdInfer, predictions, fnOutput)
 
-        return
 
 if __name__ == '__main__':
     exitCode = ScriptDeepWrongAssignCheckScore().tryRun()
