@@ -294,7 +294,7 @@ if __name__ == '__main__':
     sys.exit(exitCode)
 
 ###############################In#Case#Of#Loss##Original#Code#Ahead######################################################
-"""
+""" #Deprecated use of deprecated library
         # checks if a previously existing model will be used and if the user added the model itself
 if self.checkParam("-t") and self.checkParam("-f"):
     fnPreModel = self.getParam("-f")

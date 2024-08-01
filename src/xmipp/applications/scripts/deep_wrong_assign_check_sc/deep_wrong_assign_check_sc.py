@@ -77,7 +77,7 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
         self.addParamsLine(' [ --gpus <gpuId> ]: (optional) GPU ids to employ. Comma separated list. E.g. "0,1". Use -1 for CPU-only computation or -2 to use all devices found in CUDA_VISIBLE_DEVICES')
 
         ## examples
-        self.addExampleLine('deep_wrong_assign_check_sc -i path/to/inferenceSet -m path/to/trainingModel -b $BATCH_SIZE -o path/to/outputFile')
+        self.addExampleLine('xmipp_deep_wrong_assign_check_sc -i path/to/inferenceSet -m path/to/trainingModel -b $BATCH_SIZE -o path/to/outputFile')
 
     def run(self):
 
