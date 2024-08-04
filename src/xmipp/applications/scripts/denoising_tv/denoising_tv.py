@@ -39,7 +39,7 @@ from xmipp_base import XmippScript
 
 
 class DenoisingTV(XmippScript):
-    _conda_env="xtomo_tigre_denoising" 
+    _conda_env="xtomo_tigre" 
 
     def __init__(self):
 

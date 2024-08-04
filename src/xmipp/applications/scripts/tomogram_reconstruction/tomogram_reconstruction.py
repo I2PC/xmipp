@@ -40,7 +40,7 @@ from xmipp_base import XmippScript
 
 
 class TomogramReconstruction(XmippScript):
-    _conda_env="xtomo_tigre_reconstruction" 
+    _conda_env="xtomo_tigre" 
 
     def __init__(self):
 
