@@ -4,7 +4,6 @@ name: xtomo_tigre
 channels:
   - anaconda
   - defaults
-  - astra-toolbox
   - conda-forge
   - ccpi
 dependencies:
