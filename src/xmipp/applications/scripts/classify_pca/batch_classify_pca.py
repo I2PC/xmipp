@@ -75,7 +75,7 @@ if __name__=="__main__":
     final_classes = classes  
     refImages = args.ref
     # niter = int(args.niter)
-    niter = 15
+    niter = 14
     bands = args.bands
     vecs = args.vecs
     mask = args.mask
@@ -240,8 +240,8 @@ if __name__=="__main__":
 
                 
                 
-                if mode == "create_classes" and iter == 14:
-                # if mode == "create_classes" and iter == 13:
+                # if mode == "create_classes" and iter == 14:
+                if mode == "create_classes" and iter == 13:
                     
                     refClas[:endBatch] = matches[:, 1]
                                                           
