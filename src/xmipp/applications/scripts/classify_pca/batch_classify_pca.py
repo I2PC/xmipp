@@ -75,7 +75,7 @@ if __name__=="__main__":
     final_classes = classes  
     refImages = args.ref
     # niter = int(args.niter)
-    niter = 14
+    niter = 15
     bands = args.bands
     vecs = args.vecs
     mask = args.mask
@@ -240,8 +240,8 @@ if __name__=="__main__":
 
                 
                 
-                # if mode == "create_classes" and iter == 14:
-                if mode == "create_classes" and iter == 13:
+                if mode == "create_classes" and iter == 14:
+                # if mode == "create_classes" and iter == 13:
                     
                     refClas[:endBatch] = matches[:, 1]
                                                           
@@ -292,7 +292,8 @@ if __name__=="__main__":
     
     print("Adjust contrast")
     # cl =  bnb.gamma_contrast(cl, 0.5)
-    cl = bnb.increase_contrast_sigmoid(cl, 10, 0.6)
+    # cl = bnb.increase_contrast_sigmoid(cl, 10, 0.6)
+    cl = bnb.increase_contrast_sigmoid(cl, 8, 0.6)
     file_contrast = output+"_contrast.mrcs"
     save_images(cl.cpu().detach().numpy(), file_contrast)           
     
