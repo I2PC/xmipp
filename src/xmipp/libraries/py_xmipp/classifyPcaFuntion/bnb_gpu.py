@@ -863,7 +863,7 @@ class BnBgpu:
     def determine_ROTandSHIFT(self, iter, mode, dim):
         
         # maxShift = round( (dim * 15)/100 )
-        maxShift = round( (dim * 20)/100 )
+        maxShift = round( (dim * 10)/100 )
         maxShift = (maxShift//4)*4
         
         if mode == "create_classes":
