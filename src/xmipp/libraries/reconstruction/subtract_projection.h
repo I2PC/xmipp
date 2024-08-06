@@ -76,7 +76,6 @@ class ProgSubtractProjection: public XmippMetadataProgram
 
  	Projection P; // projection
  	Projection Pmask; // mask projection for region to keep
-    Projection PmaskVol; // reference volume mask projection
 	FourierFilter FilterG; // Gaussian LPF to smooth mask
 
     const MultidimArray<double> *ctfImage = nullptr; // needed for FourierProjector
