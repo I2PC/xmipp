@@ -23,6 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction_adapt_cuda/forward_art_zernike3d_gpu.h>
+#include <reconstruction_adapt_cuda11/forward_art_zernike3d_gpu.h>
 
 RUN_XMIPP_PROGRAM(ProgForwardArtZernike3DGPU)

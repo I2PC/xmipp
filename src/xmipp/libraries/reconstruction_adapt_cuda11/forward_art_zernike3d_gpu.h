@@ -27,7 +27,7 @@
 #ifndef _PROG_FORWARD_ART_ZERNIKE3D_GPU
 #define _PROG_FORWARD_ART_ZERNIKE3D_GPU
 
-#include <CTPL/ctpl_stl.h>
+#include <ctpl_stl.h>
 #include <core/matrix1d.h>
 #include <core/xmipp_error.h>
 #include <core/xmipp_image.h>
@@ -35,7 +35,7 @@
 #include <data/blobs.h>
 #include <data/fourier_filter.h>
 #include <data/fourier_projection.h>
-#include <reconstruction_cuda/cuda_forward_art_zernike3d.h>
+#include <reconstruction_cuda11/cuda_forward_art_zernike3d.h>
 
 #include <memory>
 
