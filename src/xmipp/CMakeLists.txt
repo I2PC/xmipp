@@ -81,14 +81,28 @@ file(
 )
 file(
 	GLOB_RECURSE 
+	CUDA11_SOURCES
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/reconstruction_cuda11/*.cpp
+)
+file(
+	GLOB_RECURSE 
 	CUDA_INTERFACE_SOURCES
 		${CMAKE_CURRENT_SOURCE_DIR}/libraries/reconstruction_adapt_cuda/*.cpp
 )
 file(
 	GLOB_RECURSE 
+	CUDA11_INTERFACE_SOURCES
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/reconstruction_adapt_cuda11/*.cpp
+)
+file(
+	GLOB_RECURSE 
 	PARALLEL_CUDA_SOURCES
 		${CMAKE_CURRENT_SOURCE_DIR}/libraries/parallel_adapt_cuda/*.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/libraries/reconstruction_adapt_cuda/*.cpp
+)
+file(
+	GLOB_RECURSE 
+	PARALLEL_CUDA11_SOURCES
+		${CMAKE_CURRENT_SOURCE_DIR}/libraries/parallel_adapt_cuda11/*.cpp
 )
 
 # Compile FRM
@@ -191,6 +205,9 @@ if(${XMIPP_USE_CUDA})
 		PROPERTIES LANGUAGE CUDA
 	)
 	add_library(XmippCuda STATIC ${CUDA_SOURCES})
+	if (${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 11)
+		target_sources(XmippCuda PRIVATE ${CUDA11_SOURCES})
+	endif()
 
 	# HACK: Manually add cuFFTAdvisor. Linking the target leads to wrong RPATH
 	target_include_directories(
@@ -220,6 +237,10 @@ if(${XMIPP_USE_CUDA})
 	)
 
 	add_library(XmippInterfaceCuda SHARED ${CUDA_INTERFACE_SOURCES})
+	if (${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 11)
+		target_sources(XmippInterfaceCuda PRIVATE ${CUDA11_INTERFACE_SOURCES})
+	endif()
+
 	target_link_libraries(
 		XmippInterfaceCuda
 		PUBLIC
@@ -236,12 +257,16 @@ endif()
 # Register combined MPI and CUDA sources
 if(${XMIPP_USE_CUDA} AND ${XMIPP_USE_MPI})
 	add_library(XmippParallelCuda SHARED ${PARALLEL_CUDA_SOURCES})
+	if (${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 11)
+		target_sources(XmippParallelCuda PRIVATE ${PARALLEL_CUDA11_SOURCES})
+	endif()
+
 	target_link_libraries(
 		XmippParallelCuda
 		PUBLIC
 			XmippParallel
 		INTERFACE
-			XmippCuda
+			XmippInterfaceCuda
 	)
 	install(
 		TARGETS XmippParallelCuda

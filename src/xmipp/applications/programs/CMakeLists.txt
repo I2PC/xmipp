@@ -30,17 +30,28 @@ file(
 
 foreach(PROGRAM_DIRECTORY ${PROGRAM_DIRECTORIES})
 	if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${PROGRAM_DIRECTORY})
-		set(PROGRAM_NAME xmipp_${PROGRAM_DIRECTORY})
-		set(IS_CUDA_PROGRAM ${PROGRAM_DIRECTORY} MATCHES "cuda") 
-		set(IS_MPI_PROGRAM ${PROGRAM_DIRECTORY} MATCHES "mpi") 
-		
+		set(PROGRAM_NAME ${PROGRAM_DIRECTORY})
+
+		set(IS_MPI_PROGRAM ${PROGRAM_NAME} MATCHES "mpi") 
+		set(IS_CUDA_PROGRAM ${PROGRAM_NAME} MATCHES "cuda")
+		set(IS_CUDA11_PROGRAM ${PROGRAM_NAME} MATCHES "cuda11") 
+		if(${IS_CUDA11_PROGRAM})
+			string(REPLACE "cuda11" "cuda" ${PROGRAM_NAME} ${PROGRAM_NAME})
+		endif()
+
+
 		if(${IS_CUDA_PROGRAM} AND NOT ${XMIPP_USE_CUDA})
-			message("Skipping ${PROGRAM_NAME}")
+			message("Skipping ${PROGRAM_NAME} as CUDA is not enabled")
+			continue()
+		endif()
+
+		if(${IS_CUDA11_PROGRAM} AND NOT (${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 11))
+			message("Skipping ${PROGRAM_NAME} as CUDA 11 is not supported")
 			continue()
 		endif()
 
 		if(${IS_MPI_PROGRAM} AND NOT ${XMIPP_USE_MPI})
-			message("Skipping ${PROGRAM_NAME}")
+			message("Skipping ${PROGRAM_NAME} as MPI is not enabled")
 			continue()
 		endif()
 
