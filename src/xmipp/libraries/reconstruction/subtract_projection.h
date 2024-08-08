@@ -121,7 +121,7 @@ class ProgSubtractProjection: public XmippMetadataProgram
     Image<double> binarizeMask(Projection &) const;
     Image<double> invertMask(const Image<double> &);
     Image<double> applyCTF(const MDRow &, Projection &);
-    void processParticle(const MDRow &rowIn, int, FourierTransformer &, FourierTransformer &);
+    void processParticle(const MDRow &rowIn, int);
     MultidimArray< std::complex<double> > computeEstimationImage(const MultidimArray<double> &, 
         const MultidimArray<double> &, FourierTransformer &);
     double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;

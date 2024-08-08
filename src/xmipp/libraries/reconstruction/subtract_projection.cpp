@@ -172,6 +172,8 @@ ProgSubtractProjection::~ProgSubtractProjection()
  	double minMaskVol;
 	MultidimArray<double> &mm=m();
  	mm.computeDoubleMinMax(minMaskVol, maxMaskVol);
+
+	// Binarization threshold = 10% of max value in projection
  	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mm)
 		DIRECT_MULTIDIM_ELEM(mm,n) = (DIRECT_MULTIDIM_ELEM(mm,n)>0.1*maxMaskVol) ? 1:0; 
  	return m;
@@ -207,7 +209,9 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	return proj;
  }
 
-void ProgSubtractProjection::processParticle(const MDRow &rowprocess, int sizeImg, FourierTransformer &transformerPf, FourierTransformer &transformerIf) {
+void ProgSubtractProjection::processParticle(const MDRow &rowprocess, int sizeImg) {
+	
+	// Read metadata information for projection
 	readParticle(rowprocess);
 	rowprocess.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
 	rowprocess.getValueOrDefault(MDL_ANGLE_TILT, part_angles.tilt, 0);
@@ -216,14 +220,18 @@ void ProgSubtractProjection::processParticle(const MDRow &rowprocess, int sizeIm
 	rowprocess.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
 	rowprocess.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 	roffset *= -1;
+	
+	// Project volume + apply translation, CTF and mask
 	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
 	selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
 	Pctf = applyCTF(rowprocess, P);
 	MultidimArray<double> &mPctf = Pctf();
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mPctf)
 		DIRECT_MULTIDIM_ELEM(mPctf,n) = DIRECT_MULTIDIM_ELEM(mPctf,n) * DIRECT_MULTIDIM_ELEM(cirmask(),n);
-	transformerPf.FourierTransform(Pctf(), PFourier, false);
-	transformerIf.FourierTransform(I(), IFourier, false);
+
+	// FT of projection and particle
+	transformerP.FourierTransform(Pctf(), PFourier, false);
+	transformerI.FourierTransform(I(), IFourier, false);
 }
 
 MultidimArray< std::complex<double> > ProgSubtractProjection::computeEstimationImage(const MultidimArray<double> &Img, 
@@ -346,21 +354,27 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
  { 
 	// Initialize aux variable
 	disable = false;
+
 	// Project volume and process projections 
 	const auto sizeI = (int)XSIZE(I());
-	processParticle(rowIn, sizeI, transformerP, transformerI);
+	processParticle(rowIn, sizeI);
+
 	// Build projected and final masks
-	if (fnMask.isEmpty()) { // If there is no provided mask
+	if (fnMask.isEmpty())  // If there is no provided mask
+	{
 		M().initZeros(P());
 		// inverse mask (iM) is all 1s
 		iM = invertMask(M);
 	}
-	else { // If a mask has been provided
+	else  // If a mask has been provided
+	{
 		projectVolume(*projectorMask, Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
+
 		// Apply binarization, shift and gaussian filter to the projected mask
 		M = binarizeMask(Pmask);
 		selfTranslate(xmipp_transformation::LINEAR, M(), roffset, xmipp_transformation::DONT_WRAP);
 		FilterG.applyMaskSpace(M());
+
 		if (subtract) // If the mask contains the part to SUBTRACT: iM = input mask
 			iM = M;
 		else // If the mask contains the part to KEEP: iM = INVERSE of original mask
