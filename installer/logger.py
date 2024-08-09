@@ -119,11 +119,12 @@ class Logger:
 		### Constructor.
 		
 		#### Params:
-		- ouputToConsoloe (str): Print messages to console.
+		- ouputToConsoloe (bool): Print messages to console.
 		"""
 		self.__logFile = None
 		self.__outputToConsole = outputToConsole
 		self.__lenLastPrintedElem = 0
+		self.__allowSubstitution = True
 	
 	def startLogFile(self, logPath: str):
 		"""
@@ -143,6 +144,16 @@ class Logger:
 		"""
 		self.__outputToConsole = outputToConsole
  
+	def setAllowSubstitution(self, allowSubstitution: bool):
+		"""
+		### Modifies console output behaviour, allowing or disallowing substitutions.
+		
+		#### Params:
+		- allowSubstitution (bool): If False, console outputs won't be substituted.
+		"""
+		self.__allowSubstitution = allowSubstitution
+
+
 	def __call__(self, text: str, forceConsoleOutput: bool = False, substitute: bool = False):
 		"""
 		### Log a message.
@@ -158,7 +169,7 @@ class Logger:
 		if self.__outputToConsole or forceConsoleOutput:
 			# Calculate number of lines to substitute if substitution was requested
 			substitutionStr = ''.join([f'{UP}{REMOVE_LINE}' for _ in range(self.__getNLastLines())])
-			text = text if not substitute else f"{substitutionStr}{text}"
+			text = f"{substitutionStr}{text}" if self.__allowSubstitution and substitute else text
 			print(text, flush=True)
 			# Store length of printed string for next substitution calculation
 			self.__lenLastPrintedElem = len(removeNonPrintable(text))
