@@ -32,6 +32,7 @@
 #include <data/fourier_filter.h>
 
 #include <queue>
+#include <cmath>
 
 //This member function simulates different types of fringe patterns.
 // im is the resultant multidimarray
@@ -1194,13 +1195,23 @@ void fitEllipse(Matrix1D<double> & xPts, Matrix1D<double> & yPts, double & x0, d
 
 
     double sEllipseAngle, cEllipseAngle;
-    sincos(-ellipseAngle,&sEllipseAngle,&cEllipseAngle);
+    #ifdef __APPLE__
+        sEllipseAngle = -sin(ellipseAngle);
+        cEllipseAngle = cos(ellipseAngle);
+    #else
+        sincos(-ellipseAngle,&sEllipseAngle,&cEllipseAngle);
+    #endif
 
     double angle = 0, deltaAngle=(2*PI)/VEC_XSIZE(xPts);
     for (size_t nPoint = 0; nPoint < VEC_XSIZE(xPts); nPoint++)
     {
     	double sAngle, cAngle;
-        sincos(angle,&sAngle,&cAngle);
+        #ifdef __APPLE__
+            sAngle = sin(angle);
+            cAngle = cos(angle);
+        #else
+            sincos(angle,&sAngle,&cAngle);
+        #endif
         //We impose that the origin always is zero and because this whe do not sum it
         double K1=majorAxis*cAngle;
         double K2=minorAxis*sAngle;
