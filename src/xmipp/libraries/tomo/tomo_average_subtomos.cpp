@@ -31,6 +31,9 @@
 #include <limits>
 #include <type_traits>
 #include <chrono>
+#include <random>
+#include <algorithm>
+
 
 #define halvesManagement ()
 
@@ -65,8 +68,11 @@ std::vector<bool> ProgAverageSubtomos::generateGoldStandard(int n)
 	for (int i=0; i<n; ++i)
 		randomVector[i]=i; // 0 1 2 3 4 5 6 7 8 9
 
-    // The indices are randomized to procude halves, 
-    std::random_shuffle (randomVector.begin(), randomVector.end() );
+	std::random_device rd;
+	std::mt19937 rng(rd());
+
+    // The indices are randomized to produce halves, 
+    std::shuffle (randomVector.begin(), randomVector.end(), rng);
 
     std::vector<bool> halves(n, true);
 
