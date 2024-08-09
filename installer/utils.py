@@ -185,6 +185,7 @@ def getCurrentBranch(dir: str='./') -> str:
 	"""
 	# Getting current branch name
 	retcode, branchName = runJob("git rev-parse --abbrev-ref HEAD", cwd=dir)
+	print("getCurrentBranch: ", branchName, flush=True)
 
 	# If there was an error, we are in no branch
 	return branchName if not retcode else ''
