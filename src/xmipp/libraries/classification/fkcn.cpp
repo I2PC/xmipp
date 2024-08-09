@@ -28,6 +28,7 @@
 //-----------------------------------------------------------------------------
 
 #include "fkcn.h"
+#include <cmath>
 
 #ifdef __sun
 #include <ieeefp.h>
@@ -110,7 +111,7 @@ void FuzzyKohonenCMeans::train(FuzzyCodeBook& _xmippDS, const TS& _examples) con
                 auxDist = (double) pow((double) auxDist, (double) auxExp);
                 if (auxDist < MAXZERO) auxDist = MAXZERO;
                 if (std::isnan(auxDist)) auxDist = MAXZERO;
-                if (!finite(auxDist)) auxDist = 1e200;
+                if (!isfinite(auxDist)) auxDist = 1e200;
                 auxProd += 1. / auxDist;
                 tmpD[i] = auxDist;
             }
