@@ -49,7 +49,7 @@ function(link_to_scipion INSTALL_DIRECTORY SCIPION_SOFTWARE)
 	set(
 		LIBRARIES 
 			libcifpp${CMAKE_SHARED_LIBRARY_SUFFIX}
-			libsvm${CMAKE_SHARED_LIBRARY_SUFFIX}
+			libsvm.so
 			libXmippCore${CMAKE_SHARED_LIBRARY_SUFFIX}
 			libXmipp${CMAKE_SHARED_LIBRARY_SUFFIX}
 	)
