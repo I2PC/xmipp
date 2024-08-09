@@ -35,7 +35,7 @@ include(link_to_scipion)
 # Define the project
 project(
   xmipp
-	VERSION 3.23.11
+	VERSION 3.24.06
 	LANGUAGES C CXX
 )
 
