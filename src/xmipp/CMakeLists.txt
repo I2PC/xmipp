@@ -153,7 +153,7 @@ install(
 )
 
 # Create the Python binding
-add_library(xmippLib SHARED ${PYTHON_BINDING_SOURCES})
+add_library(xmippLib MODULE ${PYTHON_BINDING_SOURCES})
 set_target_properties(xmippLib PROPERTIES PREFIX "")
 target_link_libraries(
 	xmippLib
