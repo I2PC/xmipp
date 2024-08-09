@@ -462,7 +462,7 @@ public:
 		double cosine_part;
 		//sincos(argument,&sine_part, &cosine_part);
 		sine_part = sin(argument);
-                cosine_part = cos(argument);// OK
+        cosine_part = cos(argument);// OK
 		double Eespr = exp(-K3 * precomputed.u4); // OK
 		//CO: double Eispr=exp(-K4*u4); // OK
 		double EdeltaF = bessj0(K5 * precomputed.u2); // OK
