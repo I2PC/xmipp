@@ -29,6 +29,7 @@
 void CPU::native_cpuid(unsigned int *eax, unsigned int *ebx,
         unsigned int *ecx, unsigned int *edx)
 {
+    #ifdef __X86__
     /* ecx is often an input as well as an output. */
     asm volatile("cpuid"
     : "=a" (*eax),
@@ -36,6 +37,7 @@ void CPU::native_cpuid(unsigned int *eax, unsigned int *ebx,
       "=c" (*ecx),
       "=d" (*edx)
     : "0" (*eax), "2" (*ecx));
+    #endif
 }
 
 void CPU::updateMemoryInfo() {
