@@ -71,7 +71,7 @@ void PCAAnalyzer::reset(ClassicTrainingVectors const &ts, std::vector<unsigned> 
             int l = 0;
             for (std::vector<unsigned>::const_iterator i = idx.begin();i != idx.end();i++)
             {
-                if (finite(ts.itemAt(*i)[k]))
+                if (isfinite(ts.itemAt(*i)[k]))
                 {
                     sum += ts.itemAt(*i)[k];
                     l++;
@@ -96,7 +96,7 @@ void PCAAnalyzer::reset(ClassicTrainingVectors const &ts, std::vector<unsigned> 
                 {
                     floatFeature d1 = ts.itemAt(*it)[i] - mean[i];
                     floatFeature d2 = ts.itemAt(*it)[j] - mean[j];
-                    if (finite(d1) && finite(d2))
+                    if (isfinite(d1) && isfinite(d2))
                     {
                         sum += d1 * d2;
                         l++;

@@ -255,7 +255,7 @@ double FuzzySOM::updateU(FuzzyMap& _som, const TS& _examples, const double& _m)
             for (j = 0; j < dim; j++)
                 auxDist += (double)((double)(_examples.theItems[k][j]) - (double)(_som.theItems[i][j])) * ((double)(_examples.theItems[k][j]) - (double)(_som.theItems[i][j]));
             auxDist = pow(auxDist, auxExp);
-            if (!finite(auxDist))
+            if (!isfinite(auxDist))
                 auxDist = MAXFLOAT;
             if (auxDist < MAXZERO)
                 auxDist = MAXZERO;
