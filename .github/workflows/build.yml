@@ -38,4 +38,4 @@ jobs:
           BRANCH_NAME: ${{ github.head_ref }}
         run: |
           echo "XMIPP_LINK_TO_SCIPION=OFF" > xmipp.conf
-          ./xmipp all -b $BRANCH_NAME || (cat compilation.log && false)
+          ./xmipp all -b $BRANCH_NAME --keep-output || (cat compilation.log && false)

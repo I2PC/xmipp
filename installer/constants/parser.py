@@ -106,6 +106,7 @@ PARAM_LOGIN = 'login'
 PARAM_MODEL_PATH = 'model-path'
 PARAM_UPDATE = 'update'
 PARAM_OVERWRITE = 'overwrite'
+PARAM_KEEP_OUTPUT = "keep-output"
 PARAMS = {
 	PARAM_SHORT: {
 		LONG_VERSION: "--short",
@@ -154,18 +155,22 @@ PARAMS = {
 		SHORT_VERSION: "-o",
 		LONG_VERSION: "--overwrite",
 		DESCRIPTION: "If set, current config file will be overwritten with a new one."
+	},
+	PARAM_KEEP_OUTPUT: {
+		LONG_VERSION: "--keep-output",
+		DESCRIPTION: "If set, output sent through the terminal won't substitute lines, looking more like the log."
 	}
 }
 
 # Arguments of each mode, sorted by group
 MODE_ARGS = {
 	MODE_VERSION: [PARAM_SHORT],
-	MODE_COMPILE_AND_INSTALL: [PARAM_JOBS, PARAM_BRANCH],
-	MODE_ALL: [PARAM_JOBS, PARAM_BRANCH],
-	MODE_CONFIG_BUILD: [],
+	MODE_COMPILE_AND_INSTALL: [PARAM_JOBS, PARAM_BRANCH, PARAM_KEEP_OUTPUT],
+	MODE_ALL: [PARAM_JOBS, PARAM_BRANCH, PARAM_KEEP_OUTPUT],
+	MODE_CONFIG_BUILD: [PARAM_KEEP_OUTPUT],
 	MODE_CONFIG: [PARAM_OVERWRITE],
 	MODE_GET_MODELS: [PARAM_MODELS_DIRECTORY],
-	MODE_GET_SOURCES: [PARAM_BRANCH],
+	MODE_GET_SOURCES: [PARAM_BRANCH, PARAM_KEEP_OUTPUT],
 	MODE_CLEAN_BIN: [],
 	MODE_CLEAN_ALL: [],
 	MODE_TEST: [PARAM_TEST_NAME, PARAM_SHOW_TESTS],

@@ -43,12 +43,12 @@ foreach(PROGRAM_DIRECTORY ${PROGRAM_DIRECTORIES})
 		if(${IS_CUDA_PROGRAM} AND NOT ${XMIPP_USE_CUDA})
 			message("Skipping ${PROGRAM_NAME} as CUDA is not enabled")
 			continue()
-
-			if(${IS_CUDA11_PROGRAM} AND CUDAToolkit_VERSION_MAJOR)
-				if(${CUDAToolkit_VERSION_MAJOR} LESS 11)
-					message("Skipping ${PROGRAM_NAME} as CUDA 11 is not supported")
-					continue()
-				endif()
+		endif()
+		
+		if(${IS_CUDA11_PROGRAM} AND CUDAToolkit_VERSION_MAJOR)
+			if(${CUDAToolkit_VERSION_MAJOR} LESS 11)
+				message("Skipping ${PROGRAM_NAME} as CUDA 11 is not supported")
+				continue()
 			endif()
 		endif()
 
