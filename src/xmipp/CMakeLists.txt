@@ -206,6 +206,10 @@ if(${XMIPP_USE_CUDA})
 	)
 	add_library(XmippCuda STATIC ${CUDA_SOURCES})
 	if (${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 11)
+		set_source_files_properties(
+			${CUDA11_SOURCES}
+			PROPERTIES LANGUAGE CUDA
+		)
 		target_sources(XmippCuda PRIVATE ${CUDA11_SOURCES})
 	endif()
 
