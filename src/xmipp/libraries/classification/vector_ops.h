@@ -51,7 +51,7 @@
 template<class T> std::vector<T> operator+(const std::vector<T>& v, const T& a)
 {
     std::vector<T> tmp = v;
-    transform(tmp.begin(), tmp.end(), tmp.begin(), bind2nd(std::plus<T>(), a));
+    transform(tmp.begin(), tmp.end(), tmp.begin(), std::bind(std::plus<T>(), std::placeholders::_1, a));
     return tmp;
 }
 
@@ -63,7 +63,7 @@ template<class T> std::vector<T> operator+(const std::vector<T>& v, const T& a)
 template<class T> std::vector<T> operator+(const T& a, const std::vector<T>& v)
 {
     std::vector<T> tmp = v;
-    transform(tmp.begin(), tmp.end(), tmp.begin(), bind2nd(std::plus<T>(), a));
+    transform(tmp.begin(), tmp.end(), tmp.begin(), std::bind(std::plus<T>(), std::placeholders::_1, a));
     return tmp;
 }
 
@@ -75,7 +75,7 @@ template<class T> std::vector<T> operator+(const T& a, const std::vector<T>& v)
 template<class T> std::vector<T> operator-(const std::vector<T>& v, const T& a)
 {
     std::vector<T> tmp = v;
-    transform(tmp.begin(), tmp.end(), tmp.begin(), bind2nd(std::minus<T>(), a));
+    transform(tmp.begin(), tmp.end(), tmp.begin(), std::bind(std::minus<T>(), std::placeholders::_1, a));
     return tmp;
 }
 
@@ -99,7 +99,7 @@ template<class T> std::vector<T> operator-(const T& a, const std::vector<T>& v)
 template<class T> std::vector<T> operator*(const std::vector<T>& v, T a)
 {
     std::vector<T> tmp = v;
-    transform(tmp.begin(), tmp.end(), tmp.begin(), bind2nd(std::multiplies<T>(), a));
+    transform(tmp.begin(), tmp.end(), tmp.begin(), std::bind(std::multiplies<T>(), std::placeholders::_1, a));
     return tmp;
 }
 
@@ -111,7 +111,7 @@ template<class T> std::vector<T> operator*(const std::vector<T>& v, T a)
 template<class T> std::vector<T> operator*(T a, const std::vector<T>& v)
 {
     std::vector<T> tmp = v;
-    transform(tmp.begin(), tmp.end(), tmp.begin(), bind2nd(std::multiplies<T>(), a));
+    transform(tmp.begin(), tmp.end(), tmp.begin(), std::bind(std::multiplies<T>(), std::placeholders::_1, a));
     return tmp;
 }
 
@@ -124,7 +124,7 @@ template<class T> std::vector<T> operator*(T a, const std::vector<T>& v)
 template<class T> std::vector<T> operator/(const std::vector<T>& v, T a)
 {
     std::vector<T> tmp = v;
-    transform(tmp.begin(), tmp.end(), tmp.begin(), bind2nd(std::divides<T>(), a));
+    transform(tmp.begin(), tmp.end(), tmp.begin(), std::bind(std::divides<T>(), std::placeholders::_1, a));
     return tmp;
 }
 

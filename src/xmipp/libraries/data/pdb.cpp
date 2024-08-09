@@ -28,6 +28,7 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <functional>
 #include "cif++.hpp"
 #include "pdb.h"
 #include "core/matrix2d.h"
@@ -504,9 +505,9 @@ void PDBPhantom::read(const FileName &fnPDB)
 {
     // Checking if extension is .cif or .pdb
     if (checkExtension(fnPDB.getString(), {".cif"}, {".gz"})) {
-        readCIF(fnPDB.getString(), bind(&PDBPhantom::addAtom, this, std::placeholders::_1), dataBlock);
+        readCIF(fnPDB.getString(), std::bind(&PDBPhantom::addAtom, this, std::placeholders::_1), dataBlock);
     } else {
-        readPDB(fnPDB, bind(&PDBPhantom::addAtom, this, std::placeholders::_1));
+        readPDB(fnPDB, std::bind(&PDBPhantom::addAtom, this, std::placeholders::_1));
     }
 }
 
@@ -705,9 +706,9 @@ void PDBRichPhantom::read(const FileName &fnPDB, const bool pseudoatoms, const d
 {
     // Checking if extension is .cif or .pdb
     if (checkExtension(fnPDB.getString(), {".cif"}, {".gz"})) {
-        readRichCIF(fnPDB.getString(), bind(&PDBRichPhantom::addAtom, this, std::placeholders::_1), intensities, pseudoatoms, threshold, dataBlock);
+        readRichCIF(fnPDB.getString(), std::bind(&PDBRichPhantom::addAtom, this, std::placeholders::_1), intensities, pseudoatoms, threshold, dataBlock);
     } else {
-        readRichPDB(fnPDB, bind(&PDBRichPhantom::addAtom, this, std::placeholders::_1), intensities, remarks, pseudoatoms, threshold);
+        readRichPDB(fnPDB, std::bind(&PDBRichPhantom::addAtom, this, std::placeholders::_1), intensities, remarks, pseudoatoms, threshold);
     }
 }
 
@@ -1161,9 +1162,14 @@ void fhlpf(const MultidimArray<double> &f, const MultidimArray<double> &filter,
         double w;
         FFT_IDX2DIGFREQ(i,XSIZE(F),w);
         double arg=w*K1;
-        sincos(arg,ptrAux+1,ptrAux);
-        *ptrAux*=K2;
-        *(ptrAux+1)*=K2;
+        #ifdef __APPLE__
+            *(ptrAux+1) = K2 * sin(arg);
+            *(ptrAux) = K2 * cos(arg);
+        #else
+            sincos(arg,ptrAux+1,ptrAux);
+            *(ptrAux+1) *= K2;
+            *(ptrAux) *= K2;
+        #endif
         A1D_ELEM(F,i)*=aux;
     }
     InverseFourierTransform(F,convolution);

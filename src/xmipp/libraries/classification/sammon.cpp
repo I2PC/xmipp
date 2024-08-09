@@ -73,7 +73,7 @@ void Sammon::operator()(const In& in, Out& out)
     {
         generate(v.begin(), v.end(), [&]{ return dist(gen); });
         transform(v.begin(), v.end(), v.begin(),
-                  bind2nd(std::divides<double>(), norm(v)));
+                  std::bind(std::divides<double>(), std::placeholders::_1, norm(v)));
         out.add(v, in.theTargets[i]);
     }
 
