@@ -197,7 +197,6 @@ def __branchExists(repo: str, branch: str) -> bool:
 	#### Returns:
 	- (bool): True if the branch exists, False otherwise.
 	"""
-	print("__branchExists: command -->", f"git ls-remote --heads {repo}.git {branch} | grep -q refs/heads/{branch}", flush=True)
 	retCode, _ = runJob(f"git ls-remote --heads {repo}.git {branch} | grep -q refs/heads/{branch}")
 	print("__branchExists: retCode -->", retCode, "exists -->", not retCode, flush=True)
 	return not retCode
@@ -228,14 +227,12 @@ def __cloneSourceRepo(repo: str, branch: str=None, path: str='') -> Tuple[int, s
 	- (int): 0 if everything worked, or else the return code of the command that failed.
 	- (str): Output data from the command if it worked or error if it failed.
 	"""
-	print("__cloneSourceRepo 1: repo -->", repo, "branch -->", branch, flush=True)
 	retCode = 0
 	output = ''
 	__logWorkingMessage()
 	cloneBranch = __getCloneBranch(repo, branch)
 
 	# If specified branch does not exist, show warning
-	print("__cloneSourceRepo 2 cloneBranch -->: ", cloneBranch, flush=True)
 	if branch and not cloneBranch:
 		warningStr = f"Warning: branch \'{branch}\' does not exist for repository with url {repo}.\n"
 		warningStr += "Falling back to repository's default branch."
@@ -275,7 +272,6 @@ def __getCloneBranch(repo: str, branch: str) -> Optional[str]:
 	"""
 	# If branch exists, use it
 	if branch and __branchExists(repo, branch):
-		print("__getCloneBranch 1 exists -->: ", __branchExists(repo, branch), flush=True)
 		return branch
 	
 	# If repository is xmipp source and current branch is a release, clone from corresponding release
