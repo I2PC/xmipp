@@ -199,7 +199,7 @@ def __branchExists(repo: str, branch: str) -> bool:
 	"""
 	print("__branchExists: command -->", f"git ls-remote --heads {repo}.git {branch} | grep -q refs/heads/{branch}", flush=True)
 	retCode, _ = runJob(f"git ls-remote --heads {repo}.git {branch} | grep -q refs/heads/{branch}")
-	print("__branchExists: ", retCode, flush=True)
+	print("__branchExists: retCode -->", retCode, "exists -->", not retCode, flush=True)
 	return not retCode
 
 def __logDoneMessage():
