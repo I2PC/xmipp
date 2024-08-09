@@ -1,0 +1,35 @@
+name: Release new version
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  generate-new-release:
+    runs-on: ubuntu-latest
+    steps:
+    
+    - name: Checkout repository
+      uses: actions/checkout@main
+
+    - name: Retrieve tag name, release name & changelog
+      run: |
+        echo "TAG_NAME=$(./xmipp version --short)" >> $GITHUB_OUTPUT
+        awk '/## Release/{if (p) exit; p=1} p' CHANGELOG.md > latest_changelog_with_title.md
+        cat latest_changelog_with_title.md | tail -n +2 > latest_changelog.md
+        echo "RELEASE_NAME=$(cat latest_changelog_with_title.md | head -n 1 | sed 's/## Release //' | sed 's/^ *//')" >> $GITHUB_OUTPUT
+      id: variables
+      
+    - name: Generate tag
+      id: tag_version
+      uses: mathieudutour/github-tag-action@v6.2
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        custom_tag: ${{ steps.variables.outputs.TAG_NAME }}
+        tag_prefix: ''
+        
+    - name: Create a GitHub release
+      uses: ncipollo/release-action@main
+      with:
+        tag: ${{ steps.tag_version.outputs.new_tag }}
+        name: ${{ steps.variables.outputs.RELEASE_NAME }}
+        bodyFile: latest_changelog.md
