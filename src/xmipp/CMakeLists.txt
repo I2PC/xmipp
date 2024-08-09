@@ -106,7 +106,7 @@ file(
 )
 
 # Compile FRM
-add_library(swig_frm SHARED ${FRM_SOURCES})
+add_library(swig_frm MODULE ${FRM_SOURCES})
 set_target_properties(swig_frm PROPERTIES PREFIX "_")
 target_link_libraries(
 	swig_frm
