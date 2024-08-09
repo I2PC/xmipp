@@ -278,7 +278,7 @@ if(${XMIPP_USE_CUDA} AND ${XMIPP_USE_MPI})
 	)
 endif()
 
-# Add MATLAB binding TODO
+# Add MATLAB binding
 if(${XMIPP_USE_MATLAB})
 	foreach(MATLAB_BINDING_SOURCE ${MATLAB_BINDING_SOURCES})
 		get_filename_component(MEX_NAME ${MATLAB_BINDING_SOURCE} NAME_WE)
