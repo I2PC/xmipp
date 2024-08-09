@@ -51,7 +51,7 @@ public:
 
     template<typename F>
     static void half2whole(const T *in,
-            T __restrict__ *out,
+            T* __restrict__ out,
             const FFTSettings<T> &settings, F func) {
         for (size_t y = 0; y < settings.sDim().y(); ++y) {
             for (size_t x = 0; x < settings.sDim().x(); ++x) {
