@@ -124,7 +124,7 @@ void ProgResLocalFilter::produceSideInfo()
 
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftV)
-		DIRECT_MULTIDIM_ELEM(inputVol2, n) = fabs(DIRECT_MULTIDIM_ELEM(fftV, n));
+		DIRECT_MULTIDIM_ELEM(inputVol2, n) = abs(DIRECT_MULTIDIM_ELEM(fftV, n));
 
 //	Image<double> filteredvolume;
 //	filteredvolume = inputVol2;
