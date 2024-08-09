@@ -106,7 +106,7 @@ file(
 )
 
 # Compile FRM
-add_library(swig_frm SHARED ${FRM_SOURCES})
+add_library(swig_frm MODULE ${FRM_SOURCES})
 set_target_properties(swig_frm PROPERTIES PREFIX "_")
 target_link_libraries(
 	swig_frm
@@ -153,7 +153,7 @@ install(
 )
 
 # Create the Python binding
-add_library(xmippLib SHARED ${PYTHON_BINDING_SOURCES})
+add_library(xmippLib MODULE ${PYTHON_BINDING_SOURCES})
 set_target_properties(xmippLib PROPERTIES PREFIX "")
 target_link_libraries(
 	xmippLib
@@ -278,7 +278,7 @@ if(${XMIPP_USE_CUDA} AND ${XMIPP_USE_MPI})
 	)
 endif()
 
-# Add MATLAB binding TODO
+# Add MATLAB binding
 if(${XMIPP_USE_MATLAB})
 	foreach(MATLAB_BINDING_SOURCE ${MATLAB_BINDING_SOURCES})
 		get_filename_component(MEX_NAME ${MATLAB_BINDING_SOURCE} NAME_WE)

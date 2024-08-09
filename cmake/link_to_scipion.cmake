@@ -48,12 +48,10 @@ function(link_to_scipion INSTALL_DIRECTORY SCIPION_SOFTWARE)
 	# Link shared libraries
 	set(
 		LIBRARIES 
-			libcifpp.so
-			libcifpp.so.3
-			libcifpp.so.5.0.9
+			libcifpp${CMAKE_SHARED_LIBRARY_SUFFIX}
 			libsvm.so
-			libXmippCore.so
-			libXmipp.so
+			libXmippCore${CMAKE_SHARED_LIBRARY_SUFFIX}
+			libXmipp${CMAKE_SHARED_LIBRARY_SUFFIX}
 	)
 	foreach(x IN LISTS LIBRARIES)
 		file(
