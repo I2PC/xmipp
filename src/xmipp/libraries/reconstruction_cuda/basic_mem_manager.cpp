@@ -130,7 +130,9 @@ void *BasicMemManager::alloc(size_t bytes, MemType type) const
         break;        
     case MemType::CPU_PAGE_ALIGNED:
         ptr = aligned_alloc(memoryUtils::PAGE_SIZE, bytes);
-        madvise(ptr, bytes, MADV_HUGEPAGE);
+        #ifdef MADV_HUGEPAGE
+            madvise(ptr, bytes, MADV_HUGEPAGE); // Not available in all platforms
+        #endif
         break;
     case MemType::CUDA_MANAGED:
         cudaMallocManaged(&ptr, bytes);
