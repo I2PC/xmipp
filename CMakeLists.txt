@@ -55,6 +55,9 @@ option(XMIPP_USE_MATLAB "Compile MATLAB binding" ON)
 option(XMIPP_LINK_TO_SCIPION "Link to scipion3" ON)
 option(XMIPP_SAVE_VERSIONS "Save versions.txt with dependency versions" ON)
 
+# Avoid installing to lib64 directory
+set(CMAKE_INSTALL_LIBDIR lib)
+
 # Set C++ 17
 if(NOT DEFINED CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
