@@ -31,7 +31,7 @@
 #TODO: Check if function names follow convention
 #TODO: Eliminate library once the new generators are completed
 
-#TODO: Should I use more self.stuff?
+#TODO: Should I use more self.stuff? (YES)
 
 #TODO: eventually evaluate if test set is also going to be used Proposal (80%, 10% 10%)
 #TODO: eventually evaluate the use of ensembles (add index to the model's fn name in bestModel)
@@ -50,22 +50,15 @@ import tensorflow as tf
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.layers import Input, Conv2D, BatchNormalization, Dense, concatenate, Activation, GlobalAveragePooling2D, Add, Flatten
-#import keras #TODO: Make sure we are not using Keras 3
-
-
-#TODO: include shuffle in the input (info in doc de dudas)
-#TODO: check whether the the ok and wrong subset are balanced in size (is this truly necessary if I create the wrong subset myself?)
+#import keras #TODO: Make sure we are not using any Keras 3 functionality
 
 class ScriptDeepWrongAssignCheckTrain(XmippScript):
     
     conda_env="xmipp_DLTK_v1.0" 
 
     print(tf. __version__)
-
-    randomizedData = None
-    lenTrain = None
-    xDim = None
     
+    #TODO: Evaluate if anything else is necessary
     def __init__(self):
 
         XmippScript.__init__(self)
@@ -82,266 +75,242 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         self.addParamsLine(' -c <fnCorrResd> : filename containg the properly assigned residuals for training. ')
         self.addParamsLine(' -w <fnWronResd> : filename containg the wrongly assigned residuals for training. ')
         self.addParamsLine(' -o <finalModel> : h5 filename where the final model will be stored.')
-        #TODO: check other programs implementation of batches (should it be mandatory)
+        #TODO: check other programs implementation of batches (should it be mandatory?)
         self.addParamsLine(' -b <batchSize>: data`s subset size which will be fed to the network.')
         self.addParamsLine(' [ --pretrained ]: (optional) write flag if a pretained model will be used.')
         self.addParamsLine(' [ -f <fnPretrainedModel> ]: (optional) filename of the pretrained model to be used instead of a new one.')
         #TODO: Set values here and in protocol (protocol?)
         self.addParamsLine(' [ -e <numEpoch=30> ]: (optional) number of epochs to train the model')
         self.addParamsLine(' [ -l <learningRate=0.3> ]: (optional) learning rate used for the optimizer.')
-        #TODO: modify this value (adapatative?)
+        #TODO: modify this value (adaptative?)
         self.addParamsLine(' [ -p <patience=5> ]: (optional) number of epochs with no improvement after which training will be stopped.')
 
         #TODO: make sure help text reflects reality
         self.addParamsLine(' [ --gpus <gpuId> ]: (optional) GPU ids to employ. Comma separated list. E.g. "0,1". Use -1 for CPU-only computation or -2 to use all devices found in CUDA_VISIBLE_DEVICES.')
 
+        #TODO: include flag to save model information + file
+
         ## examples ##TODO: keep in mind changes in params until completely stable
         self.addExampleLine('deep_wrong_assign_check_tr -c path/to/correctResiduals -w path/to/wrongResiduals -o path/to/outputModel.h5 -b $BATCH_SIZE')
 
     #TODO: Write function definition
-    def getImage(self, fnImg, dim):
+    def ConvertInputs(self):
 
-        img = np.reshape(xmippLib.Image(fnImg).getData(), (dim, dim, 1))
+        ## Xmipp metadata filename containing the positive residues examples info (including references to images)
+        self.fnXmdPos = self.getParam("-c")
+        if not os.path.isfile(self.fnXmdPos):
+            ## If the file doesn't exist the program will be interrupted
+            print("Positive examples file does not exist inside path")
+            sys.exit(-1)
+
+        ## Xmipp metadata filename containing the negative residues examples info (including references to images)
+        self.fnXmdNeg = self.getParam("-w")
+        if not os.path.isfile(self.fnXmdNeg):
+            ## If the file doesn't exist the program will be interrupted
+            print("Negative examples file does not exist inside path")
+            sys.exit(-1)
+
+        ## Keep in mind that here we assume positive and negative sets have the same size
+        self.xDim, _, _, _, _ = xmippLib.MetaDataInfo(self.fnXmdPos)
+
+        trainInfoPos = self.readFileInfo(self.fnXmdPos,True)
+        trainInfoNeg = self.readFileInfo(self.fnXmdNeg,False)
+
+        self.trainInfo = trainInfoPos + trainInfoNeg
+        
+        ## Filename where the best model will be stored after training
+        self.fnOutputModel = self.getParam("-o")
+        if not os.path.isfile(self.fnOutputModel):
+            ## If the file doesn't exist the program will be interrupted
+            print("Final model file does not exist inside path")
+            sys.exit(-1)
+
+        ## Size of the batches to be used for the nn
+        self.batchSize = int(self.getParam("-b"))
+
+        #TODO: Evaluate changing batch size default (Either keeping a single big bacth or each batch has one piece of info)
+        ## If the batch size is bigger than the data or the user requested no batches (using 0), only one batch is used
+        if self.batchSize > len(self.trainInfo) or self.batchSize == 0: self.batchSize = len(self.trainInfo)
+
+        ## Number of epochs for training
+        self.numEpochs = int(self.getParam("-e"))
+        ## Value to overwrite in the optimizer
+        self.learningRate = float(self.getParam("-l"))
+        ## Number of epochs with no improvement after which training will be stopped
+        self.patience = int(self.getParam("-p"))
+
+        ## If no specific GPUs are requested all available GPUs will be used
+        if self.checkParam("--gpus"):
+            os.environ["CUDA_VISIBLE_DEVICES"] = int(self.getParam("--gpus"))
+
+    #TODO: Write function definition
+    def readFileInfo(self, fnImages, isCorrect):
+
+        if isCorrect:
+            value = 1
+        else:
+            value = 0
+        
+        mdAux = xmippLib.MetaData(fnImages)
+        fnImgs = mdAux.getColumnValues(xmippLib.MDL_IMAGE_RESIDUAL)
+        labels = [value] * len(fnImgs)
+
+        final = []
+
+        for img, lbl in zip(fnImgs,labels):
+
+            aux = (img,lbl)
+            final.append(aux)
+
+        return final
+
+    #TODO: Write function definition
+    def getImage(self, fnImg):
+
+        img = np.reshape(xmippLib.Image(fnImg).getData(), (self.xDim, self.xDim, 1))
         return (img - np.mean(img)) / np.std(img)
+    
+    #--------------- Neural Network Generators ----------------
+
+    #TODO: Is it possible to create just one generic function?
 
     #TODO: Write function definition
     def manageTrain(self):
 
         for elem in self.randomizedData[:self.lenTrain]:
             
-            input = self.getImage(elem[0], self.xDim)
+            input = self.getImage(elem[0])
             target = int(elem[1])
 
             yield (input,target)
 
+    #TODO: write function definition
     def manageVal(self):
         
         for elem in self.randomizedData[self.lenTrain:]:
             
-            input = self.getImage(elem[0],self.xDim)
+            input = self.getImage(elem[0])
             target = int(elem[1])
 
             yield (input,target)
 
+    #--------------- Training related functions ----------------
+
+    #TODO: Write function definition
+    def conv_block(self, tensor, filters):
+        # Convolutional block of RESNET
+        x = Conv2D(filters, (3, 3), padding='same', strides=(2, 2))(tensor)
+        x = BatchNormalization(axis=3)(x)
+        x = Activation('relu')(x)
+
+        x = Conv2D(filters, (3, 3), padding='same')(x)
+        x = BatchNormalization(axis=3)(x)
+
+        x_res = Conv2D(filters, (1, 1), strides=(2, 2))(tensor)
+
+        x = Add()([x, x_res])
+        x = Activation('relu')(x)
+        return x
+    
+    #TODO: Write function definition
+    #TODO: Keep in mind Model (inputs, feature)
+    def constructModel(self):
+        #RESNET architecture
+
+        inputLayer = Input(shape=(self.xDim, self.xDim, 1), name="input")
+
+        x = self.conv_block(inputLayer, filters=64)
+
+        x = self.conv_block(x, filters=128)
+
+        x = self.conv_block(x, filters=256)
+
+        x = self.conv_block(x, filters=512)
+
+        x = self.conv_block(x, filters=1024)
+
+        x = GlobalAveragePooling2D()(x)
+
+        x = Dense(1, name="output", activation="linear")(x)
+
+        return Model(inputLayer, x)
+    
+    #TODO: Write function definition
+    #TODO: Return? (Probably not, reevaluate once data saving flag is included)
+    def performTrain(self):
+
+        self.lenTrain = int(len(self.trainInfo)*0.8)
+
+        #TODO: is this the best way to do this?
+        randomizedIds = np.random.choice(len(self.trainInfo), len(self.trainInfo), replace = False)
+        npyTrainData = np.array(self.trainInfo)
+        randomizedNpData = npyTrainData[randomizedIds]
+        self.randomizedData = randomizedNpData.tolist()
+
+        #TODO: comments on shapes (TensorSpecs)(proper explanation)
+        trainingSet = tf.data.Dataset.from_generator(self.manageTrain, output_signature = (tf.TensorSpec((self.xDim, self.xDim, 1), dtype =tf.float32), tf.TensorSpec((), dtype=tf.int32)))
+        trainingSet = trainingSet.batch(self.batchSize, drop_remainder = False)
+
+        validationSet = tf.data.Dataset.from_generator(self.manageVal, output_signature = (tf.TensorSpec((self.xDim, self.xDim, 1), dtype =tf.float32), tf.TensorSpec((), dtype=tf.int32)))
+        validationSet = validationSet.batch(self.batchSize, drop_remainder = False)
+
+        ## Checking if a pretrained model will be used and if the corresponding file has been given
+        if self.checkParam("--pretrained") and self.checkParam("-f"):
+
+            ## File name where the pre existing model is stored, only used for reading
+            ## The freshly trained model is stored in fnModel
+            fnPreModel = self.getParam("-f")
+            if not os.path.isfile(fnPreModel):
+                ## If the file doesn't exist the program will be interrupted
+                print("Model file does not exist inside path")
+                sys.exit(-1)
+            else:
+                ## Compile is set to false so the existing data (weights) is properly maintained
+                model = load_model(fnPreModel, compile=False)
+        else:
+        ## A new model will also be used if no pre exiting file was given despite the "pretrained" flag being present
+            model = self.constructModel()
+            #TODO: Evaluate other optimizers
+            adam_opt = tf.keras.optimizers.Adam(learning_rate = self.learningRate)
+            # Configuring the model's metrics
+            model.compile(optimizer=adam_opt, loss='mean_squared_error')
+
+        # prints a string summary of the network
+        model.summary()        
+
+        #TODO: evaluate callbacks
+        #TODO: should I use tensorBoard for documentation?
+        #TODO: check notes on LearningRateScheduler + Cyclical Learning Rate (CLR)
+
+        #TODO: Keep in mind the data is overwritten every time a "better" model is found (save_best_only=True) by now it saves the whole model
+        bestModel = ModelCheckpoint(filepath = self.fnOutputModel, monitor='val_loss', save_best_only=True)
+        #TODO: what if the patience is = to epochs or even > ?
+        patienceCallBack = EarlyStopping(monitor='val_loss', patience = self.patience)
+
+        #TODO: This could be stored in extra for example, just in case
+        #TODO: A History object. Its History.history attribute is a record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values (if applicable).)
+        #TODO: Traditionally the steps per epoch is calculated has train_length // batch size
+        history = model.fit(x = trainingSet, epochs = self.numEpochs, steps_per_epoch = 50,
+                        callbacks = [bestModel, patienceCallBack], validation_data = validationSet)
+        #TODO: use_multiprocessing = self.nThreads inside of fit args 
+    
+        return 
+
+    #--------------- Program Execution Function ----------------
+
+    #TODO: write function definition?
     def run(self):
 
-        #--------------- Initial comprobations and settings ----------------
-        
-        ## If no specific GPUs are requested all available GPUs will be used
-        if self.checkParam("--gpus"):
-            os.environ["CUDA_VISIBLE_DEVICES"] = int(self.getParam("--gpus"))
-
-        #--------------- Function definitions ----------------
-        
-        #TODO: Write function definition
-        # stores in memory the information contained in the images files
-        def readFileInfo(fnImages, isCorrect):
-
-            if isCorrect:
-                value = 1
-
-            else:
-                value = 0
-                
-            xDim, _, _, _, _ = xmippLib.MetaDataInfo(fnImages)
-            mdAux = xmippLib.MetaData(fnImages)
-            fnImgs = mdAux.getColumnValues(xmippLib.MDL_IMAGE_RESIDUAL)
-            labels = [value] * len(fnImgs)
-
-            final = []
-
-            for img, lbl in zip(fnImgs,labels):
-
-                aux = (img,lbl)
-                final.append(aux)
-
-            #TODO: evaluate returning a tuple/list of fnImgs + labels (CHECK?)
-            return xDim, final
-        
-
-        #TODO: Write function definition
-        def conv_block(tensor, filters):
-            # Convolutional block of RESNET
-            x = Conv2D(filters, (3, 3), padding='same', strides=(2, 2))(tensor)
-            x = BatchNormalization(axis=3)(x)
-            x = Activation('relu')(x)
-
-            x = Conv2D(filters, (3, 3), padding='same')(x)
-            x = BatchNormalization(axis=3)(x)
-
-            x_res = Conv2D(filters, (1, 1), strides=(2, 2))(tensor)
-
-            x = Add()([x, x_res])
-            x = Activation('relu')(x)
-            return x
-
-        #TODO: Write function definition
-        #TODO: Keep in mind Model (inputs, feature)
-        def constructModel(Xdim):
-            #RESNET architecture
-
-            inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
-
-            x = conv_block(inputLayer, filters=64)
-
-            x = conv_block(x, filters=128)
-
-            x = conv_block(x, filters=256)
-
-            x = conv_block(x, filters=512)
-
-            x = conv_block(x, filters=1024)
-
-            x = GlobalAveragePooling2D()(x)
-
-            #x = Flatten()(x)
-
-            x = Dense(1, name="output", activation="linear")(x)
-
-            return Model(inputLayer, x)
-
-        #TODO: Write function definition
-        #TODO: Return?
-        def performTrain(self, trainData, numEpochs, learningRate, patience, batchSize):
-
-            self.lenTrain = int(len(trainData)*0.8)
-
-            randomizedIds = np.random.choice(len(trainData), len(trainData), replace = False)
-            npyTrainData = np.array(trainData)
-            randomizedNpData = npyTrainData[randomizedIds]
-            self.randomizedData = randomizedNpData.tolist()
-
-            #TODO: properly understand shapes
-            #trainingSet = tf.data.Dataset.from_generator(manageTrain, output_signature = tf.TensorSpec((None,None), dtype = tf.variant))
-            trainingSet = tf.data.Dataset.from_generator(self.manageTrain, output_signature = (tf.TensorSpec((self.xDim, self.xDim, 1), dtype =tf.float32), tf.TensorSpec((), dtype=tf.int32)))
-            '''
-            print("TraininSet 1")
-            print(trainingSet)
-            '''
-            trainingSet = trainingSet.batch(batchSize, drop_remainder = False)
-            '''
-            print("TrainingSet 2")
-            print(trainingSet)
-            '''
-            validationSet = tf.data.Dataset.from_generator(self.manageVal, output_signature = (tf.TensorSpec((self.xDim, self.xDim, 1), dtype =tf.float32), tf.TensorSpec((), dtype=tf.int32)))
-            validationSet = validationSet.batch(batchSize, drop_remainder = False)
-
-            '''
-            img = np.reshape(xmippLib.Image(f"000245@Runs/015053_XmippProtWrongAssignCheckTrain/extra/residualsokSubset.mrcs").getData(), (self.xDim, self.xDim, 1))
-            a = (img - np.mean(img)) / np.std(img)
-            '''
-
-            ## Checking if a pretrained model will be used and if the corresponding file has been given
-            if self.checkParam("--pretrained") and self.checkParam("-f"):
-
-                ## File name where the pre existing model is stored, only used for reading
-                ## The freshly trained model is stored in fnModel
-                fnPreModel = self.getParam("-f")
-                if not os.path.isfile(fnPreModel):
-                    ## If the file doesn't exist the program will be interrupted
-                    print("Model file does not exist inside path")
-                    sys.exit(-1)
-                else:
-                    ## Compile is set to false so the existing data (weights) is properly maintained
-                    model = load_model(fnPreModel, compile=False)
-            else:
-            ## A new model will also be used if no pre exiting file was given despite the "pretrained" flag being present
-                model = constructModel(self.xDim)
-                #TODO: Evaluate other optimizers
-                adam_opt = tf.keras.optimizers.Adam(learning_rate = learningRate)
-                # Configuring the model's metrics
-                model.compile(optimizer=adam_opt, loss='mean_squared_error')
-
-            # prints a string summary of the network
-            model.summary()        
-
-            #TODO: evaluate callbacks
-            #TODO: should I use tensorBoard for documentation?
-            #TODO: check notes on LearningRateScheduler + Cyclical Learning Rate (CLR)
-            '''
-            print("TrainingSet Otra ve buenas tardes")
-            print(trainingSet)
-            '''
-
-            #TODO: Keep in mind the data is overwritten every time a "better" model is found (save_best_only=True) by now it saves the whole model
-            bestModel = ModelCheckpoint(filepath = self.fnOutputModel, monitor='val_loss', save_best_only=True)
-            #TODO: what if the patience is = to epochs or even > ?
-            patienceCallBack = EarlyStopping(monitor='val_loss', patience=patience)
-
-            #TODO: This could be stored in extra for example, just in case
-            #TODO: A History object. Its History.history attribute is a record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values (if applicable).)
-            #TODO: Traditionally the steps per epoch is calculated has train_length // batch size
-            history = model.fit(x=trainingSet, epochs= numEpochs, steps_per_epoch = 50,
-                            callbacks = [bestModel, patienceCallBack], validation_data = validationSet)
-            #TODO: use_multiprocessing = self.nThreads inside of fit args 
-        
-            return 
-
-        #--------------- BASIC INPUT reading ----------------
-
-        ## Xmipp metadata of the residue images ready for inference (file name)
-        fnXmdOk = self.getParam("-c")
-        if not os.path.isfile(fnXmdOk):
-            ## If the file doesn't exist the program will be interrupted
-            print("Positive examples datafile does not exist inside path")
-            sys.exit(-1)
-
-        ## Xmipp metadata of the residue images ready for inference (file name)
-        fnXmdNok = self.getParam("-w")
-        if not os.path.isfile(fnXmdNok):
-            ## If the file doesn't exist the program will be interrupted
-            print("Negative examples datafile does not exist inside path")
-            sys.exit(-1)
-        
-        ## File name where the infernce model is stored either pretrained or from scratch in the program
-        #TODO: check the use of self
-        self.fnOutputModel = self.getParam("-o")
-        '''
-        if not os.path.isfile(self.fnOutputModel):
-            ## If the file doesn't exist the program will be interrupted
-            print("Final model file does not exist inside path")
-            sys.exit(-1)
-        '''
-        #TODO: this param doesn't exist anymore
-        ## File name where the inferece results will be stored at the end
-        #fnOutput = self.getParam("-o")
-        '''
-        if not os.path.isfile(fnOutput):
-            ## If the file doesn't exist the program will be interrupted
-            print("Output file does not exist inside path")
-            sys.exit(-1)
-        '''
-        ## Size of the batches to be used for the nn
-        batchSz = int(self.getParam("-b"))
-        ## Number of epochs for training
-        numEpochs = int(self.getParam("-e"))
-        ## Value to overwrite in the optimizer
-        learnRate = float(self.getParam("-l"))
-        ## Number of epochs with no improvement after which training will be stopped
-        patienceValue = int(self.getParam("-p"))
-
-        #--------------- Executing core ----------------
-
         #TODO: Strategy?
-        #TODO: What happens if one optional parameter is not given but necessary since it depends on others
 
         print("Starting training process")
 
-        self.xDim, trainInfoOk = readFileInfo(fnXmdOk,True)
-        _, trainInfoNok = readFileInfo(fnXmdNok,False)
-
-        trainInfo = trainInfoOk + trainInfoNok
-
-        print(trainInfo[0])
-
         trainingStartTime = time()
-        
-        ## if the batch size is bigger than the data or the user requested no batches (using 0), only one batch is used
-        if batchSz > len(trainInfo) or batchSz == 0: batchSz = len(trainInfo)
+
+        self.ConvertInputs()
         
         #TODO: include saving metrics in file if flag activated
-        #TODO: check parameters/argumens
-        performTrain(self, trainInfo, numEpochs, learnRate, patienceValue, batchSz)
+        self.performTrain()
         
         trainingElapsedTime = time() - trainingStartTime
         print("Time in training model: %0.10f seconds." % trainingElapsedTime)
@@ -351,6 +320,167 @@ if __name__ == '__main__':
     sys.exit(exitCode)
 
 ###############################In#Case#Of#Loss##Original#Code#Ahead######################################################
+
+# Code Extracted from run, turned into individual functions
+'''
+#TODO: Write function definition
+# stores in memory the information contained in the images files
+def readFileInfo(fnImages, isCorrect):
+
+    if isCorrect:
+        value = 1
+
+    else:
+        value = 0
+    
+    xDim, _, _, _, _ = xmippLib.MetaDataInfo(fnImages)
+    mdAux = xmippLib.MetaData(fnImages)
+    fnImgs = mdAux.getColumnValues(xmippLib.MDL_IMAGE_RESIDUAL)
+    labels = [value] * len(fnImgs)
+
+    final = []
+
+    for img, lbl in zip(fnImgs,labels):
+
+        aux = (img,lbl)
+        final.append(aux)
+
+    return xDim, final
+'''
+'''
+#TODO: Write function definition
+def conv_block(tensor, filters):
+    # Convolutional block of RESNET
+    x = Conv2D(filters, (3, 3), padding='same', strides=(2, 2))(tensor)
+    x = BatchNormalization(axis=3)(x)
+    x = Activation('relu')(x)
+
+    x = Conv2D(filters, (3, 3), padding='same')(x)
+    x = BatchNormalization(axis=3)(x)
+
+    x_res = Conv2D(filters, (1, 1), strides=(2, 2))(tensor)
+
+    x = Add()([x, x_res])
+    x = Activation('relu')(x)
+    return x
+
+#TODO: Write function definition
+#TODO: Keep in mind Model (inputs, feature)
+def constructModel(Xdim):
+    #RESNET architecture
+
+    inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
+
+    x = self.conv_block(inputLayer, filters=64)
+
+    x = self.conv_block(x, filters=128)
+
+    x = self.conv_block(x, filters=256)
+
+    x = self.conv_block(x, filters=512)
+
+    x = self.conv_block(x, filters=1024)
+
+    x = GlobalAveragePooling2D()(x)
+
+    x = Dense(1, name="output", activation="linear")(x)
+
+    return Model(inputLayer, x)
+
+
+#TODO: Write function definition
+#TODO: Return? (Probably not, reevaluate once cleaned)
+def performTrain(self, trainData, numEpochs, learningRate, patience, batchSize):
+
+    self.lenTrain = int(len(trainData)*0.8)
+
+    #TODO: is this the best way to do this?
+    randomizedIds = np.random.choice(len(trainData), len(trainData), replace = False)
+    npyTrainData = np.array(trainData)
+    randomizedNpData = npyTrainData[randomizedIds]
+    self.randomizedData = randomizedNpData.tolist()
+
+    #TODO: comments on shapes (TensorSpecs)(proper explanation)
+    trainingSet = tf.data.Dataset.from_generator(self.manageTrain, output_signature = (tf.TensorSpec((self.xDim, self.xDim, 1), dtype =tf.float32), tf.TensorSpec((), dtype=tf.int32)))
+    trainingSet = trainingSet.batch(batchSize, drop_remainder = False)
+
+    validationSet = tf.data.Dataset.from_generator(self.manageVal, output_signature = (tf.TensorSpec((self.xDim, self.xDim, 1), dtype =tf.float32), tf.TensorSpec((), dtype=tf.int32)))
+    validationSet = validationSet.batch(batchSize, drop_remainder = False)
+
+    ## Checking if a pretrained model will be used and if the corresponding file has been given
+    if self.checkParam("--pretrained") and self.checkParam("-f"):
+
+        ## File name where the pre existing model is stored, only used for reading
+        ## The freshly trained model is stored in fnModel
+        fnPreModel = self.getParam("-f")
+        if not os.path.isfile(fnPreModel):
+            ## If the file doesn't exist the program will be interrupted
+            print("Model file does not exist inside path")
+            sys.exit(-1)
+        else:
+            ## Compile is set to false so the existing data (weights) is properly maintained
+            model = load_model(fnPreModel, compile=False)
+    else:
+    ## A new model will also be used if no pre exiting file was given despite the "pretrained" flag being present
+        model = self.constructModel(self.xDim)
+        #TODO: Evaluate other optimizers
+        adam_opt = tf.keras.optimizers.Adam(learning_rate = learningRate)
+        # Configuring the model's metrics
+        model.compile(optimizer=adam_opt, loss='mean_squared_error')
+
+    # prints a string summary of the network
+    model.summary()        
+
+    #TODO: evaluate callbacks
+    #TODO: should I use tensorBoard for documentation?
+    #TODO: check notes on LearningRateScheduler + Cyclical Learning Rate (CLR)
+
+    #TODO: Keep in mind the data is overwritten every time a "better" model is found (save_best_only=True) by now it saves the whole model
+    bestModel = ModelCheckpoint(filepath = self.fnOutputModel, monitor='val_loss', save_best_only=True)
+    #TODO: what if the patience is = to epochs or even > ?
+    patienceCallBack = EarlyStopping(monitor='val_loss', patience=patience)
+
+    #TODO: This could be stored in extra for example, just in case
+    #TODO: A History object. Its History.history attribute is a record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values (if applicable).)
+    #TODO: Traditionally the steps per epoch is calculated has train_length // batch size
+    history = model.fit(x=trainingSet, epochs= numEpochs, steps_per_epoch = 50,
+                    callbacks = [bestModel, patienceCallBack], validation_data = validationSet)
+    #TODO: use_multiprocessing = self.nThreads inside of fit args 
+
+    return 
+'''
+'''
+## Xmipp metadata of the residue images ready for inference (file name)
+fnXmdOk = self.getParam("-c")
+if not os.path.isfile(fnXmdOk):
+    ## If the file doesn't exist the program will be interrupted
+    print("Positive examples datafile does not exist inside path")
+    sys.exit(-1)
+
+## Xmipp metadata of the residue images ready for inference (file name)
+fnXmdNok = self.getParam("-w")
+if not os.path.isfile(fnXmdNok):
+    ## If the file doesn't exist the program will be interrupted
+    print("Negative examples datafile does not exist inside path")
+    sys.exit(-1)
+
+## File name where the infernce model is stored either pretrained or from scratch in the program
+#TODO: check the use of self
+self.fnOutputModel = self.getParam("-o")
+if not os.path.isfile(self.fnOutputModel):
+    ## If the file doesn't exist the program will be interrupted
+    print("Final model file does not exist inside path")
+    sys.exit(-1)
+
+## Size of the batches to be used for the nn
+batchSz = int(self.getParam("-b"))
+## Number of epochs for training
+numEpochs = int(self.getParam("-e"))
+## Value to overwrite in the optimizer
+learnRate = float(self.getParam("-l"))
+## Number of epochs with no improvement after which training will be stopped
+patienceValue = int(self.getParam("-p"))
+'''
 """ #Deprecated use of deprecated library
         # checks if a previously existing model will be used and if the user added the model itself
 if self.checkParam("-t") and self.checkParam("-f"):
