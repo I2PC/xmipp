@@ -49,7 +49,7 @@ from time import time
 from keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 from keras.models import Model
 from keras.layers import Input, Conv2D, BatchNormalization, Dense, concatenate, Activation, GlobalAveragePooling2D, Add
-import keras
+#import keras #TODO: make sure we are not using Keras 3
 from keras.models import load_model
 import tensorflow as tf
 
@@ -71,21 +71,17 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
         ## params to be read
         self.addParamsLine(' -i <fnInferResd> : filename containg the unlabeled residuals (images) to be classified')
         self.addParamsLine(' -m <nnModel> : h5 filename where the model for inference is stored. In case of training, the final model will overwrite any existing data in this file.')
-        self.addParamsLine(' -b <batchSize>: data`s subset size which will be fed to the network')
         self.addParamsLine(' -o <inferOutput> : filename where the inference results will be stored')
+        self.addParamsLine(' -b <batchSize>: data`s subset size which will be fed to the network')
         
         self.addParamsLine(' [ --gpus <gpuId> ]: (optional) GPU ids to employ. Comma separated list. E.g. "0,1". Use -1 for CPU-only computation or -2 to use all devices found in CUDA_VISIBLE_DEVICES')
 
         ## examples
-        self.addExampleLine('xmipp_deep_wrong_assign_check_sc -i path/to/inferenceSet -m path/to/trainingModel -b $BATCH_SIZE -o path/to/outputFile')
+        self.addExampleLine('xmipp_deep_wrong_assign_check_sc -i path/to/inferenceSet -m path/to/pretrainedModel -o path/to/outputFile -b $BATCH_SIZE ')
 
     def run(self):
 
         #--------------- Initial comprobations and settings ----------------
-
-        #TODO: Check if I can leave this like that
-        from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
-        checkIf_tf_keras_installed()
         
         #If no specific GPUs are requested all available GPUs will be used
         if self.checkParam("--gpus"):
@@ -136,6 +132,7 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
 
             #TODO: check the use of self here
 
+            #TODO: evaluate use setColumnValues instead of the loop
             outMd = xmippLib.MetaData(fnInput)
             for i, elem in enumerate(results):
                 
@@ -150,30 +147,28 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
 
         #--------------- BASIC INPUT reading ----------------
 
-        ## xmipp metadata of the residue images ready for inference (file name)
+        ## Xmipp metadata of the residue images ready for inference (file name)
         fnInput = self.getParam("-i")
         if not os.path.isfile(fnInput):
-            ## if the file doesn't exist the program will be interrupted
+            ## If the file doesn't exist the program will be interrupted
             print("Inference datafile does not exist inside path")
             sys.exit(-1)
         
-        #TODO: When is this file created if empty? protocol? (yes, not done yet)
-        ## file name where the infernce model is stored either pretrained or from scratch in the program
+        ## File name where the infernce model is stored either pretrained or from scratch in the program
         fnModel = self.getParam("-m")
         if not os.path.isfile(fnModel):
-            ## if the file doesn't exist the program will be interrupted
+            ## If the file doesn't exist the program will be interrupted
             print(" Final model file does not exist inside path")
             sys.exit(-1)
         
-        #TODO: When is this file created? protocol? (yes, not done yet)
-        ## file name where the inferece results will be stored at the end
+        ## File name where the inferece results will be stored at the end
         fnOutput = self.getParam("-o")
         if not os.path.isfile(fnOutput):
-            ## if the file doesn't exist the program will be interrupted
+            ## If the file doesn't exist the program will be interrupted
             print("Output file does not exist inside path")
             sys.exit(-1)
         
-        ## size of the batches to be used for the nn
+        ## Size of the batches to be used for the nn
         batchSz = int(self.getParam("-b"))
 
         #--------------- Executing core ----------------
@@ -187,7 +182,7 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
 
         model = load_model(fnModel, compile = False)
 
-        ## if the batch size is bigger than the data or the user requested no batches (using 0), only one batch is used
+        ## If the batch size is bigger than the data or the user requested no batches (using 0), only one batch is used
         if batchSz > len(inferFnImgs) or batchSz == 0: batchSz = len(inferFnImgs)
 
         predictions = performInference(inferFnImgs, model, batchSz, xDim)
@@ -195,7 +190,7 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
         inferenceElapsedTime = time() - inferenceStartTime 
         print("Time in infering results: %0.10f seconds." % inferenceElapsedTime)
 
-        saveResults(fnXmdInfer, predictions, fnOutput)
+        saveResults(fnInput, predictions, fnOutput)
 
 
 if __name__ == '__main__':
