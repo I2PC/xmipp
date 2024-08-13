@@ -869,8 +869,7 @@ class BnBgpu:
         if mode == "create_classes":
             print("---Iter %s for creating classes---"%(iter+1))
             if iter < 5:
-                # ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+3, 3)
+                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
             elif iter < 8: 
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
             elif iter < 11: 
