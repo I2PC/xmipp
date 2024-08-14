@@ -32,7 +32,6 @@ import mrcfile
 import numpy as np
 import re
 import scipy as sp
-import astra
 import tigre
 from tigre.utilities.im3Dnorm import im3DNORM
 
@@ -41,7 +40,7 @@ from xmipp_base import XmippScript
 
 
 class TomogramReconstruction(XmippScript):
-    _conda_env="xtomo_tigre_reconstruction" 
+    _conda_env="xtomo_tigre" 
 
     def __init__(self):
 
@@ -358,87 +357,97 @@ class TomogramReconstruction(XmippScript):
         else:
             raise Exception('The selected filter does not exist, please check the --filter flag')
         print(self.filterToApply)
+
+    def getGPUs(self):
+        return str(self.gpuId)
+
     
     def tigreReconstruction(self, ts, tiltAngles):
         import tigre.algorithms as algs
+        from tigre.utilities import gpu
+
+        gpuids = gpu.GpuIds()
+        gpuids.devices = [int(self.getGPUs())]
+
+
         geo = tigre.geometry(mode="parallel", nVoxel=np.array([self.xdim, self.ydim, self.thickness]))
         
         # EXACT ALGORITHMS
         if self.method == 'fbp': 
-            reconstruction = algs.fbp(ts, geo, tiltAngles, filter=self.filterToApply, noneg=False)
+            reconstruction = algs.fbp(ts, geo, tiltAngles, filter=self.filterToApply, noneg=False, gpuids=gpuids)
      
         elif self.method == 'fdk':
-            reconstruction = algs.fdk(ts, geo, tiltAngles, filter=self.filterToApply, noneg=False)
+            reconstruction = algs.fdk(ts, geo, tiltAngles, filter=self.filterToApply, noneg=False, gpuids=gpuids)
         
         # GRADIENT ALGORITHMS
         elif self.method =='sirt':
-            reconstruction = algs.sirt(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, lmbda_red=self.lambdared, verbose=True, noneg=False) #, Quameasopts=self.qualmeas, computel2=True)
+            reconstruction = algs.sirt(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, lmbda_red=self.lambdared, verbose=True, noneg=False, gpuids=gpuids) #, Quameasopts=self.qualmeas, computel2=True)
             
         elif self.method == 'sart':
-            reconstruction = algs.sart(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, lmbda_red=self.lambdared, verbose=True,  noneg=False)#, Quameasopts=self.qualmeas, computel2=True)
+            reconstruction = algs.sart(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, lmbda_red=self.lambdared, verbose=True,  noneg=False, gpuids=gpuids)#, Quameasopts=self.qualmeas, computel2=True)
             
         elif self.method == 'ossart':
-            reconstruction = algs.ossart(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, lmbda_red=self.lambdared, verbose=True,  noneg=False, blocksize=self.blocksize, OrderStrategy=self.order)#, Quameasopts=self.qualmeas, computel2=True)
+            reconstruction = algs.ossart(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, lmbda_red=self.lambdared, verbose=True,  noneg=False, blocksize=self.blocksize, OrderStrategy=self.order, gpuids=gpuids)#, Quameasopts=self.qualmeas, computel2=True)
        
         # KRYLOV ALGORITHMS     
         elif self.method == 'cgls':
-            reconstruction = algs.cgls(ts, geo, tiltAngles, self.iterations, noneg=False)#, computel2=True)
+            reconstruction = algs.cgls(ts, geo, tiltAngles, self.iterations, noneg=False, gpuids=gpuids)#, computel2=True)
             
         elif self.method == 'lsqr':
-            reconstruction = algs.lsqr(ts, geo, tiltAngles, self.iterations,  noneg=False)#, computel2=True)
+            reconstruction = algs.lsqr(ts, geo, tiltAngles, self.iterations,  noneg=False, gpuids=gpuids)#, computel2=True)
             
         elif self.method == 'lsmr':
-            reconstruction = algs.lsmr(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda,  noneg=False)#, computel2=True, 
+            reconstruction = algs.lsmr(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda,  noneg=False, gpuids=gpuids)#, computel2=True, 
             
         elif self.method == 'hybridlsqr':
-            reconstruction = algs.hybrid_lsqr(ts, geo, tiltAngles, self.iterations,  noneg=False)#, computel2=True)
+            reconstruction = algs.hybrid_lsqr(ts, geo, tiltAngles, self.iterations,  noneg=False, gpuids=gpuids)#, computel2=True)
             
         elif self.method == 'abgmres':   
             if self.backprojector is None:
-                reconstruction = algs.ab_gmres(ts, geo, tiltAngles, self.iterations,  noneg=False)#, computel2=True)
+                reconstruction = algs.ab_gmres(ts, geo, tiltAngles, self.iterations,  noneg=False, gpuids=gpuids)#, computel2=True)
             else:
-                reconstruction = algs.ab_gmres(ts, geo, tiltAngles, self.iterations, backprojector="FDK",  noneg=False)#, computel2=True)
+                reconstruction = algs.ab_gmres(ts, geo, tiltAngles, self.iterations, backprojector="FDK",  noneg=False, gpuids=gpuids)#, computel2=True)
             
         elif self.method == 'bagmres':
             if self.backprojector is None:
                 reconstruction = algs.ba_gmres(ts, geo, tiltAngles, self.iterations,  noneg=False)#, computel2=True)
             else:
-                reconstruction = algs.ba_gmres(ts, geo, tiltAngles, self.iterations, backprojector="FDK",  noneg=False)#, computel2=True)
+                reconstruction = algs.ba_gmres(ts, geo, tiltAngles, self.iterations, backprojector="FDK",  noneg=False, gpuids=gpuids)#, computel2=True)
             
         elif self.method == 'asdpocs':
             epsilon = im3DNORM(tigre.Ax(algs.fdk(ts, geo, tiltAngles), geo, tiltAngles) - ts, 2) * 0.15
             reconstruction = algs.asd_pocs(ts, geo, tiltAngles, self.iterations, tviter=self.tviter, maxl2err=epsilon, 
-                                           alpha=self.alpha, lmbda=self.lmbda, lmbda_red=self.lambdared, rmax=self.ratio, verbose=True,  noneg=False)
+                                           alpha=self.alpha, lmbda=self.lmbda, lmbda_red=self.lambdared, rmax=self.ratio, verbose=True,  noneg=False, gpuids=gpuids)
             
         elif self.method == 'osasdpocs':
             epsilon = im3DNORM(tigre.Ax(algs.fdk(ts, geo, tiltAngles), geo, tiltAngles) - ts, 2) * 0.15
             reconstruction = algs.os_asd_pocs(ts, geo, tiltAngles, self.iterations, tviter=self.tviter, maxl2err=epsilon,
                                                alpha=self.alpha, lmbda=self.lmbda, lmbda_red=self.lambdared, rmax=self.ratio, 
-                                               verbose=True, blocksize=self.blocksize,  noneg=False)
+                                               verbose=True, blocksize=self.blocksize,  noneg=False, gpuids=gpuids)
                        
         elif self.method == 'awasdpocs':
             epsilon = im3DNORM(tigre.Ax(algs.fdk(ts, geo, tiltAngles), geo, tiltAngles) - ts, 2) * 0.15
             reconstruction = algs.awasd_pocs(ts, geo, tiltAngles, self.iterations, tviter=self.tviter, maxl2err=epsilon, 
                                              alpha=self.alpha, lmbda=self.lmbda, lmbda_red=self.lambdared, rmax=self.ratio, verbose=True, 
-                                             delta=np.array([-0.005]), noneg=False)
+                                             delta=np.array([-0.005]), noneg=False, gpuids=gpuids)
             
         elif self.method == 'irntvcgls':
-            reconstruction = algs.irn_tv_cgls(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, niter_outer=self.niter_outer, noneg=False)
+            reconstruction = algs.irn_tv_cgls(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, niter_outer=self.niter_outer, noneg=False, gpuids=gpuids)
         
         elif self.method == 'fista':
-            reconstruction = algs.fista(ts, geo, tiltAngles, self.iterations, tviter=self.tviter, tvlambda=self.tvlambda, noneg=False)
+            reconstruction = algs.fista(ts, geo, tiltAngles, self.iterations, tviter=self.tviter, tvlambda=self.tvlambda, noneg=False, gpuids=gpuids)
             
         elif self.method == 'sarttv':
-            reconstruction = algs.sart_tv(ts, geo, tiltAngles, self.iterations, tvlambda=self.tvlambda, tviter=self.tviter, noneg=False)
+            reconstruction = algs.sart_tv(ts, geo, tiltAngles, self.iterations, tvlambda=self.tvlambda, tviter=self.tviter, noneg=False, gpuids=gpuids)
             
         elif self.method == 'mlem':
-            reconstruction = algs.mlem(ts, geo, tiltAngles, self.iterations, noneg=False)
+            reconstruction = algs.mlem(ts, geo, tiltAngles, self.iterations, noneg=False, gpuids=gpuids)
         
         elif self.method == 'pcsd':
-            reconstruction = algs.pscd(ts, geo, tiltAngles, self.iterations, noneg=False)
+            reconstruction = algs.pcsd(ts, geo, tiltAngles, self.iterations, noneg=False, gpuids=gpuids)
             
         elif self.method == 'awpcsd':
-            reconstruction = algs.awpscd(ts, geo, tiltAngles, self.iterations, noneg=False)
+            reconstruction = algs.aw_pcsd(ts, geo, tiltAngles, self.iterations, noneg=False, gpuids=gpuids)
             
         else:
             raise  Exception('The selected reconstruction method does not exist, check the --method flag')

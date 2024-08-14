@@ -31,7 +31,7 @@
 #include <data/fourier_filter.h>
 #include <random>
 #include <limits>
-#include <CTPL/ctpl_stl.h>
+#include <ctpl_stl.h>
 
 void ProgFSO::defineParams()
 {
