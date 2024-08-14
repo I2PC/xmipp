@@ -865,7 +865,6 @@ class BnBgpu:
         maxShift = round( (dim * 15)/100 )
         # maxShift = round( (dim * 10)/100 )
         maxShift = (maxShift//4)*4
-        maxShift = 20
         
         if mode == "create_classes":
             print("---Iter %s for creating classes---"%(iter+1))
