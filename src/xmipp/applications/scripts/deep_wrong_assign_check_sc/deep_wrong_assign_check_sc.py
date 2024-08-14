@@ -31,7 +31,7 @@
 #TODO: Check if function names follow convention
 #TODO: Eliminate library once the new generators are completed
 
-#TODO: Should I use more self.stuff?
+#TODO: Should I use more self.stuff? (YES)
 
 #TODO: eventually evaluate if test set is also going to be used Proposal (80%, 10% 10%)
 #TODO: eventually evaluate the use of ensembles (add index to the model's fn name in bestModel)
@@ -46,12 +46,11 @@ import xmippLib
 from xmipp_base import XmippScript
 from time import time
 
-from keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
-from keras.models import Model
-from keras.layers import Input, Conv2D, BatchNormalization, Dense, concatenate, Activation, GlobalAveragePooling2D, Add
-#import keras #TODO: make sure we are not using Keras 3
-from keras.models import load_model
+#TODO: Is any callback necessary?
+#TODO: make sure we are not using Keras 3
 import tensorflow as tf
+from tensorflow.keras.models import load_model
+
 
 class ScriptDeepWrongAssignCheckScore(XmippScript):
     
@@ -79,121 +78,216 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
         ## examples
         self.addExampleLine('xmipp_deep_wrong_assign_check_sc -i path/to/inferenceSet -m path/to/pretrainedModel -o path/to/outputFile -b $BATCH_SIZE ')
 
-    def run(self):
-
-        #--------------- Initial comprobations and settings ----------------
-        
-        #If no specific GPUs are requested all available GPUs will be used
-        if self.checkParam("--gpus"):
-            os.environ["CUDA_VISIBLE_DEVICES"] = int(self.getParam("--gpus"))
-
-        #--------------- Function definitions ----------------
-        
-        #TODO: Write function definition
-        # stores in memory the information contained in the images files
-        def readFileInfo(fnImages):
-
-            xDim, _, _, _, _ = xmippLib.MetaDataInfo(fnImages)
-            mdAux = xmippLib.MetaData(fnImages)
-            fnImgs = mdAux.getColumnValues(xmippLib.MDL_IMAGE)
-        
-            return xDim, fnImgs
-            
-        #TODO: Write function definition
-        def getImage(fnImg, dim):
-
-            img = np.reshape(xmippLib.Image(fnImg).getData(), (dim, dim, 1))
-            return (img - np.mean(img)) / np.std(img)
-
-        #TODO: Write function definition
-        def manageData(data,dim):
-            
-            for elem in data:
-                yield getImage(elem,dim)
-        
-        #TODO: Write function definition + check general comments
-        def performInference(inferData, model, batchSize, xDims):
-            
-            inferenceSet = tf.data.Dataset.from_generator(manageData(inferData,None,xDims),tf.TensorSpec(shape = (), dtype = tf.variant))
-            inferenceSet = inferenceSet.batch(batchSize, drop_reminder = False)
-            
-            ## Returns a numPy array of predictions
-            ## if a value is 0.85, it means the model is 85% confident that the sample belongs to class 1 
-            ## Values around 0.5 indicate uncertainty or low confidence in the prediction, suggesting the sample could belong to either class
-            predictions = model.predict(x = inferenceSet)
-
-            ## Code to round into binary classes in case is needed (0.5 is upper int)
-            ## classPred = [round(x[0]) for x in predictions]
-
-            return predictions
-        
-        #TODO: Write function definition
-        def saveResults(fnInput, results, fnOutput):
-
-            #TODO: check the use of self here
-
-            #TODO: evaluate use setColumnValues instead of the loop
-            outMd = xmippLib.MetaData(fnInput)
-            for i, elem in enumerate(results):
-                
-                #TODO: Create label in core code + bindings (keep in mind recompile Xmipp)
-                ## Keep in mind that XMD files start indexing in 1, therefore "i+1" to make them coincide
-                outMd.setValue(xmippLib.MDL_CLASS_PROBABILITY, float(elem), i+1)
-
-            outMd.write(fnOutput)
-            print("Written predictions to " + fnOutput)
-
-            return
-
-        #--------------- BASIC INPUT reading ----------------
+    #TODO: write function definition
+    def convertInputs(self):
 
         ## Xmipp metadata of the residue images ready for inference (file name)
-        fnInput = self.getParam("-i")
-        if not os.path.isfile(fnInput):
+        self.fnInput = self.getParam("-i")
+        if not os.path.isfile(self.fnInput):
             ## If the file doesn't exist the program will be interrupted
             print("Inference datafile does not exist inside path")
             sys.exit(-1)
+
+        self.xDim, _, _, _, _ = xmippLib.MetaDataInfo(self.fnInput)
+
+        self.inferFnImgs = self.readFileInfo(self.fnInput)
         
         ## File name where the infernce model is stored either pretrained or from scratch in the program
-        fnModel = self.getParam("-m")
-        if not os.path.isfile(fnModel):
+        self.fnModel = self.getParam("-m")
+        if not os.path.isfile(self.fnModel):
             ## If the file doesn't exist the program will be interrupted
             print(" Final model file does not exist inside path")
             sys.exit(-1)
         
         ## File name where the inferece results will be stored at the end
-        fnOutput = self.getParam("-o")
-        if not os.path.isfile(fnOutput):
+        self.fnOutput = self.getParam("-o")
+        if not os.path.isfile(self.fnOutput):
             ## If the file doesn't exist the program will be interrupted
             print("Output file does not exist inside path")
             sys.exit(-1)
         
+        #TODO: Keep in mind the name changed, check the rest of the code
         ## Size of the batches to be used for the nn
-        batchSz = int(self.getParam("-b"))
+        self.batchSize = int(self.getParam("-b"))
 
-        #--------------- Executing core ----------------
+        ## If the batch size is bigger than the data or the user requested no batches (using 0), only one batch is used
+        if self.batchSize > len(self.inferFnImgs) or self.batchSize == 0: self.batchSize = len(self.inferFnImgs)
+
+        #If no specific GPUs are requested all available GPUs will be used
+        if self.checkParam("--gpus"):
+            os.environ["CUDA_VISIBLE_DEVICES"] = int(self.getParam("--gpus"))
+
+    #TODO: Write function definition
+    def readFileInfo(self,fnImages):
+
+        mdAux = xmippLib.MetaData(fnImages)
+        fnImgs = mdAux.getColumnValues(xmippLib.MDL_IMAGE)
+    
+        return fnImgs
+    
+    #TODO: Write function definition
+    def getImage(self, fnImg):
+
+        img = np.reshape(xmippLib.Image(fnImg).getData(), (self.xDim, self.xDim, 1))
+        return (img - np.mean(img)) / np.std(img)
+
+    #--------------- Neural Network Generators ----------------
+
+    #TODO: Write function definition
+    def manageData(self):
+        
+        for elem in self.inferFnImgs:
+
+            yield self.getImage(elem)
+
+    #--------------- Scoring function ----------------
+
+    #TODO: Write function definition + check general comments
+    def performInference(self):
+        
+        #TODO: evaluate use of tensorSpec
+        inferenceSet = tf.data.Dataset.from_generator(self.manageData(),tf.TensorSpec(shape = (), dtype = tf.variant))
+        inferenceSet = inferenceSet.batch(self.batchSize, drop_reminder = False)
+
+        model = load_model(self.fnModel, compile = False)
+        
+        ## Returns a numPy array of predictions
+        ## if a value is 0.85, it means the model is 85% confident that the sample belongs to class 1 
+        ## Values around 0.5 indicate uncertainty or low confidence in the prediction, suggesting the sample could belong to either class
+        predictions = model.predict(x = inferenceSet)
+
+        ## Code to round into binary classes in case is needed (0.5 is upper int)
+        ## classPred = [round(x[0]) for x in predictions]
+
+        return predictions
+    
+    #--------------- Output preparation function ----------------
+
+    #TODO: Write function definition
+    def saveResults(self):
+
+        #TODO: check the use of self here
+
+        #TODO: evaluate use setColumnValues instead of the loop
+        outMd = xmippLib.MetaData(self.fnInput)
+        for i, elem in enumerate(self.predictions):
+            
+            #TODO: Create label in core code + bindings (keep in mind recompile Xmipp)
+            ## Keep in mind that XMD files start indexing in 1, therefore "i+1" to make them coincide
+            outMd.setValue(xmippLib.MDL_CLASS_PROBABILITY, float(elem), i+1)
+
+        outMd.write(self.fnOutput)
+        print("Written predictions to " + self.fnOutput)
+    
+    #--------------- Program Execution Function ----------------
+
+    def run(self):
         
         #TODO: Strategy?
 
         print("Starting inference")
 
-        xDim, inferFnImgs = readFileInfo(fnInput)
         inferenceStartTime = time()
 
-        model = load_model(fnModel, compile = False)
-
-        ## If the batch size is bigger than the data or the user requested no batches (using 0), only one batch is used
-        if batchSz > len(inferFnImgs) or batchSz == 0: batchSz = len(inferFnImgs)
-
-        predictions = performInference(inferFnImgs, model, batchSz, xDim)
+        self.convertInputs()
+        self.predictions = self.performInference()
         
         inferenceElapsedTime = time() - inferenceStartTime 
         print("Time in infering results: %0.10f seconds." % inferenceElapsedTime)
 
-        saveResults(fnInput, predictions, fnOutput)
+        self.saveResults()
 
 
 if __name__ == '__main__':
     exitCode = ScriptDeepWrongAssignCheckScore().tryRun()
     sys.exit(exitCode)
 
+###############################Old#Code#Saved#In#Case#Of#Loss#######################################################
+
+'''
+#If no specific GPUs are requested all available GPUs will be used
+if self.checkParam("--gpus"):
+    os.environ["CUDA_VISIBLE_DEVICES"] = int(self.getParam("--gpus"))
+'''
+'''
+#TODO: Write function definition
+# stores in memory the information contained in the images files
+def readFileInfo(fnImages):
+
+    xDim, _, _, _, _ = xmippLib.MetaDataInfo(fnImages)
+    mdAux = xmippLib.MetaData(fnImages)
+    fnImgs = mdAux.getColumnValues(xmippLib.MDL_IMAGE)
+
+    return xDim, fnImgs
+
+#TODO: Write function definition
+def getImage(fnImg, dim):
+
+    img = np.reshape(xmippLib.Image(fnImg).getData(), (dim, dim, 1))
+    return (img - np.mean(img)) / np.std(img)
+
+#TODO: Write function definition
+def manageData(data,dim):
+    
+    for elem in data:
+        yield self.getImage(elem,dim)
+
+#TODO: Write function definition + check general comments
+def performInference(self, inferData, model, batchSize, xDims):
+    
+    inferenceSet = tf.data.Dataset.from_generator(self.manageData(inferData,None,xDims),tf.TensorSpec(shape = (), dtype = tf.variant))
+    inferenceSet = inferenceSet.batch(batchSize, drop_reminder = False)
+    
+    ## Returns a numPy array of predictions
+    ## if a value is 0.85, it means the model is 85% confident that the sample belongs to class 1 
+    ## Values around 0.5 indicate uncertainty or low confidence in the prediction, suggesting the sample could belong to either class
+    predictions = model.predict(x = inferenceSet)
+
+    ## Code to round into binary classes in case is needed (0.5 is upper int)
+    ## classPred = [round(x[0]) for x in predictions]
+
+    return predictions
+
+#TODO: Write function definition
+def saveResults(fnInput, results, fnOutput):
+
+    #TODO: check the use of self here
+
+    #TODO: evaluate use setColumnValues instead of the loop
+    outMd = xmippLib.MetaData(fnInput)
+    for i, elem in enumerate(results):
+        
+        #TODO: Create label in core code + bindings (keep in mind recompile Xmipp)
+        ## Keep in mind that XMD files start indexing in 1, therefore "i+1" to make them coincide
+        outMd.setValue(xmippLib.MDL_CLASS_PROBABILITY, float(elem), i+1)
+
+    outMd.write(fnOutput)
+    print("Written predictions to " + fnOutput)
+
+    return
+'''
+'''
+## Xmipp metadata of the residue images ready for inference (file name)
+fnInput = self.getParam("-i")
+if not os.path.isfile(fnInput):
+    ## If the file doesn't exist the program will be interrupted
+    print("Inference datafile does not exist inside path")
+    sys.exit(-1)
+
+## File name where the infernce model is stored either pretrained or from scratch in the program
+fnModel = self.getParam("-m")
+if not os.path.isfile(fnModel):
+    ## If the file doesn't exist the program will be interrupted
+    print(" Final model file does not exist inside path")
+    sys.exit(-1)
+
+## File name where the inferece results will be stored at the end
+fnOutput = self.getParam("-o")
+if not os.path.isfile(fnOutput):
+    ## If the file doesn't exist the program will be interrupted
+    print("Output file does not exist inside path")
+    sys.exit(-1)
+
+## Size of the batches to be used for the nn
+batchSz = int(self.getParam("-b"))
+'''

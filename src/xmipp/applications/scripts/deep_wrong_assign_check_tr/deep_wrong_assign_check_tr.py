@@ -31,8 +31,6 @@
 #TODO: Check if function names follow convention
 #TODO: Eliminate library once the new generators are completed
 
-#TODO: Should I use more self.stuff? (YES)
-
 #TODO: eventually evaluate if test set is also going to be used Proposal (80%, 10% 10%)
 #TODO: eventually evaluate the use of ensembles (add index to the model's fn name in bestModel)
 #TODO: Evaluate if TensorBoard could be used to save info in a specific file
@@ -50,12 +48,13 @@ import tensorflow as tf
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.layers import Input, Conv2D, BatchNormalization, Dense, concatenate, Activation, GlobalAveragePooling2D, Add, Flatten
-#import keras #TODO: Make sure we are not using any Keras 3 functionality
+#TODO: Make sure we are not using any Keras 3 functionality
 
 class ScriptDeepWrongAssignCheckTrain(XmippScript):
     
     conda_env="xmipp_DLTK_v1.0" 
 
+    #TODO: delete this once debugging is completed
     print(tf. __version__)
     
     #TODO: Evaluate if anything else is necessary
@@ -94,7 +93,7 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         self.addExampleLine('deep_wrong_assign_check_tr -c path/to/correctResiduals -w path/to/wrongResiduals -o path/to/outputModel.h5 -b $BATCH_SIZE')
 
     #TODO: Write function definition
-    def ConvertInputs(self):
+    def convertInputs(self):
 
         ## Xmipp metadata filename containing the positive residues examples info (including references to images)
         self.fnXmdPos = self.getParam("-c")
@@ -120,17 +119,35 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         
         ## Filename where the best model will be stored after training
         self.fnOutputModel = self.getParam("-o")
+        '''
         if not os.path.isfile(self.fnOutputModel):
             ## If the file doesn't exist the program will be interrupted
             print("Final model file does not exist inside path")
             sys.exit(-1)
-
+        '''
         ## Size of the batches to be used for the nn
         self.batchSize = int(self.getParam("-b"))
 
         #TODO: Evaluate changing batch size default (Either keeping a single big bacth or each batch has one piece of info)
         ## If the batch size is bigger than the data or the user requested no batches (using 0), only one batch is used
         if self.batchSize > len(self.trainInfo) or self.batchSize == 0: self.batchSize = len(self.trainInfo)
+
+        #TODO: Check comments for this section
+        ## Checking if a pretrained model will be used and if the corresponding file has been given
+        if self.checkParam("--pretrained") and self.checkParam("-f"):
+
+            ## File name where the pre existing model is stored, only used for reading
+            ## The freshly trained model is stored in fnModel
+            self.fnPreModel = self.getParam("-f")
+            if not os.path.isfile(self.fnPreModel):
+                ## If the file doesn't exist the program will be interrupted
+                print("Model file does not exist inside path")
+                sys.exit(-1)
+
+            self.isPretrained = True
+        else:
+            ## A new model will also be used if no pre exiting file was given despite the "pretrained" flag being present
+            self.isPretrained = False   
 
         ## Number of epochs for training
         self.numEpochs = int(self.getParam("-e"))
@@ -253,22 +270,13 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
 
         validationSet = tf.data.Dataset.from_generator(self.manageVal, output_signature = (tf.TensorSpec((self.xDim, self.xDim, 1), dtype =tf.float32), tf.TensorSpec((), dtype=tf.int32)))
         validationSet = validationSet.batch(self.batchSize, drop_remainder = False)
+    
+        if self.isPretrained:
 
-        ## Checking if a pretrained model will be used and if the corresponding file has been given
-        if self.checkParam("--pretrained") and self.checkParam("-f"):
-
-            ## File name where the pre existing model is stored, only used for reading
-            ## The freshly trained model is stored in fnModel
-            fnPreModel = self.getParam("-f")
-            if not os.path.isfile(fnPreModel):
-                ## If the file doesn't exist the program will be interrupted
-                print("Model file does not exist inside path")
-                sys.exit(-1)
-            else:
-                ## Compile is set to false so the existing data (weights) is properly maintained
-                model = load_model(fnPreModel, compile=False)
+            model = load_model(self.fnPreModel)
+            
         else:
-        ## A new model will also be used if no pre exiting file was given despite the "pretrained" flag being present
+        
             model = self.constructModel()
             #TODO: Evaluate other optimizers
             adam_opt = tf.keras.optimizers.Adam(learning_rate = self.learningRate)
@@ -290,7 +298,7 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         #TODO: This could be stored in extra for example, just in case
         #TODO: A History object. Its History.history attribute is a record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values (if applicable).)
         #TODO: Traditionally the steps per epoch is calculated has train_length // batch size
-        history = model.fit(x = trainingSet, epochs = self.numEpochs, steps_per_epoch = 50,
+        history = model.fit(x = trainingSet, epochs = self.numEpochs,
                         callbacks = [bestModel, patienceCallBack], validation_data = validationSet)
         #TODO: use_multiprocessing = self.nThreads inside of fit args 
     
@@ -307,7 +315,7 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
 
         trainingStartTime = time()
 
-        self.ConvertInputs()
+        self.convertInputs()
         
         #TODO: include saving metrics in file if flag activated
         self.performTrain()
