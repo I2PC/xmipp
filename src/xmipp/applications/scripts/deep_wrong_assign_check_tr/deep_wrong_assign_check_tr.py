@@ -84,6 +84,9 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         #TODO: modify this value (adaptative?)
         self.addParamsLine(' [ -p <patience=5> ]: (optional) number of epochs with no improvement after which training will be stopped.')
 
+        #TODO: What should be the default behavior? (keep in mind any changes in the othe program)
+        self.addParamsLine(' [ -t <nThreads=1> ]: (optional) number of threads to use in multiprocessing.')
+
         #TODO: make sure help text reflects reality
         self.addParamsLine(' [ --gpus <gpuId> ]: (optional) GPU ids to employ. Comma separated list. E.g. "0,1". Use -1 for CPU-only computation or -2 to use all devices found in CUDA_VISIBLE_DEVICES.')
 
@@ -155,6 +158,9 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         self.learningRate = float(self.getParam("-l"))
         ## Number of epochs with no improvement after which training will be stopped
         self.patience = int(self.getParam("-p"))
+
+        ## Number of threads to be used in multiprocessing
+        self.nThreads = int(self.getParam("-t"))
 
         ## If no specific GPUs are requested all available GPUs will be used
         if self.checkParam("--gpus"):
@@ -270,21 +276,27 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
 
         validationSet = tf.data.Dataset.from_generator(self.manageVal, output_signature = (tf.TensorSpec((self.xDim, self.xDim, 1), dtype =tf.float32), tf.TensorSpec((), dtype=tf.int32)))
         validationSet = validationSet.batch(self.batchSize, drop_remainder = False)
-    
-        if self.isPretrained:
 
-            model = load_model(self.fnPreModel)
+        #TODO: Explain what this is (should I include this line elsewhere?)
+        #TODO: Evaluate if there is a way to use strategy in the scoring program
+        strategy = tf.distribute.MirroredStrategy()
+
+        with strategy.scope():
+
+            if self.isPretrained:
+                
+                model = load_model(self.fnPreModel)
+                
+            else:
             
-        else:
-        
-            model = self.constructModel()
-            #TODO: Evaluate other optimizers
-            adam_opt = tf.keras.optimizers.Adam(learning_rate = self.learningRate)
-            # Configuring the model's metrics
-            model.compile(optimizer=adam_opt, loss='mean_squared_error')
+                model = self.constructModel()
+                #TODO: Evaluate other optimizers
+                adam_opt = tf.keras.optimizers.Adam(learning_rate = self.learningRate)
+                # Configuring the model's metrics
+                model.compile(optimizer=adam_opt, loss='mean_squared_error')
 
         # prints a string summary of the network
-        model.summary()        
+        #model.summary()        
 
         #TODO: evaluate callbacks
         #TODO: should I use tensorBoard for documentation?
@@ -298,9 +310,11 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         #TODO: This could be stored in extra for example, just in case
         #TODO: A History object. Its History.history attribute is a record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values (if applicable).)
         #TODO: Traditionally the steps per epoch is calculated has train_length // batch size
-        history = model.fit(x = trainingSet, epochs = self.numEpochs,
-                        callbacks = [bestModel, patienceCallBack], validation_data = validationSet)
-        #TODO: use_multiprocessing = self.nThreads inside of fit args 
+        history = model.fit(x = trainingSet, epochs = self.numEpochs, verbose = 0,
+                        callbacks = [bestModel, patienceCallBack], validation_data = validationSet, workers = self.nThreads, use_multiprocessing = True)
+        #TODO: can I use "use_multiprocessing" even when the workers are only 1? Should I check if the user enters 0 threads?
+
+        print(history.history)
     
         return 
 

@@ -73,6 +73,9 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
         self.addParamsLine(' -o <inferOutput> : filename where the inference results will be stored')
         self.addParamsLine(' -b <batchSize>: data`s subset size which will be fed to the network')
         
+        #TODO: What should be the default behavior? (keep in mind any changes in the othe program)
+        self.addParamsLine(' [ -t <nThreads=1> ]: (optional) number of threads to use in multiprocessing.')
+
         self.addParamsLine(' [ --gpus <gpuId> ]: (optional) GPU ids to employ. Comma separated list. E.g. "0,1". Use -1 for CPU-only computation or -2 to use all devices found in CUDA_VISIBLE_DEVICES')
 
         ## examples
@@ -112,6 +115,10 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
 
         ## If the batch size is bigger than the data or the user requested no batches (using 0), only one batch is used
         if self.batchSize > len(self.inferFnImgs) or self.batchSize == 0: self.batchSize = len(self.inferFnImgs)
+
+        ## Number of threads to be used in multiprocessing
+        self.nThreads = int(self.getParam("-t"))
+
 
         #If no specific GPUs are requested all available GPUs will be used
         if self.checkParam("--gpus"):
@@ -154,7 +161,7 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
         ## Returns a numPy array of predictions
         ## if a value is 0.85, it means the model is 85% confident that the sample belongs to class 1 
         ## Values around 0.5 indicate uncertainty or low confidence in the prediction, suggesting the sample could belong to either class
-        predictions = model.predict(x = inferenceSet)
+        predictions = model.predict(x = inferenceSet, workers = self.nThreads, use_multiprocessing = True)
 
         ## Code to round into binary classes in case is needed (0.5 is upper int)
         ## classPred = [round(x[0]) for x in predictions]
@@ -172,6 +179,7 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
         outMd = xmippLib.MetaData(self.fnInput)
         for i, elem in enumerate(self.predictions):
             
+            #TODO: Evaluate changing label name into something similar to score
             #TODO: Create label in core code + bindings (keep in mind recompile Xmipp)
             ## Keep in mind that XMD files start indexing in 1, therefore "i+1" to make them coincide
             outMd.setValue(xmippLib.MDL_CLASS_PROBABILITY, float(elem), i+1)
