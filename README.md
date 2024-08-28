@@ -56,6 +56,8 @@ Compile Xmipp
 Refer to `./xmipp --help` for additional info on the compilation process and possible customizations.
 
 #### Integrating with Visual Studio Code
+The CMake based installation script can be tightly integrated with any modern IDE. This section shows the procedure for Visual Studio Code (VSCode).
+
 Before starting with the configuration process open a terminal and run the following commands. Anotate their outputs.
 - `conda activate scipion3 && echo $CONDA_PREFIX`
 - `scipion3 printenv | grep SCIPION_SOFTWARE`
