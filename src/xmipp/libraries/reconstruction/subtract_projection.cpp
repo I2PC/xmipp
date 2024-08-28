@@ -286,7 +286,9 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 	return R2;
 }
 
- void ProgSubtractProjection::preProcess() {
+
+// ------------------------------------------------	MAIN METHODS
+void ProgSubtractProjection::preProcess() {
 	// Read input volume, mask and particles metadata
 	show();
 	V.read(fnVolR);
@@ -412,47 +414,57 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	}
 	A1(1,0) = A1(0,1);
 
-	// Compute beta00 from order 0 model
-	double beta00 = num0.sum()/den0.sum();
-	if (nonNegative && beta00 < 0) 
-	{
-		disable = true;
-	}
-	// Apply adjustment order 0: PFourier0 = T(w) * PFourier = beta00 * PFourier
-	PFourier0 = PFourier;
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier0) 
-		DIRECT_MULTIDIM_ELEM(PFourier0,n) *= beta00; 
-	PFourier0(0,0) = IiMFourier(0,0); 
+	std::cout << "FEDE ESTUVO AQUI!!!!!!! <3<3<3" << std::endl;
+	double beta0save = 1;
+	double beta1save = 0;	
+	double beta00 = 1;
+	double beta01 = 0;	
+	double beta1 = 0;	
+	Matrix1D<double> R2adj(2);
+	R2adj(0) = 0;
+	R2adj(1) = 0;	
 
-	// Compute beta01 and beta1 from order 1 model
-	PseudoInverseHelper h;
-	h.A = A1;
-	h.b = b1;
-	Matrix1D<double> betas1;
-	solveLinearSystem(h,betas1); 
-	double beta01 = betas1(0);
-	double beta1 = betas1(1);
+	// // Compute beta00 from order 0 model
+	// double beta00 = num0.sum()/den0.sum();
+	// if (nonNegative && beta00 < 0) 
+	// {
+	// 	disable = true;
+	// }
+	// // Apply adjustment order 0: PFourier0 = T(w) * PFourier = beta00 * PFourier
+	// PFourier0 = PFourier;
+	// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier0) 
+	// 	DIRECT_MULTIDIM_ELEM(PFourier0,n) *= beta00; 
+	// PFourier0(0,0) = IiMFourier(0,0); 
 
-	// Apply adjustment order 1: PFourier1 = T(w) * PFourier = (beta01 + beta1*w) * PFourier
-	PFourier1 = PFourier;
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier1)
-		DIRECT_MULTIDIM_ELEM(PFourier1,n) *= (beta01+beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
-	PFourier1(0,0) = IiMFourier(0,0); 
+	// // Compute beta01 and beta1 from order 1 model
+	// PseudoInverseHelper h;
+	// h.A = A1;
+	// h.b = b1;
+	// Matrix1D<double> betas1;
+	// solveLinearSystem(h,betas1); 
+	// double beta01 = betas1(0);
+	// double beta1 = betas1(1);
 
-	// Check best model
-	Matrix1D<double> R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier);
-	double beta0save;
-	double beta1save;		
-	if (R2adj(1) == 0)
-	{
-		beta0save = beta00;
-		beta1save = 0;
-	}
-	else
-	{
-		beta0save = beta01;
-		beta1save = beta1;
-	}
+	// // Apply adjustment order 1: PFourier1 = T(w) * PFourier = (beta01 + beta1*w) * PFourier
+	// PFourier1 = PFourier;
+	// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier1)
+	// 	DIRECT_MULTIDIM_ELEM(PFourier1,n) *= (beta01+beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
+	// PFourier1(0,0) = IiMFourier(0,0); 
+
+	// // Check best model
+	// Matrix1D<double> R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier);
+	// double beta0save;
+	// double beta1save;		
+	// if (R2adj(1) == 0)
+	// {
+	// 	beta0save = beta00;
+	// 	beta1save = 0;
+	// }
+	// else
+	// {
+	// 	beta0save = beta01;
+	// 	beta1save = beta1;
+	// }
 
 	// Create empty new image for output particle
 	MultidimArray<double> &mIdiff=Idiff();
