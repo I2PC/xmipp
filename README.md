@@ -27,6 +27,7 @@ By default this will employ all CPU cores available in the system for compilatio
 The former method also installs dependencies (including the compiler) though conda. If you prefer to use externally installed dependencies and avoid downloading them from conda use
 
 `scipion3 installp -p scipion-em-xmipp --noBin`
+
 `scipion3 installb xmippSrc`
 
 Mind that for this command to succeed, all dependencies need to be pre-installed and findable by Xmipp. When using non-standard install directories, this needs to be indicated to Xmipp though the Scipion configuration file. See Software dependency section for further details.
