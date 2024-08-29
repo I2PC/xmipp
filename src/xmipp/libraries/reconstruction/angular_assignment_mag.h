@@ -36,7 +36,7 @@
 #include <core/xmipp_image.h>
 #include <data/mask.h>
 #include <data/filters.h>
-#include "CTPL/ctpl_stl.h"
+#include "ctpl_stl.h"
 
 
 #include <vector>

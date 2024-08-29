@@ -26,7 +26,7 @@
 #define _PROG_COMPARE_VIEWS
 
 #include <vector>
-#include <CTPL/ctpl_stl.h>
+#include <ctpl_stl.h>
 #include "core/xmipp_program.h"
 #include "core/xmipp_image.h"
 #include "data/point3D.h"
