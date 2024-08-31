@@ -6,6 +6,13 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        cuda-version:
+        - '10.2'
+        - '11.8.0'
+        - '12.6.0'
+    
     env:
       SEND_INSTALLATION_STATISTICS: "False"
     steps:
@@ -24,7 +31,7 @@ jobs:
       - uses: Jimver/cuda-toolkit@master
         id: cuda-toolkit
         with:
-          cuda: '11.8.0'
+          cuda: ${{ matrix.cuda-version }}
           method: network
           sub-packages: '["nvcc", "toolkit"]'
 
