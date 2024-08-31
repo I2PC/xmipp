@@ -9,7 +9,6 @@ jobs:
     strategy:
       matrix:
         cuda-version:
-        - '10.2.89'
         - '11.8.0'
         - '12.5.0'
     
