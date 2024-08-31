@@ -10,7 +10,7 @@ jobs:
       matrix:
         cuda-version:
         - '11.8.0'
-        - '12.5.0'
+        - '12.2.2'
     
     env:
       SEND_INSTALLATION_STATISTICS: "False"
