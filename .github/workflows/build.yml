@@ -19,7 +19,7 @@ jobs:
 
         include:
           - os: 'ubuntu-20.04'
-            cuda-version: '10.2.0'
+            cuda-version: '10.2.89'
             compiler: {cc: gcc-8, cxx: g++-8}
     
     runs-on: ${{ matrix.os }}
