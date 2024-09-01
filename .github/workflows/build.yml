@@ -5,20 +5,32 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
     strategy:
       matrix:
+        os:
+        - 'ubuntu-latest'
+
         cuda-version:
         - '11.8.0'
         - '12.2.2'
+
+        compiler:
+        - {cc: gcc, cxx: g++}
+
+        include:
+          - os: 'ubuntu-20.04'
+            cuda-version: '10.2.0'
+            compiler: {cc: gcc-8, cxx: g++-8}
     
+    runs-on: ${{ matrix.os }}
+
     env:
       SEND_INSTALLATION_STATISTICS: "False"
     steps:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libfftw3-dev libopenmpi-dev libhdf5-dev libtiff5-dev libsqlite3-dev default-jdk git cmake openmpi-bin
+          sudo apt-get install -y libfftw3-dev libopenmpi-dev libhdf5-dev libtiff5-dev libsqlite3-dev default-jdk git cmake openmpi-bin ${{ matrix.compiler.cc }} ${{ matrix.compiler.cxx }}
       
       - uses: actions/setup-python@main
         with:
