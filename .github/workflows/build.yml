@@ -44,7 +44,7 @@ jobs:
         with:
           cuda: ${{ matrix.cuda-version }}
           method: local
-          sub-packages: '["nvcc", "toolkit"]'
+          #sub-packages: '["nvcc", "toolkit"]'
 
       - uses: actions/checkout@main
         with:
