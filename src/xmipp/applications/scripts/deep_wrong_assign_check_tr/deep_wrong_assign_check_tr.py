@@ -50,13 +50,12 @@ from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.layers import Input, Conv2D, BatchNormalization, Dense, concatenate, Activation, GlobalAveragePooling2D, Add, Flatten
 #TODO: Make sure we are not using any Keras 3 functionality
 
+from contextlib import redirect_stdout
+
 class ScriptDeepWrongAssignCheckTrain(XmippScript):
     
     conda_env="xmipp_DLTK_v1.0" 
 
-    #TODO: delete this once debugging is completed
-    print(tf. __version__)
-    
     #TODO: Evaluate if anything else is necessary
     def __init__(self):
 
@@ -76,7 +75,6 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         self.addParamsLine(' -o <finalModel> : h5 filename where the final model will be stored.')
         #TODO: check other programs implementation of batches (should it be mandatory?)
         self.addParamsLine(' -b <batchSize>: data`s subset size which will be fed to the network.')
-        self.addParamsLine(' [ --pretrained ]: (optional) write flag if a pretained model will be used.')
         self.addParamsLine(' [ -f <fnPretrainedModel> ]: (optional) filename of the pretrained model to be used instead of a new one.')
         #TODO: Set values here and in protocol (protocol?)
         self.addParamsLine(' [ -e <numEpoch=30> ]: (optional) number of epochs to train the model')
@@ -84,13 +82,14 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         #TODO: modify this value (adaptative?)
         self.addParamsLine(' [ -p <patience=5> ]: (optional) number of epochs with no improvement after which training will be stopped.')
 
-        #TODO: What should be the default behavior? (keep in mind any changes in the othe program)
+        #TODO: What should be the default behavior? (keep in mind any changes in the other program)
         self.addParamsLine(' [ -t <nThreads=1> ]: (optional) number of threads to use in multiprocessing.')
+
+        #TODO: Finish explanation, include file format
+        self.addParamsLine(' [ -s <fnSaveInfo> ]: (optional) file where the neural network information will be stored. Must be in "" format.')
 
         #TODO: make sure help text reflects reality
         self.addParamsLine(' [ --gpus <gpuId> ]: (optional) GPU ids to employ. Comma separated list. E.g. "0,1". Use -1 for CPU-only computation or -2 to use all devices found in CUDA_VISIBLE_DEVICES.')
-
-        #TODO: include flag to save model information + file
 
         ## examples ##TODO: keep in mind changes in params until completely stable
         self.addExampleLine('deep_wrong_assign_check_tr -c path/to/correctResiduals -w path/to/wrongResiduals -o path/to/outputModel.h5 -b $BATCH_SIZE')
@@ -121,24 +120,18 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         self.trainInfo = trainInfoPos + trainInfoNeg
         
         ## Filename where the best model will be stored after training
+        ## The program does not check if it exists since the file will be generated (written on) as a result of the training
         self.fnOutputModel = self.getParam("-o")
-        '''
-        if not os.path.isfile(self.fnOutputModel):
-            ## If the file doesn't exist the program will be interrupted
-            print("Final model file does not exist inside path")
-            sys.exit(-1)
-        '''
+
         ## Size of the batches to be used for the nn
         self.batchSize = int(self.getParam("-b"))
 
-        #TODO: Evaluate changing batch size default (Either keeping a single big bacth or each batch has one piece of info)
         ## If the batch size is bigger than the data or the user requested no batches (using 0), only one batch is used
         if self.batchSize > len(self.trainInfo) or self.batchSize == 0: self.batchSize = len(self.trainInfo)
 
-        #TODO: Check comments for this section
-        ## Checking if a pretrained model will be used and if the corresponding file has been given
-        if self.checkParam("--pretrained") and self.checkParam("-f"):
-
+        #TODO: Check comments for this section (am I over explaning?)
+        ## Checking if a pretrained model will be used
+        if self.checkParam("-f"):
             ## File name where the pre existing model is stored, only used for reading
             ## The freshly trained model is stored in fnModel
             self.fnPreModel = self.getParam("-f")
@@ -146,11 +139,9 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
                 ## If the file doesn't exist the program will be interrupted
                 print("Model file does not exist inside path")
                 sys.exit(-1)
-
             self.isPretrained = True
         else:
-            ## A new model will also be used if no pre exiting file was given despite the "pretrained" flag being present
-            self.isPretrained = False   
+            self.isPretrained = False
 
         ## Number of epochs for training
         self.numEpochs = int(self.getParam("-e"))
@@ -161,6 +152,16 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
 
         ## Number of threads to be used in multiprocessing
         self.nThreads = int(self.getParam("-t"))
+        if self.nThreads < 1:
+            self.nThreads = 1
+
+        #TODO: integrate this variables in the program (TensorBoard???)
+        #TODO: Keep in mind file doesn't exist since it hasn't been written on
+        if self.checkParam("-s"):
+            self.fnSaveInfo = self.getParam("-s")
+            self.doSaveInfo = True
+        else:
+            self.doSaveInfo = False
 
         ## If no specific GPUs are requested all available GPUs will be used
         if self.checkParam("--gpus"):
@@ -295,8 +296,17 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
                 # Configuring the model's metrics
                 model.compile(optimizer=adam_opt, loss='mean_squared_error')
 
+        
         # prints a string summary of the network
-        #model.summary()        
+        #model.summary()  
+
+        #TODO: Evaluate if this works
+        if self.doSaveInfo:
+            with open (self.fnSaveInfo, 'a') as f:
+                f.write(history.history)
+                with redirect_stdout(f):
+                    model.summary()
+                f.close()
 
         #TODO: evaluate callbacks
         #TODO: should I use tensorBoard for documentation?
@@ -312,7 +322,13 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         #TODO: Traditionally the steps per epoch is calculated has train_length // batch size
         history = model.fit(x = trainingSet, epochs = self.numEpochs, verbose = 0,
                         callbacks = [bestModel, patienceCallBack], validation_data = validationSet, workers = self.nThreads, use_multiprocessing = True)
-        #TODO: can I use "use_multiprocessing" even when the workers are only 1? Should I check if the user enters 0 threads?
+        '''
+        #TODO: Evaluate if this works
+        if self.doSaveInfo:
+            with open(self.fnSaveInfo, "a") as f:
+                f.write(history.history)
+                f.close()
+        '''
 
         print(history.history)
     
@@ -322,8 +338,6 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
 
     #TODO: write function definition?
     def run(self):
-
-        #TODO: Strategy?
 
         print("Starting training process")
 

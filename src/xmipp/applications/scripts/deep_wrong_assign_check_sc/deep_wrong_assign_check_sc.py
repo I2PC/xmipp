@@ -118,7 +118,8 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
 
         ## Number of threads to be used in multiprocessing
         self.nThreads = int(self.getParam("-t"))
-
+        if self.nThreads < 1:
+            self.nThreads = 1
 
         #If no specific GPUs are requested all available GPUs will be used
         if self.checkParam("--gpus"):
