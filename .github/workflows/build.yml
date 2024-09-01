@@ -31,7 +31,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libfftw3-dev libopenmpi-dev libhdf5-dev libtiff5-dev libsqlite3-dev default-jdk git cmake openmpi-bin ${{ matrix.compiler.cc }} ${{ matrix.compiler.cxx }}
-      
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/${{matrix.compiler.cc}} 128
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/${{matrix.compiler.cxx}} 128
+
       - uses: actions/setup-python@main
         with:
           python-version: '3.9.15'
