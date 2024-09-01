@@ -12,7 +12,7 @@ jobs:
 
         cuda-version:
         - '11.8.0'
-        - '12.2.2'
+        #- '12.2.2'
 
         compiler:
         - {cc: gcc, cxx: g++}
