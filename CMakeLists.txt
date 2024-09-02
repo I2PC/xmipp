@@ -79,19 +79,16 @@ if(${XMIPP_USE_CUDA})
 
       set(CMAKE_CUDA_STANDARD 14)
 
-      string(APPEND CMAKE_CUDA_FLAGS " --x cu")
-      string(APPEND CMAKE_CUDA_FLAGS " -D_FORCE_INLINES")
-      string(APPEND CMAKE_CUDA_FLAGS " -Xcompiler")
-      string(APPEND CMAKE_CUDA_FLAGS " -fPIC")
       string(APPEND CMAKE_CUDA_FLAGS " --expt-extended-lambda")
 
       if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.18")
-        set(CMAKE_CUDA_ARCHITECTURES 60 75 86)
-      else()
-        string(APPEND CMAKE_CUDA_FLAGS " -gencode arch=compute_60,code=sm_60")
-        string(APPEND CMAKE_CUDA_FLAGS " -gencode arch=compute_75,code=sm_75")
-        string(APPEND CMAKE_CUDA_FLAGS " -gencode arch=compute_86,code=sm_86")
+        set(CMAKE_CUDA_ARCHITECTURES 60 75)
+
+        if(${CUDAToolkit_VERSION} VERSION_GREATER_EQUAL "11")
+          list(APPEND CMAKE_CUDA_ARCHITECTURES 86)
+        endif()
       endif()
+
     else()
      set(XMIPP_USE_CUDA OFF)
      message("CUDA was requested but CUDA Toolkit was not found")
