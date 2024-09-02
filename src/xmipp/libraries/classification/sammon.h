@@ -36,11 +36,6 @@
 #include <core/xmipp_funcs.h>
 #include "training_vector.h"
 
-// definition of max
-#ifndef max
-#define max(a,b) ((a)>=(b))?(a):(b)
-#endif
-
 //-----------------------------------------------------------------------------
 // Sammon: Sammon Maps
 //-----------------------------------------------------------------------------

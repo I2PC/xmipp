@@ -34,7 +34,7 @@
 #include <data/fourier_projection.h>
 #include <core/xmipp_error.h>
 #include <data/blobs.h>
-#include <CTPL/ctpl_stl.h>
+#include <ctpl_stl.h>
 // #include <atomic>
 
 
