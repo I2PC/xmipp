@@ -10,16 +10,16 @@ jobs:
         os:
         - 'ubuntu-latest'
 
-        cuda-version:
-        - '11.8.0'
-        #- '12.2.2'
+        cuda:
+        - {version: '11.8.0', method: 'network'} 
+        - {version: '12.2.2', method: 'network'} 
 
         compiler:
         - {cc: gcc, cxx: g++}
 
         include:
           - os: 'ubuntu-20.04'
-            cuda-version: '10.2.89'
+            cuda: {version: '10.2.89', method: 'local'}
             compiler: {cc: gcc-8, cxx: g++-8, update-alternatives: True}
     
     runs-on: ${{ matrix.os }}
@@ -34,8 +34,8 @@ jobs:
           
       - if: ${{matrix.compiler.update-alternatives}}
         run: |
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/${{matrix.compiler.cc}} 128
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/${{matrix.compiler.cxx}} 128
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/${{ matrix.compiler.cc }} 128
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/${{ matrix.compiler.cxx }} 128
 
       - uses: actions/setup-python@main
         with:
@@ -47,8 +47,8 @@ jobs:
       - uses: Jimver/cuda-toolkit@master
         id: cuda-toolkit
         with:
-          cuda: ${{ matrix.cuda-version }}
-          method: local
+          cuda: ${{ matrix.cuda.version }}
+          method: ${{ matrix.cuda.method }}
           #sub-packages: '["nvcc", "toolkit"]'
 
       - uses: actions/checkout@main
