@@ -79,10 +79,6 @@ if(${XMIPP_USE_CUDA})
 
       set(CMAKE_CUDA_STANDARD 14)
 
-      string(APPEND CMAKE_CUDA_FLAGS " --x cu")
-      string(APPEND CMAKE_CUDA_FLAGS " -D_FORCE_INLINES")
-      string(APPEND CMAKE_CUDA_FLAGS " -Xcompiler")
-      string(APPEND CMAKE_CUDA_FLAGS " -fPIC")
       string(APPEND CMAKE_CUDA_FLAGS " --expt-extended-lambda")
 
       if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.18")

@@ -213,6 +213,13 @@ if(${XMIPP_USE_CUDA})
 		target_sources(XmippCuda PRIVATE ${CUDA11_SOURCES})
 	endif()
 
+	set_property(
+		TARGET 
+			XmippCuda 
+		PROPERTY 
+			POSITION_INDEPENDENT_CODE ON
+	)
+
 	# HACK: Manually add cuFFTAdvisor. Linking the target leads to wrong RPATH
 	target_include_directories(
 		XmippCuda
