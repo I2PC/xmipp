@@ -1,0 +1,163 @@
+/***************************************************************************
+ *
+ * Authors:     Jose Luis Vilas (jlvilas@cnb.csic.es)
+ *              Oier Lauzirika  (olauzirika@cnb.csic.es)
+ *
+ * Spanish Research Council for Biotechnology, Madrid, Spain
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+ * 02111-1307  USA
+ *
+ *  All comments concerning this program package may be sent to the
+ *  e-mail address 'xmipp@cnb.csic.es'
+ ***************************************************************************/
+
+#include "tomo_find_symmetry_axis.h"
+#include <sys/stat.h>
+#include <type_traits>
+#include <chrono>
+
+void ProgFindSymmetryAxis::defineParams()
+{
+	addUsageLine("This method carries out a subtomogram averaing. It means, given a set of subtomogram the program will estimate the average map.");
+	addUsageLine("Two kinds of averaging can be performed:");
+	addUsageLine("Reference: J.L. Vilas, et al. (202X)");
+	addUsageLine("+* How the weighted average works:", true);
+	addUsageLine("+ Each subtomogram is compared agains the reference with two metrics: A global correlation in real space, and a point-wise ");
+	addUsageLine("+ phase correlation in Fourier Space. These two metrics are combined as in a new metric called aggregation function. ");
+	addUsageLine("+ There are many kinds of aggregation functions, this algorithms considers the product of both correlations.");
+	addUsageLine("+ Once the aggratation function of each subtomogram is estimated, they are normalized and used as weights");
+	addSeeAlsoLine("resolution_fsc");
+
+	addParamsLine("   --subtomos <input_file>            : Metadata with the list of subtomograms");
+	addParamsLine("   [--ref <input_file=\"\">]    : Reference, this map use to be the STA result that will be refined by mean s of the smart STA of this method. If a map is not provided, then the algorithm will average all provided subtomos.");
+	addParamsLine("   [--sta]         			 : (Optional) Use this flag to estimate the standard average instead of the weighted one.");
+	addParamsLine("  --angularSampling <degrees>   		: Angular sampling rate in degrees.");
+	addParamsLine("   [-o <output_folder=\"\">]          : Folder where the results will be stored.");
+	addParamsLine("   [--sampling <Ts=1>]                : (Optional) Pixel size (Angstrom). If it is not provided by default will be 1 A/px.");
+	addParamsLine("   [--threads <Nthreads=1>]           : (Optional) Number of threads to be used");
+
+	addExampleLine("Resolution of two half maps half1.mrc and half2.mrc with a sampling rate of 2 A/px", false);
+	addExampleLine("xmipp_tomo_subtomogram_averaging --half1 half1.mrc --half2 half2.mrc --sampling_rate 2 ");
+	addExampleLine("Resolution of two half maps half1.mrc and half2.mrc with a sampling rate of 2 A/px and a mask mask.mrc", false);
+	addExampleLine("xmipp_tomo_subtomogram_averaging --half1 half1.mrc --half2 half2.mrc --mask mask.mrc --sampling_rate 2 ");
+}
+
+void ProgFindSymmetryAxis::readParams()
+{
+	fnIn = getParam("-i");
+	fnOut = getParam("-o");
+	Nthreads = getIntParam("--threads");
+}
+
+
+template<typename T>
+void ProgFindSymmetryAxis::getMassCenter(const MultidimArray<T> &vol, T &xcm, T &ycm, T &zcm)
+{
+	auto xdim = XSIZE(vol);
+	auto ydim = YSIZE(vol);
+	auto zdim = ZSIZE(vol);
+
+	T totalMass = 0;
+	xcm=0;
+	ycm=0;
+	zcm=0;
+
+	long n = 0;
+	for (size_t k = 0; k<zdim; ++k)
+	{
+		auto kk = k - 0.5*zdim;
+
+		for (size_t i = 0; i<ydim; ++i)
+		{
+			auto ii = i - 0.5*ydim;
+			for (size_t j = 0; j<xdim; ++j)
+			{
+				auto jj = j - 0.5 * xdim;
+
+				auto mass_kij = DIRECT_MULTIDIM_ELEM(vol, n);
+				xcm += mass_kij * jj;
+				ycm += mass_kij * ii;
+				xcm += mass_kij * kk;
+				totalMass += mass_kij;
+				n++;
+			}
+		}
+	}
+
+
+}
+
+template<typename T>
+void ProgFindSymmetryAxis::getInertiaAxis(const MultidimArray<T> &vol)
+{
+	T xcm, ycm, zcm;
+	getMassCenter(vol, xcm, ycm, zcm);
+
+	Matrix2D<double> inertiaTensor;
+
+	auto xdim = XSIZE(vol);
+	auto ydim = YSIZE(vol);
+	auto zdim = ZSIZE(vol);
+
+	long n = 0 ;
+	for (size_t k = 0; k<zdim; ++k)
+	{
+		for (size_t i = 0; i<ydim; ++i)
+		{
+			for (size_t j = 0; j<xdim; ++j)
+			{
+				auto rx = j - - xcm;
+				auto ry = i - ycm;
+				auto rz = k - zcm;
+				auto mass_kij = DIRECT_MULTIDIM_ELEM(vol, n);
+				MAT_ELEM(inertiaTensor, 0, 0) += mass_kij * (ry * ry + rz * rz);
+				MAT_ELEM(inertiaTensor, 1, 1) += mass_kij * (rx * rx + rz * rz);
+				MAT_ELEM(inertiaTensor, 2, 2) += mass_kij * (rx * rx + ry * ry);
+				MAT_ELEM(inertiaTensor, 0, 1) += -mass_kij * rx * ry;
+				MAT_ELEM(inertiaTensor, 1, 0) += MAT_ELEM(inertiaTensor, 0, 1);
+				MAT_ELEM(inertiaTensor, 1, 2) += -mass_kij * ry * rz;
+				MAT_ELEM(inertiaTensor, 2, 1) += MAT_ELEM(inertiaTensor, 1, 2);
+				MAT_ELEM(inertiaTensor, 0, 2) += -mass_kij * rx * rz;
+				MAT_ELEM(inertiaTensor, 2, 0) += MAT_ELEM(inertiaTensor, 0, 2);
+
+				n++;
+			}
+		}
+	}
+
+	// Find inertia axis
+	Matrix2D<double> B, inertiaAxis;
+	Matrix1D<double> inertiaValues;
+	B.resizeNoCopy(inertiaTensor);
+	B.initIdentity();
+	generalizedEigs(inertiaTensor, B, inertiaValues, inertiaAxis);
+
+}
+
+
+void ProgFindSymmetryAxis::run()
+{
+	std::cout << "Starting ... " << std::endl;
+
+	Image<double> img;
+	
+	img.read(fnIn);
+	auto vol = img();
+
+	getInertiaAxis(vol);
+
+}
+

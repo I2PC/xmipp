@@ -1,14 +1,12 @@
 #Protocols ussing the enviroment: protocol_tigre_reconstruction
 
-name: xtomo_tigre_reconstruction
+name: xtomo_tigre
 channels:
   - anaconda
   - defaults
-  - astra-toolbox
   - conda-forge
   - ccpi
 dependencies:
-  - astra-toolbox
   - python=3.6
   - mrcfile
   - numpy

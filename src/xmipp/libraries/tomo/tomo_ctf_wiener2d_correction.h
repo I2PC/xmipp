@@ -1,8 +1,6 @@
 /***************************************************************************
  *
  * Authors:    Jose Luis Vilas (jlvilas@cnb.csic.es)
- *             Oier Lauzirika  (olauzirika@cnb.csic.es)
-
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -25,47 +23,47 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef _PROG_AVERAGE_SUBTOMOS
-#define _PROG_AVERAGE_SUBTOMOS
+#ifndef _PROG_CTF_WIENER2D_CORRECTION
+#define _PROG_CTF_WIENER2D_CORRECTION
 
 #include <core/xmipp_program.h>
 #include <core/xmipp_filename.h>
 #include <core/metadata_vec.h>
 
 
-class ProgAverageSubtomos : public XmippProgram
+class ProgCTFWiener2DCorrection : public XmippProgram
 {
 private:
     /* Filenames of the input subtomograms (.xmd file)
 	and output file (volume of the average) */
-    FileName fnSubtomos, fnOut;
+    FileName fnIn, fnOut;
 
     /* Sampling rate */
     double sampling;
 
-    /* Number of threads */
-    int Nthreads;
+    /* Wiener constant */
+    double wc;
 
-    /* Flag to avoid applying the alignment of hte subtomograms */
-    bool notApplyAlignment, goldStandard;
+    /* Defocus accuracy */
+    double sigmaDf;
+
+    /* Number of threads */
+    int nthreads;
 
 public:
-	    /* This function takes a set of subtomograms with or without alignment, and
-	     * estimates the average of all subtomograms. The flag saveAligned allows
-	     * to saved the applied alignment of each subtomogram
-	     */
-		void averageSubtomograms(MetaDataVec &md);
+    /* Creating a gaussian mask to weight the CTF corrected images */
+    void gaussianMask(int x0, MultidimArray<double> &cumMask, 
+											MultidimArray<double> &tiMask,  
+											MultidimArray<double> &ptrImg, int stripeSize);
 
-        std::vector<bool> generateGoldStandard(int n);
+    /* Defining the params and help of the algorithm */
+    void defineParams();
 
-        /* Defining the params and help of the algorithm */
-        void defineParams();
+    /* It reads the input parameters */
+    void readParams();
 
-        /* It reads the input parameters */
-        void readParams();
-
-        /* Run the program */
-        void run();
+    /* Run the program */
+    void run();
 };
 
 #endif
