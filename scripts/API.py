@@ -53,7 +53,7 @@ def sendApiPOST(retCode: int = 0, xmippVersion :str = 'Unknow'):
 		url = API_URL.split("/", maxsplit=1)
 		path = f"/{url[1]}"
 		url = url[0]
-		conn = http.client.HTTPConnection(url, timeout=4)
+		conn = http.client.HTTPSConnection(url, timeout=4)
 
 		# Send the POST request
 		conn.request("POST", path, bodyParams, headers)
