@@ -27,6 +27,7 @@ function(link_to_scipion INSTALL_DIRECTORY SCIPION_SOFTWARE SCIPION_XMIPP_LIBRAR
 	set(SCIPION_BINDINGS_DIRECTORY ${SCIPION_SOFTWARE}/bindings)
 	set(XMIPP_LIB_DIRECTORY ${SCIPION_SOFTWARE_XMIPP}/lib)
 	set(SCIPION_LIB_DIRECTORY ${SCIPION_SOFTWARE}/lib)
+	set(PYCACHE_DIR_NAME "__pycache__")
 
 	# Link installation
 	message("Linking Xmipp installation to Scipion (${INSTALL_DIRECTORY} -> ${SCIPION_SOFTWARE_XMIPP})")
@@ -43,13 +44,15 @@ function(link_to_scipion INSTALL_DIRECTORY SCIPION_SOFTWARE SCIPION_XMIPP_LIBRAR
 	file(GLOB PYTHON_DIR_CONTENT ${XMIPP_BINDINGS_DIRECTORY}/*)
 	foreach(x IN LISTS PYTHON_DIR_CONTENT)
 		get_filename_component(y ${x} NAME)
-		file(
-			CREATE_LINK
-				${x}
-				${SCIPION_BINDINGS_DIRECTORY}/${y}
-			COPY_ON_ERROR
-			SYMBOLIC
-		)
+		if(NOT ${y} MATCHES ${PYCACHE_DIR_NAME}) # Ignore pycache
+			file(
+				CREATE_LINK
+					${x}
+					${SCIPION_BINDINGS_DIRECTORY}/${y}
+				COPY_ON_ERROR
+				SYMBOLIC
+			)
+		endif()
 	endforeach()
 	
 	# Link shared libraries
