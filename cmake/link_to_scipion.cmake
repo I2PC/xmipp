@@ -44,7 +44,7 @@ function(link_to_scipion INSTALL_DIRECTORY SCIPION_SOFTWARE SCIPION_XMIPP_LIBRAR
 	file(GLOB PYTHON_DIR_CONTENT ${XMIPP_BINDINGS_DIRECTORY}/*)
 	foreach(x IN LISTS PYTHON_DIR_CONTENT)
 		get_filename_component(y ${x} NAME)
-		if(${y} NEQ ${PYCACHE_DIR_NAME}) # Ignore pycache
+		if(NOT ${y} MATCHES ${PYCACHE_DIR_NAME}) # Ignore pycache
 			file(
 				CREATE_LINK
 					${x}
