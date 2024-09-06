@@ -119,7 +119,7 @@ To install CUDA for your operating system, follow the [official install guide](h
 `sudo apt install -y libfftw3-dev libopenmpi-dev libhdf5-dev python3-numpy python3-dev libtiff5-dev libjpeg-dev libsqlite3-dev default-jdk git cmake gcc-10 g++-10`
 
 #### Installing dependencies via yum
-> Note: For HDF5 to be available Extra Packages for Enterprise Linux (EPEL) repository needs to be activated in certain distros.
+> Note: For HDF5 to be available Extra Packages for Enterprise Linux (EPEL) repository needs to be activated in certain distros with
 > `yum install epel-release`
 
 > Note: On CentOS-7 the gcc available by default is not compatible with Xmipp. You can enable newer gcc releases using:
