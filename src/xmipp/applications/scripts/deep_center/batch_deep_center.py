@@ -48,14 +48,18 @@ class ScriptDeepCenterTrain(XmippScript):
         import tensorflow as tf
         from keras.models import Model
         from keras.layers import Input, Conv2D, MaxPooling2D, Flatten, Dense, concatenate, Activation
+        # from keras.applications.efficientnet import EfficientNetB2
+           # https://keras.io/api/applications/
         import keras
 
         class DataGenerator(keras.utils.all_utils.Sequence):
             """Generates data for fnImgs"""
 
-            def __init__(self, fnImgs, sigma, batch_size, dim):
+            def __init__(self, fnImgs, currentX, currentY, sigma, batch_size, dim):
                 """Initialization"""
                 self.fnImgs = fnImgs
+                self.currentX = currentX
+                self.currentY = currentY
                 self.sigma = sigma
                 self.batch_size = batch_size
                 if self.batch_size > len(self.fnImgs):
@@ -67,7 +71,10 @@ class ScriptDeepCenterTrain(XmippScript):
                 self.Xexp = np.zeros((len(self.fnImgs), self.dim, self.dim, 1), dtype=np.float64)
                 for i in range(len(self.fnImgs)):
                     Iexp = np.reshape(xmippLib.Image(self.fnImgs[i]).getData(), (self.dim, self.dim, 1))
-                    self.Xexp[i,] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
+                    # M = np.max(Iexp)
+                    # m = np.min(Iexp)
+                    # self.Xexp[i,] = 255*(Iexp-m)/(M-m) # Scale between 0 and 255 for EfficientNet
+                    self.Xexp[i,] = (Iexp-np.mean(Iexp))/np.std(Iexp)
 
             def __len__(self):
                 """Denotes the number of batches per epoch"""
@@ -99,6 +106,8 @@ class ScriptDeepCenterTrain(XmippScript):
                     return shift(img, (shifty, shiftx, 0), order=1, mode='wrap')
 
                 Iexp = list(itemgetter(*list_IDs_temp)(self.Xexp))
+                currentX = list(itemgetter(*list_IDs_temp)(self.currentX))
+                currentY = list(itemgetter(*list_IDs_temp)(self.currentY))
 
                 # Data augmentation
                 generator = np.random.default_rng()
@@ -106,12 +115,20 @@ class ScriptDeepCenterTrain(XmippScript):
                 rY = self.sigma * generator.normal(0, 1, size=self.batch_size)
                 # Shift image a random amount of px in each direction
                 Xexp = np.array(list((map(shift_image, Iexp, rX, rY))))
-                y = np.vstack((rX, rY)).T
+                y = np.vstack((currentX-rX, currentY-rY)).T
                 return Xexp, y
 
         def constructModel(Xdim):
-            """CNN architecture"""
+            """EfficientNet+Dense"""
             inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
+
+            # Adapt from 1 channel to 3 channels
+            # x = Conv2D(3, (1, 1), padding='same')(inputLayer)
+            # base_model = EfficientNetB2(weights='imagenet', include_top=False, pooling="avg")
+            # base_model.trainable=False
+            # L = base_model(x)
+            # L = Dense(32, activation="relu")(L)
+            # L = Dense(8, activation="relu")(L)
 
             L = Conv2D(8, (3, 3), padding='same')(inputLayer)
             L = Activation(activation='relu')(L)
@@ -125,9 +142,9 @@ class ScriptDeepCenterTrain(XmippScript):
             L = Activation(activation='relu')(L)
             L = MaxPooling2D()(L)
 
-            L = Conv2D(64, (3, 3), padding='same')(L)
-            L = Activation(activation='relu')(L)
-            L = MaxPooling2D()(L)
+            # L = Conv2D(64, (3, 3), padding='same')(L)
+            # L = Activation(activation='relu')(L)
+            # L = MaxPooling2D()(L)
 
             L = Flatten()(L)
 
@@ -160,7 +177,9 @@ class ScriptDeepCenterTrain(XmippScript):
         Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmd)
         mdExp = xmippLib.MetaData(fnXmd)
         fnImgs = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
-        training_generator = DataGenerator(fnImgs, sigma, batch_size, Xdim)
+        currentX = mdExp.getColumnValues(xmippLib.MDL_SHIFT_X)
+        currentY = mdExp.getColumnValues(xmippLib.MDL_SHIFT_Y)
+        training_generator = DataGenerator(fnImgs, currentX, currentY, sigma, batch_size, Xdim)
 
         model = constructModel(Xdim)
         model.summary()
