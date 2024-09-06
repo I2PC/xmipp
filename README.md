@@ -123,13 +123,12 @@ To install CUDA for your operating system, follow the [official install guide](h
 > `yum install epel-release`
 
 > Note: On CentOS-7 the gcc available by default is not compatible with Xmipp. Enable newer gcc releases using:
-> `
-> yum install centos-release-scl
->
-> yum install devtoolset-10
 > 
-> scl enable devtoolset-10 bash
->`
+> `yum install centos-release-scl`
+>
+> `yum install devtoolset-10`
+> 
+> `scl enable devtoolset-10 bash`
 
 `yum install python3-devel python3-numpy fftw-devel openmpi-devel hdf5-devel sqlite-devel libtiff-devel libjpeg-turbo-devel java-17-openjdk-devel git cmake gcc g++`
 
