@@ -116,8 +116,20 @@ Xmipp supports CUDA 8 through 11.7. CUDA is optional but highly recommended. We 
 To install CUDA for your operating system, follow the [official install guide](https://developer.nvidia.com/cuda-toolkit-archive).
 
 #### Installing dependencies via apt
-`sudo apt install -y libfftw3-dev libopenmpi-dev libhdf5-dev python3-numpy python3-dev libtiff5-dev libsqlite3-dev default-jdk git cmake gcc-10 g++-10`
+`sudo apt install -y libfftw3-dev libopenmpi-dev libhdf5-dev python3-numpy python3-dev libtiff5-dev libjpeg-dev libsqlite3-dev default-jdk git cmake gcc-10 g++-10`
 
+#### Installing dependencies via yum
+> Note: For HDF5 to be available Extra Packages for Enterprise Linux (EPEL) repository needs to be activated in certain distros.
+> `yum install epel-release`
+
+> Note: On CentOS-7 the gcc available by default is not compatible with Xmipp. Enable newer gcc releases using:
+> `
+> yum install centos-release-scl
+> yum install devtoolset-10
+> scl enable devtoolset-10 bash
+>`
+
+`yum install python3-devel python3-numpy fftw-devel openmpi-devel hdf5-devel sqlite-devel libtiff-devel libjpeg-turbo-devel java-17-openjdk-devel git cmake gcc g++`
 
 ## That's all
 
