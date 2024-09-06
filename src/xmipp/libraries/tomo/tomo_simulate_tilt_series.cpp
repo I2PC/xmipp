@@ -300,6 +300,8 @@ void ProgTomoSimulateTiltseries::run()
 			//eulerMat_proj.initIdentity(4);
 		}
 
+		std::cout << "theta = " << theta << "   " << "phi = " << phi << "   " << "xi = " << xi << std::endl;
+
 		Euler_angles2matrix(theta, phi, xi, eulerMat_VolRotation, true);
 
 		applyGeometry(xmipp_transformation::BSPLINE3, rotatedVol, ptrVol, eulerMat_VolRotation, xmipp_transformation::IS_NOT_INV, true, 0.);
@@ -326,7 +328,6 @@ void ProgTomoSimulateTiltseries::run()
 
 			projectVolume(projector, imgPrj, boxsize, boxsize, 0.0, tiltProj, 0.0);
 
-            Matrix1D<double> shifts(2);
             tiltProj *= PI/180.0;
 
 			double ct = cos(tiltProj);
