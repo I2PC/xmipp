@@ -20,10 +20,17 @@
 #  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************
 
-function(link_to_scipion INSTALL_DIRECTORY SCIPION_SOFTWARE)
+
+function(link_to_scipion INSTALL_DIRECTORY SCIPION_SOFTWARE SCIPION_XMIPP_LIBRARIES)
 	set(SCIPION_SOFTWARE_XMIPP ${SCIPION_SOFTWARE}/em/xmipp)
+	set(XMIPP_BINDINGS_DIRECTORY ${SCIPION_SOFTWARE_XMIPP}/bindings/python)
+	set(SCIPION_BINDINGS_DIRECTORY ${SCIPION_SOFTWARE}/bindings)
+	set(XMIPP_LIB_DIRECTORY ${SCIPION_SOFTWARE_XMIPP}/lib)
+	set(SCIPION_LIB_DIRECTORY ${SCIPION_SOFTWARE}/lib)
+	set(PYCACHE_DIR_NAME "__pycache__")
 
 	# Link installation
+	message("Linking Xmipp installation to Scipion (${INSTALL_DIRECTORY} -> ${SCIPION_SOFTWARE_XMIPP})")
 	file(
 		CREATE_LINK
 			${INSTALL_DIRECTORY}/
@@ -33,33 +40,28 @@ function(link_to_scipion INSTALL_DIRECTORY SCIPION_SOFTWARE)
 	)
 
 	# Link python binding
-	file(GLOB PYTHON_DIR_CONTENT ${SCIPION_SOFTWARE_XMIPP}/bindings/python/*)
+	message("Linking Xmipp Python bindings to Scipion (${XMIPP_BINDINGS_DIRECTORY}/* -> ${SCIPION_BINDINGS_DIRECTORY})")
+	file(GLOB PYTHON_DIR_CONTENT ${XMIPP_BINDINGS_DIRECTORY}/*)
 	foreach(x IN LISTS PYTHON_DIR_CONTENT)
 		get_filename_component(y ${x} NAME)
-		file(
-			CREATE_LINK
-				${x}
-				${SCIPION_SOFTWARE}/bindings/${y}
-			COPY_ON_ERROR
-			SYMBOLIC
-		)
+		if(NOT ${y} MATCHES ${PYCACHE_DIR_NAME}) # Ignore pycache
+			file(
+				CREATE_LINK
+					${x}
+					${SCIPION_BINDINGS_DIRECTORY}/${y}
+				COPY_ON_ERROR
+				SYMBOLIC
+			)
+		endif()
 	endforeach()
 	
 	# Link shared libraries
-	set(
-		LIBRARIES 
-			libcifpp${CMAKE_SHARED_LIBRARY_SUFFIX}
-			libcifpp${CMAKE_SHARED_LIBRARY_SUFFIX}.3
-			libcifpp${CMAKE_SHARED_LIBRARY_SUFFIX}.3.0.9
-			libsvm.so
-			libXmippCore${CMAKE_SHARED_LIBRARY_SUFFIX}
-			libXmipp${CMAKE_SHARED_LIBRARY_SUFFIX}
-	)
-	foreach(x IN LISTS LIBRARIES)
+	message("Linking Xmipp C++ libraries to Scipion (${XMIPP_LIB_DIRECTORY}/* -> ${SCIPION_LIB_DIRECTORY})")
+	foreach(x IN LISTS SCIPION_XMIPP_LIBRARIES)
 		file(
 			CREATE_LINK
-				${SCIPION_SOFTWARE_XMIPP}/${CMAKE_INSTALL_LIBDIR}/${x}
-				${SCIPION_SOFTWARE}/lib/${x}
+				${XMIPP_LIB_DIRECTORY}/${x}
+				${SCIPION_LIB_DIRECTORY}/${x}
 			COPY_ON_ERROR
 			SYMBOLIC
 		)
