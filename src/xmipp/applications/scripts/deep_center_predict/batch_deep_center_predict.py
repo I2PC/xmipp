@@ -44,8 +44,8 @@ class ScriptDeepCenterPredict(XmippScript):
             for objId in mdExp:
                 itemId = mdExp.getValue(xmippLib.MDL_ITEM_ID, objId)
                 x, y = shifts[Ydict[itemId]]
-                mdExp.setValue(xmippLib.MDL_SHIFT_X, x, objId)
-                mdExp.setValue(xmippLib.MDL_SHIFT_Y, y, objId)
+                mdExp.setValue(xmippLib.MDL_SHIFT_X, -x, objId)
+                mdExp.setValue(xmippLib.MDL_SHIFT_Y, -y, objId)
             mdExp.write(fnOut)
 
         md = xmippLib.MetaData(fnExp)
