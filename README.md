@@ -125,7 +125,9 @@ To install CUDA for your operating system, follow the [official install guide](h
 > Note: On CentOS-7 the gcc available by default is not compatible with Xmipp. Enable newer gcc releases using:
 > `
 > yum install centos-release-scl
+>
 > yum install devtoolset-10
+> 
 > scl enable devtoolset-10 bash
 >`
 
