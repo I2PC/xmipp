@@ -104,10 +104,6 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
         
         ## File name where the inferece results will be stored at the end
         self.fnOutput = self.getParam("-o")
-        if not os.path.isfile(self.fnOutput):
-            ## If the file doesn't exist the program will be interrupted
-            print("Output file does not exist inside path")
-            sys.exit(-1)
         
         #TODO: Keep in mind the name changed, check the rest of the code
         ## Size of the batches to be used for the nn
@@ -140,7 +136,7 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
         return (img - np.mean(img)) / np.std(img)
 
     #--------------- Neural Network Generators ----------------
-
+    
     #TODO: Write function definition
     def manageData(self):
         
@@ -154,10 +150,11 @@ class ScriptDeepWrongAssignCheckScore(XmippScript):
     def performInference(self):
         
         #TODO: evaluate use of tensorSpec
-        inferenceSet = tf.data.Dataset.from_generator(self.manageData(),tf.TensorSpec(shape = (), dtype = tf.variant))
-        inferenceSet = inferenceSet.batch(self.batchSize, drop_reminder = False)
+        inferenceSet = tf.data.Dataset.from_generator(self.manageData,output_signature = (tf.TensorSpec((self.xDim, self.xDim, 1), dtype =tf.float32)))
+        inferenceSet = inferenceSet.batch(self.batchSize, drop_remainder = False)
 
         model = load_model(self.fnModel, compile = False)
+        #model = load_model(self.fnModel)
         
         ## Returns a numPy array of predictions
         ## if a value is 0.85, it means the model is 85% confident that the sample belongs to class 1 

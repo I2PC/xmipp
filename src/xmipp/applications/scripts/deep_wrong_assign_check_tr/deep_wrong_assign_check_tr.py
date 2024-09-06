@@ -51,6 +51,7 @@ from tensorflow.keras.layers import Input, Conv2D, BatchNormalization, Dense, co
 #TODO: Make sure we are not using any Keras 3 functionality
 
 from contextlib import redirect_stdout
+import atexit
 
 class ScriptDeepWrongAssignCheckTrain(XmippScript):
     
@@ -80,13 +81,13 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         self.addParamsLine(' [ -e <numEpoch=30> ]: (optional) number of epochs to train the model')
         self.addParamsLine(' [ -l <learningRate=0.3> ]: (optional) learning rate used for the optimizer.')
         #TODO: modify this value (adaptative?)
-        self.addParamsLine(' [ -p <patience=5> ]: (optional) number of epochs with no improvement after which training will be stopped.')
+        self.addParamsLine(' [ -p <patience=10> ]: (optional) number of epochs with no improvement after which training will be stopped.')
 
         #TODO: What should be the default behavior? (keep in mind any changes in the other program)
         self.addParamsLine(' [ -t <nThreads=1> ]: (optional) number of threads to use in multiprocessing.')
 
         #TODO: Finish explanation, include file format
-        self.addParamsLine(' [ -s <fnSaveInfo> ]: (optional) file where the neural network information will be stored. Must be in "" format.')
+        self.addParamsLine(' [ -s <fnSaveInfo> ]: (optional) file where the neural network information will be stored. Must be in <> format.')
 
         #TODO: make sure help text reflects reality
         self.addParamsLine(' [ --gpus <gpuId> ]: (optional) GPU ids to employ. Comma separated list. E.g. "0,1". Use -1 for CPU-only computation or -2 to use all devices found in CUDA_VISIBLE_DEVICES.')
@@ -155,10 +156,11 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         if self.nThreads < 1:
             self.nThreads = 1
 
-        #TODO: integrate this variables in the program (TensorBoard???)
+        #TODO: Check proper integration
         #TODO: Keep in mind file doesn't exist since it hasn't been written on
         if self.checkParam("-s"):
-            self.fnSaveInfo = self.getParam("-s")
+            self.pthSaveInfo = self.getParam("-s")
+            self.fnSaveInfo = self.pthSaveInfo + "nnInfo.txt"
             self.doSaveInfo = True
         else:
             self.doSaveInfo = False
@@ -195,8 +197,6 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         return (img - np.mean(img)) / np.std(img)
     
     #--------------- Neural Network Generators ----------------
-
-    #TODO: Is it possible to create just one generic function?
 
     #TODO: Write function definition
     def manageTrain(self):
@@ -251,16 +251,19 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
 
         x = self.conv_block(x, filters=512)
 
-        x = self.conv_block(x, filters=1024)
+        #x = self.conv_block(x, filters=1024)
 
         x = GlobalAveragePooling2D()(x)
 
-        x = Dense(1, name="output", activation="linear")(x)
+        x = Dense(1, name= "output", activation='hard_sigmoid')(x)
 
         return Model(inputLayer, x)
     
+    def constructModel2(self):
+
+        pass
+    
     #TODO: Write function definition
-    #TODO: Return? (Probably not, reevaluate once data saving flag is included)
     def performTrain(self):
 
         self.lenTrain = int(len(self.trainInfo)*0.8)
@@ -282,6 +285,14 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         #TODO: Evaluate if there is a way to use strategy in the scoring program
         strategy = tf.distribute.MirroredStrategy()
 
+        atexit.register(strategy._extended._collective_ops._pool.close) # type: ignore
+
+        options = tf.data.Options()
+        options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+
+        trainingSet = trainingSet.with_options(options)
+        validationSet = validationSet.with_options(options)
+
         with strategy.scope():
 
             if self.isPretrained:
@@ -289,27 +300,21 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
                 model = load_model(self.fnPreModel)
                 
             else:
-            
+                '''
+                from tensorflow.keras.applications import ResNet50
+                ResNet_50 = ResNet50(weights = None, input_shape=(40, 40, 1), classes = 1, classifier_activation = "relu")
+                adam_opt = tf.keras.optimizers.Adam(learning_rate = self.learningRate)
+                sgd_opt = tf.keras.optimizers.SGD(learning_rate = self.learningRate, momentum=0.9, decay=0.0001)
+                other_opt = tf.keras.optimizers.RMSprop(learning_rate = self.learningRate)
+                ResNet_50.compile(optimizer=other_opt, loss='mean_squared_error')
+                '''
                 model = self.constructModel()
                 #TODO: Evaluate other optimizers
                 adam_opt = tf.keras.optimizers.Adam(learning_rate = self.learningRate)
                 # Configuring the model's metrics
                 model.compile(optimizer=adam_opt, loss='mean_squared_error')
-
-        
-        # prints a string summary of the network
-        #model.summary()  
-
-        #TODO: Evaluate if this works
-        if self.doSaveInfo:
-            with open (self.fnSaveInfo, 'a') as f:
-                f.write(history.history)
-                with redirect_stdout(f):
-                    model.summary()
-                f.close()
-
+                
         #TODO: evaluate callbacks
-        #TODO: should I use tensorBoard for documentation?
         #TODO: check notes on LearningRateScheduler + Cyclical Learning Rate (CLR)
 
         #TODO: Keep in mind the data is overwritten every time a "better" model is found (save_best_only=True) by now it saves the whole model
@@ -317,22 +322,45 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         #TODO: what if the patience is = to epochs or even > ?
         patienceCallBack = EarlyStopping(monitor='val_loss', patience = self.patience)
 
-        #TODO: This could be stored in extra for example, just in case
-        #TODO: A History object. Its History.history attribute is a record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values (if applicable).)
-        #TODO: Traditionally the steps per epoch is calculated has train_length // batch size
-        history = model.fit(x = trainingSet, epochs = self.numEpochs, verbose = 0,
-                        callbacks = [bestModel, patienceCallBack], validation_data = validationSet, workers = self.nThreads, use_multiprocessing = True)
-        '''
         #TODO: Evaluate if this works
         if self.doSaveInfo:
-            with open(self.fnSaveInfo, "a") as f:
-                f.write(history.history)
-                f.close()
-        '''
+            
+            #TODO: evaluate params once callback is tested
+            logsCallback = TensorBoard(log_dir = self.pthSaveInfo + "/logs", histogram_freq = 1, write_images = True)
 
-        print(history.history)
-    
-        return 
+            # sess.graph contains the graph definition; that enables the Graph Visualizer.
+            #TODO: investigate: tensorboard --logdir=/home/lbaena/ScipionUserData/projects/Example_10248_Scipion3/Runs/016102_XmippProtWrongAssignCheckTrain/016102_XmippProtWrongAssignCheckTrain
+            # https://www.mat-d.com/site/how-to-use-tensorflow-and-the-tensorboard-summary-dashboard
+            # https://www.tensorflow.org/guide/intro_to_graphs
+            writer = tf.summary.create_file_writer(self.pthSaveInfo)
+            #file_writer = tf.summary.FileWriter('/path/to/logs', sess.graph) #TF1, not suported
+            '''
+            history = ResNet_50.fit(x = trainingSet, epochs = self.numEpochs, verbose = "auto",
+                        callbacks = [bestModel, patienceCallBack, logsCallback], validation_data = validationSet, workers = self.nThreads, use_multiprocessing = True)
+            '''
+            history = model.fit(x = trainingSet, epochs = self.numEpochs, verbose = "auto",
+                        callbacks = [bestModel, patienceCallBack, logsCallback], validation_data = validationSet, workers = self.nThreads, use_multiprocessing = True)
+            
+        else:
+        
+            #TODO: Traditionally the steps per epoch is calculated has train_length // batch size
+            history = model.fit(x = trainingSet, epochs = self.numEpochs, verbose = 0,
+                            callbacks = [bestModel, patienceCallBack], validation_data = validationSet, workers = self.nThreads, use_multiprocessing = True)
+        
+        # prints a string summary of the network
+        #model.summary()  
+
+        #TODO: A History object. Its History.history attribute is a record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values (if applicable).)
+        if self.doSaveInfo:
+            with open (self.fnSaveInfo, 'a') as f:
+                print(history.history, file = f)
+                #f.write(history.history)
+                with redirect_stdout(f):
+                    #ResNet_50.summary()
+                    model.summary()
+                #f.close()
+
+        #print(history.history)
 
     #--------------- Program Execution Function ----------------
 
