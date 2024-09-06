@@ -122,7 +122,7 @@ To install CUDA for your operating system, follow the [official install guide](h
 > Note: For HDF5 to be available Extra Packages for Enterprise Linux (EPEL) repository needs to be activated in certain distros.
 > `yum install epel-release`
 
-> Note: On CentOS-7 the gcc available by default is not compatible with Xmipp. Enable newer gcc releases using:
+> Note: On CentOS-7 the gcc available by default is not compatible with Xmipp. You can enable newer gcc releases using:
 > 
 > `yum install centos-release-scl`
 >
