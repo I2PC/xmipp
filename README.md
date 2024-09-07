@@ -30,7 +30,7 @@ The former method also installs dependencies (including the compiler) though con
 
 `scipion3 installb xmippSrc`
 
-Mind that for this command to succeed, all dependencies need to be pre-installed and findable by Xmipp. When using non-standard install directories, this needs to be indicated to Xmipp though the Scipion configuration file. See Software dependency section for further details.
+Mind that for this command to succeed, all dependencies need to be pre-installed and findable by Xmipp. When using non-standard install directories, this needs to be indicated to Xmipp though the Scipion configuration file. See [Software dependency section](https://github.com/I2PC/xmipp?tab=readme-ov-file#software-dependencies) for further details.
 
 ### Developer installation with Scipion
 For developers, it becomes handy to install Xmipp in an external directory for easy integration with IDEs. By default Xmipp installer takes care of installing dependencies though conda and linking to Scipion.
@@ -71,19 +71,18 @@ In visual studio code:
 6. Select the "Workspace" tab
 7. Navigate to the "CMake Tools" section
 8. Set the following options:
-    - "Cmake: Configure Args" add "-DCMAKE_PREFIX_PATH=CONDA_PREFIX" (replace CONDA_PREFIX with the value obtained previously)
-    - "Cmake: Configure Args" add "-DCMAKE_SKIP_RPATH=ON"
-    - "Cmake: Configure Environment" add: "Element: Python3_ROOT_DIR Value: CONDA_PREFIX" (replace CONDA_PREFIX with the value obtained previously)
-    - "Cmake: Configure Environment" add: "Element: SCIPION_SOFTWARE Value: SCIPION_SOFTWARE" (replace SCIPION_SOFTWARE with the value obtained previousy)
-    - "Cmake: Install prefix": /path-to/xmipp/dist (Absolute path)
+    - "Cmake: Configure Args" add `-DCMAKE_PREFIX_PATH=CONDA_PREFIX` (replace `CONDA_PREFIX` with the value obtained previously)
+    - "Cmake: Configure Args" add `-DCMAKE_SKIP_RPATH=ON`
+    - "Cmake: Configure Environment" add: `Element: Python3_ROOT_DIR Value: CONDA_PREFIX` (replace `CONDA_PREFIX` with the value obtained previously)
+    - "Cmake: Configure Environment" add: `Element: SCIPION_SOFTWARE Value: SCIPION_SOFTWARE` (replace `SCIPION_SOFTWARE` with the value obtained previousy)
+    - "Cmake: Install prefix": `/path-to/xmipp/dist` (Absolute path)
 9. Go to the CMake tab on the left.
 10. In "Pinned commands" add "Install"
 
 Once VS Code is set up, the Xmipp installation process can be launched though the newly pinned "Install" command. In addition, individual files or sub-projects may be compiled for quick assessment of code.
 
 ## Using Xmipp
-Xmipp is installed in the build directory located in the same directory where the xmipp script is located. To set all necessary environment variables and paths to all Xmipp programs, you can simply 
-`source dist/xmipp.bashrc`
+Xmipp is installed in the build directory located in the same directory where the xmipp script is located. To set all necessary environment variables and paths to all Xmipp programs, you can simply run `source dist/xmipp.bashrc`.
 
 ## Installation requirements
 ### Supported OS
@@ -108,10 +107,10 @@ Xmipp requires C++17 compatible compiler (see table below for minimum versions).
 
 
 #### CMake
-Xmipp requires CMake 3.17 or above. To update it please [visit](https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install)
+Xmipp requires CMake 3.17 or above. To update it please visit the [dedicated section in the Wiki](https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install).
 
 #### CUDA
-Xmipp supports CUDA 8 through 11.7. CUDA is optional but highly recommended. We recommend you to use the newest version available for your operating system. Some Xmipp programs are only compiled if CUDA 11 is available. Pay attention to the [compiler - CUDA](https://gist.github.com/ax3l/9489132) compatibility.
+Xmipp supports CUDA 8 through 12.2. CUDA is optional but highly recommended. We recommend you to use the newest version available for your operating system. Some Xmipp programs are only compiled if CUDA 11 is available. Pay attention to the [compiler - CUDA compatibility](https://gist.github.com/ax3l/9489132).
 
 To install CUDA for your operating system, follow the [official install guide](https://developer.nvidia.com/cuda-toolkit-archive).
 
