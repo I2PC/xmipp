@@ -12,7 +12,7 @@ jobs:
 
         cuda:
         - {version: '11.8.0', method: 'network'} 
-        - {version: '11.3.1', method: 'network'} 
+        - {version: '11.3.1', method: 'local'} 
         - {version: '12.2.2', method: 'network'} 
 
         compiler:
