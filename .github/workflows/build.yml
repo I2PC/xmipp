@@ -11,7 +11,6 @@ jobs:
         - 'ubuntu-latest'
 
         cuda:
-        - {version: '11.3.1', method: 'local'} 
         - {version: '11.8.0', method: 'network'} 
         - {version: '12.2.2', method: 'network'} 
 
@@ -19,6 +18,9 @@ jobs:
         - {cc: gcc, cxx: g++}
 
         include:
+          - os: 'ubuntu-20.04'
+            cuda: {version: '10.3.1', method: 'network'}
+            compiler: {cc: gcc-9, cxx: g++-9, update-alternatives: True}
           - os: 'ubuntu-20.04'
             cuda: {version: '10.2.89', method: 'local'}
             compiler: {cc: gcc-8, cxx: g++-8, update-alternatives: True}
