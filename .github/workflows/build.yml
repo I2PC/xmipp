@@ -49,7 +49,7 @@ jobs:
           python -m pip install numpy
 
       - uses: Jimver/cuda-toolkit@master
-        if: ${{ matrix.cuda.version }} != 'None'
+        if: matrix.cuda.version != 'None'
         id: cuda-toolkit
         with:
           cuda: ${{ matrix.cuda.version }}
