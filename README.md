@@ -110,7 +110,7 @@ Xmipp requires C++17 compatible compiler (see table below for minimum versions).
 Xmipp requires CMake 3.17 or above. To update it please visit the [dedicated section in the Wiki](https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install).
 
 #### CUDA
-Xmipp supports CUDA 8 through 12.2. CUDA is optional but highly recommended. We recommend you to use the newest version available for your operating system. Some Xmipp programs are only compiled if CUDA 11 is available. Pay attention to the [compiler - CUDA compatibility](https://gist.github.com/ax3l/9489132).
+Xmipp supports CUDA 10.2 through 12.2. CUDA is optional but highly recommended. We recommend you to use the newest version available for your operating system. Some Xmipp programs are only compiled if CUDA 11 is available. Pay attention to the [compiler - CUDA compatibility](https://gist.github.com/ax3l/9489132).
 
 To install CUDA for your operating system, follow the [official install guide](https://developer.nvidia.com/cuda-toolkit-archive).
 
