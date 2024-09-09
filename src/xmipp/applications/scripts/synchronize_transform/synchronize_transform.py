@@ -76,10 +76,11 @@ def get_optimization_constraints(p: cp.Variable,
     constraints = [p >> 0] # Semi-definite positive
 
     # Diagonal blocks with identity
+    eye = np.eye(k)
     for i in range(n):
         start = k*i
         end = start+k
-        constraints.append(p[start:end, start:end] == np.eye(k))
+        constraints.append(p[start:end, start:end] == eye)
         
     return constraints
 
