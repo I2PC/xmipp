@@ -167,7 +167,7 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
 
         ## If no specific GPUs are requested all available GPUs will be used
         if self.checkParam("--gpus"):
-            os.environ["CUDA_VISIBLE_DEVICES"] = int(self.getParam("--gpus"))
+            os.environ["CUDA_VISIBLE_DEVICES"] = self.getParam("--gpus")
 
     #TODO: Write function definition
     def readFileInfo(self, fnImages, isCorrect):
@@ -192,8 +192,26 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
 
     #TODO: Write function definition
     def getImage(self, fnImg):
+        '''
+        with open (self.fnSaveInfo, 'a') as f:
+            print(fnImg, file = f)
+            np.set_printoptions(threshold=np.inf)
+            print(xmippLib.Image(fnImg).getData(), file = f)
+            print("hello", file = f)
 
+        print("ahh ahh ahh")
+        '''
         img = np.reshape(xmippLib.Image(fnImg).getData(), (self.xDim, self.xDim, 1))
+        '''
+        with open (self.fnSaveInfo, 'a') as f:
+            #print(fnImg, file = f)
+            np.set_printoptions(threshold=np.inf)
+            print(img, file = f)
+            print("gusbai", file = f)
+
+        print("ehhhhhhhh")
+        '''
+        #print(img)
         return (img - np.mean(img)) / np.std(img)
     
     #--------------- Neural Network Generators ----------------
@@ -300,20 +318,22 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
                 model = load_model(self.fnPreModel)
                 
             else:
-                '''
-                from tensorflow.keras.applications import ResNet50
+                
+                from tensorflow.keras.applications import ResNet50, VGG16
                 ResNet_50 = ResNet50(weights = None, input_shape=(40, 40, 1), classes = 1, classifier_activation = "relu")
+                VGG16_net = VGG16(weights = None, input_shape = (self.xDim,self.xDim,1), classes = 1, classifier_activation = "relu")
                 adam_opt = tf.keras.optimizers.Adam(learning_rate = self.learningRate)
                 sgd_opt = tf.keras.optimizers.SGD(learning_rate = self.learningRate, momentum=0.9, decay=0.0001)
                 other_opt = tf.keras.optimizers.RMSprop(learning_rate = self.learningRate)
-                ResNet_50.compile(optimizer=other_opt, loss='mean_squared_error')
+                #ResNet_50.compile(optimizer=adam_opt, loss='binary_crossentropy', metrics = ['accuracy'])
+                VGG16_net.compile(optimizer=adam_opt, loss='binary_crossentropy', metrics = ['accuracy'])
                 '''
                 model = self.constructModel()
                 #TODO: Evaluate other optimizers
                 adam_opt = tf.keras.optimizers.Adam(learning_rate = self.learningRate)
                 # Configuring the model's metrics
-                model.compile(optimizer=adam_opt, loss='mean_squared_error')
-                
+                model.compile(optimizer=adam_opt, loss='binary_crossentropy', metrics = ['accuracy'])
+                '''
         #TODO: evaluate callbacks
         #TODO: check notes on LearningRateScheduler + Cyclical Learning Rate (CLR)
 
@@ -332,15 +352,23 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
             #TODO: investigate: tensorboard --logdir=/home/lbaena/ScipionUserData/projects/Example_10248_Scipion3/Runs/016102_XmippProtWrongAssignCheckTrain/016102_XmippProtWrongAssignCheckTrain
             # https://www.mat-d.com/site/how-to-use-tensorflow-and-the-tensorboard-summary-dashboard
             # https://www.tensorflow.org/guide/intro_to_graphs
-            writer = tf.summary.create_file_writer(self.pthSaveInfo)
+            writer = tf.summary.create_file_writer(self.pthSaveInfo + "/logs")
             #file_writer = tf.summary.FileWriter('/path/to/logs', sess.graph) #TF1, not suported
+            
+            history = VGG16_net.fit(x = trainingSet, epochs = self.numEpochs, verbose = "auto",
+                        callbacks = [bestModel, patienceCallBack, logsCallback], validation_data = validationSet, workers = self.nThreads, use_multiprocessing = True)
             '''
             history = ResNet_50.fit(x = trainingSet, epochs = self.numEpochs, verbose = "auto",
                         callbacks = [bestModel, patienceCallBack, logsCallback], validation_data = validationSet, workers = self.nThreads, use_multiprocessing = True)
-            '''
+            
             history = model.fit(x = trainingSet, epochs = self.numEpochs, verbose = "auto",
                         callbacks = [bestModel, patienceCallBack, logsCallback], validation_data = validationSet, workers = self.nThreads, use_multiprocessing = True)
-            
+            '''
+            #loss, accuracy = model.evaluate(x= validationSet, verbose = 2)
+            #loss, accuracy = ResNet_50.evaluate(x = validationSet, verbose = 2)
+            loss, accuracy = VGG16_net.evaluate(x = validationSet, verbose = 2)
+            print(accuracy)
+
         else:
         
             #TODO: Traditionally the steps per epoch is calculated has train_length // batch size
