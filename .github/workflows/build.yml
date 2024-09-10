@@ -55,6 +55,7 @@ jobs:
           cuda: ${{ matrix.cuda.version }}
           method: ${{ matrix.cuda.method }}
           sub-packages: ${{ matrix.cuda.method=='network' && '["nvcc", "toolkit"]' || '[]' }} # Fake ternary operator
+          
       - uses: actions/checkout@main
         with:
           fetch-depth: 0
