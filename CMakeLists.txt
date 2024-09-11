@@ -148,12 +148,16 @@ install(
 )
 
 # Link to scipion. Keep last so that all other install jobs are complete
+message("Hola 1.....................................................")
 if(XMIPP_LINK_TO_SCIPION)
+  message("Hola 2.....................................................")
   if (NOT SCIPION_SOFTWARE)
+    message("Hola 3.....................................................")
     set(SCIPION_SOFTWARE "$ENV{SCIPION_SOFTWARE}")
   endif()
 
   if (SCIPION_SOFTWARE)
+    message("Hola 4.....................................................")
     message("Scipion software directory found at ${SCIPION_SOFTWARE}")
     set(
       SCIPION_XMIPP_LIBRARIES 
