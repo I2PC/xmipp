@@ -212,7 +212,8 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         print("ehhhhhhhh")
         '''
         #print(img)
-        return (img - np.mean(img)) / np.std(img)
+        return 255*(img - np.min(img)) / (np.max(img) - np.min(img))
+       # return (img - np.mean(img)) / np.std(img)
     
     #--------------- Neural Network Generators ----------------
 
@@ -221,7 +222,9 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
 
         for elem in self.randomizedData[:self.lenTrain]:
             
+            np.set_printoptions(threshold=np.inf)
             input = self.getImage(elem[0])
+            print(input)
             target = int(elem[1])
 
             yield (input,target)
@@ -273,7 +276,7 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
 
         x = GlobalAveragePooling2D()(x)
 
-        x = Dense(1, name= "output", activation='hard_sigmoid')(x)
+        x = Dense(1, name= "output", activation='sigmoid')(x)
 
         return Model(inputLayer, x)
     
@@ -385,7 +388,8 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
                 #f.write(history.history)
                 with redirect_stdout(f):
                     #ResNet_50.summary()
-                    model.summary()
+                   # model.summary()
+                   VGG16_net.summary()
                 #f.close()
 
         #print(history.history)
