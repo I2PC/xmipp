@@ -51,7 +51,17 @@ option(XMIPP_USE_CUDA "Compile CUDA programs" ON)
 option(XMIPP_USE_MPI "Compile MPI programs" ON)
 option(XMIPP_USE_MATLAB "Compile MATLAB binding" ON)
 option(XMIPP_LINK_TO_SCIPION "Link to scipion3" ON)
-option(XMIPP_SAVE_VERSIONS "Save versions.txt with dependency versions" ON)
+option(XMIPP_SAVE_VERSIONS "Save versions.txt with dependency versions." ON)
+option(XMIPP_SYMLINK_SCRIPTS "Create symbolic links of scripts instead of copying them. Requires CMake 3.22 or greater" OFF)
+
+# Set file install mode
+if(${XMIPP_SYMLINK_SCRIPTS})
+  if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.22")
+    set(CMAKE_INSTALL_MODE SYMLINK_OR_COPY)
+  else()
+    message(WARNING "Option to create symbolic links for sources was enabled but CMake version is incompatible. Please consider updating it to 3.22 or greater")
+  endif()
+endif()
 
 # Avoid installing to lib64 directory
 set(CMAKE_INSTALL_LIBDIR lib)
