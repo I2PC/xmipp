@@ -44,8 +44,8 @@ class ScriptDeepCenterPredict(XmippScript):
             for objId in mdExp:
                 itemId = mdExp.getValue(xmippLib.MDL_ITEM_ID, objId)
                 x, y = shifts[Ydict[itemId]]
-                mdExp.setValue(xmippLib.MDL_SHIFT_X, -x, objId)
-                mdExp.setValue(xmippLib.MDL_SHIFT_Y, -y, objId)
+                mdExp.setValue(xmippLib.MDL_SHIFT_X, x, objId)
+                mdExp.setValue(xmippLib.MDL_SHIFT_Y, y, objId)
             mdExp.write(fnOut)
 
         md = xmippLib.MetaData(fnExp)
@@ -69,7 +69,7 @@ class ScriptDeepCenterPredict(XmippScript):
                 Iexp = np.reshape(xmippLib.Image(fnImgs[k]).getData(), (Xdim, Xdim, 1))
                 Xexp[j,] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
                 k += 1
-            shifts[i * maxSize:(i * maxSize + numPredictions), :] = -shiftModel.predict(Xexp)
+            shifts[i * maxSize:(i * maxSize + numPredictions), :] = shiftModel.predict(Xexp)
 
         produce_output(fnExp, shifts, itemIds, fnOut)
 
