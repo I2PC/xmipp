@@ -30,7 +30,6 @@
 #include "core/transformations.h"
 #include <random>
 #include <limits>
-#include <CTPL/ctpl_stl.h>
 #include <type_traits>
 
 

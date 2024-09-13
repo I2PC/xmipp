@@ -29,6 +29,7 @@
 #include <core/xmipp_program.h>
 #include <core/xmipp_filename.h>
 #include <core/metadata_vec.h>
+#include <core/xmipp_image.h>
 
 
 class ProgCTFWiener2DCorrection : public XmippProgram
@@ -52,9 +53,9 @@ private:
 
 public:
     /* Creating a gaussian mask to weight the CTF corrected images */
-    void gaussianMask(int x0, MultidimArray<double> &cumMask, 
-											MultidimArray<double> &tiMask,  
-											MultidimArray<double> &ptrImg, int stripeSize);
+    void gaussianMask(MultidimArray<double> &cumMask, 
+					 MultidimArray<double> &tiMask,  
+					 MultidimArray<double> &ptrImg, int x0, int stripeSize);
 
     /* Defining the params and help of the algorithm */
     void defineParams();

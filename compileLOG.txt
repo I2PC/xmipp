@@ -1,0 +1,61 @@
+Compilation Date: 2024-09-03 18:31:41.855372
+
+
+###########################
+Compiling cuFFTAdvisor--------
+mkdir -p build/
+nvcc --cudart static -shared -link -Wno-deprecated-gpu-targets -o build/libcuFFTAdvisor.so obj/advisor.o obj/benchmarker.o obj/benchmarkResult.o obj/cudaAsserts.o obj/generalTransform.o obj/inputParser.o obj/main.o obj/sizeOptimizer.o obj/transform.o obj/transformGenerator.o obj/validator.o
+mkdir -p build/
+nvcc -o build/cuFFTAdvisor obj/advisor.o obj/benchmarker.o obj/benchmarkResult.o obj/cudaAsserts.o obj/generalTransform.o obj/inputParser.o obj/main.o obj/sizeOptimizer.o obj/transform.o obj/transformGenerator.o obj/validator.o -lcufft -Wno-deprecated-gpu-targets
+
+###########################
+Compiling googletest--------
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/vilas/ongoing/xmipp/src/googletest/build
+Consolidate compiler generated dependencies of target gtest
+[100%] Built target gtest
+[ 50%] Built target gtest
+Consolidate compiler generated dependencies of target gtest_main
+[100%] Built target gtest_main
+
+###########################
+Compiling libsvm--------
+if [ "Linux" = "Darwin" ]; then \
+	SHARED_LIB_FLAG="-dynamiclib -Wl,-install_name,libsvm.so"; \
+else \
+	SHARED_LIB_FLAG="-shared -Wl,-soname,libsvm.so"; \
+fi; \
+g++ ${SHARED_LIB_FLAG} svm.o -o libsvm.so
+
+###########################
+Compiling libcifpp--------
+Not trying to recreate symop_table_data.hpp since CCP4 is not defined
+-- Testing for known regex bug, since you're using GNU libstdc++
+-- You are probably trying to compile using the g++ standard library which contains a crashing std::regex implementation. Will use boost::regex instead
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/vilas/ongoing/xmipp/src/libcifpp/build
+Consolidate compiler generated dependencies of target cifpp
+[  4%] Building CXX object CMakeFiles/cifpp.dir/src/utilities.cpp.o
+[  9%] Linking CXX shared library libcifpp.so
+[100%] Built target cifpp
+-- Install configuration: "Release"
+-- Installing: /home/vilas/ongoing/xmipp/src/libcifpp/lib/libcifpp.so.5.0.9
+-- Up-to-date: /home/vilas/ongoing/xmipp/src/libcifpp/lib/libcifpp.so.5
+-- Up-to-date: /home/vilas/ongoing/xmipp/src/libcifpp/lib/libcifpp.so
+-- Up-to-date: /home/vilas/ongoing/xmipp/src/libcifpp/lib/cmake/cifpp/cifppTargets.cmake
+-- Up-to-date: /home/vilas/ongoing/xmipp/src/libcifpp/lib/cmake/cifpp/cifppTargets-release.cmake
+-- Up-to-date: /home/vilas/ongoing/xmipp/src/libcifpp/include/cif++/exports.hpp
+-- Up-to-date: /home/vilas/ongoing/xmipp/src/libcifpp/share/libcifpp/mmcif_ddl.dic
+-- Up-to-date: /home/vilas/ongoing/xmipp/src/libcifpp/share/libcifpp/mmcif_pdbx.dic
+-- Up-to-date: /home/vilas/ongoing/xmipp/src/libcifpp/share/libcifpp/mmcif_ma.dic
+-- Up-to-date: /home/vilas/ongoing/xmipp/src/libcifpp/lib/cmake/cifpp/cifppConfig.cmake
+-- Up-to-date: /home/vilas/ongoing/xmipp/src/libcifpp/lib/cmake/cifpp/cifppConfigVersion.cmake
+-- Up-to-date: /home/vilas/ongoing/xmipp/src/libcifpp/lib/pkgconfig/libcifpp.pc
+
+###########################
+Compiling XmippCore--------
+
+scons: *** No SConstruct file found.
+File "/home/vilas/anaconda3/envs/scipion3/lib/python3.8/site-packages/SCons/Script/Main.py", line 985, in _main

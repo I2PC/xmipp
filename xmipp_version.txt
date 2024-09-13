@@ -1,0 +1,14 @@
+
+  Xmipp version: 3.23.11.0 (devel)
+
+  Release date:     28/11/2023
+  Xmipp branch:     vi_olz_twofold (88888f28)
+  Plugin branch:    devel (9941c77d)
+  Core branch:      devel (1d596d5)
+  Viz branch:       tags/v3.23.03-Kratos (2c9afa2)
+  Compilation date: 01/08/2024
+  System compiler:  g++ 11.4.0
+  System:           x86_64 Linux 6.5.0-1025-oem
+                    #26-Ubuntu SMP PREEMPT_DYNAMIC Tue Jun 18 12:35:22 UTC 2024
+  nvcc version:     release 11.8
+  cmake version 3.22.1

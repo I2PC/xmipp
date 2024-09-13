@@ -1,0 +1,6 @@
+{
+    "LD_LIBRARY_PATH": "/home/vilas/ongoing/xmipp/:/usr/local/cuda-11.8/lib64 :/usr/local/cuda-11.8/lib64/stubs:/usr/lib/x86_64-linux-gnu/hdf5/serial:/home/vilas/anaconda3/envs/scipion3/lib",
+    "CUDA": "True",
+    "PATH": "/usr/lib/jvm/java-11-openjdk-amd64/bin",
+    "MATLAB_BIN_DIR": "/usr/local/MATLAB/R2024a/bin"
+}

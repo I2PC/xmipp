@@ -27,12 +27,11 @@
 #include <sys/stat.h>
 #include "data/ctf.h"
 #include <core/metadata_extension.h>
+#include "reconstruction/ctf_correct_wiener2d.h"
 #include "core/transformations.h"
 #include <limits>
 #include <type_traits>
-#include <chrono>
 
-#define halvesManagement ()
 
 void ProgCTFWiener2DCorrection::defineParams()
 {
@@ -57,26 +56,25 @@ void ProgCTFWiener2DCorrection::readParams()
 	nthreads = getIntParam("--threads");
 }
 
-void ProgCTFWiener2DCorrection::gaussianMask(int x0, MultidimArray<double> &cumMask, 
+void ProgCTFWiener2DCorrection::gaussianMask(MultidimArray<double> &cumMask, 
 											MultidimArray<double> &tiMask,  
-											MultidimArray<double> &ptrImg, int stripeSize)
+											MultidimArray<double> &ptrImg, int x0, int stripeSize)
 {
-	auto xdim = XSIZE(ptrImg);
-	auto ydim = XSIZE(ptrImg);
+	const auto xdim = XSIZE(ptrImg);
+	const auto ydim = XSIZE(ptrImg);
 
 	// To set sigma: We assume that the gaussian g(stripeSize) = 0.1
 	// 0.1 = exp(-(stripeSize)^2/(2*sigma2)),  - log 10 = - (stripeSize)^2/(2*sigma2)
 	// therefore sigma2 = stripeSize^2/(2*log 10)
-	double sigma2 = (double) stripeSize*stripeSize/(log(100.0));
+	const auto sigma2 = static_cast<double>(stripeSize*stripeSize/(log(100.0)));
 
 	long n = 0;
 	for (size_t i = 0; i<ydim; i++)
 	{
 		for (size_t j = 0; j<xdim; j++)
 		{
-			double p = (j-x0)^2;
-			double g;
-			g = exp(-(p^2)/(2*sigma2));
+			double p = (j-x0);
+			auto g = exp(-(p*p)/(2*sigma2));
 			
 			DIRECT_MULTIDIM_ELEM(ptrImg, n) *= g;
 			DIRECT_MULTIDIM_ELEM(cumMask, n) += g;
@@ -104,6 +102,7 @@ void ProgCTFWiener2DCorrection::run()
 
 	mdTs.read(fnIn);
 
+	size_t idx=0;
 	for (const auto& row : mdTs)
 	{
 		row.getValue(MDL_IMAGE, fnImg);
@@ -139,8 +138,9 @@ void ProgCTFWiener2DCorrection::run()
 			{
 				idxVec.push_back(pos_p);
 				idxVec.push_back(pos_m);
-				std::cout << "imgCenter + halfStripe*s = " << imgCenter + halfStripe*s << std::endl;
-				std::cout << "imgCenter - halfStripe*s = " << imgCenter - halfStripe*s << std::endl;
+				// Commented for possible debugging
+				// std::cout << "imgCenter + halfStripe*s = " << imgCenter + halfStripe*s << std::endl;
+				// std::cout << "imgCenter - halfStripe*s = " << imgCenter - halfStripe*s << std::endl;
 			}
 		}
 
@@ -159,26 +159,41 @@ void ProgCTFWiener2DCorrection::run()
 			ctf.DeltafV = expDfV + df;
 
 			auto ptrImg = tiImg();
-
-			applyWienerFilter(ptrImg, ctf);
+			Wiener2D WF;
+			WF.pad = 1.0;
+			WF.correct_envelope = false;
+			WF.sampling_rate = sampling;
+			WF.wiener_constant = wc;
+			WF.isIsotropic = true;
+			WF.phase_flipped = false;
+			WF.applyWienerFilter(ptrImg, ctf);
 
 			MultidimArray<double> cumMask, tiMask;
 			tiMask.initZeros(ptrImg);
-			gaussianMask(x0, cumMask, tiMask, ptrImg, stripeSize);
+			gaussianMask(cumMask, tiMask, ptrImg, x0, stripeSize);
 
 			ptrImgCor+=ptrImg;
 		}
 
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(ptrImgCor)
 		{
-			DIRECT_MULTIDIM_ELEM(ptrImgCor, n) /= DIRECT_MULTIDIM_ELEM(cumMask, n)
+			DIRECT_MULTIDIM_ELEM(ptrImgCor, n) /= DIRECT_MULTIDIM_ELEM(cumMask, n);
 		}
 
-		MetaDataVecRow rowOut;
+		MDRowVec rowOut;
 		rowOut = row;
-		FileName fnCorr = "aaa";
-		rowOut.setValue(MDL_IMAGE, fnCorr);
+		auto fnBase = fnImg.removeLastExtension();
+		Image<double> saveImg;
+		saveImg() = ptrImgCor;
+		saveImg.write(fnOut+"/"+fnBase + ".mrcs", idx+FIRST_IMAGE, true, WRITE_APPEND);
+
+		FileName composedFn;
+		auto fn = fnBase + ".mrcs";
+		composedFn.compose(idx, fn);
+		rowOut.setValue(MDL_IMAGE, composedFn);
 		mdOut.addRow(rowOut);
+
+
 	}
 	
 	mdOut.write(fnOut);
