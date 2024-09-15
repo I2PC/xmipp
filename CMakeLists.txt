@@ -54,6 +54,9 @@ option(XMIPP_USE_MPI "Compile MPI programs" ON)
 option(XMIPP_USE_MATLAB "Compile MATLAB binding" ON)
 option(XMIPP_LINK_TO_SCIPION "Link to scipion3" ON)
 option(XMIPP_SAVE_VERSIONS "Save versions.txt with dependency versions" ON)
+option(XMIPP_APPLE "Apply options for MacOS" OFF)
+option(XMIPP_APPLE_ARM "Apply ARM specific options for MacOS" OFF)
+option(XMIPP_APPLE_X86 "Apply X86 specific options for MacOS" OFF)
 
 # Set C++ 17
 if(NOT DEFINED CMAKE_CXX_STANDARD)
@@ -119,6 +122,19 @@ if(${XMIPP_USE_MATLAB})
     set(XMIPP_USE_MATLAB OFF)
     message("Matlab was requested but Matlab was not found. Compiling without Matlab")
   endif()
+endif()
+
+# Apple Silicon fixes
+if(${APPLE})
+	message("MacOS was detected.")
+	set(XMIPP_APPLE ON)
+  if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+    message("Patches for MacOS running on AppleSilicon or other ARM arch will be applied")
+    set(XMIPP_APPLE_ARM ON)
+  else()
+    message("Patches for MacOS running on X86_64 or other ARM arch will be applied")
+    set(XMIPP_APPLE_X86 ON)
+	endif()
 endif()
 
 # Fetch dependencies
