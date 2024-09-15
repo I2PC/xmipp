@@ -13,6 +13,7 @@ jobs:
         cuda:
         - {version: '11.8.0', method: 'network'} 
         - {version: '12.2.2', method: 'network'} 
+        - {version: 'None'}
 
         compiler:
         - {cc: gcc, cxx: g++}
@@ -48,11 +49,13 @@ jobs:
           python -m pip install numpy
 
       - uses: Jimver/cuda-toolkit@master
+        if: matrix.cuda.version != 'None'
         id: cuda-toolkit
         with:
           cuda: ${{ matrix.cuda.version }}
           method: ${{ matrix.cuda.method }}
           sub-packages: ${{ matrix.cuda.method=='network' && '["nvcc", "toolkit"]' || '[]' }} # Fake ternary operator
+          
       - uses: actions/checkout@main
         with:
           fetch-depth: 0
