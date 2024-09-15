@@ -1,4 +1,4 @@
-#Protocols ussing the enviroment: protocol_tigre_reconstruction, protocol_denoising_tv
+#Protocols ussing the enviroment: protocol_tigre_reconstruction
 
 name: xtomo_tigre
 channels:

@@ -57,27 +57,5 @@ XMIPP_VERSIONS = {
 }																		
 #####################################
 
-# Supported gcc versions
-vGCC = [
-	'12.3', '12.2', '12.1',
-	'11.3', '11.2', '11.1', '11',
-	'10.5', '10.4', '10.3', '10.2', '10.1', '10',
-	'9.4', '9.3', '9.2', '9.1', '9',
-	'8.5', '8.4'
-]
-
-# Version requirements
-CMAKE_MINIMUM = '3.16' # 2019
-
-# CUDA-gcc compatibility table
-# https://gist.github.com/ax3l/9489132
-CUDA_GCC_COMPATIBILITY = {
-	'10.1-10.2': vGCC[vGCC.index('8.5'):],
-	'11.0-11.0': vGCC[vGCC.index('9.4'):],
-	'11.1-11.3': vGCC[vGCC.index('10.5'):],
-	'11.4-11.8': vGCC[vGCC.index('11.3'):],
-	'12.0-12.3': vGCC[vGCC.index('12.3'):]
-}
-
 # Other variables
 UNKNOWN_VALUE = 'Unknown'

@@ -106,7 +106,7 @@ file(
 )
 
 # Compile FRM
-add_library(swig_frm SHARED ${FRM_SOURCES})
+add_library(swig_frm MODULE ${FRM_SOURCES})
 set_target_properties(swig_frm PROPERTIES PREFIX "_")
 target_link_libraries(
 	swig_frm
@@ -121,6 +121,10 @@ install(
 )
 install(
 	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/external/sh_alignment/python/
+	DESTINATION bindings/python/sh_alignment
+)
+install(
+	FILES ${CMAKE_CURRENT_SOURCE_DIR}/external/sh_alignment/swig_frm.py
 	DESTINATION bindings/python/sh_alignment
 )
 
@@ -213,6 +217,13 @@ if(${XMIPP_USE_CUDA})
 		target_sources(XmippCuda PRIVATE ${CUDA11_SOURCES})
 	endif()
 
+	set_property(
+		TARGET 
+			XmippCuda 
+		PROPERTY 
+			POSITION_INDEPENDENT_CODE ON
+	)
+
 	# HACK: Manually add cuFFTAdvisor. Linking the target leads to wrong RPATH
 	target_include_directories(
 		XmippCuda
@@ -278,7 +289,7 @@ if(${XMIPP_USE_CUDA} AND ${XMIPP_USE_MPI})
 	)
 endif()
 
-# Add MATLAB binding TODO
+# Add MATLAB binding
 if(${XMIPP_USE_MATLAB})
 	foreach(MATLAB_BINDING_SOURCE ${MATLAB_BINDING_SOURCES})
 		get_filename_component(MEX_NAME ${MATLAB_BINDING_SOURCE} NAME_WE)
