@@ -5,15 +5,42 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        os:
+        - 'ubuntu-latest'
+
+        cuda:
+        - {version: '11.8.0', method: 'network'} 
+        - {version: '12.2.2', method: 'network'} 
+        - {version: 'None'}
+
+        compiler:
+        - {cc: gcc, cxx: g++}
+
+        include:
+          - os: 'ubuntu-20.04'
+            cuda: {version: '11.3.1', method: 'network'}
+            compiler: {cc: gcc-9, cxx: g++-9, update-alternatives: True}
+          - os: 'ubuntu-20.04'
+            cuda: {version: '10.2.89', method: 'local'}
+            compiler: {cc: gcc-8, cxx: g++-8, update-alternatives: True}
+    
+    runs-on: ${{ matrix.os }}
+
     env:
       SEND_INSTALLATION_STATISTICS: "False"
     steps:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libfftw3-dev libopenmpi-dev libhdf5-dev libtiff5-dev libsqlite3-dev default-jdk git cmake openmpi-bin
-      
+          sudo apt-get install -y libfftw3-dev libopenmpi-dev libhdf5-dev libtiff5-dev libsqlite3-dev default-jdk git cmake openmpi-bin ${{ matrix.compiler.cc }} ${{ matrix.compiler.cxx }}
+          
+      - if: ${{matrix.compiler.update-alternatives}}
+        run: |
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/${{ matrix.compiler.cc }} 128
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/${{ matrix.compiler.cxx }} 128
+
       - uses: actions/setup-python@main
         with:
           python-version: '3.9.15'
@@ -22,12 +49,13 @@ jobs:
           python -m pip install numpy
 
       - uses: Jimver/cuda-toolkit@master
+        if: matrix.cuda.version != 'None'
         id: cuda-toolkit
         with:
-          cuda: '11.8.0'
-          method: network
-          sub-packages: '["nvcc", "toolkit"]'
-
+          cuda: ${{ matrix.cuda.version }}
+          method: ${{ matrix.cuda.method }}
+          sub-packages: ${{ matrix.cuda.method=='network' && '["nvcc", "toolkit"]' || '[]' }} # Fake ternary operator
+          
       - uses: actions/checkout@main
         with:
           fetch-depth: 0

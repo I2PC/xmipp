@@ -123,6 +123,10 @@ install(
 	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/external/sh_alignment/python/
 	DESTINATION bindings/python/sh_alignment
 )
+install(
+	FILES ${CMAKE_CURRENT_SOURCE_DIR}/external/sh_alignment/swig_frm.py
+	DESTINATION bindings/python/sh_alignment
+)
 
 # Create the shared library
 add_library(Xmipp SHARED ${SOURCES})
@@ -212,6 +216,13 @@ if(${XMIPP_USE_CUDA})
 		)
 		target_sources(XmippCuda PRIVATE ${CUDA11_SOURCES})
 	endif()
+
+	set_property(
+		TARGET 
+			XmippCuda 
+		PROPERTY 
+			POSITION_INDEPENDENT_CODE ON
+	)
 
 	# HACK: Manually add cuFFTAdvisor. Linking the target leads to wrong RPATH
 	target_include_directories(

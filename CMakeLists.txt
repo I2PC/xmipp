@@ -23,14 +23,12 @@
 cmake_minimum_required(VERSION 3.17)
 
 # Import functions
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-include(fetch_cifpp)
-include(fetch_ctpl)
-include(fetch_cuFFTAdvisor)
-include(fetch_googletest)
-include(fetch_libsvm)
-include(write_bashrc)
-include(link_to_scipion)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_cifpp.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_ctpl.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_cuFFTAdvisor.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_googletest.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_libsvm.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/write_bashrc.cmake)
 
 # Define the project
 project(
@@ -79,19 +77,23 @@ if(${XMIPP_USE_CUDA})
 
       set(CMAKE_CUDA_STANDARD 14)
 
-      string(APPEND CMAKE_CUDA_FLAGS " --x cu")
-      string(APPEND CMAKE_CUDA_FLAGS " -D_FORCE_INLINES")
-      string(APPEND CMAKE_CUDA_FLAGS " -Xcompiler")
-      string(APPEND CMAKE_CUDA_FLAGS " -fPIC")
       string(APPEND CMAKE_CUDA_FLAGS " --expt-extended-lambda")
 
       if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.18")
-        set(CMAKE_CUDA_ARCHITECTURES 60 75 86)
+        list(APPEND CMAKE_CUDA_ARCHITECTURES 60 75)
+
+        if(${CUDAToolkit_VERSION} VERSION_GREATER_EQUAL "11")
+          list(APPEND CMAKE_CUDA_ARCHITECTURES 86)
+        endif()
       else()
         string(APPEND CMAKE_CUDA_FLAGS " -gencode arch=compute_60,code=sm_60")
         string(APPEND CMAKE_CUDA_FLAGS " -gencode arch=compute_75,code=sm_75")
-        string(APPEND CMAKE_CUDA_FLAGS " -gencode arch=compute_86,code=sm_86")
+        
+        if(${CUDAToolkit_VERSION} VERSION_GREATER_EQUAL "11")
+          string(APPEND CMAKE_CUDA_FLAGS " -gencode arch=compute_86,code=sm_86")
+        endif()
       endif()
+
     else()
      set(XMIPP_USE_CUDA OFF)
      message("CUDA was requested but CUDA Toolkit was not found")
@@ -145,7 +147,7 @@ install(
   DESTINATION ./
 )
 
-# Link to scipion
+# Link to scipion. Keep last so that all other install jobs are complete
 if(XMIPP_LINK_TO_SCIPION)
   if (NOT SCIPION_SOFTWARE)
     set(SCIPION_SOFTWARE "$ENV{SCIPION_SOFTWARE}")
@@ -153,7 +155,22 @@ if(XMIPP_LINK_TO_SCIPION)
 
   if (SCIPION_SOFTWARE)
     message("Scipion software directory found at ${SCIPION_SOFTWARE}")
-    link_to_scipion(${CMAKE_INSTALL_PREFIX} ${SCIPION_SOFTWARE})
+    set(
+      SCIPION_XMIPP_LIBRARIES 
+        libcifpp${CMAKE_SHARED_LIBRARY_SUFFIX}
+        libcifpp${CMAKE_SHARED_LIBRARY_SUFFIX}.3
+        libcifpp${CMAKE_SHARED_LIBRARY_SUFFIX}.5.0.9
+        libsvm.so
+        libXmippCore${CMAKE_SHARED_LIBRARY_SUFFIX}
+        libXmipp${CMAKE_SHARED_LIBRARY_SUFFIX}
+    )
+    install(
+      CODE
+        "
+        include(\"${CMAKE_CURRENT_SOURCE_DIR}/cmake/link_to_scipion.cmake\")
+        link_to_scipion(\"${CMAKE_INSTALL_PREFIX}\" \"${SCIPION_SOFTWARE}\" \"${SCIPION_XMIPP_LIBRARIES}\")
+        "
+    )
   else()
     message("Linking to scipion was requested, but SCIPION_SOFTWARE is not set")
   endif()
