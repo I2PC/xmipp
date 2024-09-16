@@ -138,11 +138,19 @@ ProgSubtractProjection::~ProgSubtractProjection()
 
  void ProgSubtractProjection::writeParticle(MDRow &rowOut, FileName fnImgOut, Image<double> &img, double R2a, double b0save, double b1save) {
 	img.write(fnImgOut);
+
+	// Compute particle stats after subtraction
+	double avg;
+	double std;
+	computeParticleStats(img, fnImgOut, avg, std);
+
 	rowOut.setValue(MDL_IMAGE, fnImgOut);
 	rowOut.setValue(MDL_SUBTRACTION_R2, R2a); 
 	rowOut.setValue(MDL_SUBTRACTION_BETA0, b0save); 
 	rowOut.setValue(MDL_SUBTRACTION_BETA1, b1save); 
-	if (nonNegative && (disable || R2a < 0)) 
+	rowOut.setValue(MDL_AVG, avg); 
+	rowOut.setValue(MDL_STDDEV, std); 
+	if (nonNegative && (disable || R2a < 0))
 	{
 		rowOut.setValue(MDL_ENABLED, -1);
 	}
@@ -289,7 +297,7 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 	return R2;
 }
 
-void ProgSubtractProjection::computeParticleStats(Image<double> &Idiff, double &avg, double &std)
+void ProgSubtractProjection::computeParticleStats(Image<double> &Idiff, FileName fnImgOut, double &avg, double &std)
 {	
 	const auto sizeI = (int)XSIZE(I());
 	MultidimArray<double> &mIdiff=Idiff();
@@ -303,9 +311,12 @@ void ProgSubtractProjection::computeParticleStats(Image<double> &Idiff, double &
 	double sum2 = 0;
 	int Nelems = 0;
 
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(iM())
+	// Threshold value to safely compare px value > 0
+	double epsilon = 1e-8;
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(M())
 	{
-		if (DIRECT_MULTIDIM_ELEM(iM(),n) > 0)
+		if (DIRECT_MULTIDIM_ELEM(M(),n) > epsilon)
 		{
 			double value = DIRECT_MULTIDIM_ELEM(mIdiff, n);
 
@@ -324,18 +335,19 @@ void ProgSubtractProjection::computeParticleStats(Image<double> &Idiff, double &
 
 	#ifdef DEBUG_OUTPUT_FILES
 	// Save output masked particle for debugging
-	
+
 	FileName fnMaskedImgOut;
 	size_t dotPos = fnImgOut.find_last_of('.');
     if (dotPos == std::string::npos) {
         // No extension found
         fnMaskedImgOut = fnImgOut + "_masked";
     }
-    fnMaskedImgOut = fnImgOut.substr(0, dotPos) + "_masked" + filePath.substr(dotPos);
+    fnMaskedImgOut = fnImgOut.substr(0, dotPos) + "_masked" + fnImgOut.substr(dotPos);
 
 	Image<double> saveImage;
 	saveImage() = maskedIdiff;
 	saveImage.write(fnMaskedImgOut);
+	M.write(fnImgOut.substr(0, dotPos) + "_mask" + fnImgOut.substr(dotPos));
 	#endif
 	
 }

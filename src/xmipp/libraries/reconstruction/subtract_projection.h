@@ -34,7 +34,7 @@
  #include "data/fourier_projection.h"
  #include "core/xmipp_metadata_program.h"
 
- #define DEBUG_OUTPUT_FILES
+//  #define DEBUG_OUTPUT_FILES
 
 /**@defgroup ProgSubtractProjection Subtract projections
    @ingroup ReconsLibrary */
@@ -130,7 +130,7 @@ class ProgSubtractProjection: public XmippMetadataProgram
     double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
     Matrix1D<double> checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
         const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
-    void computeParticleStats(const MultidimArray<double> &Particle);
+    void computeParticleStats(Image<double> &Idiff, FileName fnImgOut, double &avg, double &std);
 
 
     int rank; // for MPI version
