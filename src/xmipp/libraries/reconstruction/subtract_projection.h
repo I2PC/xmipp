@@ -1,6 +1,7 @@
 /***************************************************************************
  *
  * Authors:    Estrella Fernandez Gimenez (me.fernandez@cnb.csic.es)
+ *             Federico P. de Isidro-Gomez (federico.pdeisidro@astx.com)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -32,6 +33,8 @@
  #include "data/fourier_filter.h"
  #include "data/fourier_projection.h"
  #include "core/xmipp_metadata_program.h"
+
+ #define DEBUG_OUTPUT_FILES
 
 /**@defgroup ProgSubtractProjection Subtract projections
    @ingroup ReconsLibrary */
@@ -127,6 +130,8 @@ class ProgSubtractProjection: public XmippMetadataProgram
     double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
     Matrix1D<double> checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
         const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
+    void computeParticleStats(const MultidimArray<double> &Particle);
+
 
     int rank; // for MPI version
     FourierProjector *projector;

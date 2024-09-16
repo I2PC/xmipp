@@ -1,6 +1,7 @@
 /***************************************************************************
  *
  * Authors:     Estrella Fernandez Gimenez (me.fernandez@cnb.csic.es)
+ * 				Federico P. de Isidro-Gomez (federico.pdeisidro@astx.com)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -100,7 +101,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	<< "Output particles:\t" << fnOut << std::endl;
  }
 
- // usage ===================================================================
+ // Usage ===================================================================
  void ProgSubtractProjection::defineParams()
  {
 	 //Usage
@@ -128,6 +129,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
     		 "-o output_particles --sampling 1 --fmask_width 40 --max_resolution 4");
  }
 
+ // I/O methods ===================================================================
  void ProgSubtractProjection::readParticle(const MDRow &r) {
 	r.getValueOrDefault(MDL_IMAGE, fnImgI, "no_filename");
 	I.read(fnImgI);
@@ -146,6 +148,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	}
  }
 
+ // Utils methods ===================================================================
  void ProgSubtractProjection::createMask(const FileName &fnM, Image<double> &m, Image<double> &im) {
 	if (fnM.isEmpty()) 
 	{
@@ -286,8 +289,58 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 	return R2;
 }
 
+void ProgSubtractProjection::computeParticleStats(Image<double> &Idiff, double &avg, double &std)
+{	
+	const auto sizeI = (int)XSIZE(I());
+	MultidimArray<double> &mIdiff=Idiff();
 
-// ------------------------------------------------	MAIN METHODS
+	#ifdef DEBUG_OUTPUT_FILES
+	MultidimArray<double> maskedIdiff;
+	maskedIdiff.initZeros(mIdiff);
+	#endif
+
+	double sum = 0;
+	double sum2 = 0;
+	int Nelems = 0;
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(iM())
+	{
+		if (DIRECT_MULTIDIM_ELEM(iM(),n) > 0)
+		{
+			double value = DIRECT_MULTIDIM_ELEM(mIdiff, n);
+
+			#ifdef DEBUG_OUTPUT_FILES
+			DIRECT_MULTIDIM_ELEM(maskedIdiff, n) = DIRECT_MULTIDIM_ELEM(mIdiff, n);
+			#endif
+
+			sum += value;
+			sum2 += value*value;
+			++Nelems;
+		}
+	}
+
+	avg = sum / Nelems;
+	std = sqrt(sum2/Nelems - avg*avg);
+
+	#ifdef DEBUG_OUTPUT_FILES
+	// Save output masked particle for debugging
+	
+	FileName fnMaskedImgOut;
+	size_t dotPos = fnImgOut.find_last_of('.');
+    if (dotPos == std::string::npos) {
+        // No extension found
+        fnMaskedImgOut = fnImgOut + "_masked";
+    }
+    fnMaskedImgOut = fnImgOut.substr(0, dotPos) + "_masked" + filePath.substr(dotPos);
+
+	Image<double> saveImage;
+	saveImage() = maskedIdiff;
+	saveImage.write(fnMaskedImgOut);
+	#endif
+	
+}
+
+ // Main methods ===================================================================
 void ProgSubtractProjection::preProcess() {
 	// Read input volume, mask and particles metadata
 	show();
