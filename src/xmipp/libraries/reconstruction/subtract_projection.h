@@ -34,7 +34,7 @@
  #include "data/fourier_projection.h"
  #include "core/xmipp_metadata_program.h"
 
-//  #define DEBUG_OUTPUT_FILES
+ #define DEBUG_OUTPUT_FILES
 
 /**@defgroup ProgSubtractProjection Subtract projections
    @ingroup ReconsLibrary */
