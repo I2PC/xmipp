@@ -47,7 +47,7 @@ Then all child repositories need to be fetched, with an optional git branch para
 
 Install the Scipion plugin and dependencies
 
-`scipion3 installp -p src/scipion-em-xmipp --devel`
+`scipion3 installp -p src/scipion-em-xmipp/ --devel`
 
 Compile Xmipp
 
