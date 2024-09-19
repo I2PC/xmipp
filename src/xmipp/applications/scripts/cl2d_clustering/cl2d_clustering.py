@@ -646,16 +646,6 @@ def main(input_images, output_directory, min_clusters=3, max_clusters=10, target
     display_images_in_clusters(best_labels, result_dict, output_directory, num_images_to_display=8)
 
 
-#if __name__ == '__main__':
-#    if len(sys.argv) < 3:
-#        print("Usage: ./clustering_classes_pca.py <input_directory> <output_directory> [min_clusters] [max_clusters]")
-#    else:
-#        input_directory = sys.argv[1]
-#        output_directory = sys.argv[2]
-#        min_clusters = int(sys.argv[3]) if len(sys.argv) > 3 else 5
-#        max_clusters = int(sys.argv[4]) if len(sys.argv) > 4 else 20
-#        main(input_directory, output_directory, min_clusters, max_clusters, target_size=(64, 64))
-
 class ScriptCl2dClustering(XmippScript):
     _conda_env="cl2d_clustering_env"
 
@@ -708,6 +698,7 @@ class ScriptCl2dClustering(XmippScript):
             max_clusters = 10
 
         main(input_images, output_dir, min_clusters, max_clusters)
+
 
 if __name__ == '__main__':
     exitCode = ScriptCl2dClustering().tryRun()
