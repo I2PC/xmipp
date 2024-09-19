@@ -1,0 +1,242 @@
+#!/usr/bin/env python3
+"""/***************************************************************************
+ *
+ * Authors:    Erney Ramirez-Aportela
+ *
+  ***************************************************************************/
+"""
+import numpy as np
+import starfile
+import mrcfile
+import torch
+import os
+import concurrent.futures
+
+
+class evaluation:
+    
+    def __init__(self):
+        torch.cuda.is_available()
+        torch.cuda.current_device()
+        self.cuda = torch.device('cuda:0')
+        
+    #for experimental images with starfile module
+    def getAngle(self, prjStar):
+        
+        star=starfile.read(prjStar)
+        self.angle_triplet = []
+        
+        for i in range(len(star)):
+            
+            phi = star["anglePsi"][i]
+            rot = star["angleRot"][i]
+            tilt = star["angleTilt"][i]
+            angles = (phi, rot, tilt)
+            self.angle_triplet.append(angles)
+
+        return self.angle_triplet
+    
+    
+    def getShifts(self, expStar, nExp):
+        
+        self.expShifts = torch.zeros(nExp, 2, device = self.cuda)       
+        star=starfile.read(expStar)
+        
+        for i in range(nExp):
+            
+            shX = star["shiftX"][i]
+            shY = star["shiftY"][i]           
+            self.expShifts[i] = torch.tensor((shX, shY)).view(1,2) 
+
+        return self.expShifts
+    
+    
+    def getPosition(self, expStar, nExp):
+    
+        self.expPosition = torch.zeros(nExp, 3, device = self.cuda)       
+        star=starfile.read(expStar)
+        
+        for i in range(nExp):
+            
+            rot = star["anglePsi"][i]
+            shX = star["shiftX"][i]
+            shY = star["shiftY"][i]           
+            self.expPosition[i] = torch.tensor((rot, shX, shY)).view(1,3) 
+
+        return self.expPosition
+    
+    
+    def getShiftsRelion(self, expStar, sampling, nExp):
+        
+        self.expShifts = torch.zeros(nExp, 2, device = self.cuda)
+        
+        star=starfile.read(expStar)
+        
+        for i in range(nExp):
+            
+            shX = round(star["particles"]["rlnOriginXAngst"][i]/sampling)
+            shY = round(star["particles"]["rlnOriginYAngst"][i]/sampling)
+            
+            self.expShifts[i] = torch.tensor((shX, shY)).view(1,2) 
+
+        return self.expShifts
+    
+    
+        #for experimental images with starfile module      
+        
+    def writeExpStar(self, prjStar, expStar, matchPair, shiftVec, nExp, apply_shifts, output):
+        
+        self.getAngle(prjStar)
+        if apply_shifts:
+            self.getShifts(expStar, nExp)
+            expShifts = self.expShifts.cpu().numpy()
+        star = starfile.read(expStar)
+        new = output  
+    
+        # Adjustment of Psi angles
+        psi_adjusted = matchPair[:, 3]
+        psi_adjusted = np.where(psi_adjusted > 180, psi_adjusted - 360, psi_adjusted)
+    
+        columns = ["anglePsi", "angleRot", "angleTilt", "shiftX", "shiftY", "shiftZ"]
+        for column in columns:
+            if column not in star.columns:
+                star[column] = 0.0
+    
+        # Updating columns in the dataframe
+        angle_triplet = np.array(self.angle_triplet)
+        shiftVec = np.array(shiftVec)
+        star.loc[:, "anglePsi"] = psi_adjusted + angle_triplet[matchPair[:, 1].astype(int), 0]
+        star.loc[:, "angleRot"] = angle_triplet[matchPair[:, 1].astype(int), 1]
+        star.loc[:, "angleTilt"] = angle_triplet[matchPair[:, 1].astype(int), 2]
+    
+        if apply_shifts:
+            star.loc[:, "shiftX"] = shiftVec[matchPair[:, 4].astype(int), 0] + expShifts[:, 0]
+            star.loc[:, "shiftY"] = shiftVec[matchPair[:, 4].astype(int), 1] + expShifts[:, 1]
+        else:
+            star.loc[:, "shiftX"] = shiftVec[matchPair[:, 4].astype(int), 0]
+            star.loc[:, "shiftY"] = shiftVec[matchPair[:, 4].astype(int), 1]
+    
+        starfile.write(star, new)
+    
+        
+    def writeExpStarRelion(self, prjStar, expStar, matchPair, shiftVec, sampling, nExp, apply_shifts, output):
+        
+        self.getAngle(prjStar)
+        self.getShiftsRelion2(expStar, sampling, nExp)
+        self.expShifts = self.expShifts.cpu().numpy()
+        star=starfile.read(expStar)
+        new = output #+ "newStar_exp.star"
+        
+        #Initializing columns
+        star["particles"]["rlnAnglePsi"] = 0.0
+        star["particles"]["rlnAngleRot"] = 0.0
+        star["particles"]["rlnAngleTilt"] = 0.0
+        star["particles"]["rlnOriginXAngst"] = 0.0
+        star["particles"]["rlnOriginYAngst"] = 0.0
+        star["particles"]["rlnOriginZAngst"] = 0.0
+
+        for i in range(len(star)):
+                                
+            id = int(matchPair[i][1])
+            new_psi = matchPair[i][3]
+            posS = int(matchPair[i][4])           
+            new_shiftX = float(shiftVec[posS][0])
+            new_shiftY = float(shiftVec[posS][1])
+            
+            if(new_psi < 180):
+                new_psi = new_psi
+            else:
+                new_psi = new_psi - 360
+
+            star["particles"].at[i, "rlnAnglePsi"] = new_psi + self.angle_triplet[id][0]
+            star["particles"].at[i, "rlnAngleRot"] = self.angle_triplet[id][1]
+            star["particles"].at[i, "rlnAngleTilt"] = self.angle_triplet[id][2]
+            
+            if apply_shifts:
+                star["particles"].at[i, "rlnOriginXAngst"] = (new_shiftX + self.expShifts[i][0])*sampling
+                star["particles"].at[i, "rlnOriginYAngst"] = (new_shiftY + self.expShifts[i][1])*sampling
+            else:
+                star["particles"][i, "rlnOriginXAngst"] = new_shiftX*sampling
+                star["particles"][i, "rlnOriginYAngst"] = new_shiftY*sampling 
+            
+        #priors  
+        star["particles"].loc[:,"rlnOriginXPriorAngst"] = star["particles"]["rlnOriginXAngst"] 
+        star["particles"].loc[:,"rlnOriginYPriorAngst"] = star["particles"]["rlnOriginYAngst"]
+          
+        star["particles"].loc[:,"rlnAnglePsiPrior"] = star["particles"]["rlnAnglePsi"] 
+        star["particles"].loc[:,"rlnAngleRotPrior"] = star["particles"]["rlnAngleRot"]
+        star["particles"].loc[:,"rlnAngleTiltPrior"] = star["particles"]["rlnAngleTilt"]
+           
+        starfile.write(star, new)
+    
+   
+    def convertRelionStarToXmd(self, relionStar, output):
+        star=starfile.read(relionStar)
+        
+        dict = {
+                'rlnOriginXAngst': 'shiftX',
+                'rlnOriginYAngst': 'shiftY',
+                'rlnCoordinateX': 'xcoor',
+                'rlnCoordinateY': 'ycoor',            
+                'rlnAnglePsi': 'anglePsi',
+                'rlnAngleRot': 'angleRot',             
+                'rlnAngleTilt': 'angleTilt',
+                'rlnDefocusU': 'ctfDefocusU',                
+                'rlnDefocusV': 'ctfDefocusV',
+                'rlnDefocusAngle': 'ctfDefocusAngle',
+                'rlnCtfMaxResolution': 'ctfCritMaxFreq',            
+                'rlnCtfFigureOfMerit': 'ctfCritFitting',            
+                'rlnImageName': 'image'                
+            }
+                    
+        sampling = star['optics']['rlnImagePixelSize'] 
+        
+        star['data'] = star['particles']
+        del star['particles']
+        
+        id = range(1, len(star['data'])+1)
+        star['data']['itemId'] = id
+        
+        star['data']['rlnOriginXAngst'] = star['data']['rlnOriginXAngst']/float(sampling)
+        star['data']['rlnOriginYAngst'] = star['data']['rlnOriginYAngst']/float(sampling)
+        
+        star['data']['ctfVoltage'] = float(star['optics']['rlnVoltage'])
+        star['data']['ctfSphericalAberration'] = float(star['optics']['rlnSphericalAberration'])
+        star['data']['ctfQ0'] = float(star['optics']['rlnAmplitudeContrast'])
+        star['data']['enabled'] = 1
+        star['data']['flip'] = 0
+        
+        for relion, xmipp in dict.items():
+            if relion in star['data'].columns:
+                star['data'].rename(columns={relion: xmipp}, inplace=True)
+        
+        del star['optics']
+        star = star['data'].drop(columns=star['data'].filter(regex='^rln', axis=1))
+        
+        starfile.write(star, output)
+     
+        
+    def createStack(self, relionStar, output):
+        star = starfile.read(relionStar)
+        rln_image_name = star['particles']['rlnImageName']
+        
+        batch_mrc = []
+        
+        for line in rln_image_name:
+            image_num, mrc_filename = line.split('@')
+              
+            with mrcfile.open(mrc_filename, permissive=True) as mrcs:
+                image = mrcs.data[int(image_num)-1]
+                
+            batch_mrc.append(image.astype(np.float32))
+        
+        batch_mrc = np.stack(batch_mrc)
+        
+        # Save images
+        with mrcfile.new(output, overwrite=True) as mrc_out:
+            mrc_out.set_data(batch_mrc)
+ 
+            
+            
+            
+            
