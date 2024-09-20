@@ -240,7 +240,7 @@ def calculate_ssim_for_pair(args):
     return i, j, best_ssim
 
 
-def build_similarity_matrix(images, cpu_numbers=cpu_count()):
+def build_similarity_matrix(images, cpu_numbers=8):
     n = len(images)
     similarity_matrix = np.zeros((n, n))
 
@@ -549,7 +549,7 @@ def plot_PCA(explained_variance_ratio, output_directory):
 
 
 # -------------------------------------------- MAIN ---------------------------------------------------------
-def main(input_images, output_directory, min_clusters=3, max_clusters=10, target_size=(64, 64)):
+def main(input_images, output_directory, min_clusters=3, max_clusters=10, target_size=(64, 64), cores=8):
     """Main function to execute image clustering."""
 
     # Load images and preprocess
@@ -559,7 +559,7 @@ def main(input_images, output_directory, min_clusters=3, max_clusters=10, target
     image_list, image_names = load_and_preprocess_images_from_mrcs(imgs_fn, ref_ids_fn, target_size)
 
     # Build similarity matrix
-    similarity_matrix = build_similarity_matrix(image_list)
+    similarity_matrix = build_similarity_matrix(image_list, cpu_numbers=cores)
     # Plot similarity matrix
     # plot_similarity_matrix(similarity_matrix, labels=[f'Image {i + 1}' for i in range(len(image_list))])
 
@@ -664,9 +664,11 @@ class ScriptCl2dClustering(XmippScript):
 
         self.addParamsLine(' [ -M <maxNclusters> ]: (optional) maximum number of clusters. Default number of images + 2.')
 
+        self.addParamsLine(' [ -j <cores> ]: (optional) number of cores you want to use for alignment. Default number of cores available found on your machine.')
+
         ## examples
-        self.addExampleLine('xmipp_cl2d_clustering -i path/to/inputAverages.mrcs -o path/to/outputDir -m 10 -M 20')
-        self.addExampleLine('xmipp_cl2d_clustering -i path/to/inputAverages.mrcs -o path/to/outputDir -m 10 -M -1')
+        self.addExampleLine('xmipp_cl2d_clustering -i path/to/inputAverages.mrcs -o path/to/outputDir -m 10 -M 20 -j 8')
+        self.addExampleLine('xmipp_cl2d_clustering -i path/to/inputAverages.mrcs -o path/to/outputDir -m 10 -M -1 -j 8')
 
 
     def run(self):
@@ -697,7 +699,14 @@ class ScriptCl2dClustering(XmippScript):
             print("If the maximum number of clusters is not given the default value is used, number of images - 2.")
             max_clusters = 10
 
-        main(input_images, output_dir, min_clusters, max_clusters)
+        if self.checkParam('-j'):
+            cores = self.getIntParam('-j')
+        else:
+            print("If the number of cores is not given the default value is used, as many cores as they are available.")
+            cores = cpu_count()
+
+
+        main(input_images, output_dir, min_clusters, max_clusters, cores)
 
 
 if __name__ == '__main__':

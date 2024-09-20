@@ -1,4 +1,6 @@
-name: cl2d_clustering_env
+#Protocols using the enviroment: protocol_xmipp_cl2d_clustering
+
+name: xmipp_cl2dClustering
 channels:
   - defaults
   - conda-forge
