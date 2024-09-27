@@ -76,7 +76,7 @@ def getOSReleaseName() -> str:
 	### This function returns the name of the current system OS release.
 
 	#### Returns:
-	- (str): OS release name.
+	- (str): OS release name. 
 	"""
 	# Initializing default release name 
 	releaseName = UNKNOWN_VALUE
