@@ -6,6 +6,7 @@ import os
 import sys
 from time import time
 from scipy.ndimage import shift
+from scipy.signal import correlate2d
 import xmippLib
 from xmipp_base import *
 
@@ -51,6 +52,47 @@ class ScriptDeepCenterTrain(XmippScript):
         # from keras.applications.efficientnet import EfficientNetB2
            # https://keras.io/api/applications/
         import keras
+
+        def computeShifts(fnImgs):
+            Iavg = None
+            Nimgs = len(fnImgs)
+            for i in range(Nimgs):
+                Iexp = xmippLib.Image(fnImgs[i]).getData()
+                Iexp = (Iexp - np.mean(Iexp)) / np.std(Iexp)
+                if Iavg is None:
+                    Iavg=np.array(Iexp)
+                else:
+                    Iavg+=Iexp
+            Iavg/=len(fnImgs)
+
+            currentX=np.zeros(Nimgs)
+            currentY=np.zeros(Nimgs)
+            F1 = np.fft.fft2(Iavg)
+            Xdim=Iavg.shape[0]
+            maxShift=Xdim/4
+            for i in range(Nimgs):
+                Iexp = xmippLib.Image(fnImgs[i]).getData()
+                Iexp = (Iexp - np.mean(Iexp)) / np.std(Iexp)
+                F2 = np.fft.fft2(Iexp)
+
+                cross_power_spectrum = (F1 * F2.conjugate()) / np.abs(F1 * F2.conjugate())
+                cross_correlation = np.fft.fftshift(np.real(np.fft.ifft2(cross_power_spectrum)))
+
+                center_y, center_x = cross_correlation.shape[0] // 2, cross_correlation.shape[1] // 2
+                y_min = int(max(0, center_y - maxShift))
+                y_max = int(min(cross_correlation.shape[0], center_y + maxShift + 1))
+                x_min = int(max(0, center_x - maxShift))
+                x_max = int(min(cross_correlation.shape[1], center_x + maxShift + 1))
+                restricted_cross_correlation = cross_correlation[y_min:y_max, x_min:x_max]
+                shift_y_restricted, shift_x_restricted = np.unravel_index(
+                    np.argmax(restricted_cross_correlation), restricted_cross_correlation.shape)
+                shift_y = shift_y_restricted - restricted_cross_correlation.shape[0] // 2
+                shift_x = shift_x_restricted - restricted_cross_correlation.shape[1] // 2
+
+                # Calculate the shifts
+                currentY[i] = shift_y
+                currentX[i] = shift_x
+            return currentX, currentY
 
         class DataGenerator(keras.utils.all_utils.Sequence):
             """Generates data for fnImgs"""
@@ -177,8 +219,9 @@ class ScriptDeepCenterTrain(XmippScript):
         Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmd)
         mdExp = xmippLib.MetaData(fnXmd)
         fnImgs = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
-        currentX = mdExp.getColumnValues(xmippLib.MDL_SHIFT_X)
-        currentY = mdExp.getColumnValues(xmippLib.MDL_SHIFT_Y)
+        currentX, currentY = computeShifts(fnImgs)
+        # currentX = mdExp.getColumnValues(xmippLib.MDL_SHIFT_X)
+        # currentY = mdExp.getColumnValues(xmippLib.MDL_SHIFT_Y)
         training_generator = DataGenerator(fnImgs, currentX, currentY, sigma, batch_size, Xdim)
 
         model = constructModel(Xdim)
