@@ -48,6 +48,9 @@ class ScriptDeepCenterPredict(XmippScript):
                 x, y = shifts[Ydict[itemId]]
                 mdExp.setValue(xmippLib.MDL_SHIFT_X, x, objId)
                 mdExp.setValue(xmippLib.MDL_SHIFT_Y, y, objId)
+                mdExp.setValue(xmippLib.MDL_ANGLE_ROT, 0.0, objId)
+                mdExp.setValue(xmippLib.MDL_ANGLE_TILT, 0.0, objId)
+                mdExp.setValue(xmippLib.MDL_ANGLE_PSI, 0.0, objId)
             mdExp.write(fnOut)
 
         md = xmippLib.MetaData(fnExp)
