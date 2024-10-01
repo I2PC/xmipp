@@ -10,6 +10,25 @@ from scipy.signal import correlate2d
 import xmippLib
 from xmipp_base import *
 
+
+def gaussian_mask(size, sigma):
+    x = np.linspace(-size // 2, size // 2, size)
+    y = np.linspace(-size // 2, size // 2, size)
+    x, y = np.meshgrid(x, y)
+    mask = np.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2))
+    mask /= np.sum(mask)
+    return mask
+
+def lowpass_filter_mask(shape, cutoff_frequency):
+    rows, cols = shape
+    crow, ccol = rows // 2, cols // 2  # Center of the frequency domain
+
+    # Create a 2D grid of distances from the center of the Fourier domain
+    y, x = np.ogrid[:rows, :cols]
+    distance_from_center = np.sqrt((x - ccol) ** 2 + (y - crow) ** 2)
+    mask = np.fft.ifftshift((distance_from_center <= cutoff_frequency).astype(float))
+    return mask
+
 class ScriptDeepCenterTrain(XmippScript):
 
     def __init__(self):
@@ -53,6 +72,11 @@ class ScriptDeepCenterTrain(XmippScript):
            # https://keras.io/api/applications/
         import keras
 
+        def saveImage(Iarray, fnOut):
+            I=Image()
+            I.setData(Iarray)
+            I.write(fnOut)
+
         def computeShifts(fnImgs):
             Iavg = None
             Nimgs = len(fnImgs)
@@ -64,34 +88,40 @@ class ScriptDeepCenterTrain(XmippScript):
                 else:
                     Iavg+=Iexp
             Iavg/=len(fnImgs)
+            # saveImage(Iavg,"average.mrc")
+
+            Xdim=Iavg.shape[0]
+            Xdim2=Xdim//2
+            mask2D = gaussian_mask(Xdim, Xdim/7.0)
+            Iavg *= mask2D
+
+            cutoff_frequency = Xdim/7.0
+            lowpass_mask = lowpass_filter_mask(Iavg.shape, cutoff_frequency)
+            epsilon = 1e-10
+            F1 = np.fft.fft2(Iavg)
+            F1*=lowpass_mask
 
             currentX=np.zeros(Nimgs)
             currentY=np.zeros(Nimgs)
-            F1 = np.fft.fft2(Iavg)
-            Xdim=Iavg.shape[0]
-            maxShift=Xdim/4
             for i in range(Nimgs):
                 Iexp = xmippLib.Image(fnImgs[i]).getData()
                 Iexp = (Iexp - np.mean(Iexp)) / np.std(Iexp)
+                Iexp *= mask2D
                 F2 = np.fft.fft2(Iexp)
+                F2*= lowpass_mask
 
-                cross_power_spectrum = (F1 * F2.conjugate()) / np.abs(F1 * F2.conjugate())
+                magnitude = np.abs(F1 * F2.conjugate())
+                magnitude[magnitude == 0] = epsilon
+                cross_power_spectrum = (F1 * F2.conjugate()) / magnitude
+                cross_power_spectrum *= lowpass_mask
+
                 cross_correlation = np.fft.fftshift(np.real(np.fft.ifft2(cross_power_spectrum)))
-
-                center_y, center_x = cross_correlation.shape[0] // 2, cross_correlation.shape[1] // 2
-                y_min = int(max(0, center_y - maxShift))
-                y_max = int(min(cross_correlation.shape[0], center_y + maxShift + 1))
-                x_min = int(max(0, center_x - maxShift))
-                x_max = int(min(cross_correlation.shape[1], center_x + maxShift + 1))
-                restricted_cross_correlation = cross_correlation[y_min:y_max, x_min:x_max]
-                shift_y_restricted, shift_x_restricted = np.unravel_index(
-                    np.argmax(restricted_cross_correlation), restricted_cross_correlation.shape)
-                shift_y = shift_y_restricted - restricted_cross_correlation.shape[0] // 2
-                shift_x = shift_x_restricted - restricted_cross_correlation.shape[1] // 2
+                shift_y, shift_x = np.unravel_index(np.argmax(cross_correlation), cross_correlation.shape)
 
                 # Calculate the shifts
-                currentY[i] = shift_y
-                currentX[i] = shift_x
+                currentY[i] = shift_y-Xdim2
+                currentX[i] = shift_x-Xdim2
+                #print(fnImgs[i], currentY[i], currentX[i])
             return currentX, currentY
 
         class DataGenerator(keras.utils.all_utils.Sequence):
