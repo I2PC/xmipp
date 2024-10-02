@@ -215,7 +215,7 @@ def modeGit(args: argparse.Namespace):
 		logger(blue(f"Running command for {source} in path {sourcePath}..."), forceConsoleOutput=True)
 		runJob(cmd, cwd=sourcePath, showOutput=True, showError=True)
 
-def modeTest(parser, args=argparse.Namespace):
+def modeTest(args=argparse.Namespace):
 	"""
 	### Checks the params for execution mode "test" and then runs it.
 	
@@ -223,6 +223,7 @@ def modeTest(parser, args=argparse.Namespace):
 	- parser (ErrorHandlerArgumentParser): Parser object used to parse the arguments.
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
+	print(args)
 	pass
 
 def modeVersion(args: argparse.Namespace):
@@ -289,7 +290,7 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	elif args.mode == MODE_GIT:
 		modeGit(args)
 	elif args.mode == MODE_TEST:
-		modeTest(parser, args)
+		modeTest(args)
 	elif args.mode == MODE_VERSION:
 		modeVersion(args)
 	else:
