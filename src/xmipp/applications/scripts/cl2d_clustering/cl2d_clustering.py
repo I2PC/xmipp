@@ -647,7 +647,7 @@ def main(input_images, output_directory, min_clusters=3, max_clusters=10, target
 
 
 class ScriptCl2dClustering(XmippScript):
-    _conda_env="cl2d_clustering_env"
+    _conda_env="xmipp_cl2dClustering"
 
     def __init__(self):
         XmippScript.__init__(self)
@@ -674,7 +674,7 @@ class ScriptCl2dClustering(XmippScript):
     def run(self):
         # Input images
         if self.checkParam('-i'):
-            input_images = self.checkParam('-i')
+            input_images = self.getParam('-i')
             if not os.path.exists(input_images):
                 raise Exception('Error, input average .mrcs does not exists.')
         else:
@@ -682,7 +682,7 @@ class ScriptCl2dClustering(XmippScript):
 
         # Output dir: the program will create this directory
         if self.checkParam('-o'):
-            output_dir = self.checkParam('-o')
+            output_dir = self.getParam('-o')
             create_directory(output_dir)
         else:
             raise Exception("Error, output directory is required as argument.")
@@ -706,7 +706,8 @@ class ScriptCl2dClustering(XmippScript):
             cores = cpu_count()
 
 
-        main(input_images, output_dir, min_clusters, max_clusters, cores)
+        main(input_images=input_images, output_directory=output_dir, min_clusters=min_clusters,
+             max_clusters=max_clusters, target_size=(64, 64), cores=cores)
 
 
 if __name__ == '__main__':
