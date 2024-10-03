@@ -32,9 +32,10 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 	MODE_CLEAN_ALL, MODE_VERSION, MODE_GET_MODELS, MODE_TEST, MODE_GIT, MODE_ADD_MODEL, MODE_CONFIG_BUILD,
 	COMMON_USAGE_HELP_MESSAGE, DEFAULT_MODELS_DIR, CONFIG_FILE, CMAKE_INSTALL_PREFIX,
 	CMAKE_CONFIGURE_ERROR, CMAKE_COMPILE_ERROR, CMAKE_INSTALL_ERROR, PARAM_LOGIN, PARAM_SHORT,
-	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_MODEL_PATH, PARAM_MODELS_DIRECTORY, PARAM_KEEP_OUTPUT,
-	PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE, PARAM_OVERWRITE, BUILD_PATH, INSTALL_PATH,
-	BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE, CMAKE_ERROR, MODE_GET_SOURCES, VERSION_FILE)
+	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_TEST_PRO, PARAM_TEST_PRO, PARAM_TEST_FUNC, PARAM_MODEL_PATH,
+	PARAM_MODELS_DIRECTORY, PARAM_KEEP_OUTPUT, PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE,
+	PARAM_OVERWRITE, BUILD_PATH, INSTALL_PATH, BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP,
+	LOG_FILE, CMAKE_ERROR, MODE_GET_SOURCES, VERSION_FILE)
 from installer.utils import runStreamingJob, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
 from installer.config import readConfig, writeConfig
@@ -215,7 +216,7 @@ def modeGit(args: argparse.Namespace):
 		logger(blue(f"Running command for {source} in path {sourcePath}..."), forceConsoleOutput=True)
 		runJob(cmd, cwd=sourcePath, showOutput=True, showError=True)
 
-def modeTest(args=argparse.Namespace):
+def modeTest(args: argparse.Namespace):
 	"""
 	### Checks the params for execution mode "test" and then runs it.
 	
@@ -223,8 +224,14 @@ def modeTest(args=argparse.Namespace):
 	- parser (ErrorHandlerArgumentParser): Parser object used to parse the arguments.
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	print(args)
-	pass
+	if args.show == True:
+		print(args.show)
+	elif args.testName:
+		print(args.testName)
+	elif args.allPrograms:
+		print(args.allPrograms)
+	elif args.allFuncs:
+		print(args.allPrograms)
 
 def modeVersion(args: argparse.Namespace):
 	"""
@@ -367,6 +374,8 @@ if __name__ == "__main__":
 	# Arguments for mode 'test'
 	testSubparser = subparsers.add_parser(MODE_TEST, formatter_class=ModeHelpFormatter)
 	testSubparser.add_argument(*getParamNames(PARAM_TEST_NAME), nargs='?', default=None)
+	testSubparser.add_argument(*getParamNames(PARAM_TEST_PRO), action='store_true')
+	testSubparser.add_argument(*getParamNames(PARAM_TEST_FUNC), action='store_true')
 	testSubparser.add_argument(*getParamNames(PARAM_SHOW_TESTS), action='store_true')
 
 	# Arguments for mode 'version'

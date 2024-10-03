@@ -101,14 +101,15 @@ PARAM_BRANCH = 'branch'
 PARAM_MODELS_DIRECTORY = 'models-directory'
 PARAM_TEST_NAME = 'test-name'
 PARAM_SHOW_TESTS = 'show-tests'
+PARAM_TEST_PRO = 'allPrograms'
+PARAM_TEST_FUNC = 'allFuncs'
 PARAM_GIT_COMMAND = 'git-command'
 PARAM_LOGIN = 'login'
 PARAM_MODEL_PATH = 'model-path'
 PARAM_UPDATE = 'update'
 PARAM_OVERWRITE = 'overwrite'
 PARAM_KEEP_OUTPUT = "keep-output"
-PARAM_TEST_PRO = 'allPrograms'
-PARAM_TEST_FUNC = 'allFuncs'
+
 PARAMS = {
 	PARAM_SHORT: {
 		LONG_VERSION: "--short",
@@ -132,6 +133,14 @@ PARAMS = {
 	PARAM_TEST_NAME: {
 		SHORT_VERSION: "testName",
 		DESCRIPTION: "Run certain test. If combined with --show, greps the test name from the test list."
+	},
+	PARAM_TEST_PRO: {
+		LONG_VERSION: "--allPrograms",
+		DESCRIPTION: "If set, all test available will be run."
+	},
+	PARAM_TEST_FUNC: {
+		LONG_VERSION: "--allFuncs",
+		DESCRIPTION: "If set, all function test available will be run."
 	},
 	PARAM_SHOW_TESTS: {
 		LONG_VERSION: "--show",
@@ -161,14 +170,6 @@ PARAMS = {
 	PARAM_KEEP_OUTPUT: {
 		LONG_VERSION: "--keep-output",
 		DESCRIPTION: "If set, output sent through the terminal won't substitute lines, looking more like the log."
-	},
-	PARAM_TEST_PRO: {
-		LONG_VERSION: "--allPrograms",
-		DESCRIPTION: "If set, all test available will be run."
-	},
-	PARAM_TEST_FUNC: {
-		LONG_VERSION: "--allFuncs",
-		DESCRIPTION: "If set, all function test available will be run."
 	}
 }
 
