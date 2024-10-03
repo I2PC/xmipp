@@ -35,7 +35,7 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_TEST_PRO, PARAM_TEST_PRO, PARAM_TEST_FUNC, PARAM_MODEL_PATH,
 	PARAM_MODELS_DIRECTORY, PARAM_KEEP_OUTPUT, PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE,
 	PARAM_OVERWRITE, BUILD_PATH, INSTALL_PATH, BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP,
-	LOG_FILE, CMAKE_ERROR, MODE_GET_SOURCES, VERSION_FILE)
+	LOG_FILE, CMAKE_ERROR, MODE_GET_SOURCES, VERSION_FILE, PARAMS, LONG_VERSION)
 from installer.utils import runStreamingJob, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
 from installer.config import readConfig, writeConfig
@@ -43,6 +43,7 @@ from installer.cmake import getCMake, getCMakeVarsStr
 from installer.main import getSources, exitXmipp, handleRetCode, getSectionMessage, getSuccessMessage, getVersionMessage
 from installer.logger import logger, yellow, red, blue
 from installer.api import sendApiPOST
+from installer.test import runTests
 
 ####################### EXECUTION MODES #######################
 def __getProjectRootDir() -> str:
@@ -225,13 +226,19 @@ def modeTest(args: argparse.Namespace):
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	if args.show == True:
-		print(args.show)
-	elif args.testName:
-		print(args.testName)
+		logger("Showing test--------------------------------------",
+		       forceConsoleOutput=True)
+		runTests(PARAMS[PARAM_SHOW_TESTS][LONG_VERSION])
 	elif args.allPrograms:
+		logger("Running all tests--------------------------------------",
+		       forceConsoleOutput=True)
 		print(args.allPrograms)
 	elif args.allFuncs:
 		print(args.allPrograms)
+	elif args.testName:
+		logger("Running test {}-------------------------------".format(args.testName),
+		       forceConsoleOutput=True)
+		print(args.testName)
 
 def modeVersion(args: argparse.Namespace):
 	"""
