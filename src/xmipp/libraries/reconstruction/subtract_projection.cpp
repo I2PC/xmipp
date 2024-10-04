@@ -383,7 +383,10 @@ void ProgSubtractProjection::preProcess() {
 	if (cirmaskrad == -1.0)
 		cirmaskrad = (double)XSIZE(V())/2;
 	RaisedCosineMask(cirmask(), cirmaskrad*0.8, cirmaskrad*0.9);
+
+	#ifdef DEBUG_OUTPUT_FILES
 	cirmask.write(formatString("%s/cirmask.mrc", fnProj.c_str()));
+	#endif
 	
 	// Create mock image of same size as particles (and referencce volume) to get
 	I().initZeros((int)Ydim, (int)Xdim);
