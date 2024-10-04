@@ -115,7 +115,6 @@ ProgSubtractProjection::~ProgSubtractProjection()
      addParamsLine("[--mask <mask=\"\">]\t: 3D mask for region to keep, no mask implies subtraction of whole images");
 	 addParamsLine("[--sampling <sampling=1>]\t: Sampling rate (A/pixel)");
 	 addParamsLine("[--max_resolution <f=4>]\t: Maximum resolution (A)");
-	 addParamsLine("[--fmask_width <w=40>]\t: Extra width of final mask (A). -1 means no masking."); 
 	 addParamsLine("[--padding <p=2>]\t: Padding factor for Fourier projector");
 	 addParamsLine("[--sigma <s=2>]\t: Decay of the filter (sigma) to smooth the mask transition");
 	 addParamsLine("[--limit_freq <l=0>]\t: Limit frequency (= 1) or not (= 0) in adjustment process");
@@ -126,7 +125,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	 addParamsLine("[--subtract]\t: The mask contains the region to SUBTRACT"); 
      addExampleLine("A typical use is:",false);
      addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask mask_vol.mrc "
-    		 "-o output_particles --sampling 1 --fmask_width 40 --max_resolution 4");
+    		 "-o output_particles --sampling 1 --max_resolution 4");
  }
 
  // I/O methods ===================================================================
