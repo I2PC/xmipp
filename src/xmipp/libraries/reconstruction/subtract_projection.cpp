@@ -312,22 +312,35 @@ void ProgSubtractProjection::computeParticleStats(Image<double> &Idiff, FileName
 	int Nelems = 0;
 
 	// Threshold value to safely compare px value > 0
-	double epsilon = 1e-8;
+	// double epsilon = 1e-8;
+
+	// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(M())
+	// {
+	// 	if (DIRECT_MULTIDIM_ELEM(M(),n) > epsilon)
+	// 	{
+	// 		double value = DIRECT_MULTIDIM_ELEM(mIdiff, n);
+
+	// 		#ifdef DEBUG_OUTPUT_FILES
+	// 		DIRECT_MULTIDIM_ELEM(maskedIdiff, n) = DIRECT_MULTIDIM_ELEM(mIdiff, n);
+	// 		#endif
+
+	// 		sum += value;
+	// 		sum2 += value*value;
+	// 		++Nelems;
+	// 	}
+	// }
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(M())
 	{
-		if (DIRECT_MULTIDIM_ELEM(M(),n) > epsilon)
-		{
-			double value = DIRECT_MULTIDIM_ELEM(mIdiff, n);
+		double value = DIRECT_MULTIDIM_ELEM(mIdiff, n) * DIRECT_MULTIDIM_ELEM(M, n);
 
-			#ifdef DEBUG_OUTPUT_FILES
-			DIRECT_MULTIDIM_ELEM(maskedIdiff, n) = DIRECT_MULTIDIM_ELEM(mIdiff, n);
-			#endif
+		#ifdef DEBUG_OUTPUT_FILES
+		DIRECT_MULTIDIM_ELEM(maskedIdiff, n) = DIRECT_MULTIDIM_ELEM(mIdiff, n);
+		#endif
 
-			sum += value;
-			sum2 += value*value;
-			++Nelems;
-		}
+		sum += value;
+		sum2 += value*value;
+		++Nelems;
 	}
 
 	avg = sum / Nelems;
@@ -506,7 +519,7 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 		DIRECT_MULTIDIM_ELEM(PFourier1,n) *= (beta01+beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
 	PFourier1(0,0) = IiMFourier(0,0); 
 
-	// Check best model
+	// Check best model, this function also saves best fitted model in PFourier
 	Matrix1D<double> R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier);
 	double beta0save;
 	double beta1save;		
