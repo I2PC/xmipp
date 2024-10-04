@@ -28,10 +28,11 @@ This module contains the necessary functions to run and manage the test.
 from os import environ, path
 
 # Self imports
-from .constants import XMIPP, SCIPION_TESTS_URLS, CONFIG_FILE, XMIPP_USE_CUDA, XMIPP_LINK_TO_SCIPION
+from .constants import XMIPP, SCIPION_TESTS_URLS, CONFIG_FILE, XMIPP_USE_CUDA, XMIPP_LINK_TO_SCIPION, ENVIROMENT_ERROR
 from .logger import blue, red, logger
 from .utils import runJob
 from .config import readConfig
+from .main import handleRetCode
 
 ####################### COMMAND FUNCTIONS #######################
 
@@ -43,6 +44,7 @@ def runTests(testNames):
 	#### Params:
 	- branch (str): Optional. Branch to clone the sources from.
 	"""
+	testsPath = ''
 	xmippSrc = environ.get('XMIPP_SRC', None)
 	if xmippSrc and path.isdir(xmippSrc):
 		environ['PYTHONPATH'] = ':'.join([
@@ -50,10 +52,8 @@ def runTests(testNames):
             environ.get('PYTHONPATH', '')])
 		testsPath = path.join(environ['XMIPP_SRC'], XMIPP, 'tests')
 	else:
-		logger.logError(errorMsg=red('XMIPP_SRC is not in the enviroment.') +
-              '\nTo run the tests you need to run: ' +
-              blue('source dist/xmipp.bashrc'))
-		
+		handleRetCode(ENVIROMENT_ERROR, predefinedErrorCode=ENVIROMENT_ERROR, sendAPI=False)
+
 		
 	dataSetPath = path.join(testsPath, 'data')
 	environ["XMIPP_TEST_DATA"] = dataSetPath
@@ -77,7 +77,7 @@ def runTests(testNames):
 	
 	
 	if configDict.get(XMIPP_LINK_TO_SCIPION) == 'ON':
-		pythonExe = 'scipion3 run'
+		pythonExe = 'scipion3 python'
 	else:
 		pythonExe = 'python3'
 

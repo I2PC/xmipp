@@ -232,9 +232,11 @@ def modeTest(args: argparse.Namespace):
 	elif args.allPrograms:
 		logger("Running all tests--------------------------------------",
 		       forceConsoleOutput=True)
-		print(args.allPrograms)
+		runTests(PARAMS[PARAM_TEST_PRO][LONG_VERSION])
 	elif args.allFuncs:
 		print(args.allPrograms)
+		runTests(PARAMS[PARAM_TEST_FUNC][LONG_VERSION])
+
 	elif args.testName:
 		logger("Running test {}-------------------------------".format(args.testName),
 		       forceConsoleOutput=True)
