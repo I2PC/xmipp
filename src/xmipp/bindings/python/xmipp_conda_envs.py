@@ -28,8 +28,8 @@ XMIPP_CONDA_ENVS = {
     "xmippEnviron": True
   },
   
-  "xmipp_graph": {
-    "requirements": os.path.join(_REQUIREMENT_PATH, 'xmipp_graph.yml'),
+  "xmipp_swiftalign": {
+    "requirements": os.path.join(_REQUIREMENT_PATH, 'xmipp_swiftalign.yml'),
     "xmippEnviron": True
   },
 }

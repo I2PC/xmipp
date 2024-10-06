@@ -20,12 +20,26 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .align import align
-from .train import train
-from .populate import populate
-from .generate_alignment_metadata import generate_alignment_metadata
+from typing import Optional
+import torch
 
-from .FourierInPlaneTransformAugmenter import FourierInPlaneTransformAugmenter
-from .FourierInPlaneTransformGenerator import FourierInPlaneTransformGenerator
-from .FourierInPlaneTransformCorrector import FourierInPlaneTransformCorrector
-from .InPlaneTransformCorrector import InPlaneTransformCorrector
+def time_shift_filter(shift: torch.Tensor,
+                      freq: torch.Tensor,
+                      out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+    """Generates a multidimensional shift filter in Fourier space
+
+    Args:
+        shift (torch.Tensor): Shift in samples. (B, n) where shape, where B is the batch size and n is the dimensions 
+        freq (torch.Tensor): Frequency grid in radians. (B, dn, ... dy, dx)
+        out (Optional[torch.Tensor], optional): Preallocated tensor. Defaults to None.
+
+    Returns:
+        torch.Tensor: _description_
+    """
+    
+    # Fourier time shift theorem:
+    # https://en.wikipedia.org/wiki/Discrete_Fourier_transform#Some_discrete_Fourier_transform_pairs
+    angles = -torch.matmul(shift, freq)
+    gain = torch.tensor(1.0).to(angles) # TODO try to avoid using this
+    out = torch.polar(gain, angles, out=out)
+    return out

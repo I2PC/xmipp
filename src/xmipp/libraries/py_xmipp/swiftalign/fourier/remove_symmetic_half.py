@@ -20,12 +20,17 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .align import align
-from .train import train
-from .populate import populate
-from .generate_alignment_metadata import generate_alignment_metadata
+import torch
 
-from .FourierInPlaneTransformAugmenter import FourierInPlaneTransformAugmenter
-from .FourierInPlaneTransformGenerator import FourierInPlaneTransformGenerator
-from .FourierInPlaneTransformCorrector import FourierInPlaneTransformCorrector
-from .InPlaneTransformCorrector import InPlaneTransformCorrector
+def remove_symmetric_half(input: torch.Tensor) -> torch.Tensor:
+    """Removes the conjugate symmetry from a multidimensional Fourier transform
+
+    Args:
+        input (torch.Tensor): Input tensor
+
+    Returns:
+        torch.Tensor: Input without symmetry
+    """
+    x_size = input.shape[-1]
+    half_x_size = x_size // 2 + 1
+    return input[...,:half_x_size]

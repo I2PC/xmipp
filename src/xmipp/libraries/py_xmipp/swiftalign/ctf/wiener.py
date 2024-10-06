@@ -20,12 +20,29 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .align import align
-from .train import train
-from .populate import populate
-from .generate_alignment_metadata import generate_alignment_metadata
+from typing import Optional, Sequence
+import torch
 
-from .FourierInPlaneTransformAugmenter import FourierInPlaneTransformAugmenter
-from .FourierInPlaneTransformGenerator import FourierInPlaneTransformGenerator
-from .FourierInPlaneTransformCorrector import FourierInPlaneTransformCorrector
-from .InPlaneTransformCorrector import InPlaneTransformCorrector
+def wiener_2d( direct_filter: torch.Tensor,
+               inverse_ssnr: Optional[torch.Tensor] = None,
+               out: Optional[torch.Tensor] = None) -> torch.Tensor:
+    
+    # Compute the filter power (|H|²) at the output
+    if torch.is_complex(direct_filter):
+        out = torch.abs(direct_filter, out=out)
+        out.square_()
+    else:
+        out = torch.square(direct_filter, out=out)
+    
+    # Compute the default value for inverse SSNR if not
+    # provided
+    if inverse_ssnr is None:
+        inverse_ssnr = torch.mean(out, dim=(-2, -1))
+        inverse_ssnr *= 0.1
+        inverse_ssnr = inverse_ssnr[...,None,None]
+    
+    # H* / (|H|² + N/S)
+    out.add_(inverse_ssnr)
+    torch.div(torch.conj(direct_filter), out, out=out)
+
+    return out
