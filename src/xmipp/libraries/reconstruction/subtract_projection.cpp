@@ -72,7 +72,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
  {
 	XmippMetadataProgram::readParams();
  	fnVolR = getParam("--ref");
-	fnMask=getParam("--mask");
+	fnMaskRoi=getParam("--mask_roi");
 	sigma=getIntParam("--sigma");
 	sampling = getDoubleParam("--sampling");
 	padFourier = getDoubleParam("--padding");
@@ -91,7 +91,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	std::cout
 	<< "Input particles:\t" << fnParticles << std::endl
 	<< "Reference volume:\t" << fnVolR << std::endl
-	<< "Mask of the region to keep:\t" << fnMask << std::endl
+	<< "Mask of the region of interest to keep or subtract:\t" << fnMaskRoi << std::endl
 	<< "Sigma of low pass filter:\t" << sigma << std::endl
 	<< "Sampling rate:\t" << sampling << std::endl
 	<< "Padding factor:\t" << padFourier << std::endl
@@ -106,11 +106,12 @@ ProgSubtractProjection::~ProgSubtractProjection()
      addUsageLine("This program computes the subtraction between particles and a reference"); 
 	 addUsageLine(" volume, by computing its projections with the same angles that input particles have."); 
 	 addUsageLine(" Then, each particle and the correspondent projection of the reference volume are numerically");
-	 addUsageLine(" adjusted and subtracted using a mask which denotes the region to keep or subtract.");
+	 addUsageLine(" adjusted and subtracted using a mask which denotes the region of interest to keep or subtract.");
+
      //Parameters
 	 XmippMetadataProgram::defineParams();
      addParamsLine("--ref <volume>\t: Reference volume to subtract");
-     addParamsLine("[--mask <mask=\"\">]\t: 3D mask for region to keep, no mask implies subtraction of whole images");
+     addParamsLine("[--mask_roi <mask_roi=\"\">]\t: 3D mask for region of interest to keep or subtract, no mask implies subtraction of whole images");
 	 addParamsLine("[--sampling <sampling=1>]\t: Sampling rate (A/pixel)");
 	 addParamsLine("[--max_resolution <f=4>]\t: Maximum resolution (A)");
 	 addParamsLine("[--padding <p=2>]\t: Padding factor for Fourier projector");
@@ -121,7 +122,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	 addParamsLine("[--save <structure=\"\">]\t: Path for saving intermediate files"); 
 	 addParamsLine("[--subtract]\t: The mask contains the region to SUBTRACT"); 
      addExampleLine("A typical use is:",false);
-     addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask mask_vol.mrc "
+     addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask_roi mask_vol.mrc "
     		 "-o output_particles --sampling 1 --max_resolution 4");
  }
 
@@ -409,10 +410,13 @@ void ProgSubtractProjection::preProcess() {
 	double cutFreq = sampling/maxResol;
 	DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(IFourier), maxwiIdx)
 
+	std::cout << "------------------- cutFreq " << cutFreq << std::endl;
+	std::cout << "------------------- maxwiIdx " << maxwiIdx << std::endl;
+
 	if (rank==0)
 	{
 		// Read or create mask keep and compute inverse of mask keep (mask subtract)
-		createMask(fnMask, vM, ivM);
+		createMask(fnMaskRoi, vM, ivM);
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
 			DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n); 
 		// Initialize Fourier projectors
@@ -438,7 +442,7 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	processParticle(rowIn, sizeI);
 
 	// Build projected and final masks
-	if (fnMask.isEmpty())  // If there is no provided mask
+	if (fnMaskRoi.isEmpty())  // If there is no provided mask
 	{
 		M().initZeros(P());
 		// inverse mask (iM) is all 1s
