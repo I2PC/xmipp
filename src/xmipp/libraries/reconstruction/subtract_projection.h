@@ -57,7 +57,6 @@ class ProgSubtractProjection: public XmippMetadataProgram
 	double maxResol;
     double cirmaskrad; // Radius of the circular mask
 	int sigma;
-    int limitfreq;
     int maxwiIdx;
     bool nonNegative;
     bool boost;

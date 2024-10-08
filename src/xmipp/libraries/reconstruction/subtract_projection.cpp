@@ -77,7 +77,6 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	sampling = getDoubleParam("--sampling");
 	padFourier = getDoubleParam("--padding");
     maxResol = getDoubleParam("--max_resolution");
-	limitfreq = getIntParam("--limit_freq");
 	cirmaskrad = getDoubleParam("--cirmaskrad");
 	fnProj = getParam("--save"); 
 	nonNegative = checkParam("--nonNegative");
@@ -117,7 +116,6 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	 addParamsLine("[--max_resolution <f=4>]\t: Maximum resolution (A)");
 	 addParamsLine("[--padding <p=2>]\t: Padding factor for Fourier projector");
 	 addParamsLine("[--sigma <s=2>]\t: Decay of the filter (sigma) to smooth the mask transition");
-	 addParamsLine("[--limit_freq <l=0>]\t: Limit frequency (= 1) or not (= 0) in adjustment process");
 	 addParamsLine("[--nonNegative]\t: Ignore particles with negative beta0 or R2"); 
 	 addParamsLine("[--boost]\t: Perform a boosting of original particles"); 
 	 addParamsLine("[--cirmaskrad <c=-1.0>]\t: Radius of the circular mask");
@@ -400,7 +398,6 @@ void ProgSubtractProjection::preProcess() {
 	// Construct frequencies image
 	wi.initZeros(IFourier);
 	Matrix1D<double> w(2); 	
-	double cutFreq = sampling/maxResol;
 	for (int i=0; i<YSIZE(wi); i++) {
 		FFT_IDX2DIGFREQ(i,YSIZE(IFourier),YY(w)) 
 		for (int j=0; j<XSIZE(wi); j++)  {
@@ -408,10 +405,10 @@ void ProgSubtractProjection::preProcess() {
 			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)XSIZE(IFourier)); // indexes
 		}
 	}
-	if (limitfreq == 0)
-		maxwiIdx = (int)XSIZE(wi); 
-	else
-		DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(IFourier), maxwiIdx)
+
+	// Calculate index corresponding to cut-off freq
+	double cutFreq = sampling/maxResol;
+	DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(IFourier), maxwiIdx)
 
 	if (rank==0)
 	{
