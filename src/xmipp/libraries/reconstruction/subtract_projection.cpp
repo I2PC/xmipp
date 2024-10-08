@@ -96,7 +96,6 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	<< "Sampling rate:\t" << sampling << std::endl
 	<< "Padding factor:\t" << padFourier << std::endl
     << "Max. Resolution:\t" << maxResol << std::endl
-	<< "Limit frequency:\t" << limitfreq << std::endl
 	<< "Output particles:\t" << fnOut << std::endl;
  }
 
