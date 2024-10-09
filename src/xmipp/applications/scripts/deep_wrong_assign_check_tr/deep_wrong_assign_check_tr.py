@@ -79,7 +79,7 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         self.addParamsLine(' [ -f <fnPretrainedModel> ]: (optional) filename of the pretrained model to be used instead of a new one.')
         #TODO: Set values here and in protocol (protocol?)
         self.addParamsLine(' [ -e <numEpoch=30> ]: (optional) number of epochs to train the model')
-        self.addParamsLine(' [ -l <learningRate=0.3> ]: (optional) learning rate used for the optimizer.')
+        self.addParamsLine(' [ -l <learningRate=0.001> ]: (optional) learning rate used for the optimizer.')
         #TODO: modify this value (adaptative?)
         self.addParamsLine(' [ -p <patience=10> ]: (optional) number of epochs with no improvement after which training will be stopped.')
 
@@ -119,6 +119,7 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         trainInfoNeg = self.readFileInfo(self.fnXmdNeg,False)
 
         self.trainInfo = trainInfoPos + trainInfoNeg
+       # self.trainLabels = trainlabelsPos + trainlabelsNeg
         
         ## Filename where the best model will be stored after training
         ## The program does not check if it exists since the file will be generated (written on) as a result of the training
@@ -189,6 +190,7 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
             final.append(aux)
 
         return final
+       # return fnImgs, labels
 
     #TODO: Write function definition
     def getImage(self, fnImg):
@@ -202,6 +204,7 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         print("ahh ahh ahh")
         '''
         img = np.reshape(xmippLib.Image(fnImg).getData(), (self.xDim, self.xDim, 1))
+
         '''
         with open (self.fnSaveInfo, 'a') as f:
             #print(fnImg, file = f)
@@ -222,9 +225,7 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
 
         for elem in self.randomizedData[:self.lenTrain]:
             
-            np.set_printoptions(threshold=np.inf)
             input = self.getImage(elem[0])
-            print(input)
             target = int(elem[1])
 
             yield (input,target)
@@ -232,13 +233,23 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
     #TODO: write function definition
     def manageVal(self):
         
-        for elem in self.randomizedData[self.lenTrain:]:
+        for elem in self.randomizedData[self.lenTrain:self.lenVal]:
             
             input = self.getImage(elem[0])
             target = int(elem[1])
 
             yield (input,target)
+    
+    #TODO: write function definition
+    def manageTest(self):
+        
+        for elem in self.randomizedData[self.lenVal:]:
+            
+            input = self.getImage(elem[0])
+            target = int(elem[1])
 
+            yield (input,target)
+    
     #--------------- Training related functions ----------------
 
     #TODO: Write function definition
@@ -288,13 +299,27 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
     def performTrain(self):
 
         self.lenTrain = int(len(self.trainInfo)*0.8)
+        self.lenVal = int((len(self.trainInfo) - self.lenTrain)*0.5) + self.lenTrain
 
         #TODO: is this the best way to do this?
         randomizedIds = np.random.choice(len(self.trainInfo), len(self.trainInfo), replace = False)
         npyTrainData = np.array(self.trainInfo)
+       # npyTrainLabels = np.array(self.trainLabels)
         randomizedNpData = npyTrainData[randomizedIds]
+       # randomizedNpLabels = npyTrainLabels[randomizedIds]
         self.randomizedData = randomizedNpData.tolist()
+        """
+        actualImgs =[] 
+        for img in self.randomizedData:
 
+            aux = self.getImage(img)
+            actualImgs.append(aux)
+
+        actualImgsnp = np.array(actualImgs)
+        """
+        # train_x = actualImgs[:self.lenTrain]
+       # val_x = actualImgs[self.lenTrain:]
+        
         #TODO: comments on shapes (TensorSpecs)(proper explanation)
         trainingSet = tf.data.Dataset.from_generator(self.manageTrain, output_signature = (tf.TensorSpec((self.xDim, self.xDim, 1), dtype =tf.float32), tf.TensorSpec((), dtype=tf.int32)))
         trainingSet = trainingSet.batch(self.batchSize, drop_remainder = False)
@@ -302,6 +327,31 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         validationSet = tf.data.Dataset.from_generator(self.manageVal, output_signature = (tf.TensorSpec((self.xDim, self.xDim, 1), dtype =tf.float32), tf.TensorSpec((), dtype=tf.int32)))
         validationSet = validationSet.batch(self.batchSize, drop_remainder = False)
 
+        testSet = tf.data.Dataset.from_generator(self.manageTest, output_signature = (tf.TensorSpec((self.xDim, self.xDim, 1), dtype =tf.float32), tf.TensorSpec((), dtype=tf.int32)))
+        testSet = testSet.batch(self.batchSize, drop_remainder = False)
+        """
+        if self.isPretrained:
+                
+            model = load_model(self.fnPreModel)
+                
+        else:
+            
+            model = self.constructModel()
+            #TODO: Evaluate other optimizers
+            adam_opt = tf.keras.optimizers.Adam(learning_rate = self.learningRate)
+            # Configuring the model's metrics
+            model.compile(optimizer=adam_opt, loss='binary_crossentropy', metrics = ['accuracy'])
+
+        bestModel = ModelCheckpoint(filepath = self.fnOutputModel, monitor='val_loss', save_best_only=True)
+        patienceCallBack = EarlyStopping(monitor='val_loss', patience = self.patience)
+
+        history = model.fit(x = trainingSet, epochs = self.numEpochs, verbose = "auto",
+                        callbacks = [bestModel, patienceCallBack], validation_data = validationSet, 
+                        workers = self.nThreads, use_multiprocessing = True)
+        
+        print(history.history)
+        """
+        
         #TODO: Explain what this is (should I include this line elsewhere?)
         #TODO: Evaluate if there is a way to use strategy in the scoring program
         strategy = tf.distribute.MirroredStrategy()
@@ -313,6 +363,7 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
 
         trainingSet = trainingSet.with_options(options)
         validationSet = validationSet.with_options(options)
+        testSet = testSet.with_options(options)
 
         with strategy.scope():
 
@@ -321,22 +372,24 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
                 model = load_model(self.fnPreModel)
                 
             else:
-                
-                from tensorflow.keras.applications import ResNet50, VGG16
-                ResNet_50 = ResNet50(weights = None, input_shape=(40, 40, 1), classes = 1, classifier_activation = "relu")
-                VGG16_net = VGG16(weights = None, input_shape = (self.xDim,self.xDim,1), classes = 1, classifier_activation = "relu")
+                """
+                from tensorflow.keras.applications import ResNet50, VGG16, Xception
+                xception_net = Xception(weights = None, input_shape = (self.xDim,self.xDim,1), classes = 1, classifier_activation = "relu")
+               # ResNet_50 = ResNet50(weights = None, input_shape=(self.xDim, self.xDim, 1), classes = 1, classifier_activation = "relu")
+               # VGG16_net = VGG16(weights = None, input_shape = (self.xDim,self.xDim,1), classes = 1, classifier_activation = "relu")
                 adam_opt = tf.keras.optimizers.Adam(learning_rate = self.learningRate)
-                sgd_opt = tf.keras.optimizers.SGD(learning_rate = self.learningRate, momentum=0.9, decay=0.0001)
-                other_opt = tf.keras.optimizers.RMSprop(learning_rate = self.learningRate)
-                #ResNet_50.compile(optimizer=adam_opt, loss='binary_crossentropy', metrics = ['accuracy'])
-                VGG16_net.compile(optimizer=adam_opt, loss='binary_crossentropy', metrics = ['accuracy'])
-                '''
+               # sgd_opt = tf.keras.optimizers.SGD(learning_rate = self.learningRate, momentum=0.9, decay=0.0001)
+               # other_opt = tf.keras.optimizers.RMSprop(learning_rate = self.learningRate)
+               # ResNet_50.compile(optimizer=adam_opt, loss='binary_crossentropy', metrics = ['accuracy'])
+               # VGG16_net.compile(optimizer=adam_opt, loss='binary_crossentropy', metrics = ['accuracy'])
+                xception_net.compile(optimizer=adam_opt, loss='binary_crossentropy', metrics = ['accuracy'])
+                """
                 model = self.constructModel()
                 #TODO: Evaluate other optimizers
                 adam_opt = tf.keras.optimizers.Adam(learning_rate = self.learningRate)
                 # Configuring the model's metrics
                 model.compile(optimizer=adam_opt, loss='binary_crossentropy', metrics = ['accuracy'])
-                '''
+                
         #TODO: evaluate callbacks
         #TODO: check notes on LearningRateScheduler + Cyclical Learning Rate (CLR)
 
@@ -357,25 +410,28 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
             # https://www.tensorflow.org/guide/intro_to_graphs
             writer = tf.summary.create_file_writer(self.pthSaveInfo + "/logs")
             #file_writer = tf.summary.FileWriter('/path/to/logs', sess.graph) #TF1, not suported
+            """
+            history = xception_net.fit(x = trainingSet, epochs = self.numEpochs, verbose = "auto",
+                        callbacks = [bestModel, patienceCallBack, logsCallback], validation_data = validationSet, workers = self.nThreads, use_multiprocessing = True)
             
             history = VGG16_net.fit(x = trainingSet, epochs = self.numEpochs, verbose = "auto",
                         callbacks = [bestModel, patienceCallBack, logsCallback], validation_data = validationSet, workers = self.nThreads, use_multiprocessing = True)
-            '''
+            
             history = ResNet_50.fit(x = trainingSet, epochs = self.numEpochs, verbose = "auto",
                         callbacks = [bestModel, patienceCallBack, logsCallback], validation_data = validationSet, workers = self.nThreads, use_multiprocessing = True)
-            
+            """
             history = model.fit(x = trainingSet, epochs = self.numEpochs, verbose = "auto",
                         callbacks = [bestModel, patienceCallBack, logsCallback], validation_data = validationSet, workers = self.nThreads, use_multiprocessing = True)
-            '''
-            #loss, accuracy = model.evaluate(x= validationSet, verbose = 2)
+            
+           # loss, accuracy = model.evaluate(x= validationSet, verbose = 2)
             #loss, accuracy = ResNet_50.evaluate(x = validationSet, verbose = 2)
-            loss, accuracy = VGG16_net.evaluate(x = validationSet, verbose = 2)
-            print(accuracy)
+           # loss, accuracy = VGG16_net.evaluate(x = validationSet, verbose = 2)
+           # print(accuracy)
 
         else:
         
             #TODO: Traditionally the steps per epoch is calculated has train_length // batch size
-            history = model.fit(x = trainingSet, epochs = self.numEpochs, verbose = 0,
+            history = model.fit(x = trainingSet, epochs = self.numEpochs, verbose = "auto",
                             callbacks = [bestModel, patienceCallBack], validation_data = validationSet, workers = self.nThreads, use_multiprocessing = True)
         
         # prints a string summary of the network
@@ -383,16 +439,25 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
 
         #TODO: A History object. Its History.history attribute is a record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values (if applicable).)
         if self.doSaveInfo:
-            with open (self.fnSaveInfo, 'a') as f:
+            with open (self.fnSaveInfo, 'w') as f:
                 print(history.history, file = f)
                 #f.write(history.history)
                 with redirect_stdout(f):
-                    #ResNet_50.summary()
-                   # model.summary()
-                   VGG16_net.summary()
+                   # ResNet_50.summary()
+                    model.summary()
+                    # VGG16_net.summary()
+                   # xception_net.summmary()
                 #f.close()
 
         #print(history.history)
+
+       # data = xception_net.evaluate(x=testSet,workers = self.nThreads, use_multiprocessing = True)
+       # data = VGG16_net.evaluate(x=testSet,workers = self.nThreads, use_multiprocessing = True)
+       # data = ResNet_50.evaluate(x=testSet,workers = self.nThreads, use_multiprocessing = True)
+        data = model.evaluate(x=testSet,workers = self.nThreads, use_multiprocessing = True)
+        print("hello")
+        print(data)
+    
 
     #--------------- Program Execution Function ----------------
 
@@ -404,7 +469,13 @@ class ScriptDeepWrongAssignCheckTrain(XmippScript):
         trainingStartTime = time()
 
         self.convertInputs()
-        
+        ''''
+        np.set_printoptions(threshold=np.inf)
+        img2 = np.reshape(xmippLib.Image("000001@Runs/013772_XmippProtWrongAssignCheckTrain/extra/residualsokSubset.mrcs").getData(), (self.xDim, self.xDim, 1))
+        print(img2)
+        aux = 255*(img2 - np.min(img2)) / (np.max(img2) - np.min(img2)).astype(int)   
+        print(aux)
+        '''
         #TODO: include saving metrics in file if flag activated
         self.performTrain()
         
