@@ -58,6 +58,11 @@ foreach(PROGRAM_DIRECTORY ${PROGRAM_DIRECTORIES})
 
 		file(GLOB_RECURSE PROGRAM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/${PROGRAM_DIRECTORY}/*.cpp)	
 
+		if (NOT PROGRAM_SOURCES)
+			message(WARNING "${PROGRAM_DIRECTORY} directory is empty. Skipping program.")
+			continue()
+		endif()
+
 		add_executable(
 			${PROGRAM_NAME}
 			${PROGRAM_SOURCES}

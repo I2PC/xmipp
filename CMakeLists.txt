@@ -64,7 +64,7 @@ endif()
 
 # Find Python
 find_package(Python3 COMPONENTS Interpreter Development NumPy REQUIRED)
-string(APPEND XMIPP_VERSIONS "Python3=${Python3_VERSION}\n")
+file(APPEND ${XMIPP_VERSIONS_FILE} "Python3=${Python3_VERSION}\n")
 
 # Find CUDA
 if(${XMIPP_USE_CUDA})

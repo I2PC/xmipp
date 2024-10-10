@@ -34,13 +34,14 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 	CMAKE_CONFIGURE_ERROR, CMAKE_COMPILE_ERROR, CMAKE_INSTALL_ERROR, PARAM_LOGIN, PARAM_SHORT,
 	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_MODEL_PATH, PARAM_MODELS_DIRECTORY, PARAM_KEEP_OUTPUT,
 	PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE, PARAM_OVERWRITE, BUILD_PATH, INSTALL_PATH,
-	BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE, CMAKE_ERROR, MODE_GET_SOURCES)
+	BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP, LOG_FILE, CMAKE_ERROR, MODE_GET_SOURCES, VERSION_FILE)
 from installer.utils import runStreamingJob, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
 from installer.config import readConfig, writeConfig
 from installer.cmake import getCMake, getCMakeVarsStr
 from installer.main import getSources, exitXmipp, handleRetCode, getSectionMessage, getSuccessMessage, getVersionMessage
 from installer.logger import logger, yellow, red, blue
+from installer.api import sendApiPOST
 
 ####################### EXECUTION MODES #######################
 def __getProjectRootDir() -> str:
@@ -294,12 +295,16 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	else:
 		# If method was none of the above, exit with error
 		logger(red(f"Mode \"{args.mode}\" not recognized. {COMMON_USAGE_HELP_MESSAGE}"), forceConsoleOutput=True)
-		exitXmipp(retCode=1, sendAPI=False)
+		exitXmipp(retCode=1)
 	
+	# Send API message
+	if sendAPI and os.path.exists(VERSION_FILE):
+		sendApiPOST()
+
 	# Print success message for specific modes
 	if args.mode == MODE_ALL or args.mode == MODE_COMPILE_AND_INSTALL:
 		logger(getSuccessMessage(), forceConsoleOutput=True)
-	exitXmipp(sendAPI=sendAPI)
+	exitXmipp()
 	
 ####################### MAIN EXECUTION THREAD #######################
 if __name__ == "__main__":
