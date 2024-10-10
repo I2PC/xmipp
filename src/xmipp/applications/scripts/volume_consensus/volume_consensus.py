@@ -27,7 +27,6 @@
 *
 **************************************************************************
 """
-from os.path import splitext
 import math
 import numpy as np
 import pywt
@@ -59,46 +58,72 @@ class ScriptVolumeConsensus(XmippScript):
         outputMin = None
         xdim2 = None
         xdimOrig = None
+        image = xmippLib.Image()
         with open(inputFile) as f:
             for line in f:
                 fileName = line.split()[0]
                 if fileName.endswith('.mrc'):
                     fileName += ':mrc'
-                V = xmippLib.Image(fileName)
-                vol = V.getData()
+                    
+                image.read(fileName)
+                volume = image.getData()
+                
                 if xdimOrig is None:
-                    xdimOrig = vol.shape[0]
-                    xdim2 = 2**(math.ceil(math.log(xdimOrig, 2))) # Next power of 2
-                    ydimOrig = vol.shape[1]
-                    ydim2 = 2 ** (math.ceil(math.log(ydimOrig, 2)))  # Next power of 2
-                    zdimOrig = vol.shape[2]
-                    zdim2 = 2 ** (math.ceil(math.log(zdimOrig, 2)))  # Next power of 2
+                    xdimOrig = volume.shape[0]
+                    xdim2 = 2**(math.ceil(math.log2(xdimOrig))) # Next power of 2
+                    ydimOrig = volume.shape[1]
+                    ydim2 = 2**(math.ceil(math.log2(ydimOrig)))  # Next power of 2
+                    zdimOrig = volume.shape[2]
+                    zdim2 = 2**(math.ceil(math.log2(zdimOrig)))  # Next power of 2
+                    
                 if xdimOrig!=xdim2 or ydimOrig!=ydim2 or zdimOrig!=zdim2:
-                    vol = zoom(vol, (xdim2/xdimOrig,ydim2/ydimOrig,zdim2/zdimOrig))
-                nlevel = pywt.swt_max_level(len(vol))
-                wt = pywt.swtn(vol, wavelet, nlevel, 0)
+                    volume = zoom(volume, (xdim2/xdimOrig,ydim2/ydimOrig,zdim2/zdimOrig))
+                
+                nlevel = pywt.dwtn_max_level(volume.shape, wavelet=wavelet)
+                wt = pywt.wavedecn(
+                    data=volume, 
+                    wavelet=wavelet, 
+                    level=nlevel
+                )
+                
                 if outputWt == None:
                     outputWt = wt
-                    outputMin = wt[0]['aaa']*0
+                    #outputMin = np.zeros_like(wt[1]['aaa'])
                 else:
-                    for level in range(0, nlevel):
+                    outputWt[0] = np.where(
+                        np.abs(wt[0]) > np.abs(outputWt[0]),
+                        wt[0], outputWt[0]
+                    )
+                            
+                    for level in range(1, nlevel+1):
                         wtLevel = wt[level]
                         outputWtLevel = outputWt[level]
-                        for key in wtLevel:
-                            outputWtLevel[key] = np.where(np.abs(outputWtLevel[key]) > np.abs(wtLevel[key]),
-                                                          outputWtLevel[key], wtLevel[key])
-                            diff = np.abs(np.abs(outputWtLevel[key]) - np.abs(wtLevel[key]))
-                            outputMin = np.where(outputMin > diff, outputMin, diff)
+                        for detail in wtLevel:
+                            wtLevelDetail = wtLevel[detail]
+                            outputWtLevelDetail = outputWtLevel[detail]
+                            
+                            outputWtLevelDetail[...] = np.where(
+                                np.abs(wtLevelDetail) > np.abs(outputWtLevelDetail),
+                                wtLevelDetail, outputWtLevelDetail
+                            )
+                            
+                            """
+                            diff = np.abs(np.abs(wtLevelDetail) - np.abs(outputWtLevelDetail))
+                            np.maximum(
+                                diff, outputMin,
+                                out=outputMin
+                            )
+                            """
+     
             f.close()
-        consensus = pywt.iswtn(outputWt, wavelet)
+        consensus = pywt.waverecn(outputWt, wavelet)
         if xdimOrig!=xdim2 or ydimOrig!=ydim2 or zdimOrig!=zdim2:
             consensus = zoom(consensus, (xdimOrig/xdim2,ydimOrig/ydim2,zdimOrig/zdim2))
-        V = xmippLib.Image()
-        V.setData(consensus)
-        V.write(outVolFn)
-        V.setData(outputMin)
-        outVolFn2 = splitext(outVolFn)[0] + '_diff.mrc'
-        V.write(outVolFn2)
+        image.setData(consensus)
+        image.write(outVolFn)
+        #image.setData(outputMin)
+        #outVolFn2 = splitext(outVolFn)[0] + '_diff.mrc'
+        #image.write(outVolFn2)
 
 
 if __name__=="__main__":
