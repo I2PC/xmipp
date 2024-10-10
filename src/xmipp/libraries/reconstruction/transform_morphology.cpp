@@ -33,13 +33,18 @@
 class ProgMorphology: public XmippMetadataProgram
 {
 public:
-#define DILATION     1
-#define EROSION      2
-#define OPENING      3
-#define CLOSING      4
-#define SHARPENING   5
-#define KEEPBIGGEST  6
-#define REMOVESMALL  7
+enum
+{
+    DILATION,
+    EROSION,
+    OPENING,
+    CLOSING,
+    SHARPENING,
+    KEEPBIGGEST,
+    REMOVESMALL,
+    INSIDE_PERIMETER,
+    AROUND_PERIMETER
+}
 
 	bool binaryOperation;
     int operation;
@@ -49,6 +54,7 @@ public:
     double width;
     double strength;
     int smallSize;
+    int fillSize;
 public:
     void defineParams()
     {
@@ -66,6 +72,8 @@ public:
         addParamsLine("             opening    : Erosion+Dilation, removes white spots");
         addParamsLine("             keepBiggest : Keep biggest component");
         addParamsLine("             removeSmall <size=10> : Remove components whose size is smaller than this size");
+        addParamsLine("             insidePerimeter     : Closing-Input");
+        addParamsLine("             aroundPerimeter <fillSize=10> : Dilate-Closing");
         addParamsLine("or --grayOperation <op>: Morphological operation on gray images");
         addParamsLine("       where <op>");
         addParamsLine("             sharpening <w=1> <s=0.5>: Sharpening with width (suggested 1 or 2)");
@@ -113,6 +121,13 @@ public:
             {
                 operation = REMOVESMALL;
                 smallSize = getIntParam("--binaryOperation",1);
+            }
+            else if (strOperation=="insidePerimeter")
+                operation = INSIDE_PERIMETER;
+            else if (strOperation=="aroundPerimeter")
+            {
+                operation = AROUND_PERIMETER;
+                fillSize = getIntParam("--binaryOperation", 1);
             }
 
             size = getIntParam("--size");
@@ -169,6 +184,12 @@ public:
         case REMOVESMALL   :
         	std::cout << "Removing small objects\n"
         	<< "Small size < " << smallSize << std::endl;
+        	break;
+        case INSIDE_PERIMETER   :
+        	std::cout << "Recovering the area inside the perimeter\n";
+        	break;
+        case AROUND_PERIMETER   :
+        	std::cout << "Recovering the area around the perimeter\n";
         	break;
         }
         if (binaryOperation)
@@ -233,6 +254,32 @@ public:
         		removeSmallComponents(img(),smallSize,neig2D);
         	imgOut()=img();
         	break;
+        case INSIDE_PERIMETER:
+            if (isVolume)
+                closing3D(img(), imgOut(), neig3D, count, size);
+            else
+                closing2D(img(), imgOut(), neig2D, count, size);
+            
+            imgOut() -= img();
+            break;
+        case AROUND_PERIMETER:
+            {
+                MultidimArray<double> aux;
+                if (isVolume)
+                {
+                    dilate3D(img(), imgOut(), neig3D, count, size);
+                    closing3D(img(), aux, neig3D, count, fillSize);
+                }
+                else
+                {
+                    dilate2D(img(), imgOut(), neig2D, count, size);
+                    closing2D(img(), aux, neig2D, count, fillSize);
+                }
+            
+                imgOut() -= aux;
+            }
+            break;
+
         }
 
         if (binaryOperation)
