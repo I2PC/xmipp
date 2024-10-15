@@ -48,11 +48,12 @@ class ProgSubtractProjection: public XmippMetadataProgram
     // Input params
     FileName fnVolR; // Input reference volume
     FileName fnParticles; // Input metadata
+    FileName fnMaskVol; // Input 3D mask of the reference volume
 	FileName fnImgI; // Particle filename
     FileName fnOut; // Output metadata
-    FileName fnMaskVol; // Input 3D mask of the reference volume
-    FileName fnMaskRoi; // Input 3D mask for region to keep
+    FileName fnMaskRoi; // Input 3D mask for region of interest to keep or subtract
     FileName fnProj; // Path to save intermediate files
+
 	double sampling; 
 	double padFourier; 
 	double maxResol;
@@ -62,6 +63,7 @@ class ProgSubtractProjection: public XmippMetadataProgram
     bool nonNegative;
     bool boost;
     bool subtract;
+    bool maskVolProvided;
 	MultidimArray<int> wi;
 
     // Data variables
@@ -75,7 +77,7 @@ class ProgSubtractProjection: public XmippMetadataProgram
     Image<double> iM; // inverse mask of the region to keep
     Image<double> Mfinal; // final dilated mask
     Image<double> Idiff; // final subtracted image
-	Image<double> cirmask; // circular mask to avoid edge artifacts	
+	Image<double> maskVol; // mask for reference volume (circular if not provided)	
 
  	Projection P; // projection
  	Projection Pmask; // mask projection for region to keep

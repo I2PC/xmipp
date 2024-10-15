@@ -77,7 +77,18 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	sampling = getDoubleParam("--sampling");
 	padFourier = getDoubleParam("--padding");
     maxResol = getDoubleParam("--max_resolution");
-	cirmaskrad = getDoubleParam("--cirmaskrad");
+
+	if (checkParam("--cirmaskrad"))
+	{
+		cirmaskrad = getDoubleParam("--cirmaskrad");
+		maskVolProvided = false;
+	}
+	else if (checkParam("--mask"))
+	{
+		fnMaskVol = getParam("--mask");
+		maskVolProvided = true;
+	}
+	
 	fnProj = getParam("--save"); 
 	nonNegative = checkParam("--nonNegative");
 	boost = checkParam("--boost");
@@ -122,7 +133,9 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	addParamsLine("[--nonNegative]\t: Ignore particles with negative beta0 or R2"); 
 	addParamsLine("[--boost]\t: Perform a boosting of original particles"); 
 	addParamsLine("[--save <structure=\"\">]\t: Path for saving intermediate files"); 
-	addParamsLine("[--subtract]\t: The mask contains the region to SUBTRACT"); 
+	addParamsLine("[--subtract]\t: The mask contains the region to SUBTRACT");
+
+	// Example
     addExampleLine("A typical use is:",false);
     addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask_roi mask_vol.mrc "
     	 "-o output_particles --sampling 1 --max_resolution 4");
@@ -237,7 +250,7 @@ void ProgSubtractProjection::processParticle(const MDRow &rowprocess, int sizeIm
 	Pctf = applyCTF(rowprocess, P);
 	MultidimArray<double> &mPctf = Pctf();
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mPctf)
-		DIRECT_MULTIDIM_ELEM(mPctf,n) = DIRECT_MULTIDIM_ELEM(mPctf,n) * DIRECT_MULTIDIM_ELEM(cirmask(),n);
+		DIRECT_MULTIDIM_ELEM(mPctf,n) = DIRECT_MULTIDIM_ELEM(mPctf,n) * DIRECT_MULTIDIM_ELEM(maskVol(),n);
 
 	// FT of projection and particle
 	transformerP.FourierTransform(Pctf(), PFourier, false);
@@ -377,15 +390,30 @@ void ProgSubtractProjection::preProcess() {
 	size_t Zdim;
 	size_t Ndim;
 	V.getDimensions(Xdim, Ydim, Zdim, Ndim);
-	cirmask().initZeros((int)Ydim, (int)Xdim);
-	cirmask().setXmippOrigin();
-	if (cirmaskrad == -1.0)
-		cirmaskrad = (double)XSIZE(V())/2;
-	RaisedCosineMask(cirmask(), cirmaskrad*0.8, cirmaskrad*0.9);
 
-	#ifdef DEBUG_OUTPUT_FILES
-	cirmask.write(formatString("%s/cirmask.mrc", fnProj.c_str()));
-	#endif
+	if (maskVolProvided)
+	{
+		maskVol.read(fnMaskVol);
+		maskVol().setXmippOrigin();
+
+		#ifdef DEBUG_OUTPUT_FILES
+		maskVol.write(formatString("%s/cirmask.mrc", fnProj.c_str()));
+		#endif
+	}
+	else
+	{
+		maskVol().initZeros((int)Ydim, (int)Xdim);
+		maskVol().setXmippOrigin();
+
+		if (cirmaskrad == -1.0)
+			cirmaskrad = (double)XSIZE(V())/2;
+
+		RaisedCosineMask(maskVol(), cirmaskrad*0.8, cirmaskrad*0.9);
+
+		#ifdef DEBUG_OUTPUT_FILES
+		maskVol.write(formatString("%s/maskVol.mrc", fnProj.c_str()));
+		#endif
+	}
 	
 	// Create mock image of same size as particles (and reference volume) to get
 	I().initZeros((int)Ydim, (int)Xdim);
@@ -573,7 +601,7 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 
 		// Subtract projection and apply circular mask
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-			DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n)) * DIRECT_MULTIDIM_ELEM(cirmask(),n);
+			DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n)) * DIRECT_MULTIDIM_ELEM(maskVol(),n);
 			// *** add background adjust
 	}
 	writeParticle(rowOut, fnImgOut, Idiff, R2adj(0), beta0save, beta1save); 
