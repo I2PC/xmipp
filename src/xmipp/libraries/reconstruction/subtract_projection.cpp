@@ -102,28 +102,30 @@ ProgSubtractProjection::~ProgSubtractProjection()
  // Usage ===================================================================
  void ProgSubtractProjection::defineParams()
  {
-	 //Usage
-     addUsageLine("This program computes the subtraction between particles and a reference"); 
-	 addUsageLine(" volume, by computing its projections with the same angles that input particles have."); 
-	 addUsageLine(" Then, each particle and the correspondent projection of the reference volume are numerically");
-	 addUsageLine(" adjusted and subtracted using a mask which denotes the region of interest to keep or subtract.");
+	//Usage
+    addUsageLine("This program computes the subtraction between particles and a reference"); 
+	addUsageLine(" volume, by computing its projections with the same angles that input particles have."); 
+	addUsageLine(" Then, each particle and the correspondent projection of the reference volume are numerically");
+	addUsageLine(" adjusted and subtracted using a mask which denotes the region of interest to keep or subtract.");
 
-     //Parameters
-	 XmippMetadataProgram::defineParams();
-     addParamsLine("--ref <volume>\t: Reference volume to subtract");
-     addParamsLine("[--mask_roi <mask_roi=\"\">]\t: 3D mask for region of interest to keep or subtract, no mask implies subtraction of whole images");
-	 addParamsLine("[--sampling <sampling=1>]\t: Sampling rate (A/pixel)");
-	 addParamsLine("[--max_resolution <f=4>]\t: Maximum resolution (A)");
-	 addParamsLine("[--padding <p=2>]\t: Padding factor for Fourier projector");
-	 addParamsLine("[--sigma <s=1>]\t: Decay of the filter (sigma) to smooth the mask transition");
-	 addParamsLine("[--nonNegative]\t: Ignore particles with negative beta0 or R2"); 
-	 addParamsLine("[--boost]\t: Perform a boosting of original particles"); 
-	 addParamsLine("[--cirmaskrad <c=-1.0>]\t: Radius of the circular mask");
-	 addParamsLine("[--save <structure=\"\">]\t: Path for saving intermediate files"); 
-	 addParamsLine("[--subtract]\t: The mask contains the region to SUBTRACT"); 
-     addExampleLine("A typical use is:",false);
-     addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask_roi mask_vol.mrc "
-    		 "-o output_particles --sampling 1 --max_resolution 4");
+    //Parameters
+	XmippMetadataProgram::defineParams();
+    addParamsLine("--ref <volume>\t: Reference volume to subtract");
+    addParamsLine("[--mask_roi <mask_roi=\"\">]     : 3D mask for region of interest to keep or subtract, no mask implies subtraction of whole images");
+ 	addParamsLine("--cirmaskrad <c=-1.0>			: Apply circular mask to proyected particles. Radius = -1 fits a sphere in the reference volume.");
+	addParamsLine("or --mask <mask=\"\">            : Provide a mask to be applied. Any desity out of the mask is removed from further analysis.");
+
+	addParamsLine("[--sampling <sampling=1>]\t: Sampling rate (A/pixel)");
+	addParamsLine("[--max_resolution <f=1>]\t: Maximum resolution (A)");
+	addParamsLine("[--padding <p=2>]\t: Padding factor for Fourier projector");
+	addParamsLine("[--sigma <s=1>]\t: Decay of the filter (sigma) to smooth the mask transition");
+	addParamsLine("[--nonNegative]\t: Ignore particles with negative beta0 or R2"); 
+	addParamsLine("[--boost]\t: Perform a boosting of original particles"); 
+	addParamsLine("[--save <structure=\"\">]\t: Path for saving intermediate files"); 
+	addParamsLine("[--subtract]\t: The mask contains the region to SUBTRACT"); 
+    addExampleLine("A typical use is:",false);
+    addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask_roi mask_vol.mrc "
+    	 "-o output_particles --sampling 1 --max_resolution 4");
  }
 
  // I/O methods ===================================================================
@@ -385,7 +387,7 @@ void ProgSubtractProjection::preProcess() {
 	cirmask.write(formatString("%s/cirmask.mrc", fnProj.c_str()));
 	#endif
 	
-	// Create mock image of same size as particles (and referencce volume) to get
+	// Create mock image of same size as particles (and reference volume) to get
 	I().initZeros((int)Ydim, (int)Xdim);
 	I().initConstant(1);
 	transformerI.FourierTransform(I(), IFourier, false);
@@ -407,7 +409,7 @@ void ProgSubtractProjection::preProcess() {
 	}
 
 	// Calculate index corresponding to cut-off freq
-	double cutFreq = sampling/maxResol;
+	double cutFreq = 0.5 * (sampling/maxResol); // normalize Nyquist=0.5
 	DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(IFourier), maxwiIdx)
 
 	std::cout << "------------------- cutFreq " << cutFreq << std::endl;
@@ -418,11 +420,18 @@ void ProgSubtractProjection::preProcess() {
 		// Read or create mask keep and compute inverse of mask keep (mask subtract)
 		createMask(fnMaskRoi, vM, ivM);
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
-			DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n); 
+			DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n);
+
 		// Initialize Fourier projectors
 		std::cout << "-------Initializing projectors-------" << std::endl;
 		projector = new FourierProjector(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+		#ifdef DEBUG
+		std::cout << "Volume ---> FourierProjector(V(),"<<padFourier<<","<<cutFreq<<","<<xmipp_transformation::BSPLINE3<<");"<< std::endl;
+		#endif
 		projectorMask = new FourierProjector(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+		#ifdef DEBUG
+		std::cout << "Mask ---> FourierProjector(vM(),"<<padFourier<<","<<cutFreq<<","<<xmipp_transformation::BSPLINE3<<");"<< std::endl;
+		#endif
 		std::cout << "-------Projectors initialized-------" << std::endl;
 	}
 	else
@@ -561,8 +570,11 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 		transformerP.inverseFourierTransform(PFourier, P());
 		mIdiff.initZeros(I());
 		mIdiff.setXmippOrigin();
+
+		// Subtract projection and apply circular mask
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-			DIRECT_MULTIDIM_ELEM(mIdiff,n) = DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n);
+			DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n)) * DIRECT_MULTIDIM_ELEM(cirmask(),n);
+			// *** add background adjust
 	}
 	writeParticle(rowOut, fnImgOut, Idiff, R2adj(0), beta0save, beta1save); 
 }
