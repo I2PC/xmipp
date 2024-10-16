@@ -454,6 +454,19 @@ void ProgSubtractProjection::preProcess() {
 	{
 		// Read or create mask keep and compute inverse of mask keep (mask subtract)
 		createMask(fnMaskRoi, vM, ivM);
+
+		// Apply ROI mask and volume mask (if provided) to map 
+		if (maskVolProvided)
+		{
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+				DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n)*DIRECT_MULTIDIM_ELEM(maskVol(),n);
+		}
+		else
+		{
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+				DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n);
+		}
+
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
 			DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n);
 
