@@ -127,7 +127,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	addParamsLine("or --mask <mask=\"\">            : Provide a mask to be applied. Any desity out of the mask is removed from further analysis.");
 
 	addParamsLine("[--sampling <sampling=1>]\t: Sampling rate (A/pixel)");
-	addParamsLine("[--max_resolution <f=1>]\t: Maximum resolution (A)");
+	addParamsLine("[--max_resolution <f=-1>]\t: Maximum resolution (A)");
 	addParamsLine("[--padding <p=2>]\t: Padding factor for Fourier projector");
 	addParamsLine("[--sigma <s=1>]\t: Decay of the filter (sigma) to smooth the mask transition");
 	addParamsLine("[--nonNegative]\t: Ignore particles with negative beta0 or R2"); 
@@ -427,7 +427,7 @@ void ProgSubtractProjection::preProcess() {
 
 	// Construct frequencies image
 	wi.initZeros(IFourier);
-	Matrix1D<int> w(2);
+	Matrix1D<double> w(2);
 
 	for (int i=0; i<YSIZE(wi); i++) {
 		FFT_IDX2DIGFREQ(i,YSIZE(IFourier),YY(w)) 
@@ -444,6 +444,9 @@ void ProgSubtractProjection::preProcess() {
 	#endif
 
 	// Calculate index corresponding to cut-off freq
+	if (maxResol == -1.0)
+		maxResol = sampling/sqrt(2);
+
 	double cutFreq = 0.5 * (sampling/maxResol); // normalize Nyquist=0.5
 	DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(IFourier), maxwiIdx)
 
