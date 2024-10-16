@@ -77,61 +77,12 @@ class ScriptDeepCenterTrain(XmippScript):
             I.setData(Iarray)
             I.write(fnOut)
 
-        def computeShifts(fnImgs):
-            Iavg = None
-            Nimgs = len(fnImgs)
-            for i in range(Nimgs):
-                Iexp = xmippLib.Image(fnImgs[i]).getData()
-                Iexp = (Iexp - np.mean(Iexp)) / np.std(Iexp)
-                if Iavg is None:
-                    Iavg=np.array(Iexp)
-                else:
-                    Iavg+=Iexp
-            Iavg/=len(fnImgs)
-            # saveImage(Iavg,"average.mrc")
-
-            Xdim=Iavg.shape[0]
-            Xdim2=Xdim//2
-            mask2D = gaussian_mask(Xdim, Xdim/7.0)
-            Iavg *= mask2D
-
-            cutoff_frequency = Xdim/7.0
-            lowpass_mask = lowpass_filter_mask(Iavg.shape, cutoff_frequency)
-            epsilon = 1e-10
-            F1 = np.fft.fft2(Iavg)
-            F1*=lowpass_mask
-
-            currentX=np.zeros(Nimgs)
-            currentY=np.zeros(Nimgs)
-            for i in range(Nimgs):
-                Iexp = xmippLib.Image(fnImgs[i]).getData()
-                Iexp = (Iexp - np.mean(Iexp)) / np.std(Iexp)
-                Iexp *= mask2D
-                F2 = np.fft.fft2(Iexp)
-                F2*= lowpass_mask
-
-                magnitude = np.abs(F1 * F2.conjugate())
-                magnitude[magnitude == 0] = epsilon
-                cross_power_spectrum = (F1 * F2.conjugate()) / magnitude
-                cross_power_spectrum *= lowpass_mask
-
-                cross_correlation = np.fft.fftshift(np.real(np.fft.ifft2(cross_power_spectrum)))
-                shift_y, shift_x = np.unravel_index(np.argmax(cross_correlation), cross_correlation.shape)
-
-                # Calculate the shifts
-                currentY[i] = shift_y-Xdim2
-                currentX[i] = shift_x-Xdim2
-                #print(fnImgs[i], currentY[i], currentX[i])
-            return currentX, currentY
-
         class DataGenerator(keras.utils.all_utils.Sequence):
             """Generates data for fnImgs"""
 
-            def __init__(self, fnImgs, currentX, currentY, sigma, batch_size, dim):
+            def __init__(self, mdExp, sigma, batch_size, dim):
                 """Initialization"""
                 self.fnImgs = fnImgs
-                self.currentX = currentX
-                self.currentY = currentY
                 self.sigma = sigma
                 self.batch_size = batch_size
                 if self.batch_size > len(self.fnImgs):
@@ -141,12 +92,16 @@ class ScriptDeepCenterTrain(XmippScript):
 
                 # Read all data in memory
                 self.Xexp = np.zeros((len(self.fnImgs), self.dim, self.dim, 1), dtype=np.float64)
-                for i in range(len(self.fnImgs)):
-                    Iexp = np.reshape(xmippLib.Image(self.fnImgs[i]).getData(), (self.dim, self.dim, 1))
+                img=xmippLib.Image()
+                id=0
+                for i in mdExp:
+                    img.readApplyGeo(mdExp, i)
+                    Iexp = np.reshape(img.getData(), (self.dim, self.dim, 1))
                     # M = np.max(Iexp)
                     # m = np.min(Iexp)
                     # self.Xexp[i,] = 255*(Iexp-m)/(M-m) # Scale between 0 and 255 for EfficientNet
-                    self.Xexp[i,] = (Iexp-np.mean(Iexp))/np.std(Iexp)
+                    self.Xexp[id,] = (Iexp-np.mean(Iexp))/np.std(Iexp)
+                    id+=1
 
             def __len__(self):
                 """Denotes the number of batches per epoch"""
@@ -178,8 +133,8 @@ class ScriptDeepCenterTrain(XmippScript):
                     return shift(img, (shifty, shiftx, 0), order=1, mode='wrap')
 
                 Iexp = list(itemgetter(*list_IDs_temp)(self.Xexp))
-                currentX = list(itemgetter(*list_IDs_temp)(self.currentX))
-                currentY = list(itemgetter(*list_IDs_temp)(self.currentY))
+                # currentX = list(itemgetter(*list_IDs_temp)(self.currentX))
+                # currentY = list(itemgetter(*list_IDs_temp)(self.currentY))
 
                 # Data augmentation
                 generator = np.random.default_rng()
@@ -187,7 +142,8 @@ class ScriptDeepCenterTrain(XmippScript):
                 rY = self.sigma * generator.normal(0, 1, size=self.batch_size)
                 # Shift image a random amount of px in each direction
                 Xexp = np.array(list((map(shift_image, Iexp, rX, rY))))
-                y = np.vstack((currentX-rX, currentY-rY)).T
+                #y = np.vstack((currentX-rX, currentY-rY)).T
+                y = np.vstack((-rX, -rY)).T
                 return Xexp, y
 
         def constructModel(Xdim):
@@ -249,10 +205,10 @@ class ScriptDeepCenterTrain(XmippScript):
         Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmd)
         mdExp = xmippLib.MetaData(fnXmd)
         fnImgs = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
-        currentX, currentY = computeShifts(fnImgs)
+        # currentX, currentY = computeShifts(fnImgs)
         # currentX = mdExp.getColumnValues(xmippLib.MDL_SHIFT_X)
         # currentY = mdExp.getColumnValues(xmippLib.MDL_SHIFT_Y)
-        training_generator = DataGenerator(fnImgs, currentX, currentY, sigma, batch_size, Xdim)
+        training_generator = DataGenerator(mdExp, sigma, batch_size, Xdim)
 
         model = constructModel(Xdim)
         model.summary()
