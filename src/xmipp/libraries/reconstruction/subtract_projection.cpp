@@ -397,7 +397,7 @@ void ProgSubtractProjection::preProcess() {
 		maskVol().setXmippOrigin();
 
 		#ifdef DEBUG_OUTPUT_FILES
-		maskVol.write(formatString("%s/cirmask.mrc", fnProj.c_str()));
+		maskVol.write(formatString("%s/maskVol.mrc", fnProj.c_str()));
 		#endif
 	}
 	else
@@ -411,7 +411,7 @@ void ProgSubtractProjection::preProcess() {
 		RaisedCosineMask(maskVol(), cirmaskrad*0.8, cirmaskrad*0.9);
 
 		#ifdef DEBUG_OUTPUT_FILES
-		maskVol.write(formatString("%s/maskVol.mrc", fnProj.c_str()));
+		maskVol.write(formatString("%s/cirmask.mrc", fnProj.c_str()));
 		#endif
 	}
 	
@@ -427,14 +427,21 @@ void ProgSubtractProjection::preProcess() {
 
 	// Construct frequencies image
 	wi.initZeros(IFourier);
-	Matrix1D<double> w(2); 	
+	Matrix1D<int> w(2);
+
 	for (int i=0; i<YSIZE(wi); i++) {
 		FFT_IDX2DIGFREQ(i,YSIZE(IFourier),YY(w)) 
 		for (int j=0; j<XSIZE(wi); j++)  {
-			FFT_IDX2DIGFREQ(j,XSIZE(IFourier),XX(w))
-			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)XSIZE(IFourier)); // indexes
+			FFT_IDX2DIGFREQ(j,YSIZE(IFourier),XX(w))
+			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)YSIZE(IFourier)); // indexes
 		}
 	}
+
+	#ifdef DEBUG_OUTPUT_FILES
+	Image<int> saveImage;
+	saveImage() = wi; 
+	saveImage.write(formatString("%s/wi_freqMap.mrc", fnProj.c_str()));
+	#endif
 
 	// Calculate index corresponding to cut-off freq
 	double cutFreq = 0.5 * (sampling/maxResol); // normalize Nyquist=0.5
@@ -453,19 +460,25 @@ void ProgSubtractProjection::preProcess() {
 		// Initialize Fourier projectors
 		std::cout << "-------Initializing projectors-------" << std::endl;
 		projector = new FourierProjector(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
-		#ifdef DEBUG
+
 		std::cout << "Volume ---> FourierProjector(V(),"<<padFourier<<","<<cutFreq<<","<<xmipp_transformation::BSPLINE3<<");"<< std::endl;
-		#endif
-		projectorMask = new FourierProjector(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
-		#ifdef DEBUG
-		std::cout << "Mask ---> FourierProjector(vM(),"<<padFourier<<","<<cutFreq<<","<<xmipp_transformation::BSPLINE3<<");"<< std::endl;
-		#endif
+
+		if (!fnMaskRoi.isEmpty())  // If there is provided mask
+		{
+			projectorMask = new FourierProjector(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+
+			std::cout << "Mask ---> FourierProjector(vM(),"<<padFourier<<","<<cutFreq<<","<<xmipp_transformation::BSPLINE3<<");"<< std::endl;
+		}
 		std::cout << "-------Projectors initialized-------" << std::endl;
 	}
 	else
 	{
 		projector = new FourierProjector(padFourier,cutFreq,xmipp_transformation::BSPLINE3);
-		projectorMask = new FourierProjector(padFourier,cutFreq,xmipp_transformation::BSPLINE3);
+
+		if (!fnMaskRoi.isEmpty())  // If there is provided mask
+		{
+			projectorMask = new FourierProjector(padFourier,cutFreq,xmipp_transformation::BSPLINE3);
+		}
 	}
  }
 

@@ -35,7 +35,6 @@
  #include "core/xmipp_metadata_program.h"
 
  #define DEBUG_OUTPUT_FILES
- #define DEBUG
 
 /**@defgroup ProgSubtractProjection Subtract projections
    @ingroup ReconsLibrary */
