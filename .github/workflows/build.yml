@@ -13,11 +13,15 @@ jobs:
         cuda:
         - {version: '11.8.0', method: 'network'} 
         - {version: '12.2.2', method: 'network'} 
+        - {version: 'None'}
 
         compiler:
         - {cc: gcc, cxx: g++}
 
         include:
+          - os: 'ubuntu-20.04'
+            cuda: {version: '11.3.1', method: 'network'}
+            compiler: {cc: gcc-9, cxx: g++-9, update-alternatives: True}
           - os: 'ubuntu-20.04'
             cuda: {version: '10.2.89', method: 'local'}
             compiler: {cc: gcc-8, cxx: g++-8, update-alternatives: True}
@@ -25,7 +29,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     env:
-      SEND_INSTALLATION_STATISTICS: "False"
+      SEND_INSTALLATION_STATISTICS: "OFF"
     steps:
       - name: Install dependencies
         run: |
@@ -45,11 +49,13 @@ jobs:
           python -m pip install numpy
 
       - uses: Jimver/cuda-toolkit@master
+        if: matrix.cuda.version != 'None'
         id: cuda-toolkit
         with:
           cuda: ${{ matrix.cuda.version }}
           method: ${{ matrix.cuda.method }}
           sub-packages: ${{ matrix.cuda.method=='network' && '["nvcc", "toolkit"]' || '[]' }} # Fake ternary operator
+          
       - uses: actions/checkout@main
         with:
           fetch-depth: 0

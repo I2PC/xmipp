@@ -64,7 +64,7 @@ endif()
 
 # Find Python
 find_package(Python3 COMPONENTS Interpreter Development NumPy REQUIRED)
-string(APPEND XMIPP_VERSIONS "Python3=${Python3_VERSION}\n")
+file(APPEND ${XMIPP_VERSIONS_FILE} "Python3=${Python3_VERSION}\n")
 
 # Find CUDA
 if(${XMIPP_USE_CUDA})
@@ -80,10 +80,17 @@ if(${XMIPP_USE_CUDA})
       string(APPEND CMAKE_CUDA_FLAGS " --expt-extended-lambda")
 
       if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.18")
-        set(CMAKE_CUDA_ARCHITECTURES 60 75)
+        list(APPEND CMAKE_CUDA_ARCHITECTURES 60 75)
 
         if(${CUDAToolkit_VERSION} VERSION_GREATER_EQUAL "11")
           list(APPEND CMAKE_CUDA_ARCHITECTURES 86)
+        endif()
+      else()
+        string(APPEND CMAKE_CUDA_FLAGS " -gencode arch=compute_60,code=sm_60")
+        string(APPEND CMAKE_CUDA_FLAGS " -gencode arch=compute_75,code=sm_75")
+        
+        if(${CUDAToolkit_VERSION} VERSION_GREATER_EQUAL "11")
+          string(APPEND CMAKE_CUDA_FLAGS " -gencode arch=compute_86,code=sm_86")
         endif()
       endif()
 

@@ -98,7 +98,7 @@ class DenoisingTV(XmippScript):
 
         tomo = mrcfile.read(self.fnTomo)
 
-        denoisedTomo = im_3d_denoise.im3ddenoise(tomo, iter=self.iterations, lmbda=self.lmbda, gpuids=None)
+        denoisedTomo = im_3d_denoise.im3ddenoise(np.array(tomo, dtype=np.float32), iter=self.iterations, lmbda=self.lmbda, gpuids=None)
 
         with mrcfile.new(self.fnOut, overwrite=True) as mrc:
             mrc.set_data(denoisedTomo)
