@@ -125,20 +125,20 @@ ProgSubtractProjection::~ProgSubtractProjection()
     addParamsLine("[--mask_roi <mask_roi=\"\">]     : 3D mask for region of interest to keep or subtract, no mask implies subtraction of whole images");
  	addParamsLine("--cirmaskrad <c=-1.0>			: Apply circular mask to proyected particles. Radius = -1 fits a sphere in the reference volume.");
 	addParamsLine("or --mask <mask=\"\">            : Provide a mask to be applied. Any desity out of the mask is removed from further analysis.");
-
-	addParamsLine("[--sampling <sampling=1>]\t: Sampling rate (A/pixel)");
-	addParamsLine("[--max_resolution <f=-1>]\t: Maximum resolution (A)");
-	addParamsLine("[--padding <p=2>]\t: Padding factor for Fourier projector");
-	addParamsLine("[--sigma <s=1>]\t: Decay of the filter (sigma) to smooth the mask transition");
-	addParamsLine("[--nonNegative]\t: Ignore particles with negative beta0 or R2"); 
-	addParamsLine("[--boost]\t: Perform a boosting of original particles"); 
-	addParamsLine("[--save <structure=\"\">]\t: Path for saving intermediate files"); 
-	addParamsLine("[--subtract]\t: The mask contains the region to SUBTRACT");
+	addParamsLine("[--sampling <sampling=1>]\t		: Sampling rate (A/pixel)");
+	addParamsLine("[--max_resolution <f=-1>]\t		: Maximum resolution in Angtroms up to which the substraction is calculated. \
+													  By default (-1) it is set to sampling/sqrt(2).");
+	addParamsLine("[--padding <p=2>]\t				: Padding factor for Fourier projector");
+	addParamsLine("[--sigma <s=1>]\t				: Decay of the filter (sigma) to smooth the mask transition");
+	addParamsLine("[--nonNegative]\t				: Ignore particles with negative beta0 or R2");
+	addParamsLine("[--boost]\t						: Perform a boosting of original particles");
+	addParamsLine("[--save <structure=\"\">]\t		: Path for saving intermediate files");
+	addParamsLine("[--subtract]\t					: The mask contains the region to SUBTRACT");
 
 	// Example
     addExampleLine("A typical use is:",false);
     addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask_roi mask_vol.mrc "
-    	 "-o output_particles --sampling 1 --max_resolution 4");
+				   "-o output_particles --sampling 1 --max_resolution 4");
  }
 
  // I/O methods ===================================================================
@@ -408,7 +408,9 @@ void ProgSubtractProjection::preProcess() {
 		if (cirmaskrad == -1.0)
 			cirmaskrad = (double)XSIZE(V())/2;
 
-		RaisedCosineMask(maskVol(), cirmaskrad*0.8, cirmaskrad*0.9);
+		/// *** Check again with real data
+		// RaisedCosineMask(maskVol(), cirmaskrad*0.8, cirmaskrad*0.9);
+		RaisedCosineMask(maskVol(), cirmaskrad, cirmaskrad);
 
 		#ifdef DEBUG_OUTPUT_FILES
 		maskVol.write(formatString("%s/cirmask.mrc", fnProj.c_str()));
@@ -445,13 +447,22 @@ void ProgSubtractProjection::preProcess() {
 
 	// Calculate index corresponding to cut-off freq
 	if (maxResol == -1.0)
-		maxResol = sampling/sqrt(2);
+		maxResol = sampling;
+	
+	// Normalize Nyquist=0.5
+	double cutFreq = 0.5 * (sampling/maxResol);
+	
+	// Analyze up to proyection Freq / sqrt(2) to consider corners
+	double substractionCutFreq = (sampling/maxResol) / sqrt(2);
+	DIGFREQ2FFT_IDX(substractionCutFreq, (int)YSIZE(IFourier), maxwiIdx);
 
-	double cutFreq = 0.5 * (sampling/maxResol); // normalize Nyquist=0.5
-	DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(IFourier), maxwiIdx)
-
+	#ifdef DEBUG
+	std::cout << "------------------- sampling " << sampling << std::endl;
+	std::cout << "------------------- maxResol " << maxResol << std::endl;
 	std::cout << "------------------- cutFreq " << cutFreq << std::endl;
+	std::cout << "------------------- substractionCutFreq " << substractionCutFreq << std::endl;
 	std::cout << "------------------- maxwiIdx " << maxwiIdx << std::endl;
+	#endif
 
 	if (rank==0)
 	{

@@ -988,7 +988,7 @@ int PROJECT_Effectively_project(const FileName &fnOut,
     FourierProjector *Vfourier=nullptr;
     if (projType == SHEARS && side.phantomMode==PROJECT_Side_Info::VOXEL)
         Vshears=new RealShearsInfo(side.phantomVol());
-    if (projType == FOURIER && side.phantomMode==PROJECT_Side_Info::VOXEL)//////////////////////
+    if (projType == FOURIER && side.phantomMode==PROJECT_Side_Info::VOXEL)
         Vfourier=new FourierProjector(side.phantomVol(),side.paddFactor,side.maxFrequency,side.BSplineDeg);
         #ifdef DEBUG
         std::cout << "FourierProjector(side.phantomVol(),"<<side.paddFactor<<","<<side.maxFrequency<<","<<side.BSplineDeg<<");"<< std::endl;
