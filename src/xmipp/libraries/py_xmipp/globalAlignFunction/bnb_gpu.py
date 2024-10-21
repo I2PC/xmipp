@@ -226,6 +226,21 @@ class BnBgpu:
         self.mask = self.mask.float() 
         
         return self.mask
+    
+    
+    # def create_gaussian_mask(self, images, sigma):
+    #     dim = images.size(dim=1)
+    #     center = dim // 2
+    #     y, x = torch.meshgrid(torch.arange(dim) - center, torch.arange(dim) - center, indexing='ij')
+    #     dist = torch.sqrt(x**2 + y**2).float().to(images.device)  
+    #
+    #     sigma2 = sigma**2
+    #     K = 1. / (torch.sqrt(2 * torch.tensor(np.pi)) * sigma)**2
+    #
+    #     self.mask = K * torch.exp(-0.5 * (dist**2 / sigma2))
+    #     self.mask = self.mask / self.mask[center, center].clone()
+    #
+    #     return self.mask 
             
 
     
