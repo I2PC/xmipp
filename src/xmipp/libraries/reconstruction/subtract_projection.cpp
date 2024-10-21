@@ -346,10 +346,6 @@ void ProgSubtractProjection::computeParticleStats(Image<double> &Idiff, FileName
 	{
 		double value = DIRECT_MULTIDIM_ELEM(mIdiff, n) * DIRECT_MULTIDIM_ELEM(M, n);
 
-		#ifdef DEBUG_OUTPUT_FILES
-		DIRECT_MULTIDIM_ELEM(maskedIdiff, n) = DIRECT_MULTIDIM_ELEM(mIdiff, n);
-		#endif
-
 		sum += value;
 		sum2 += value*value;
 		++Nelems;
@@ -361,17 +357,19 @@ void ProgSubtractProjection::computeParticleStats(Image<double> &Idiff, FileName
 	#ifdef DEBUG_OUTPUT_FILES
 	// Save output masked particle for debugging
 
-	FileName fnMaskedImgOut;
+	// FileName fnMaskedImgOut;
 	size_t dotPos = fnImgOut.find_last_of('.');
-    if (dotPos == std::string::npos) {
-        // No extension found
-        fnMaskedImgOut = fnImgOut + "_masked";
-    }
-    fnMaskedImgOut = fnImgOut.substr(0, dotPos) + "_masked" + fnImgOut.substr(dotPos);
+	
+    // if (dotPos == std::string::npos) {
+    //     // No extension found
+    //     fnMaskedImgOut = fnImgOut + "_masked";
+    // }
+    // fnMaskedImgOut = fnImgOut.substr(0, dotPos) + "_masked" + fnImgOut.substr(dotPos);
 
-	Image<double> saveImage;
-	saveImage() = maskedIdiff;
-	saveImage.write(fnMaskedImgOut);
+	// Image<double> saveImage;
+	// saveImage() = maskedIdiff;
+	// saveImage.write(fnMaskedImgOut);
+
 	M.write(fnImgOut.substr(0, dotPos) + "_mask" + fnImgOut.substr(dotPos));
 	#endif
 	
@@ -636,8 +634,6 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	{
 		// Recover adjusted projection (P) in real space
 		transformerP.inverseFourierTransform(PFourier, P());
-		mIdiff.initZeros(I());
-		mIdiff.setXmippOrigin();
 
 		// Subtract projection and apply circular mask
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
