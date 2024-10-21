@@ -330,20 +330,17 @@ def visitTests(tests, grepStr=''):
 
 
 if __name__ == "__main__":
-
     cudaTests = True
     for i, arg in enumerate(sys.argv):
         if arg == '--noCuda':
             cudaTests = False
             sys.argv.pop(i)
-	
     testNames = sys.argv[1:]
 
     cudaExcludeStr = '| grep -v xmipp_test_cuda_' if not cudaTests else ''
     cTests = subprocess.check_output('compgen -ac | grep xmipp_test_ %s' % cudaExcludeStr,
                                      shell=True, executable='/bin/bash').decode('utf-8').splitlines()
 
-	
     tests = unittest.TestSuite()
     if '--show' in testNames or '--allPrograms' in testNames:
         testData = os.environ['XMIPP_TEST_DATA']
@@ -352,7 +349,8 @@ if __name__ == "__main__":
         listDir = os.listdir(os.path.dirname(testData))
         for path in listDir:
             if path.startswith('test_') and path.endswith('.py'):
-                tests.addTests(unittest.defaultTestLoader.loadTestsFromName('tests.' + path[:-3]))
+                test_name = path[:-3]  # Eliminar la extensión '.py'
+                tests.addTests(unittest.defaultTestLoader.loadTestsFromName('tests.' + test_name))
         if '--show' in testNames:
             print(blue("\n    > >  You can run any of the following tests by:\n"))
             grepStr = '' if len(testNames)<2 else testNames[1]
@@ -362,8 +360,9 @@ if __name__ == "__main__":
                 print("  %s" % test)
         elif '--allPrograms' in testNames:
             result = GTestResult()
-            tests.run(result, debug=False)
-            sys.exit(result.doReport())
+            tests.run(result)
+            result.doReport()
+            sys.exit(1)
     elif '--allFuncs' in testNames:
         xmippBinDir = os.path.join(os.environ.get("XMIPP_SRC"), 'xmipp', 'bin')
         errors = []
@@ -401,4 +400,5 @@ if __name__ == "__main__":
 
             result = GTestResult()
             tests.run(result)
-            sys.exit(result.doReport())
+            result.doReport()
+            sys.exit(1)

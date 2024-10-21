@@ -82,6 +82,5 @@ def runTests(testNames):
 		pythonExe = 'python3'
 		
 	pythonExe = 'python3'
-	if not runJob("%s test.py %s %s" % (pythonExe, testNames, noCudaStr),
-	        cwd='src/xmipp/tests', showOutput=True, showError=True):
-		logger.logError()
+	runJob("%s test.py %s %s" % (pythonExe, testNames, noCudaStr), cwd='src/xmipp/tests', showOutput=True, showError=True)
+
