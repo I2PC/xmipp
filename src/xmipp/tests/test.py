@@ -336,22 +336,23 @@ if __name__ == "__main__":
         if arg == '--noCuda':
             cudaTests = False
             sys.argv.pop(i)
-
+	
     testNames = sys.argv[1:]
 
     cudaExcludeStr = '| grep -v xmipp_test_cuda_' if not cudaTests else ''
     cTests = subprocess.check_output('compgen -ac | grep xmipp_test_ %s' % cudaExcludeStr,
                                      shell=True, executable='/bin/bash').decode('utf-8').splitlines()
 
+	
     tests = unittest.TestSuite()
     if '--show' in testNames or '--allPrograms' in testNames:
-        # tests.addTests(unittest.defaultTestLoader.discover(os.environ.get("XMIPP_TEST_DATA")+'/..',
-        #                pattern='test*.py'))#,top_level_dir=os.environ.get("XMIPP_TEST_DATA")+'/..'))
-        listDir = os.listdir(os.environ.get("XMIPP_TEST_DATA")+'/..')
+        testData = os.environ['XMIPP_TEST_DATA']
+        tests.addTests(unittest.defaultTestLoader.discover(testData, pattern='test*.py'))
+        #,top_level_dir=os.environ.get("XMIPP_TEST_DATA")+'/..'))
+        listDir = os.listdir(os.path.dirname(testData))
         for path in listDir:
             if path.startswith('test_') and path.endswith('.py'):
                 tests.addTests(unittest.defaultTestLoader.loadTestsFromName('tests.' + path[:-3]))
-
         if '--show' in testNames:
             print(blue("\n    > >  You can run any of the following tests by:\n"))
             grepStr = '' if len(testNames)<2 else testNames[1]
@@ -361,7 +362,7 @@ if __name__ == "__main__":
                 print("  %s" % test)
         elif '--allPrograms' in testNames:
             result = GTestResult()
-            tests.run(result)
+            tests.run(result, debug=False)
             sys.exit(result.doReport())
     elif '--allFuncs' in testNames:
         xmippBinDir = os.path.join(os.environ.get("XMIPP_SRC"), 'xmipp', 'bin')

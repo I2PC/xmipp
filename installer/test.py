@@ -44,43 +44,44 @@ def runTests(testNames):
 	#### Params:
 	- branch (str): Optional. Branch to clone the sources from.
 	"""
-	testsPath = ''
 	xmippSrc = environ.get('XMIPP_SRC', None)
+	#xmippSrc = '/home/agarcia/scipion3/xmipp-bundle/src'
 	if xmippSrc and path.isdir(xmippSrc):
 		environ['PYTHONPATH'] = ':'.join([
             path.join(environ['XMIPP_SRC'], XMIPP),
             environ.get('PYTHONPATH', '')])
 		testsPath = path.join(environ['XMIPP_SRC'], XMIPP, 'tests')
+		#testsPath = '/home/agarcia/scipion3/xmipp-bundle/src/xmipp/tests/'
+		dataSetPath = path.join(testsPath, 'data')
+	
 	else:
 		handleRetCode(ENVIROMENT_ERROR, predefinedErrorCode=ENVIROMENT_ERROR, sendAPI=False)
-
-		
-	dataSetPath = path.join(testsPath, 'data')
-	environ["XMIPP_TEST_DATA"] = dataSetPath
 
 	# downloading/updating the dataset
 	dataset = 'xmipp_programs'
 	if path.isdir(dataSetPath):
 		logger(blue("Updating the test files"))
 		task = "update"
+		showO = False
 	else:
 		logger(blue("Downloading the test files"))
 		task = "download"
+		showO = True
 	args = "%s %s %s" % ("tests/data", SCIPION_TESTS_URLS, dataset)
-	runJob("bin/xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp')
+	runJob("bin/xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp', showOutput=showO)
 	
 	configDict = readConfig(CONFIG_FILE) if path.exists(CONFIG_FILE) else {}
 	CUDA = configDict.get(XMIPP_USE_CUDA)
-	
 	noCudaStr = '--noCuda' if CUDA == 'OFF' else ''
-	#logger(" Tests to do: %s" % ', '.join(testNames))
 	
+	logger(" Tests to do: %s" % ', '.join(testNames))
 	
 	if configDict.get(XMIPP_LINK_TO_SCIPION) == 'ON':
 		pythonExe = 'scipion3 python'
 	else:
 		pythonExe = 'python3'
-
-	if not runJob("(cd src/xmipp/tests; %s test.py %s %s)"
-	              % (pythonExe, ' '.join(testNames), noCudaStr)):
+		
+	pythonExe = 'python3'
+	if not runJob("%s test.py %s %s" % (pythonExe, testNames, noCudaStr),
+	        cwd='src/xmipp/tests', showOutput=True, showError=True):
 		logger.logError()
