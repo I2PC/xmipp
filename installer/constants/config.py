@@ -54,6 +54,8 @@ __SKIP_RPATH='CMAKE_SKIP_RPATH'
 # This is not used in cmake
 __CONDA_PREFIX = 'CONDA_PREFIX'
 __XMIPP_CUDA_BIN = 'XMIPP_CUDA_BIN'
+__DEFAULT_CUDA_BIN = '/usr/local/cuda/bin'
+__NVCC_EXE = 'nvcc'
 __TUNE_FLAG='-mtune=native'
 
 # Config file variable structure
@@ -81,6 +83,25 @@ def __getPrefixPath() -> Optional[str]:
 	"""
 	return os.environ.get(__CONDA_PREFIX)
 
+def __getCudaCompiler() -> Optional[str]:
+	"""
+	### This function returns the path for the CUDA compiller
+
+	#### Returns:
+	- (str | None): Path for the NVCC executable
+	"""
+	nvcc = os.environ.get(__XMIPP_CUDA_BIN)
+	
+	if nvcc is None and os.path.exists(__DEFAULT_CUDA_BIN):
+		nvcc = __DEFAULT_CUDA_BIN
+ 
+	if nvcc is not None:
+		nvcc = os.path.join(nvcc, __NVCC_EXE)
+
+	return nvcc
+	
+ 
+
 ON = 'ON'
 OFF = 'OFF'
 CONFIG_DEFAULT_VALUES = {
@@ -93,7 +114,7 @@ CONFIG_DEFAULT_VALUES = {
 	CMAKE_INSTALL_PREFIX: INSTALL_PATH,
 	__CC_FLAGS: __TUNE_FLAG,
 	__CXX_FLAGS: __TUNE_FLAG,
-	CUDA_COMPILER: None,
+	CUDA_COMPILER: __getCudaCompiler(),
 	__PREFIX_PATH: __getPrefixPath(),
 	__MPI_HOME: None,
 	__PYTHON_HOME: None,
