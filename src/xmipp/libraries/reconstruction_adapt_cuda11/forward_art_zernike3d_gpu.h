@@ -35,6 +35,7 @@
 #include <data/blobs.h>
 #include <data/fourier_filter.h>
 #include <data/fourier_projection.h>
+#include <core/symmetries.h>
 #include <reconstruction_cuda11/cuda_forward_art_zernike3d.h>
 
 #include <memory>
@@ -85,10 +86,14 @@ class ProgForwardArtZernike3DGPU : public XmippMetadataProgram {
 	double ltv, ltk, ll1, lst, lmr;
 	// Remove negative values
 	bool removeNegValues;
+	// Symmetry
+    FileName fnSym;
+	// Symmetry list
+	std::vector<Matrix2D<double>> LV, RV;
 
    public:
 	/** Resume computations */
-	bool resume;
+	bool resume = false;
 	// Number of ART iterations
 	int niter;
 	// Sort last N projections
@@ -121,6 +126,8 @@ class ProgForwardArtZernike3DGPU : public XmippMetadataProgram {
 	bool flip;
 	// CTF Check
 	bool hasCTF;
+	// Random image sorting
+	bool sort_random;
 	// Original defocus
 	double defocusU, defocusV, defocusAngle;
 	// CTF
@@ -134,7 +141,7 @@ class ProgForwardArtZernike3DGPU : public XmippMetadataProgram {
 	// Vector containing the degree of the spherical harmonics
 	std::vector<PrecisionType> clnm;
 	// Show optimization
-	bool showOptimization;
+	bool showOptimization = false;
 	// Row ids ordered in a orthogonal fashion
 	MultidimArray<size_t> ordered_list;
 	// Save iter counter
@@ -182,23 +189,16 @@ class ProgForwardArtZernike3DGPU : public XmippMetadataProgram {
         An exception is thrown if any of the files is not found*/
 	void preProcess();
 
-	/** Create the processing working files.
-     * The working files are:
-     * nmaTodo.xmd for images to process (nmaTodo = mdIn - nmaDone)
-     * nmaDone.xmd image already processed (could exists from a previous run)
-     */
-	// virtual void createWorkFiles();
-
 	/** Predict angles and shift.
         At the input the pose parameters must have an initial guess of the
         parameters. At the output they have the estimated pose.*/
 	void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
 
 	/// Length of coefficients vector
-	void numCoefficients(int l1, int l2, int &vecSize);
+	void numCoefficients(int l1, int l2);
 
 	/// Zernike and SPH coefficients allocation
-	void fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN, Matrix1D<int> &vL2, Matrix1D<int> &vM);
+	void fillVectorTerms(int l1, int l2);
 
 	///Deform a volumen using Zernike-Spherical harmonic basis
 	void deformVol(MultidimArray<double> &mP,

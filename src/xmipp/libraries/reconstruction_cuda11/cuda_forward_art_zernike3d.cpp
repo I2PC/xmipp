@@ -106,6 +106,7 @@ namespace {
 	{
 		struct MultidimArrayCuda<T> cudaArray = {
 			.xdim = static_cast<unsigned>(multidimArray.xdim), .ydim = static_cast<unsigned>(multidimArray.ydim),
+			.zdim = static_cast<unsigned>(multidimArray.zdim),
 			.yxdim = static_cast<unsigned>(multidimArray.yxdim), .xinit = multidimArray.xinit,
 			.yinit = multidimArray.yinit, .zinit = multidimArray.zinit,
 			.data = transferMultidimArrayToGpu(multidimArray)

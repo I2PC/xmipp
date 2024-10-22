@@ -31,6 +31,7 @@ template<typename T>
 struct MY_ALIGN(16) MultidimArrayCuda {
 	unsigned xdim;
 	unsigned ydim;
+	unsigned zdim;
 	unsigned yxdim;
 	int xinit;
 	int yinit;

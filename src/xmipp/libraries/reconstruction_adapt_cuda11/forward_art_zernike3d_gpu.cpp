@@ -33,16 +33,15 @@
 #include <fstream>
 #include <iterator>
 #include <numeric>
+#include <random>
 #include <stdexcept>
 #include "data/cpu.h"
 
 // Empty constructor =======================================================
 ProgForwardArtZernike3DGPU::ProgForwardArtZernike3DGPU()
 {
-	resume = false;
 	produces_a_metadata = true;
 	each_image_produces_an_output = false;
-	showOptimization = false;
 }
 
 ProgForwardArtZernike3DGPU::~ProgForwardArtZernike3DGPU() = default;
@@ -76,6 +75,8 @@ void ProgForwardArtZernike3DGPU::readParams()
 	debug_iter = checkParam("--debug_iter");
 	save_iter = getIntParam("--save_iter");
 	sort_last_N = getIntParam("--sort_last");
+	sort_random = checkParam("--sort_random");
+	fnSym = getParam("--sym");
 	FileName outPath = getParam("-o");
 	outPath = outPath.afterLastOf("/");
 	fnVolO = fnOutDir + "/" + outPath;
@@ -107,6 +108,7 @@ void ProgForwardArtZernike3DGPU::show() const
 			  << "Zernike Degree:            " << L1 << std::endl
 			  << "SH Degree:                 " << L2 << std::endl
 			  << "Step:                      " << loop_step << std::endl
+	          << "Symmetry group:            " << fnSym << std::endl
 			  << "Correct CTF:               " << useCTF << std::endl
 			  << "Correct heretogeneity:     " << useZernike << std::endl
 			  << "Remove negative values:    " << removeNegValues << std::endl
@@ -142,6 +144,7 @@ void ProgForwardArtZernike3DGPU::defineParams()
 	addParamsLine("  [--ltk <ltv=1e-4>]           : Tikhonov regualrization");
 	addParamsLine("  [--ll1 <ll1=1e-4>]           : L1 regualrization");
 	addParamsLine("  [--lst <ll1=1e-4>]           : Soft threshold regualrization");
+	addParamsLine("  [--sym <sym=c1>]             : Symmetry to be considered during the reconstruction");
 	addParamsLine("  [--useZernike]               : Correct heterogeneity with Zernike3D coefficients");
 	addParamsLine("  [--useCTF]                   : Correct CTF during ART reconstruction");
 	addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
@@ -152,6 +155,7 @@ void ProgForwardArtZernike3DGPU::defineParams()
 	addParamsLine("  [--save_iter <s=0>]          : Save intermidiate volume after #save_iter iterations");
 	addParamsLine(
 		"  [--sort_last <N=2>]          : The algorithm sorts projections in the most orthogonally possible way. ");
+	addParamsLine("  [--sort_random]              : Random sort of projections");
 	addParamsLine(
 		"                               : The most orthogonal way is defined as choosing the projection which "
 		"maximizes the ");
@@ -277,8 +281,8 @@ void ProgForwardArtZernike3DGPU::preProcess()
 	mask2D.setXmippOrigin();
 
 	vecSize = 0;
-	numCoefficients(L1, L2, vecSize);
-	fillVectorTerms(L1, L2, vL1, vN, vL2, vM);
+	numCoefficients(L1, L2);
+	fillVectorTerms(L1, L2);
 
 	initX = STARTINGX(Vrefined());
 	endX = FINISHINGX(Vrefined());
@@ -335,6 +339,20 @@ void ProgForwardArtZernike3DGPU::preProcess()
 		lmr = 0.0;
 	}		 
 
+
+	// Symmetry list
+	Matrix2D<double> L(3, 3), R(3, 3);
+	L.initIdentity(3);
+	R.initIdentity(3);
+	SymList SL_aux;
+	SL_aux.readSymmetryFile(fnSym);
+	LV.push_back(L);
+	RV.push_back(R);
+	for (int isym = 0; isym < SL_aux.symsNo(); isym++) {
+		SL_aux.getMatrices(isym, L, R, false);
+		LV.push_back(L);
+		RV.push_back(R);
+	}
 
 	// Create GPU interface
 	const cuda_forward_art_zernike3D::Program<PrecisionType>::ConstantParameters parameters = {
@@ -415,14 +433,29 @@ void ProgForwardArtZernike3DGPU::processImage(const FileName &fnImg,
 	I.read(fnImg);
 	I().setXmippOrigin();
 
-	// Forward Model
-	artModel<Direction::Forward>();
+	auto rot_dbl = static_cast<double>(rot);
+	auto tilt_dbl = static_cast<double>(tilt);
+	auto psi_dbl = static_cast<double>(psi);
+	double new_rot, new_tilt, new_psi;
 
-	// ART update
-	artModel<Direction::Backward>();
+	for (int isym = 0; isym < RV.size(); isym++)
+	{
+
+		Euler_apply_transf(LV[isym], RV[isym], rot_dbl, tilt_dbl, psi_dbl, new_rot, new_tilt, new_psi);
+
+		rot = static_cast<PrecisionType>(new_rot);
+		tilt = static_cast<PrecisionType>(new_tilt);
+		psi = static_cast<PrecisionType>(new_psi);
+
+		// Forward Model
+		artModel<Direction::Forward>();
+
+		// ART update
+		artModel<Direction::Backward>();
+	}
 }
 
-void ProgForwardArtZernike3DGPU::numCoefficients(int l1, int l2, int &vecSize)
+void ProgForwardArtZernike3DGPU::numCoefficients(int l1, int l2)
 {
 	for (int h = 0; h <= l2; h++) {
 		int numSPH = 2 * h + 1;
@@ -437,11 +470,7 @@ void ProgForwardArtZernike3DGPU::numCoefficients(int l1, int l2, int &vecSize)
 }
 
 void ProgForwardArtZernike3DGPU::fillVectorTerms(int l1,
-												 int l2,
-												 Matrix1D<int> &vL1,
-												 Matrix1D<int> &vN,
-												 Matrix1D<int> &vL2,
-												 Matrix1D<int> &vM)
+												 int l2)
 {
 	int idx = 0;
 	vL1.initZeros(vecSize);
@@ -497,7 +526,18 @@ void ProgForwardArtZernike3DGPU::run()
 
 	startProcessing();
 
-	sortOrthogonal();
+	if (sort_random)
+	{
+		std::vector<size_t> imgs_id(getInputMd()->size());
+		std::iota(imgs_id.begin(), imgs_id.end(), 0);
+		auto rng = std::default_random_engine {};
+		std::shuffle(std::begin(imgs_id), std::end(imgs_id), rng);
+		ordered_list.initZeros(getInputMd()->size());
+		for (size_t i=0; i < XSIZE(ordered_list); i++)
+			A1D_ELEM(ordered_list, i) = imgs_id[i];
+	}
+	else
+		sortOrthogonal();
 
 	if (!oroot.empty()) {
 		if (oext.empty())
@@ -593,12 +633,12 @@ void ProgForwardArtZernike3DGPU::sortOrthogonal()
 	double min_prod = MAXFLOAT;
 	;
 	int min_prod_proj = 0;
-	std::vector<double> rot;
-	std::vector<double> tilt;
+	std::vector<double> rotV;
+	std::vector<double> tiltV;
 	Matrix2D<double> v(numIMG, 3);
 	Matrix2D<double> euler;
-	getInputMd()->getColumnValues(MDL_ANGLE_ROT, rot);
-	getInputMd()->getColumnValues(MDL_ANGLE_TILT, tilt);
+	getInputMd()->getColumnValues(MDL_ANGLE_ROT, rotV);
+	getInputMd()->getColumnValues(MDL_ANGLE_TILT, tiltV);
 
 	// Initialization
 	ordered_list.resize(numIMG);
@@ -609,7 +649,7 @@ void ProgForwardArtZernike3DGPU::sortOrthogonal()
 
 		// Compute the Euler matrix for each image and keep only
 		// the third row of each one
-		Euler_angles2matrix(rot[i], tilt[i], 0., euler);
+		Euler_angles2matrix(rotV[i], tiltV[i], 0., euler);
 		euler.getRow(2, z);
 		v.setRow(i, z);
 	}
