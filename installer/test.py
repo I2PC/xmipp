@@ -45,13 +45,11 @@ def runTests(testNames):
 	- branch (str): Optional. Branch to clone the sources from.
 	"""
 	xmippSrc = environ.get('XMIPP_SRC', None)
-	#xmippSrc = '/home/agarcia/scipion3/xmipp-bundle/src'
 	if xmippSrc and path.isdir(xmippSrc):
 		environ['PYTHONPATH'] = ':'.join([
             path.join(environ['XMIPP_SRC'], XMIPP),
             environ.get('PYTHONPATH', '')])
 		testsPath = path.join(environ['XMIPP_SRC'], XMIPP, 'tests')
-		#testsPath = '/home/agarcia/scipion3/xmipp-bundle/src/xmipp/tests/'
 		dataSetPath = path.join(testsPath, 'data')
 	
 	else:
@@ -76,12 +74,11 @@ def runTests(testNames):
 	
 	logger(" Tests to do: %s" % ', '.join(testNames))
 	
-	if configDict.get(XMIPP_LINK_TO_SCIPION) == 'ON':
-		pythonExe = 'scipion3 python'
-	else:
-		pythonExe = 'python3'
+	# if configDict.get(XMIPP_LINK_TO_SCIPION) == 'ON':
+	# 	pythonExe = 'scipion3 python'
+	# else:
+	# 	pythonExe = 'python3'
 		
-	pythonExe = 'python3'
-	print("%s test.py %s %s" % (pythonExe, testNames, noCudaStr))
+	pythonExe = 'python3' #TODO should be scipion3?
 	runJob("%s test.py %s %s" % (pythonExe, testNames, noCudaStr), cwd='src/xmipp/tests', showOutput=True, showError=True)
 

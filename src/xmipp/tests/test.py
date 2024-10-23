@@ -337,13 +337,9 @@ if __name__ == "__main__":
         testData = os.environ['XMIPP_TEST_DATA']
         testScripts = os.path.dirname(testData)
         tests.addTests(unittest.defaultTestLoader.discover(start_dir=testScripts, pattern='test*.py', top_level_dir=testScripts + '/..'))
-        print('Visit')
         visitTests(tests, '')
         
         listDir = os.listdir(testScripts)
-        print('testData: {}'.format(testData))
-        print('testScripts: {}'.format(testScripts))
-        print('##########')
         # for path in listDir:
         #     if path.startswith('test_') and path.endswith('.py'):
         #         test_name = path[:-3]  # Elimina la extensión '.py'
