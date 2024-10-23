@@ -301,7 +301,6 @@ def visitTests(tests, grepStr=''):
     lastModule = None
     
     grepPrint = '' if grepStr == '' else red(' (grep: %s)'%grepStr)
-
     for t in testsFlat:
         moduleName, className, testName = t.id().rsplit('.', 2)
         
@@ -322,6 +321,7 @@ def visitTests(tests, grepStr=''):
 
 
 if __name__ == "__main__":
+    print('Hello2')
     cudaTests = True
     for i, arg in enumerate(sys.argv):
         if arg == '--noCuda':
@@ -337,7 +337,6 @@ if __name__ == "__main__":
         testData = os.environ['XMIPP_TEST_DATA']
         testScripts = os.path.dirname(testData)
         tests.addTests(unittest.defaultTestLoader.discover(start_dir=testScripts, pattern='test*.py', top_level_dir=testScripts + '/..'))
-        visitTests(tests, '')
         
         listDir = os.listdir(testScripts)
         # for path in listDir:
@@ -352,7 +351,6 @@ if __name__ == "__main__":
             print(blue("\n >>  You can run any of the following tests by:\n"))
             grepStr = '' if len(testNames)<2 else testNames[1]
             visitTests(tests, grepStr)
-            
             print("\n - From applications/function_tests (to run all use --allFuncs):")
             for test in cTests:
                 print("  %s" % test)

@@ -30,7 +30,7 @@ from os import environ, path
 # Self imports
 from .constants import XMIPP, SCIPION_TESTS_URLS, CONFIG_FILE, XMIPP_USE_CUDA, XMIPP_LINK_TO_SCIPION, ENVIROMENT_ERROR
 from .logger import blue, red, logger
-from .utils import runJob
+from .utils import runJob, runStreamingJob
 from .config import readConfig
 from .main import handleRetCode
 
@@ -80,5 +80,6 @@ def runTests(testNames):
 	# 	pythonExe = 'python3'
 		
 	pythonExe = 'python3' #TODO should be scipion3?
-	runJob("%s test.py %s %s" % (pythonExe, testNames, noCudaStr), cwd='src/xmipp/tests', showOutput=True, showError=True)
+	testScripts = path.dirname(environ['XMIPP_TEST_DATA'])
+	runStreamingJob(cmd="%s test.py %s %s" % (pythonExe, testNames, noCudaStr), cwd=testScripts, showOutput=True, showError=True)
 
