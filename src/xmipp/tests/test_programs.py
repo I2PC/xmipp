@@ -36,7 +36,6 @@ import os
 # import xmipp3
 # from pyworkflow.tests import DataSet
 from tests.test import ProgramTest
-#from .test import ProgramTest
 
 
 class XmippProgramTest(ProgramTest):
