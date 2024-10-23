@@ -61,6 +61,7 @@ if __name__=="__main__":
     parser.add_argument("-radius", type=int, help="radius for circular mask (in pixels)")       
     parser.add_argument("--apply_shifts",  action="store_true", help="Apply starfile shifts to experimental images")
     parser.add_argument("--relion",  action="store_true", help="save starfile in relion format")
+    parser.add_argument("-nCl", "--numCl", help="number of classes for initial model")
     
     args = parser.parse_args()
     
@@ -79,35 +80,26 @@ if __name__=="__main__":
     radius = args.radius
     apply_shifts = args.apply_shifts
     relion =  args.relion
+    numCl = args.numCl
            
     torch.cuda.is_available()
     torch.cuda.current_device()
     cuda = torch.device('cuda')
     
+    #load pca
     freqBn = torch.load(bands) 
     cvecs = torch.load(vecs)
     nBand = freqBn.unique().size(dim=0) - 1
     
-    bnb = BnBgpu(nBand)
-    assess = evaluation()
-
-    #Read Images
-    mmap = mrcfile.mmap(expFile, permissive=True)
-    nExp = mmap.data.shape[0]
-    dim = mmap.data.shape[1]
-    prjImages = read_images(prjFile) 
-    
-    #convert ref images to tensor 
-    tref= torch.from_numpy(prjImages).float().to("cpu")
-    if radius:
-        tref = tref * bnb.create_mask(tref, radius)
-    del(prjImages)
-    
     coef = torch.zeros(nBand, dtype=int)
     for n in range(nBand):
         coef[n] = 2*torch.sum(freqBn==n)
-
+    
     grid_flat = flatGrid(freqBn, coef, nBand)
+
+        
+    bnb = BnBgpu(nBand)
+    assess = evaluation()
     
     #Precomputed rotation and shift applied to references  
     angSet = (-amax, amax, ang)
@@ -116,7 +108,14 @@ if __name__=="__main__":
     vectorRot.sort()         
     nShift = len(vectorshift)
     
-    #for particle centering
+    
+    #Read Experimental Images
+    mmap = mrcfile.mmap(expFile, permissive=True)
+    nExp = mmap.data.shape[0]
+    dim = mmap.data.shape[1]
+    
+    
+    #Precomputing shift for particle centering
     if apply_shifts:
         if relion:
             prev_shifts = assess.getShiftsRelion(expStar, sampling, nExp)
@@ -124,6 +123,7 @@ if __name__=="__main__":
             prev_shifts = assess.getShifts(expStar, nExp)
 
         print("Experimental particles will be centered")
+        
         
 
     print("---Precomputing the projections of the experimental images---")
@@ -151,6 +151,17 @@ if __name__=="__main__":
         batch_projExp_cpu[count] = batch_projExp.to("cpu")
         del(batch_projExp)
         count+=1 
+        
+        
+    #Reading references particles    
+    prjImages = read_images(prjFile) 
+    
+    #convert ref images to tensor 
+    tref= torch.from_numpy(prjImages).float().to("cpu")
+    if radius:
+        tref = tref * bnb.create_mask(tref, radius)
+    del(prjImages)
+    
     
     matches = torch.full((nExp, 5), float("Inf"), device = cuda) 
     

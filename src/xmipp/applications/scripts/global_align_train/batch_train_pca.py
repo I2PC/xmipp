@@ -91,6 +91,8 @@ if __name__=="__main__":
     mexp = mrcfile.mmap(expFile, permissive=True)
     dim = mexp.data.shape[1]
     nExp = mexp.data.shape[0]
+    # nExp = 5000
+
     if train:
         nExp = train 
   
