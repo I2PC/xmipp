@@ -82,5 +82,6 @@ def runTests(testNames):
 		pythonExe = 'python3'
 		
 	pythonExe = 'python3'
+	print("%s test.py %s %s" % (pythonExe, testNames, noCudaStr))
 	runJob("%s test.py %s %s" % (pythonExe, testNames, noCudaStr), cwd='src/xmipp/tests', showOutput=True, showError=True)
 

@@ -37,14 +37,6 @@ import sys
 import shutil
 from traceback import format_exception
 
-VAHID = "vahid"
-RM = 'rmarabini'
-COSS = 'coss'
-JMRT = 'delarosatrevin'
-JOTON = 'joton'
-DISCONTINUED = 'nobody'
-JMOTA = 'javimota'
-EFG = 'estrellafg'
 
 
 class Command(object):
@@ -75,7 +67,7 @@ class ProgramTest(unittest.TestCase):
     _timeout = 300
 
     # _labels = [WEEKLY]
-               
+    
     @classmethod
     def setTestDir(cls, newTestDir):
         cls._testDir = newTestDir
@@ -93,12 +85,12 @@ class ProgramTest(unittest.TestCase):
         args = args.replace("%o", self.outputDir)
         args = args.replace("%p", self.program)
         #args = args.replace("%d", self.fnDir)
-        return args     
+        return args
     
     def _runCommands(self, cmdList, cmdType):
         """ Run several commands.
         Params:
-            cmdList: the list of commands to execute. 
+            cmdList: the list of commands to execute.
             cmdType: either 'preruns' or 'postruns'
         """
         pipe = '>'
@@ -113,7 +105,7 @@ class ProgramTest(unittest.TestCase):
                 pipe = ">>"
                 sys.stdout.flush()
                 
-    def runCase(self, args, mpi=0, changeDir=False, 
+    def runCase(self, args, mpi=0, changeDir=False,
                 preruns=None, postruns=None, validate=None,
                 outputs=None, random=False, errorthreshold=0.001):
         # Retrieve the correct case number from the test name id
@@ -222,18 +214,15 @@ class GTestResult(unittest.TestResult):
         unittest.TestResult.__init__(self)
         self.startTimeAll = time.time()
 
-    def openXmlReport(self, classname, filename):
-        # self.xml = open(filename, 'w')
-        # self.xml.write('<testsuite name="%s">\n' % classname)
-        pass
-
     def doReport(self):
         secs = time.time() - self.startTimeAll
         sys.stderr.write("%s run %d tests (%0.3f secs)\n" %
                          (green("[==========]"), self.numberTests, secs))
+        sys.stderr.flush()
         if self.testFailed:
             sys.stderr.write(red("[  FAILED  ]") + " %d tests\n" % self.testFailed)
-        sys.stderr.write(green("[  PASSED  ]") + " %d tests" % (self.numberTests - self.testFailed))
+        sys.stderr.write(green("[  PASSED  ]") + " %d tests\n" % (self.numberTests - self.testFailed))
+        sys.stderr.flush()
         sys.stdout.flush()
         return -1 if self.testFailed else 0
 
@@ -246,6 +235,9 @@ class GTestResult(unittest.TestResult):
     def startTest(self, test):
         self.tic()
         self.numberTests += 1
+        sys.stderr.write(
+	        "%s %s\n" % (green('[ RUN      ]'), self.getTestName(test)))
+        sys.stderr.flush()
 
     def getTestName(self, test):
         parts = str(test).split()
@@ -257,11 +249,12 @@ class GTestResult(unittest.TestResult):
     def addSuccess(self, test):
         secs = self.toc()
         sys.stderr.write("%s %s (%0.3f secs)\n\n" % (green('[ RUN   OK ]'), self.getTestName(test), secs))
+        sys.stderr.flush()
 
     def reportError(self, test, err):
         sys.stderr.write("\n%s" % ("".join(format_exception(*err))))
-        sys.stderr.write("%s %s\n\n" % (red('[  FAILED  ]'),
-                                      self.getTestName(test)))
+        sys.stderr.write("%s %s\n\n" % (red('[  FAILED  ]'), self.getTestName(test)))
+        sys.stderr.flush()
         self.testFailed += 1
 
     def addError(self, test, err):
@@ -269,7 +262,7 @@ class GTestResult(unittest.TestResult):
 
     def addFailure(self, test, err):
         self.reportError(test, err)
-
+	    
 def green(text):
     return "\033[92m "+text+"\033[0m"
 
@@ -286,7 +279,6 @@ def createDir(dirname, clean=False):
     if clean and os.path.exists(dirname):
         shutil.rmtree(dirname)
     os.makedirs(dirname)
-
 
 def visitTests(tests, grepStr=''):
     """ Show the list of tests available """
@@ -336,29 +328,40 @@ if __name__ == "__main__":
             cudaTests = False
             sys.argv.pop(i)
     testNames = sys.argv[1:]
-
     cudaExcludeStr = '| grep -v xmipp_test_cuda_' if not cudaTests else ''
     cTests = subprocess.check_output('compgen -ac | grep xmipp_test_ %s' % cudaExcludeStr,
                                      shell=True, executable='/bin/bash').decode('utf-8').splitlines()
-
+    
     tests = unittest.TestSuite()
     if '--show' in testNames or '--allPrograms' in testNames:
         testData = os.environ['XMIPP_TEST_DATA']
-        tests.addTests(unittest.defaultTestLoader.discover(testData, pattern='test*.py'))
-        #,top_level_dir=os.environ.get("XMIPP_TEST_DATA")+'/..'))
-        listDir = os.listdir(os.path.dirname(testData))
-        for path in listDir:
-            if path.startswith('test_') and path.endswith('.py'):
-                test_name = path[:-3]  # Eliminar la extensión '.py'
-                tests.addTests(unittest.defaultTestLoader.loadTestsFromName('tests.' + test_name))
+        testScripts = os.path.dirname(testData)
+        tests.addTests(unittest.defaultTestLoader.discover(start_dir=testScripts, pattern='test*.py', top_level_dir=testScripts + '/..'))
+        print('Visit')
+        visitTests(tests, '')
+        
+        listDir = os.listdir(testScripts)
+        print('testData: {}'.format(testData))
+        print('testScripts: {}'.format(testScripts))
+        print('##########')
+        # for path in listDir:
+        #     if path.startswith('test_') and path.endswith('.py'):
+        #         test_name = path[:-3]  # Elimina la extensión '.py'
+        #         print('test_name: {}'.format(test_name))
+        #         tests.addTests(unittest.defaultTestLoader.loadTestsFromName(test_name))
+        #         print('Visit')
+        #         visitTests(tests, '')
+		        
         if '--show' in testNames:
-            print(blue("\n    > >  You can run any of the following tests by:\n"))
+            print(blue("\n >>  You can run any of the following tests by:\n"))
             grepStr = '' if len(testNames)<2 else testNames[1]
             visitTests(tests, grepStr)
+            
             print("\n - From applications/function_tests (to run all use --allFuncs):")
             for test in cTests:
                 print("  %s" % test)
         elif '--allPrograms' in testNames:
+            visitTests(tests, '')
             result = GTestResult()
             tests.run(result)
             result.doReport()
@@ -402,3 +405,4 @@ if __name__ == "__main__":
             tests.run(result)
             result.doReport()
             sys.exit(1)
+            
