@@ -248,6 +248,7 @@ void ProgSubtractProjection::processParticle(const MDRow &rowprocess, int sizeIm
 	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
 	selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
 	Pctf = applyCTF(rowprocess, P);
+
 	MultidimArray<double> &mPctf = Pctf();
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mPctf)
 		DIRECT_MULTIDIM_ELEM(mPctf,n) = DIRECT_MULTIDIM_ELEM(mPctf,n) * DIRECT_MULTIDIM_ELEM(maskVol(),n);
@@ -359,7 +360,7 @@ void ProgSubtractProjection::computeParticleStats(Image<double> &Idiff, FileName
 
 	// FileName fnMaskedImgOut;
 	size_t dotPos = fnImgOut.find_last_of('.');
-	
+
     // if (dotPos == std::string::npos) {
     //     // No extension found
     //     fnMaskedImgOut = fnImgOut + "_masked";
@@ -415,17 +416,16 @@ void ProgSubtractProjection::preProcess() {
 		#endif
 	}
 	
-	// Create mock image of same size as particles (and reference volume) to get
-	I().initZeros((int)Ydim, (int)Xdim);
-	I().initConstant(1);
-	transformerI.FourierTransform(I(), IFourier, false);
-
 	// Initialize Gaussian LPF to smooth mask
 	FilterG.FilterShape=REALGAUSSIAN;
 	FilterG.FilterBand=LOWPASS;
 	FilterG.w1=sigma;
 
-	// Construct frequencies image
+	// Create mock image of same size as particles (and reference volume) to construct frequencies map
+	I().initZeros((int)Ydim, (int)Xdim);
+	I().initConstant(1);
+	transformerI.FourierTransform(I(), IFourier, false);
+
 	wi.initZeros(IFourier);
 	Matrix1D<double> w(2);
 
@@ -433,7 +433,7 @@ void ProgSubtractProjection::preProcess() {
 		FFT_IDX2DIGFREQ(i,YSIZE(IFourier),YY(w)) 
 		for (int j=0; j<XSIZE(wi); j++)  {
 			FFT_IDX2DIGFREQ(j,YSIZE(IFourier),XX(w))
-			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)YSIZE(IFourier)); // indexes
+			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)YSIZE(IFourier));
 		}
 	}
 
@@ -479,9 +479,6 @@ void ProgSubtractProjection::preProcess() {
 				DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n);
 		}
 
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
-			DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n);
-
 		// Initialize Fourier projectors
 		std::cout << "-------Initializing projectors-------" << std::endl;
 		projector = new FourierProjector(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
@@ -498,11 +495,11 @@ void ProgSubtractProjection::preProcess() {
 	}
 	else
 	{
-		projector = new FourierProjector(padFourier,cutFreq,xmipp_transformation::BSPLINE3);
+		projector = new FourierProjector(padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 
 		if (!fnMaskRoi.isEmpty())  // If there is provided mask
 		{
-			projectorMask = new FourierProjector(padFourier,cutFreq,xmipp_transformation::BSPLINE3);
+			projectorMask = new FourierProjector(padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 		}
 	}
  }
@@ -525,19 +522,30 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	}
 	else  // If a mask has been provided
 	{
-		projectVolume(*projectorMask, Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
+		projectVolume(*projectorMask, Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
 
 		// Apply binarization, shift and gaussian filter to the projected mask
 		M = binarizeMask(Pmask);
 		selfTranslate(xmipp_transformation::LINEAR, M(), roffset, xmipp_transformation::DONT_WRAP);
 		FilterG.applyMaskSpace(M());
 
+		#ifdef DEBUG_OUTPUT_FILES
+		size_t dotPos = fnImgOut.find_last_of('.');
+		Pmask.write(fnImgOut.substr(0, dotPos) + "_Pmask" + fnImgOut.substr(dotPos));
+		#endif
+
 		if (subtract) // If the mask contains the part to SUBTRACT: iM = input mask
 			iM = M;
 		else // If the mask contains the part to KEEP: iM = INVERSE of original mask
 			iM = invertMask(M);
 	}
-	
+
+	#ifdef DEBUG_OUTPUT_FILES
+	size_t dotPos = fnImgOut.find_last_of('.');
+	M.write(fnImgOut.substr(0, dotPos) + "_M" + fnImgOut.substr(dotPos));
+	iM.write(fnImgOut.substr(0, dotPos) + "_iM" + fnImgOut.substr(dotPos));
+	#endif
+
 	// Compute estimation images: IiM = I*iM and PiM = P*iM	
 	IiMFourier = computeEstimationImage(I(), iM(), transformerIiM);
 	PiMFourier = computeEstimationImage(Pctf(), iM(), transformerPiM);	
@@ -570,16 +578,26 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	A1(1,0) = A1(0,1);
 
 	// Compute beta00 from order 0 model
-	double beta00 = num0.sum()/den0.sum();
+	double beta00 = num0.sum()/den0.sum();	
+
+	// If selected, filter particles with negative beta00
 	if (nonNegative && beta00 < 0) 
 	{
 		disable = true;
 	}
+
 	// Apply adjustment order 0: PFourier0 = T(w) * PFourier = beta00 * PFourier
 	PFourier0 = PFourier;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier0) 
-		DIRECT_MULTIDIM_ELEM(PFourier0,n) *= beta00; 
-	PFourier0(0,0) = IiMFourier(0,0); 
+		DIRECT_MULTIDIM_ELEM(PFourier0,n) *= beta00;
+
+	// This is a hackjob until I understand the efect of this line of code when a mask is provided
+	// When mask is provided executing this line of code generate a background in the subtracted images
+	// When mask is NOT provided executing this line of code leads to cleaner subtrations
+	if(fnMaskRoi.isEmpty()) // If there is no provided mask
+	{
+		PFourier0(0,0) = IiMFourier(0,0); // *** ???
+	}
 
 	// Compute beta01 and beta1 from order 1 model
 	PseudoInverseHelper h;
@@ -598,8 +616,10 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 
 	// Check best model, this function also saves best fitted model in PFourier
 	Matrix1D<double> R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier);
+
 	double beta0save;
 	double beta1save;		
+
 	if (R2adj(1) == 0)
 	{
 		beta0save = beta00;
@@ -640,6 +660,13 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 			DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n)) * DIRECT_MULTIDIM_ELEM(maskVol(),n);
 			// *** add background adjust
 	}
+
+	#ifdef DEBUG_OUTPUT_FILES
+	dotPos = fnImgOut.find_last_of('.');
+	P.write(fnImgOut.substr(0, dotPos) + "_P" + fnImgOut.substr(dotPos));
+	I.write(fnImgOut.substr(0, dotPos) + "_I" + fnImgOut.substr(dotPos));
+	#endif
+
 	writeParticle(rowOut, fnImgOut, Idiff, R2adj(0), beta0save, beta1save); 
 }
 
