@@ -27,9 +27,6 @@ jobs:
             compiler: {cc: gcc-8, cxx: g++-8, update-alternatives: True}
     
     runs-on: ${{ matrix.os }}
-
-    env:
-      SEND_INSTALLATION_STATISTICS: OFF
     steps:
       - name: Install dependencies
         run: |
@@ -64,6 +61,7 @@ jobs:
       - name: Compile Xmipp will all dependencies in branch ${{ github.head_ref }} (if such branch exists, default is devel)
         env:
           BRANCH_NAME: ${{ github.head_ref }}
+          SEND_INSTALLATION_STATISTICS: OFF 
         run: |
           echo "XMIPP_LINK_TO_SCIPION=OFF" > xmipp.conf
           ./xmipp all -b $BRANCH_NAME --keep-output || (cat compilation.log && false)
