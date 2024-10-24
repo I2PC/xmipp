@@ -62,5 +62,5 @@ jobs:
         env:
           BRANCH_NAME: ${{ github.head_ref }}
         run: |
-          echo "XMIPP_LINK_TO_SCIPION=OFF\nSEND_INSTALLATION_STATISTICS=OFF" > xmipp.conf
+          echo -e "XMIPP_LINK_TO_SCIPION=OFF\nSEND_INSTALLATION_STATISTICS=OFF" > xmipp.conf
           ./xmipp all -b $BRANCH_NAME --keep-output || (cat compilation.log && false)
