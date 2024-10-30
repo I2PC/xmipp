@@ -66,7 +66,7 @@ def runTests(testNames):
 		task = "download"
 		showO = True
 	args = "%s %s %s" % ("tests/data", SCIPION_TESTS_URLS, dataset)
-	runJob("bin/xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp', showOutput=showO)
+	runJob("xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp', showOutput=showO)
 	
 	configDict = readConfig(CONFIG_FILE) if path.exists(CONFIG_FILE) else {}
 	CUDA = configDict.get(XMIPP_USE_CUDA)
