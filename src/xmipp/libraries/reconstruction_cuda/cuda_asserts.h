@@ -26,7 +26,7 @@
 #ifndef CUDA_ASSERTS_H_
 #define CUDA_ASSERTS_H_
 
-#include "cuFFTAdvisor/cudaAsserts.h"
+#include "cudaAsserts.h"
 
 #define gpuErrchk(code) { cuFFTAdvisor::gpuErrchk((code), __FILE__, __LINE__); }
 #define gpuErrchkFFT(code) { cuFFTAdvisor::gpuErrchkFFT((code), __FILE__, __LINE__); }
