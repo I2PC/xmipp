@@ -137,16 +137,20 @@ class ProgSubtractProjection: public XmippMetadataProgram
 
     int rank; // for MPI version
     FourierProjector *projector;
-    FourierProjector *projectorMask;
-    /// Empty constructor
+
+    // Empty constructor
     ProgSubtractProjection();
-    /// Destructor
+
+    // Destructor
     ~ProgSubtractProjection();
-    /// Read argument from command line
+
+    // Read argument from command line
     void readParams() override;
-    /// Show
+
+    // Show
     void show() const override;
-    /// Define parameters
+
+    // Define parameters
     void defineParams() override;
     void preProcess() override;
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
