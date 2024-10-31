@@ -61,14 +61,17 @@ def sendApiPOST(retCode: int=0):
 		url = url[0]
 		conn = http.client.HTTPSConnection(url, timeout=2, context=ssl._create_unverified_context()) # Unverified context because url does not have an ssl certificate
 
-		# Send the POST request
-		conn.request("POST", path, params, headers)
-
-		# Get response from server
-		conn.getresponse()
-
-		# Close the connection
-		conn.close()
+		try:
+			# Send the POST request
+			conn.request("POST", path, params, headers)
+	
+			# Get response from server
+			conn.getresponse()
+	
+			# Close the connection
+			conn.close()
+		except Exception as e:
+			pass
 	
 ####################### UTILS FUNCTIONS #######################
 def getOSReleaseName() -> str:
