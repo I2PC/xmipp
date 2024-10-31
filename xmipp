@@ -318,7 +318,10 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	apiPost = True if readConfig(CONFIG_FILE).get(
 		SEND_INSTALLATION_STATISTICS) == 'ON' else False
 	if sendAPI and apiPost and os.path.exists(VERSION_FILE):
-
+		print('apiPost: {}'.format(apiPost) )
+		print('get: {}'.format(readConfig(CONFIG_FILE).get(
+		SEND_INSTALLATION_STATISTICS)))
+	
 		sendApiPOST()
 
 	# Print success message for specific modes
