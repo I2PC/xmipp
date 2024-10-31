@@ -109,7 +109,7 @@ def __getSendStatistics():
 ON = 'ON'
 OFF = 'OFF'
 CONFIG_DEFAULT_VALUES = {
-	__SEND_INSTALLATION_STATISTICS: __getSendStatistics(),
+	__SEND_INSTALLATION_STATISTICS_ENV: __getSendStatistics(),
 	CMAKE: None,
 	CUDA: ON,
 	MPI: ON,
@@ -135,4 +135,4 @@ CONFIG_DEFAULT_VALUES = {
 }
 
 # Do not pass this variables to CMake, only for installer logic
-INTERNAL_LOGIC_VARS = [__SEND_INSTALLATION_STATISTICS, CMAKE]
+INTERNAL_LOGIC_VARS = [__SEND_INSTALLATION_STATISTICS_ENV, CMAKE]
