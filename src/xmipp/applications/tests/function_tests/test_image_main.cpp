@@ -16,7 +16,7 @@ protected:
     virtual void SetUp()
     {
         //get example images/staks
-        xmippPath = getXmippPath();
+        xmippPath = getXmippSrcPath();
         if (chdir(((String)(xmippPath + "/resources/test")).c_str())==-1)
             REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
         // testBaseName = xmippPath + "/resources/test";
