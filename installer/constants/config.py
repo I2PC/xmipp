@@ -108,7 +108,7 @@ def __getSendStatistics():
 ON = 'ON'
 OFF = 'OFF'
 CONFIG_DEFAULT_VALUES = {
-	__SEND_INSTALLATION_STATISTICS: ON,
+	__SEND_INSTALLATION_STATISTICS: __getSendStatistics(),
 	CMAKE: None,
 	CUDA: ON,
 	MPI: ON,
