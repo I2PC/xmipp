@@ -28,6 +28,7 @@ from .main import INSTALL_PATH
 
 # Variable names
 __SEND_INSTALLATION_STATISTICS = 'SEND_INSTALLATION_STATISTICS'
+__SEND_INSTALLATION_STATISTICS_ENV = 'SEND_INSTALLATION_STATISTICS'
 CMAKE = 'CMAKE'
 CC = 'CMAKE_C_COMPILER'
 CXX = 'CMAKE_CXX_COMPILER'
@@ -99,7 +100,9 @@ def __getCudaCompiler() -> Optional[str]:
 		nvcc = os.path.join(nvcc, __NVCC_EXE)
 
 	return nvcc
-	
+
+def __getSendStatistics():
+	return os.environ.get(__SEND_INSTALLATION_STATISTICS_ENV, ON)
  
 
 ON = 'ON'
