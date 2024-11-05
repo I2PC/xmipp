@@ -63,6 +63,7 @@ class ProgSubtractProjection: public XmippMetadataProgram
     bool nonNegative;
     bool boost;
     bool subtract;
+    bool realSpaceProjector;
     bool maskVolProvided;
 	MultidimArray<int> wi;
 

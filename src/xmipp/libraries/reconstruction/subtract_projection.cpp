@@ -91,6 +91,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	nonNegative = checkParam("--nonNegative");
 	boost = checkParam("--boost");
 	subtract = checkParam("--subtract");
+	realSpaceProjector = checkParam("--realSpaceProjection");
  }
 
  // Show ====================================================================
@@ -124,15 +125,16 @@ ProgSubtractProjection::~ProgSubtractProjection()
     addParamsLine("[--mask_roi <mask_roi=\"\">]     : 3D mask for region of interest to keep or subtract, no mask implies subtraction of whole images");
  	addParamsLine("--cirmaskrad <c=-1.0>			: Apply circular mask to proyected particles. Radius = -1 fits a sphere in the reference volume.");
 	addParamsLine("or --mask <mask=\"\">            : Provide a mask to be applied. Any desity out of the mask is removed from further analysis.");
-	addParamsLine("[--sampling <sampling=1>]\t		: Sampling rate (A/pixel)");
-	addParamsLine("[--max_resolution <f=-1>]\t		: Maximum resolution in Angtroms up to which the substraction is calculated. \
+	addParamsLine("[--sampling <sampling=1>]		: Sampling rate (A/pixel)");
+	addParamsLine("[--max_resolution <f=-1>]		: Maximum resolution in Angtroms up to which the substraction is calculated. \
 													  By default (-1) it is set to sampling/sqrt(2).");
-	addParamsLine("[--padding <p=2>]\t				: Padding factor for Fourier projector");
-	addParamsLine("[--sigma <s=1>]\t				: Decay of the filter (sigma) to smooth the mask transition");
-	addParamsLine("[--nonNegative]\t				: Ignore particles with negative beta0 or R2");
-	addParamsLine("[--boost]\t						: Perform a boosting of original particles");
-	addParamsLine("[--save <structure=\"\">]\t		: Path for saving intermediate files");
-	addParamsLine("[--subtract]\t					: The mask contains the region to SUBTRACT");
+	addParamsLine("[--padding <p=2>]				: Padding factor for Fourier projector");
+	addParamsLine("[--sigma <s=1>]					: Decay of the filter (sigma) to smooth the mask transition");
+	addParamsLine("[--nonNegative]					: Ignore particles with negative beta0 or R2");
+	addParamsLine("[--boost]						: Perform a boosting of original particles");
+	addParamsLine("[--save <structure=\"\">]		: Path for saving intermediate files");
+	addParamsLine("[--subtract]						: The mask contains the region to SUBTRACT");
+	addParamsLine("[--realSpaceProjection]			: Project volume in real space to avoid Fourier artifacts");
 
 	// Example
     addExampleLine("A typical use is:",false);
@@ -245,9 +247,16 @@ void ProgSubtractProjection::processParticle(const MDRow &rowprocess, int sizeIm
 	
 	// Project volume + apply translation, CTF and mask
 	// If provided, mask already have been applied to volume
-	// projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
-	projectVolume(V(), P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
-	selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
+	if (realSpaceProjector)
+	{
+		projectVolume(V(), P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
+	}
+	else
+	{
+		projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
+		selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
+	}
+	
 	Pctf = applyCTF(rowprocess, P);
 
 	MultidimArray<double> &mPctf = Pctf();
@@ -475,17 +484,23 @@ void ProgSubtractProjection::preProcess()
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
 			DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n);
 
-		// Initialize Fourier projectors
-		std::cout << "-------Initializing projectors-------" << std::endl;
-		// projector = new FourierProjector(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+		if (!realSpaceProjector)
+		{
+			// Initialize Fourier projectors
+			std::cout << "-------Initializing projectors-------" << std::endl;
+			
+			projector = new FourierProjector(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+			std::cout << "Volume ---> FourierProjector(V(),"<<padFourier<<","<<cutFreq<<","<<xmipp_transformation::BSPLINE3<<");"<< std::endl;
 
-		std::cout << "Volume ---> FourierProjector(V(),"<<padFourier<<","<<cutFreq<<","<<xmipp_transformation::BSPLINE3<<");"<< std::endl;
-
-		std::cout << "-------Projectors initialized-------" << std::endl;
+			std::cout << "-------Projectors initialized-------" << std::endl;
+		}
 	}
 	else
 	{
-		// projector = new FourierProjector(padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+		if (!realSpaceProjector)
+		{
+			projector = new FourierProjector(padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+		}
 	}
  }
 
@@ -507,6 +522,7 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	}
 	else  // If a mask has been provided
 	{
+		// Mask projection is always calculated in real space
 		projectVolume(vM(), Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
 
 		#ifdef DEBUG_OUTPUT_FILES
