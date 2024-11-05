@@ -48,34 +48,38 @@ void MpiProgSubtractProjection::preProcess()
     int origin;
     int realSizeMask;
     int originMask;
-    if (node->rank == 0)
+
+    if (!realSpaceProjector)
     {
-        realSize = (int)XSIZE(projector->VfourierRealCoefs);
-        origin = STARTINGX(projector->VfourierRealCoefs);
-    }
+        if (node->rank == 0)
+        {
+            realSize = (int)XSIZE(projector->VfourierRealCoefs);
+            origin = STARTINGX(projector->VfourierRealCoefs);
+        }
 
-    MPI_Bcast(&realSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&origin, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&(projector->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD); 
-    MPI_Bcast(&projector->volumeSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&realSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&origin, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&(projector->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD); 
+        MPI_Bcast(&projector->volumeSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-    MPI_Bcast(&realSizeMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&originMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&realSizeMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&originMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-    if (rank != 0)
-    {
-        projector->VfourierRealCoefs.resizeNoCopy(realSize,realSize,realSize);
-        projector->VfourierImagCoefs.resizeNoCopy(realSize,realSize,realSize);
-        STARTINGX(projector->VfourierRealCoefs)=STARTINGY(projector->VfourierRealCoefs)=STARTINGZ(projector->VfourierRealCoefs)=origin;
-        STARTINGX(projector->VfourierImagCoefs)=STARTINGY(projector->VfourierImagCoefs)=STARTINGZ(projector->VfourierImagCoefs)=origin;
-    }
+        if (rank != 0)
+        {
+            projector->VfourierRealCoefs.resizeNoCopy(realSize,realSize,realSize);
+            projector->VfourierImagCoefs.resizeNoCopy(realSize,realSize,realSize);
+            STARTINGX(projector->VfourierRealCoefs)=STARTINGY(projector->VfourierRealCoefs)=STARTINGZ(projector->VfourierRealCoefs)=origin;
+            STARTINGX(projector->VfourierImagCoefs)=STARTINGY(projector->VfourierImagCoefs)=STARTINGZ(projector->VfourierImagCoefs)=origin;
+        }
 
-    MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierRealCoefs), (int)MULTIDIM_SIZE(projector->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierImagCoefs), (int)MULTIDIM_SIZE(projector->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+        MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierRealCoefs), (int)MULTIDIM_SIZE(projector->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+        MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierImagCoefs), (int)MULTIDIM_SIZE(projector->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    if (rank != 0)
-    {
-        projector->produceSideInfoProjection();
+        if (rank != 0)
+        {
+            projector->produceSideInfoProjection();
+        }
     }
 
     MetaData &mdIn = *getInputMd();
