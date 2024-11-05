@@ -27,6 +27,8 @@
 #include <parallel/xmipp_mpi.h>
 #include <reconstruction/subtomo_subtraction.h>
 
+#define DEBUG
+// #define DEBUG_OUTPUT_FILES
 
 class MpiProgSubtomoSubtraction: public ProgSubtomoSubtraction, public MpiMetadataProgram
 {
@@ -46,4 +48,3 @@ public:
     
     void wait() override;
     
-};
