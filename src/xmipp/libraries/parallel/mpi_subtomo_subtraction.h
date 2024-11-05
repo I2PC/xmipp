@@ -48,3 +48,4 @@ public:
     
     void wait() override;
     
+};
