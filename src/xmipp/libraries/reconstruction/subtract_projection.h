@@ -81,7 +81,6 @@ class ProgSubtractProjection: public XmippMetadataProgram
 
  	Projection P; // projection
  	Projection Pmask; // mask projection for region to keep
-	FourierFilter FilterG; // Gaussian LPF to smooth mask
 
     const MultidimArray<double> *ctfImage = nullptr; // needed for FourierProjector
 	FourierTransformer transformerP; // Fourier transformer for projection
@@ -120,7 +119,7 @@ class ProgSubtractProjection: public XmippMetadataProgram
     bool disable;
     /// Read and write methods
     void readParticle(const MDRow &rowIn);
-    void writeParticle(MDRow &rowOut, FileName, Image<double> &, double, double, double);
+    void writeParticle(MDRow &rowOut, FileName, Image<double> &, double, double, double, double, double, double);
     /// Processing methods
     void createMask(const FileName &, Image<double> &, Image<double> &);
     Image<double> binarizeMask(Projection &) const;
@@ -128,11 +127,11 @@ class ProgSubtractProjection: public XmippMetadataProgram
     Image<double> applyCTF(const MDRow &, Projection &);
     void processParticle(const MDRow &rowIn, int sizeImg);
     MultidimArray< std::complex<double> > computeEstimationImage(const MultidimArray<double> &, 
-        const MultidimArray<double> &, FourierTransformer &);
+        const MultidimArray<double> *, FourierTransformer &);
     double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
     Matrix1D<double> checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
         const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
-    void computeParticleStats(Image<double> &Idiff, FileName fnImgOut, double &avg, double &std);
+    void computeParticleStats(Image<double> &Idiff, Image<double> &iM, FileName fnImgOut, double &avg, double &std);
 
 
     int rank; // for MPI version
