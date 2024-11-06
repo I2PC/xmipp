@@ -477,15 +477,24 @@ void ProgSubtractProjection::preProcess()
 
 	// Read or create mask keep and compute inverse of mask keep (mask subtract)
 	createMask(fnMaskRoi, vM, ivM);
-		
-	if (rank==0)
+
+	// If real space projector every execution must mask-multiply and project the input volume
+	if (realSpaceProjector)
 	{
 		// Apply mask to volume
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
 			DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n);
+	}
 
+	if (rank==0)
+	{
 		if (!realSpaceProjector)
 		{
+			// If  Fourier projector one volume is shared by all execution and this operation is done only once
+			// Apply mask to volume
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+				DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n);
+
 			// Initialize Fourier projectors
 			std::cout << "-------Initializing projectors-------" << std::endl;
 			
