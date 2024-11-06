@@ -81,7 +81,9 @@ class ProgSubtractProjection: public XmippMetadataProgram
 	Image<double> maskVol; // mask for reference volume (circular if not provided)	
 
  	Projection P; // projection
- 	Projection Pmask; // mask projection for region to keep
+ 	Projection Pmask; // mask projection for the protein
+ 	Image<double> PmaskImg; // mask projection for the protein as Image
+ 	Projection PmaskRoi; // mask projection for region to keep
 
     const MultidimArray<double> *ctfImage = nullptr; // needed for FourierProjector
 	FourierTransformer transformerP; // Fourier transformer for projection

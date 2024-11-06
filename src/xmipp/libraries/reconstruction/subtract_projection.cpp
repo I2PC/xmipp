@@ -262,10 +262,20 @@ void ProgSubtractProjection::processParticle(const MDRow &rowprocess, int sizeIm
 	MultidimArray<double> &mPctf = Pctf();
 	MultidimArray<double> &mI = I();
 
+	if(maskVolProvided)
+	{
+		projectVolume(maskVol(), Pmask, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
+		PmaskImg() = Pmask();
+	}
+	else
+	{
+		PmaskImg() = maskVol();
+	}
+
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mPctf)
 	{
-		DIRECT_MULTIDIM_ELEM(mPctf,n) = DIRECT_MULTIDIM_ELEM(mPctf,n) * DIRECT_MULTIDIM_ELEM(maskVol(),n);
-		DIRECT_MULTIDIM_ELEM(mI,n) = DIRECT_MULTIDIM_ELEM(mI,n) * DIRECT_MULTIDIM_ELEM(maskVol(),n);
+		DIRECT_MULTIDIM_ELEM(mPctf,n) = DIRECT_MULTIDIM_ELEM(mPctf,n) * DIRECT_MULTIDIM_ELEM(PmaskImg(),n);
+		DIRECT_MULTIDIM_ELEM(mI,n) = DIRECT_MULTIDIM_ELEM(mI,n) * DIRECT_MULTIDIM_ELEM(PmaskImg(),n);
 	}
 
 	// FT of projection and particle
@@ -532,15 +542,15 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	else  // If a mask has been provided
 	{
 		// Mask projection is always calculated in real space
-		projectVolume(vM(), Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
+		projectVolume(vM(), PmaskRoi, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
 
 		#ifdef DEBUG_OUTPUT_FILES
 		size_t dotPos = fnImgOut.find_last_of('.');
-		Pmask.write(fnImgOut.substr(0, dotPos) + "_Pmask" + fnImgOut.substr(dotPos));
+		PmaskRoi.write(fnImgOut.substr(0, dotPos) + "_Pmask" + fnImgOut.substr(dotPos));
 		#endif
 
 		// Apply binarization, shift and gaussian filter to the projected mask
-		M = binarizeMask(Pmask);
+		M = binarizeMask(PmaskRoi);
 
 		if (subtract) // If the mask contains the part to SUBTRACT: iM = input mask
 			iM = M;
@@ -561,7 +571,7 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	double Nelems = 0;
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(P())
-		if(DIRECT_MULTIDIM_ELEM(iM(), n) > 0 && DIRECT_MULTIDIM_ELEM(maskVol(), n) > 0)
+		if(DIRECT_MULTIDIM_ELEM(iM(), n) > 0 && DIRECT_MULTIDIM_ELEM(PmaskImg(), n) > 0)
 		// if(DIRECT_MULTIDIM_ELEM(iM(), n) > 0 )
 		{
 			meanP += DIRECT_MULTIDIM_ELEM(P(), n); 
