@@ -159,5 +159,4 @@ class ProgSubtractProjection: public XmippMetadataProgram
     void postProcess() override;
  };
  //@}
-#endif
-
+#endi

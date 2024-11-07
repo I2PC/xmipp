@@ -269,13 +269,17 @@ void ProgSubtractProjection::processParticle(const MDRow &rowprocess, int sizeIm
 	}
 	else
 	{
+		Pmask() = maskVol();
 		PmaskImg() = maskVol();
 	}
 
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mPctf)
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PmaskImg())
 	{
-		DIRECT_MULTIDIM_ELEM(mPctf,n) = DIRECT_MULTIDIM_ELEM(mPctf,n) * DIRECT_MULTIDIM_ELEM(PmaskImg(),n);
-		DIRECT_MULTIDIM_ELEM(mI,n) = DIRECT_MULTIDIM_ELEM(mI,n) * DIRECT_MULTIDIM_ELEM(PmaskImg(),n);
+		if (!(DIRECT_MULTIDIM_ELEM(PmaskImg(),n) > 0))
+		{
+			DIRECT_MULTIDIM_ELEM(mPctf,n) = 0;
+			DIRECT_MULTIDIM_ELEM(mI,n) = 0;
+		}
 	}
 
 	// FT of projection and particle
@@ -360,9 +364,9 @@ void ProgSubtractProjection::computeParticleStats(Image<double> &Idiff, Image<do
 	double sum2 = 0;
 	int Nelems = 0;
 
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(iM())
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(M())
 	{
-		if (DIRECT_MULTIDIM_ELEM(iM(),n) > 0)
+		if (DIRECT_MULTIDIM_ELEM(M(),n) > 0)
 		{
 			double value = DIRECT_MULTIDIM_ELEM(mIdiff, n);
 
@@ -546,7 +550,8 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 
 		#ifdef DEBUG_OUTPUT_FILES
 		size_t dotPos = fnImgOut.find_last_of('.');
-		PmaskRoi.write(fnImgOut.substr(0, dotPos) + "_Pmask" + fnImgOut.substr(dotPos));
+		PmaskRoi.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi" + fnImgOut.substr(dotPos));
+		Pmask.write(fnImgOut.substr(0, dotPos) + "_Pmask" + fnImgOut.substr(dotPos));
 		#endif
 
 		// Apply binarization, shift and gaussian filter to the projected mask
@@ -572,23 +577,21 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(P())
 		if(DIRECT_MULTIDIM_ELEM(iM(), n) > 0 && DIRECT_MULTIDIM_ELEM(PmaskImg(), n) > 0)
-		// if(DIRECT_MULTIDIM_ELEM(iM(), n) > 0 )
 		{
 			meanP += DIRECT_MULTIDIM_ELEM(P(), n); 
 			meanI += DIRECT_MULTIDIM_ELEM(I(), n);
 			Nelems++;
 		}
 
-	meanP /= Nelems;
-	meanI /= Nelems;
-
-	double b = meanI - meanP;
+	double b = (meanI - meanP) / Nelems;
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
-		if(DIRECT_MULTIDIM_ELEM(maskVol(), n) > 0)
-		{
-			DIRECT_MULTIDIM_ELEM(I(), n) -= b;
-		}
+		DIRECT_MULTIDIM_ELEM(I(), n) -= b;
+
+		// if(DIRECT_MULTIDIM_ELEM(PmaskImg(), n) > 0)
+		// {
+		// 		DIRECT_MULTIDIM_ELEM(I(), n) -= b;
+		// }
 
 	// Compute estimation images: IiM = I*iM and PiM = P*iM	
 	IiMFourier = computeEstimationImage(I(), &(iM()), transformerIiM);
