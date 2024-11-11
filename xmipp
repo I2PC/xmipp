@@ -210,6 +210,7 @@ def modeGit(args: argparse.Namespace):
 	"""
 	cmd = f"git {' '.join(args.command)}"
 	logger(f"Running command '{cmd}' for all xmipp sources...", forceConsoleOutput=True)
+	XMIPP_SOURCES.insert(0, XMIPP)
 	for source in XMIPP_SOURCES:
 		logger("", forceConsoleOutput=True)
 		# Check if source exists to perform command, else skip
