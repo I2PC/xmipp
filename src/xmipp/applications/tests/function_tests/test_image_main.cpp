@@ -16,8 +16,8 @@ protected:
     virtual void SetUp()
     {
         //get example images/staks
-        xmippPath = getXmippPath();
-        if (chdir(((String)(xmippPath + "/resources/test")).c_str())==-1)
+        xmippPath = getXmippSrcPath();
+        if (chdir(((String)(xmippPath + "/xmipp/resources/test")).c_str())==-1)
             REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
         // testBaseName = xmippPath + "/resources/test";
         imageName = "image/singleImage.spi";

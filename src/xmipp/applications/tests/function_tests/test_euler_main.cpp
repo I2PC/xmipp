@@ -13,7 +13,7 @@ protected:
     //init metadatas
     virtual void SetUp()
     {
-        if (chdir(((String)(getXmippPath() + (String)"/resources/test")).c_str())==-1)
+        if (chdir(((String)(getXmippSrcPath() + (String)"/xmipp/resources/test")).c_str())==-1)
             REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
     }
 
