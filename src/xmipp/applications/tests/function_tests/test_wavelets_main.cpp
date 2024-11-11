@@ -39,7 +39,7 @@ protected:
     {
 #define len 128
         //get example down1_42_Periodogramavg.psd
-        if (chdir(((String)(getXmippSrcPath() + (String)"/resources/test/filters")).c_str())==-1)
+        if (chdir(((String)(getXmippSrcPath() + (String)"/xmipp/resources/test/filters")).c_str())==-1)
             REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot change directory");
         Image<double> img;
         img.read("KLH.tif");

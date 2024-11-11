@@ -12,7 +12,7 @@ protected:
     virtual void SetUp()
     {
         //get example volume
-        if (chdir(((String)(getXmippSrcPath() + (String)"/resources/test/image")).c_str())==-1)
+        if (chdir(((String)(getXmippSrcPath() + (String)"/xmipp/resources/test/image")).c_str())==-1)
             REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot change directory");
         img.read("smallVolume.vol");
     }

@@ -12,7 +12,7 @@ protected:
     //init metadatas
     virtual void SetUp()
     {
-        if (chdir(((String)(getXmippSrcPath() + (String)"/resources/test")).c_str())==-1)
+        if (chdir(((String)(getXmippSrcPath() + (String)"/xmipp/resources/test")).c_str())==-1)
             REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
        //get example images/staks
         source1 = "funcs/singleImage.spi";
