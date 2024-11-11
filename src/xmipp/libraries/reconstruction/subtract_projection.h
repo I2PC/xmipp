@@ -122,7 +122,7 @@ class ProgSubtractProjection: public XmippMetadataProgram
     bool disable;
     /// Read and write methods
     void readParticle(const MDRow &rowIn);
-    void writeParticle(MDRow &rowOut, FileName, Image<double> &, double, double, double, double, double, double);
+    void writeParticle(MDRow &rowOut, FileName, Image<double> &, double, double, double, double, double, double, double);
     /// Processing methods
     void createMask(const FileName &, Image<double> &, Image<double> &);
     Image<double> binarizeMask(Projection &) const;
@@ -134,7 +134,7 @@ class ProgSubtractProjection: public XmippMetadataProgram
     double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
     Matrix1D<double> checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
         const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
-    void computeParticleStats(Image<double> &Idiff, Image<double> &iM, FileName fnImgOut, double &avg, double &std);
+    void computeParticleStats(Image<double> &Idiff, Image<double> &iM, FileName fnImgOut, double &avg, double &std, double &zScore);
 
 
     int rank; // for MPI version
@@ -159,4 +159,5 @@ class ProgSubtractProjection: public XmippMetadataProgram
     void postProcess() override;
  };
  //@}
-#endi
+#endif
+

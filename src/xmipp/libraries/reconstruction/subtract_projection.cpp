@@ -150,7 +150,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	I().setXmippOrigin();
  }
 
- void ProgSubtractProjection::writeParticle(MDRow &rowOut, FileName fnImgOut, Image<double> &img, double R2a, double b0save, double b1save, double b, double avg, double std) 
+ void ProgSubtractProjection::writeParticle(MDRow &rowOut, FileName fnImgOut, Image<double> &img, double R2a, double b0save, double b1save, double b, double avg, double std, double zScore) 
  {
 	img.write(fnImgOut);
 
@@ -161,6 +161,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	rowOut.setValue(MDL_SUBTRACTION_B, b); 
 	rowOut.setValue(MDL_AVG, avg); 
 	rowOut.setValue(MDL_STDDEV, std); 
+	rowOut.setValue(MDL_ZSCORE, zScore); 
 	if (nonNegative && (disable || R2a < 0))
 	{
 		rowOut.setValue(MDL_ENABLED, -1);
@@ -350,7 +351,7 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 	return R2;
 }
 
-void ProgSubtractProjection::computeParticleStats(Image<double> &Idiff, Image<double> &iM, FileName fnImgOut, double &avg, double &std)
+void ProgSubtractProjection::computeParticleStats(Image<double> &Idiff, Image<double> &iM, FileName fnImgOut, double &avg, double &std, double &zScore)
 {	
 	const auto sizeI = (int)XSIZE(I());
 	MultidimArray<double> &mIdiff=Idiff();
@@ -378,13 +379,31 @@ void ProgSubtractProjection::computeParticleStats(Image<double> &Idiff, Image<do
 
 	avg = sum / Nelems;
 	std = sqrt(sum2/Nelems - avg*avg);
+	int zScoreThr = 3;
+	zScore = 0;
 
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(M())
+	{
+		if (DIRECT_MULTIDIM_ELEM(M(),n) > 0)
+		{
+			double value = DIRECT_MULTIDIM_ELEM(mIdiff, n);
+
+			if(value > (avg + std * zScoreThr))
+			{
+				zScore++;
+			}
+		}
+	}
+
+	zScore /= Nelems;
+	
 	#ifdef DEBUG
 	std::cout << "sum " << sum << std::endl;
 	std::cout << "sum2 " << sum2 << std::endl;
 	std::cout << "Nelems " << Nelems << std::endl;
 	std::cout << "avg " << avg << std::endl;
 	std::cout << "std " << std << std::endl;
+	std::cout << "zScore " << zScore << std::endl;
 	#endif
 
 	#ifdef DEBUG_OUTPUT_FILES
@@ -714,10 +733,11 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	// Compute particle stats after subtraction
 	double avg;
 	double std;
+	double zScore;
 
-	computeParticleStats(Idiff, iM, fnImgOut, avg, std);
+	computeParticleStats(Idiff, iM, fnImgOut, avg, std, zScore);
 
-	writeParticle(rowOut, fnImgOut, Idiff, R2adj(0), beta0save, beta1save, b, avg, std); 
+	writeParticle(rowOut, fnImgOut, Idiff, R2adj(0), beta0save, beta1save, b, avg, std, zScore); 
 }
 
 void ProgSubtractProjection::postProcess()
