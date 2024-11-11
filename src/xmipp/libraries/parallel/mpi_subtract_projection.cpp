@@ -1,6 +1,7 @@
 /***************************************************************************
  *
- * Authors:  Estrella Fernandez Gimenez (me.fernandez@cnb.csic.es)
+ * Authors:     Estrella Fernandez Gimenez (me.fernandez@cnb.csic.es)
+ * 				Federico P. de Isidro-Gomez (federico.pdeisidro@astx.com)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
