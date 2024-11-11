@@ -140,7 +140,7 @@ def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}):
 													 showOutput=True, substitute=True)
 	handleRetCode(retCode, predefinedErrorCode=CMAKE_INSTALL_ERROR, sendAPI=apiPost)
 	
-def modeConfigBuild(configDict: Dict={}):
+def modeConfigBuild(configDict: Dict={}, sendAPIPost: bool=False):
 	"""
 	### Configures the project using CMake.
 	
@@ -156,13 +156,13 @@ def modeConfigBuild(configDict: Dict={}):
 	# Check if CMake exists
 	cmakeExecutable = getCMake(configDict)
 	if not getCMake(configDict):
-		handleRetCode(CMAKE_ERROR, predefinedErrorCode=CMAKE_ERROR, sendAPI=False)
+		handleRetCode(CMAKE_ERROR, predefinedErrorCode=CMAKE_ERROR, sendAPI=sendAPIPost)
 	
 	logger(getSectionMessage("Configuring with CMake"), forceConsoleOutput=True)
 	configureCmd = f"{cmakeExecutable} -S . -B {BUILD_PATH} -D CMAKE_BUILD_TYPE={BUILD_TYPE}"
 	configureCmd += f" {getCMakeVarsStr(configDict)}"
 	retCode = runStreamingJob(configureCmd, showOutput=True, substitute=True)
-	handleRetCode(retCode, predefinedErrorCode=CMAKE_CONFIGURE_ERROR, sendAPI=False)
+	handleRetCode(retCode, predefinedErrorCode=CMAKE_CONFIGURE_ERROR, sendAPI=sendAPIPost)
 
 def modeConfig(overwrite: bool=False) -> Dict:
 	"""
@@ -267,7 +267,7 @@ def modeAll(args: argparse.Namespace):
 	modeGetSources(args)
 
 	# Configure with CMake
-	modeConfigBuild(configDict=configDict)
+	modeConfigBuild(configDict=configDict, sendAPIPost=True)
 
 	# Compile and install with CMake
 	modeCompileAndInstall(args, configDict=configDict)
@@ -284,8 +284,8 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	if args.mode == MODE_ADD_MODEL:
 		modeAddModel(args)
 	elif args.mode == MODE_ALL:
-		modeAll(args)
 		sendAPI = True
+		modeAll(args)
 	elif args.mode == MODE_CLEAN_ALL:
 		modeCleanAll()
 	elif args.mode == MODE_CLEAN_BIN:
@@ -294,8 +294,8 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 		modeCompileAndInstall(args)
 		sendAPI = True
 	elif args.mode == MODE_CONFIG_BUILD:
-		modeConfigBuild()
 		sendAPI = True
+		modeConfigBuild()
 	elif args.mode == MODE_CONFIG:
 		modeConfig(overwrite=args.overwrite)
 	elif args.mode == MODE_GET_MODELS:
