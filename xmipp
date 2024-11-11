@@ -235,7 +235,6 @@ def modeTest(args: argparse.Namespace):
 		logger("Running all tests--------------------------------------", forceConsoleOutput=True)
 		runTests(PARAMS[PARAM_TEST_PRO][LONG_VERSION])
 	elif args.allFuncs:
-		print(args.allPrograms)
 		runTests(PARAMS[PARAM_TEST_FUNC][LONG_VERSION])
 
 	elif args.testName:
