@@ -35,7 +35,7 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 	PARAM_JOBS, PARAM_BRANCH, PARAM_GIT_COMMAND, PARAM_TEST_PRO, PARAM_TEST_PRO, PARAM_TEST_FUNC, PARAM_MODEL_PATH,
 	PARAM_MODELS_DIRECTORY, PARAM_KEEP_OUTPUT, PARAM_SHOW_TESTS, PARAM_TEST_NAME, PARAM_UPDATE,
 	PARAM_OVERWRITE, BUILD_PATH, INSTALL_PATH, BUILD_TYPE, SOURCES_PATH, XMIPP_SOURCES, XMIPP,
-	LOG_FILE, CMAKE_ERROR, MODE_GET_SOURCES, VERSION_FILE, PARAMS, LONG_VERSION, SHORT_VERSION)
+	LOG_FILE, CMAKE_ERROR, MODE_GET_SOURCES, VERSION_FILE, PARAMS, LONG_VERSION, SHORT_VERSION, SEND_INSTALLATION_STATISTICS)
 from installer.utils import runStreamingJob, runJob
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser, getParamNames
 from installer.config import readConfig, writeConfig
@@ -122,22 +122,25 @@ def modeCompileAndInstall(args: argparse.Namespace, configDict: Dict={}):
 		logger.startLogFile(LOG_FILE)
 		configDict = readConfig(CONFIG_FILE)
 		if not getCMake(configDict):
-			handleRetCode(CMAKE_ERROR, predefinedErrorCode=CMAKE_ERROR)
+			apiPost = True if configDict.get(SEND_INSTALLATION_STATISTICS) == 'ON' else False
+			handleRetCode(CMAKE_ERROR, predefinedErrorCode=CMAKE_ERROR, sendAPI=apiPost)
 
 	# Compile with CMake
 	cmakeExecutable = getCMake(configDict)
 	logger(getSectionMessage("Compiling with CMake"), forceConsoleOutput=True)
 	retCode = runStreamingJob(f"{cmakeExecutable} --build {BUILD_PATH} --config {BUILD_TYPE} -j {args.jobs}",
 													 showOutput=True, substitute=True)
-	handleRetCode(retCode, predefinedErrorCode=CMAKE_COMPILE_ERROR)
+	apiPost = True if configDict.get(
+		SEND_INSTALLATION_STATISTICS) == 'ON' else False
+	handleRetCode(retCode, predefinedErrorCode=CMAKE_COMPILE_ERROR, sendAPI=apiPost)
 	
 	# Install with CMake
 	logger(getSectionMessage("Installing with CMake"), forceConsoleOutput=True)
 	retCode = runStreamingJob(f"{cmakeExecutable} --install {BUILD_PATH} --config {BUILD_TYPE}",
 													 showOutput=True, substitute=True)
-	handleRetCode(retCode, predefinedErrorCode=CMAKE_INSTALL_ERROR)
+	handleRetCode(retCode, predefinedErrorCode=CMAKE_INSTALL_ERROR, sendAPI=apiPost)
 	
-def modeConfigBuild(configDict: Dict={}):
+def modeConfigBuild(configDict: Dict={}, sendAPIPost: bool=False):
 	"""
 	### Configures the project using CMake.
 	
@@ -153,13 +156,13 @@ def modeConfigBuild(configDict: Dict={}):
 	# Check if CMake exists
 	cmakeExecutable = getCMake(configDict)
 	if not getCMake(configDict):
-		handleRetCode(CMAKE_ERROR, predefinedErrorCode=CMAKE_ERROR)
+		handleRetCode(CMAKE_ERROR, predefinedErrorCode=CMAKE_ERROR, sendAPI=sendAPIPost)
 	
 	logger(getSectionMessage("Configuring with CMake"), forceConsoleOutput=True)
 	configureCmd = f"{cmakeExecutable} -S . -B {BUILD_PATH} -D CMAKE_BUILD_TYPE={BUILD_TYPE}"
 	configureCmd += f" {getCMakeVarsStr(configDict)}"
 	retCode = runStreamingJob(configureCmd, showOutput=True, substitute=True)
-	handleRetCode(retCode, predefinedErrorCode=CMAKE_CONFIGURE_ERROR)
+	handleRetCode(retCode, predefinedErrorCode=CMAKE_CONFIGURE_ERROR, sendAPI=sendAPIPost)
 
 def modeConfig(overwrite: bool=False) -> Dict:
 	"""
@@ -232,7 +235,6 @@ def modeTest(args: argparse.Namespace):
 		logger("Running all tests--------------------------------------", forceConsoleOutput=True)
 		runTests(PARAMS[PARAM_TEST_PRO][LONG_VERSION])
 	elif args.allFuncs:
-		print(args.allPrograms)
 		runTests(PARAMS[PARAM_TEST_FUNC][LONG_VERSION])
 
 	elif args.testName:
@@ -265,7 +267,7 @@ def modeAll(args: argparse.Namespace):
 	modeGetSources(args)
 
 	# Configure with CMake
-	modeConfigBuild(configDict=configDict)
+	modeConfigBuild(configDict=configDict, sendAPIPost=True)
 
 	# Compile and install with CMake
 	modeCompileAndInstall(args, configDict=configDict)
@@ -282,8 +284,8 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	if args.mode == MODE_ADD_MODEL:
 		modeAddModel(args)
 	elif args.mode == MODE_ALL:
-		modeAll(args)
 		sendAPI = True
+		modeAll(args)
 	elif args.mode == MODE_CLEAN_ALL:
 		modeCleanAll()
 	elif args.mode == MODE_CLEAN_BIN:
@@ -292,8 +294,8 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 		modeCompileAndInstall(args)
 		sendAPI = True
 	elif args.mode == MODE_CONFIG_BUILD:
-		modeConfigBuild()
 		sendAPI = True
+		modeConfigBuild()
 	elif args.mode == MODE_CONFIG:
 		modeConfig(overwrite=args.overwrite)
 	elif args.mode == MODE_GET_MODELS:
@@ -312,7 +314,9 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 		exitXmipp(retCode=1)
 	
 	# Send API message
-	if sendAPI and os.path.exists(VERSION_FILE):
+	apiPost = True if readConfig(CONFIG_FILE).get(
+		SEND_INSTALLATION_STATISTICS) == 'ON' else False
+	if sendAPI and apiPost and os.path.exists(VERSION_FILE):
 		sendApiPOST()
 
 	# Print success message for specific modes

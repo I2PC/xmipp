@@ -61,6 +61,9 @@ jobs:
       - name: Compile Xmipp will all dependencies in branch ${{ github.head_ref }} (if such branch exists, default is devel)
         env:
           BRANCH_NAME: ${{ github.head_ref }}
+          SEND_INSTALLATION_STATISTICS: 'OFF'
         run: |
-          echo -e "XMIPP_LINK_TO_SCIPION=OFF\nSEND_INSTALLATION_STATISTICS=OFF" > xmipp.conf
           ./xmipp all -b $BRANCH_NAME --keep-output || (cat compilation.log && false)
+
+      - name: Cat
+        run: cat xmipp.conf
