@@ -102,7 +102,6 @@ def __getCudaCompiler() -> Optional[str]:
 	return nvcc
 
 def __getSendStatistics():
-	print(os.environ.get(__SEND_INSTALLATION_STATISTICS_ENV, ON))
 	return os.environ.get(__SEND_INSTALLATION_STATISTICS_ENV, ON)
  
 
