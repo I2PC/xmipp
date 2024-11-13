@@ -134,8 +134,6 @@ class ProgSubtractProjection: public XmippMetadataProgram
     double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
     Matrix1D<double> checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
         const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
-    void computeParticleStats(Image<double> &Idiff, Image<double> &iM, FileName fnImgOut, double &avg, double &std, double &zScore);
-
 
     int rank; // for MPI version
     FourierProjector *projector;
