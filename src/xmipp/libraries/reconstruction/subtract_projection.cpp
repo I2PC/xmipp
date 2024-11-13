@@ -388,10 +388,11 @@ void ProgSubtractProjection::computeParticleStats(Image<double> &Idiff, Image<do
 		{
 			double value = DIRECT_MULTIDIM_ELEM(mIdiff, n);
 
-			if(value > (avg + std * zScoreThr))
-			{
-				zScore++;
-			}
+			zScore += (value - avg) / std;
+			// if(value > (avg + std * zScoreThr))
+			// {
+			// 	zScore++;
+			// }
 		}
 	}
 
