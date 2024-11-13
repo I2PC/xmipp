@@ -88,12 +88,13 @@ void FourierProjector::updateVolume(MultidimArray<double> &V)
     produceSideInfo();
 }
 
-void FourierProjector::project(double rot, double tilt, double psi, const MultidimArray<double> *ctf)
+void FourierProjector::projectToFourier(double rot, double tilt, double psi, const MultidimArray<double> *ctf)
 {
     double freqy;
     double freqx;
     std::complex< double > f;
     Euler_angles2matrix(rot,tilt,psi,E);
+
     projectionFourier.initZeros();
     double maxFreq2=maxFrequency*maxFrequency;
     auto Xdim=(int)XSIZE(VfourierRealCoefs);
@@ -220,6 +221,7 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
 					d += yxsumIm * aux;
                 }
             }
+
             // Phase shift to move the origin of the image to the corner
             double a=DIRECT_A2D_ELEM(phaseShiftImgA,i,j);
             double b=DIRECT_A2D_ELEM(phaseShiftImgB,i,j);
@@ -241,6 +243,20 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
             *(ptrI_ij+1) = ab_cd - ac - bd;
         }
     }
+}
+
+void FourierProjector::projectToFourier(double rot, double tilt, double psi, double shiftX, double shiftY, const MultidimArray<double> *ctf) {
+    projectToFourier(rot, tilt, psi, ctf);
+    shiftFourierProjection(shiftX, shiftY);
+}
+
+void FourierProjector::project(double rot, double tilt, double psi, const MultidimArray<double> *ctf) {
+    projectToFourier(rot, tilt, psi, ctf);
+    transformer2D.inverseFourierTransform();
+}
+
+void FourierProjector::project(double rot, double tilt, double psi, double shiftX, double shiftY, const MultidimArray<double> *ctf) {
+    projectToFourier(rot, tilt, psi, shiftX, shiftY, ctf);
     transformer2D.inverseFourierTransform();
 }
 
@@ -325,7 +341,30 @@ void FourierProjector::produceSideInfoProjection()
 void projectVolume(FourierProjector &projector, Projection &P, int Ydim, int Xdim,
                    double rot, double tilt, double psi, const MultidimArray<double> *ctf)
 {
-    projector.project(rot,tilt,psi,ctf);
+	projector.project(rot,tilt,psi,ctf);
     P() = projector.projection();
 }
 
+void FourierProjector::shiftFourierProjection(double shiftX, double shiftY) {
+    const int ny = YSIZE(projectionFourier);
+    const int ny_2 = ny / 2;
+    const auto ny_inv = 1.0 / ny;
+    const int nx_2 = (XSIZE(projectionFourier) - 1);
+    const int nx = nx_2 * 2;
+    const auto nx_inv = 1.0 / nx;
+
+    // Normalize the displacement
+    const auto dy = (-2 * M_PI) * shiftY;
+    const auto dx = (-2 * M_PI) * shiftX;
+
+    // Compute the Fourier Transform of delta[i-y, j-x]
+    double fy, fx;
+    FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(projectionFourier) {
+        // Convert the indices to fourier coefficients
+        FFT_IDX2DIGFREQ_FAST(static_cast<int>(i), ny, ny_2, ny_inv, fy);
+        FFT_IDX2DIGFREQ_FAST(static_cast<int>(j), nx, nx_2, nx_inv, fx);
+
+        const auto theta = fy*dy + fx*dx; // Dot product of (dx, dy) and (j, i)
+        DIRECT_A2D_ELEM(projectionFourier, i, j) *= std::polar(1.0, theta); //e^(i*theta)
+    }
+}
