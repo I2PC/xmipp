@@ -90,7 +90,9 @@ void ProgImageGrayAdjustLsq::processImage(const FileName &fnImg, const FileName 
 }
 
 
-bool fitLeastSquares(const MultidimArray<double> &ref, const MultidimArray<double> &exp, double &a, double &b)
+bool ProgImageGrayAdjustLsq::fitLeastSquares(const MultidimArray<double> &ref, 
+											 const MultidimArray<double> &exp, 
+											 double &a, double &b )
 {
 	Matrix1D<double> x;
 	Matrix1D<double> y;
