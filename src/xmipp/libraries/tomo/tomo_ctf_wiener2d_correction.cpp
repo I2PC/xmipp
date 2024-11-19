@@ -60,21 +60,36 @@ void ProgCTFWiener2DCorrection::gaussianMask(MultidimArray<double> &cumMask,
 											MultidimArray<double> &tiMask,  
 											MultidimArray<double> &ptrImg, int x0, int stripeSize)
 {
+<<<<<<< HEAD
 	const auto xdim = XSIZE(ptrImg);
 	const auto ydim = XSIZE(ptrImg);
+=======
+	auto xdim = XSIZE(ptrImg);
+	auto ydim = XSIZE(ptrImg);
+>>>>>>> devel
 
 	// To set sigma: We assume that the gaussian g(stripeSize) = 0.1
 	// 0.1 = exp(-(stripeSize)^2/(2*sigma2)),  - log 10 = - (stripeSize)^2/(2*sigma2)
 	// therefore sigma2 = stripeSize^2/(2*log 10)
+<<<<<<< HEAD
 	const auto sigma2 = static_cast<double>(stripeSize*stripeSize/(log(100.0)));
+=======
+	double sigma2 = (double) stripeSize*stripeSize/(log(100.0));
+>>>>>>> devel
 
 	long n = 0;
 	for (size_t i = 0; i<ydim; i++)
 	{
 		for (size_t j = 0; j<xdim; j++)
 		{
+<<<<<<< HEAD
 			double p = (j-x0);
 			auto g = exp(-(p*p)/(2*sigma2));
+=======
+			double p = (j-x0)^2;
+			double g;
+			g = exp(-(p*p)/(2*sigma2));
+>>>>>>> devel
 			
 			DIRECT_MULTIDIM_ELEM(ptrImg, n) *= g;
 			DIRECT_MULTIDIM_ELEM(cumMask, n) += g;
