@@ -1,15 +1,15 @@
    ## Release 3.24.12 - P
    ### Xmipp Programs 
    - New programs
-      - 
+        - ..
    - Programs updated
-      - 
+      - ..
    - Programs fixed
-      - 
+      - ...
    ### Installation and user guide
-   - 
+   - ..
    ### More Xmipp   
-   - 
+   - ...
 
  
  ## Release 3.24.06 - Oceanus
