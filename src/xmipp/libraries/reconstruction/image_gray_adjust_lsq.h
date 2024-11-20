@@ -38,6 +38,8 @@ class ProgImageGrayAdjustLsq: public XmippMetadataProgram
 
 public:
     FileName referenceFilename;
+    double padding;
+    double maxRes;
 
 public:
 

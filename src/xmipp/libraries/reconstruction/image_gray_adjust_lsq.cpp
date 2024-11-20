@@ -34,6 +34,8 @@ void ProgImageGrayAdjustLsq::readParams()
 {
     XmippMetadataProgram::readParams();
 	referenceFilename = getParam("-r");
+	padding = getDoubleParam("--pad");
+	maxRes = getDoubleParam("--maxRes");
 }
 
 // Define parameters ==========================================================
@@ -43,13 +45,20 @@ void ProgImageGrayAdjustLsq::defineParams()
     each_image_produces_an_output = true;
     XmippMetadataProgram::defineParams();
     addParamsLine("   -r <referece>  : Reference volume");
+    addParamsLine("   [--pad <padding=2.0>]  : Padding factor");
+    addParamsLine("   [--maxRes <maxResolution=0.5>]  : Maximum digital resolution");
 }
 
 void ProgImageGrayAdjustLsq::preProcess()
 {
 	m_volume.read(referenceFilename);
 	m_volume().setXmippOrigin();
-	m_projector = std::make_unique<FourierProjector>(m_volume(), 1.0, 0.25, xmipp_transformation::BSPLINE3);
+	m_projector = std::make_unique<FourierProjector>(
+		m_volume(), 
+		padding, 
+		maxRes, 
+		xmipp_transformation::BSPLINE3
+	);
 
 }
 
