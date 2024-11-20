@@ -42,19 +42,21 @@ void ProgImageGrayAdjustLsq::defineParams()
     addUsageLine("Adjust image grayscales according to a reference");
     each_image_produces_an_output = true;
     XmippMetadataProgram::defineParams();
-    addParamsLine("   -r       : Reference volume");
+    addParamsLine("   -r <referece>  : Reference volume");
 }
 
 void ProgImageGrayAdjustLsq::preProcess()
 {
 	m_volume.read(referenceFilename);
-	m_projector = std::make_unique<FourierProjector>(m_volume(), 2.0, 1.0, 3);
+	m_volume().setXmippOrigin();
+	m_projector = std::make_unique<FourierProjector>(m_volume(), 1.0, 0.25, xmipp_transformation::BSPLINE3);
 
 }
 
 void ProgImageGrayAdjustLsq::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
 {
 	m_image.read(fnImg);
+	m_image().setXmippOrigin();
 
 	double rot;
 	rowIn.getValue(MDL_ANGLE_ROT, rot);
@@ -75,7 +77,7 @@ void ProgImageGrayAdjustLsq::processImage(const FileName &fnImg, const FileName 
 
 	if (a < 0.0)
 	{
-		rowOut.setValue(MDL_ENABLED, false);
+		rowOut.setValue(MDL_ENABLED, 0);
 	}
 	else
 	{
@@ -96,16 +98,16 @@ bool ProgImageGrayAdjustLsq::fitLeastSquares(const MultidimArray<double> &ref,
 {
 	Matrix1D<double> x;
 	Matrix1D<double> y;
-	exp.getAliasAsRowVector(x);
-	ref.getAliasAsRowVector(y);
+	ref.getAliasAsRowVector(x);
+	exp.getAliasAsRowVector(y);
 
 	// Construct desing matrix
-	alglib::real_2d_array desing;
-	desing.setlength(VEC_XSIZE(x), 2);
+	alglib::real_2d_array design;
+	design.setlength(VEC_XSIZE(x), 2);
 	for (std::size_t i = 0; i < VEC_XSIZE(x); ++i)
 	{
-		desing(i, 0) = VEC_ELEM(x, i);
-		desing(i, 1) = 1.0;
+		design(i, 0) = VEC_ELEM(x, i);
+		design(i, 1) = 1.0;
 	}
 
 	// Construct the right hand size
@@ -116,7 +118,7 @@ bool ProgImageGrayAdjustLsq::fitLeastSquares(const MultidimArray<double> &ref,
 	alglib::ae_int_t info;
 	alglib::densesolverlsreport report;
 	alglib::rmatrixsolvels(
-		desing, VEC_XSIZE(x), 2, 
+		design, VEC_XSIZE(x), 2, 
 		right, 
 		0.0,
 		info,
