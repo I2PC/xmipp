@@ -15,6 +15,9 @@ from xmippPyModules.classifyPcaFuntion.bnb_gpu import BnBgpu
 from xmippPyModules.classifyPcaFuntion.assessment import evaluation
 
 
+torch.cuda.empty_cache()
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+
 def read_images(mrcfilename):
 
     with mrcfile.open(mrcfilename, permissive=True) as f:

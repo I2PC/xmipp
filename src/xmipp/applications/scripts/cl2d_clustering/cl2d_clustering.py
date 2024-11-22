@@ -49,6 +49,7 @@ LABELS = 'labels'
 SCORE = 'score'
 FN = "class_representatives"
 
+
 def create_directory(directory_path):
     """Create directory if it doesn't exist."""
     if not os.path.exists(directory_path):
@@ -267,18 +268,18 @@ def generate_distance_matrix(similarity_matrix):
     return 1 - similarity_matrix
 
 
-def apply_pca(distance_matrix, output_directory, variance=0.95):
+def apply_pca(distance_matrix, variance=0.95):
+    """This function applies PCA with % Variance retention"""
     pca = PCA(n_components=variance)
     pca_transformed = pca.fit_transform(distance_matrix)
     # Get the explained variance ratio
     explained_variance_ratio = pca.explained_variance_ratio_
-    n_component95 = plot_PCA(explained_variance_ratio, output_directory)
-    return pca_transformed, n_component95
+
+    return pca_transformed, explained_variance_ratio
 
 
 def apply_tsne_2d(data):
     data_size = len(data)
-
     if data_size <= 10:
         perplexity = 5
     elif data_size <= 20:
@@ -291,10 +292,8 @@ def apply_tsne_2d(data):
     return tsne_result
 
 
-def determine_optimal_clusters_kmeans(data, output_directory, min_clusters=3, max_clusters=10):
+def determine_optimal_clusters_kmeans(data, min_clusters=3, max_clusters=10):
     """Determine the optimal number of clusters using K-means clustering."""
-    create_directory(output_directory)
-
     wcss = []
     silhouette_scores = []
     for n in range(min_clusters, max_clusters+1):
@@ -303,6 +302,200 @@ def determine_optimal_clusters_kmeans(data, output_directory, min_clusters=3, ma
         wcss.append(kmeans.inertia_)
         silhouette_scores.append(silhouette_score(data, kmeans.labels_))
 
+    optimal_clusters = np.argmax(silhouette_scores) + min_clusters
+
+    return optimal_clusters, wcss, silhouette_scores
+
+
+def determine_optimal_clusters_hierarchical(data, min_clusters=3, max_clusters=10, linkage='ward', metric='euclidean'):
+    """Determine the optimal number of clusters using hierarchical clustering."""
+    silhouette_scores = []
+    for n in range(min_clusters, max_clusters + 1):
+        hierarchical = AgglomerativeClustering(n_clusters=n, linkage=linkage, metric=metric)
+        labels = hierarchical.fit_predict(data)
+        silhouette_scores.append(silhouette_score(data, labels))
+
+    optimal_clusters = np.argmax(silhouette_scores) + min_clusters
+
+    return optimal_clusters, silhouette_scores
+
+
+def determine_optimal_clusters(data, output_directory, min_clusters=3, max_clusters=10, debug_plots=0):
+    """Determine the optimal clustering parameters for K-means and hierarchical."""
+    optimal_kmeans, wcss, silhouette_scores_kmeans = determine_optimal_clusters_kmeans(data, min_clusters, max_clusters)
+    optimal_hierarchical, silhouette_scores_hierarchical = determine_optimal_clusters_hierarchical(data, min_clusters, max_clusters)
+
+    print(f"Optimal number of clusters for K-means: {optimal_kmeans}")
+    print(f"Optimal number of clusters for Hierarchical Clustering: {optimal_hierarchical}")
+
+    if debug_plots:
+        plot_optimal_clusters_kmeans(min_clusters, max_clusters, wcss, silhouette_scores_kmeans, output_directory)
+        plot_optimal_clusters_hierarchical(min_clusters, max_clusters, silhouette_scores_hierarchical, output_directory)
+
+    return {'kmeans': optimal_kmeans,
+        'hierarchical': optimal_hierarchical}
+
+
+def perform_kmeans_clustering(data, n_clusters):
+    kmeans = KMeans(n_clusters=n_clusters, init='k-means++', n_init=10, max_iter=300, random_state=42)
+    labels = kmeans.fit_predict(data)
+    return labels
+
+
+def perform_hierarchical_clustering(data, n_clusters):
+    agg_clustering =  AgglomerativeClustering(n_clusters=n_clusters, linkage='ward', metric='euclidean')
+    labels = agg_clustering.fit_predict(data)
+    return labels
+
+
+def align_single_image(args):
+    """Align a single image to the representative image."""
+    representative_image, image = args
+    aligned_image, score, _, _ = align_images(representative_image, image)
+    return aligned_image, score
+
+
+def align_images_to_representative(representative_image, cluster_images, cores=8):
+    """
+    Align cluster images to the representative image using multiprocessing.
+
+    Args:
+        representative_image: The representative image to align others to.
+        cluster_images: List of images in the cluster to align.
+        cores: Number of threads to use for parallel processing.
+
+    Returns:
+        tuple: (aligned_images, ssim_scores)
+    """
+    with Pool(cores) as pool:
+        # Prepare arguments as tuples of (representative_image, image)
+        args = [(representative_image, image) for image in cluster_images]
+
+        # Parallelize the alignment process
+        results = pool.map(align_single_image, args)
+
+    # Separate aligned images and SSIM scores from results
+    aligned_images, ssim_scores = zip(*results)
+
+    return list(aligned_images), np.array(ssim_scores)
+
+
+def get_images_to_representative_alignment(labels, images, image_names, vectors, cores):
+    results_cluster = {}
+    unique_labels = np.unique(labels)
+
+    for label in unique_labels:
+        cluster_indices = np.where(labels == label)[0]
+        cluster_vectors = vectors[cluster_indices]
+        cluster_images = images[cluster_indices]
+        cluster_image_names = image_names[cluster_indices]
+        # Compute centroid of the cluster
+        centroid = np.mean(cluster_vectors, axis=0)
+        # Find the image closest to the centroid
+        closest, _ = pairwise_distances_argmin_min([centroid], cluster_vectors)
+        representative_image = cluster_images[closest[0]]
+
+        # Align images to the representative image
+        aligned_cluster_images, ssim_scores = align_images_to_representative(representative_image, cluster_images, cores)
+        results_cluster[label] = [aligned_cluster_images, cluster_image_names, ssim_scores, cluster_vectors]
+
+    return results_cluster
+
+
+def sort_images_in_cluster(labels, result_dict, output_dir):
+    """
+    Sorts images within each cluster based on SSIM scores and saves cluster assignments.
+
+    Args:
+        labels: List or array of cluster labels.
+        result_dict: Dictionary containing aligned images, image names, SSIM scores, etc. for each cluster.
+        output_dir: Directory to save the cluster assignments.
+
+    Returns:
+        best_clusters_with_names: Dictionary mapping cluster labels to sorted image names.
+        sorted_results: Dictionary mapping cluster labels to sorted image data (images, names, and scores).
+    """
+    best_clusters_with_names = {}
+    sorted_results = {}
+    unique_labels = np.unique(labels)
+
+    for label in unique_labels:
+        aligned_images, image_names, ssim_scores, _ = result_dict[label]
+        aligned_images = np.array(aligned_images)
+
+        # Sort images by SSIM scores in descending order
+        sorted_indices = np.argsort(ssim_scores)[::-1]
+        sorted_images = aligned_images[sorted_indices]
+        sorted_image_names = image_names[sorted_indices].tolist()
+        sorted_ssim_values = np.array(ssim_scores)[sorted_indices]
+
+        # Store sorted names for this cluster
+        if label not in best_clusters_with_names:
+            best_clusters_with_names[label] = []
+        best_clusters_with_names[label].extend(sorted_image_names)
+
+        # Store sorted data for plotting
+        sorted_results[label] = (sorted_images, sorted_image_names, sorted_ssim_values)
+
+    # Save cluster assignments to a file
+    with open(os.path.join(output_dir, "best_clusters_with_names.txt"), "w") as f:
+        for label, names in best_clusters_with_names.items():
+            f.write(f"Cluster {label}:\n")
+            for name in names:
+                f.write(f"\t{name}\n")
+
+    print("Cluster assignments with image names:", best_clusters_with_names)
+    return best_clusters_with_names, sorted_results
+
+
+def extract_array_like_results(result_dict):
+    labels = []
+    images = []
+    vectors = []
+
+    for label, results in result_dict.items():   # results_cluster[label] = [aligned_cluster_images, cluster_image_names, ssim_scores, cluster_vectors]
+        aligned_cluster_images, _, _, cluster_vectors = results
+        labels.extend([label] * len(cluster_vectors))
+        images.extend(aligned_cluster_images)
+        vectors.extend(cluster_vectors)
+
+    labels_array = np.array(labels)
+    images_array = np.array(images)
+    vectors_array = np.array(vectors)
+
+    return labels_array, images_array, vectors_array
+
+# ------------------------------------- PLOTS FUNCTIONS ---------------------------------------------
+def plot_similarity_matrix(similarity_matrix, labels=None, output_directory=''):
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(similarity_matrix, annot=True, fmt=".2f", cmap='viridis', xticklabels=labels, yticklabels=labels)
+    plt.title('Image Similarity Matrix (SSIM)')
+    plt.xlabel('Image Index')
+    plt.ylabel('Image Index')
+    plot_path = os.path.join(output_directory, 'similarity_matrix.png')
+    plt.savefig(plot_path)
+    plt.close()
+
+
+def plot_PCA(cumulative_variance, output_directory):
+    import matplotlib.pyplot as plt
+    # Optionally, plot the cumulative explained variance
+    plt.figure(figsize=(8, 5))
+    plt.plot(cumulative_variance, marker='o')
+    plt.axhline(y=0.95, color='r', linestyle='--', label='95% variance explained')
+    plt.xlabel('Number of Components')
+    plt.ylabel('Cumulative Explained Variance')
+    plt.title('Cumulative Explained Variance by PCA Components')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(os.path.join(output_directory, 'pca_cumulative_components.png'))
+    plt.close()
+
+
+def plot_optimal_clusters_kmeans(min_clusters, max_clusters, wcss, silhouette_scores, output_directory):
+    import matplotlib.pyplot as plt
     # Elbow Method
     plt.figure(figsize=(10, 6))
     plt.plot(range(min_clusters, max_clusters+1), wcss, marker='o')
@@ -321,21 +514,9 @@ def determine_optimal_clusters_kmeans(data, output_directory, min_clusters=3, ma
     plt.savefig(os.path.join(output_directory, 'silhouette_scores_kmeans.png'))
     plt.close()
 
-    optimal_clusters = np.argmax(silhouette_scores) + min_clusters
 
-    return optimal_clusters
-
-
-def determine_optimal_clusters_hierarchical(data, output_directory, min_clusters=3, max_clusters=10, linkage='ward', metric='euclidean'):
-    """Determine the optimal number of clusters using hierarchical clustering."""
-    create_directory(output_directory)
-
-    silhouette_scores = []
-    for n in range(min_clusters, max_clusters + 1):
-        hierarchical = AgglomerativeClustering(n_clusters=n, linkage=linkage, metric=metric)
-        labels = hierarchical.fit_predict(data)
-        silhouette_scores.append(silhouette_score(data, labels))
-
+def plot_optimal_clusters_hierarchical(min_clusters, max_clusters, silhouette_scores, output_directory):
+    import matplotlib.pyplot as plt
     # Silhouette Scores
     plt.figure(figsize=(10, 6))
     plt.plot(range(min_clusters, max_clusters + 1), silhouette_scores, marker='o')
@@ -345,229 +526,179 @@ def determine_optimal_clusters_hierarchical(data, output_directory, min_clusters
     plt.savefig(os.path.join(output_directory, 'silhouette_scores_hierarchical.png'))
     plt.close()
 
-    optimal_clusters = np.argmax(silhouette_scores) + min_clusters
 
-    return optimal_clusters
+def image_scatter_plot(vectors, images, labels, output_directory, zoom=0.35,
+                       title='t-SNE visualization of clustered images', cluster_type=''):
+    """
+    Create a scatter plot of images using t-SNE results.
+    Displays the images in grayscale with distinct border colors representing their cluster labels.
+    Includes a legend for cluster colors.
 
-
-def determine_optimal_clusters(data, output_directory, min_clusters=3, max_clusters=10):
-    """Determine the optimal clustering parameters for K-means and hierarchical."""
-    create_directory(output_directory)
-
-    optimal_kmeans = determine_optimal_clusters_kmeans(data, output_directory, min_clusters, max_clusters)
-    optimal_hierarchical = determine_optimal_clusters_hierarchical(data, output_directory, min_clusters, max_clusters)
-
-    print(f"Optimal number of clusters for K-means: {optimal_kmeans}")
-    print(f"Optimal number of clusters for Hierarchical Clustering: {optimal_hierarchical}")
-
-    return {'kmeans': optimal_kmeans,
-        'hierarchical': optimal_hierarchical}
-
-
-def perform_kmeans_clustering(data, n_clusters):
-    kmeans = KMeans(n_clusters=n_clusters, init='k-means++', n_init=10, max_iter=300, random_state=42)
-    labels = kmeans.fit_predict(data)
-    return labels
-
-
-def perform_hierarchical_clustering(data, n_clusters):
-    agg_clustering =  AgglomerativeClustering(n_clusters=n_clusters, linkage='ward', metric='euclidean')
-    labels = agg_clustering.fit_predict(data)
-    return labels
-
-
-def align_images_to_representative(representative_image, cluster_images):
-    aligned_images = []
-    ssim_scores = []
-
-    for image in cluster_images:
-        aligned_image, score, _, _ = align_images(representative_image, image)
-        aligned_images.append(aligned_image)
-        ssim_scores.append(score)
-
-    return aligned_images, np.array(ssim_scores)
-
-
-def get_images_to_representative_alignment(labels, images, image_names, vectors):
-    results_cluster = {}
-    unique_labels = np.unique(labels)
-
-    for label in unique_labels:
-        cluster_indices = np.where(labels == label)[0]
-        cluster_vectors = vectors[cluster_indices]
-        cluster_images = images[cluster_indices]
-        cluster_image_names = image_names[cluster_indices]
-        # Compute centroid of the cluster
-        centroid = np.mean(cluster_vectors, axis=0)
-        # Find the image closest to the centroid
-        closest, _ = pairwise_distances_argmin_min([centroid], cluster_vectors)
-        representative_image = cluster_images[closest[0]]
-
-        # Align images to the representative image
-        aligned_cluster_images, ssim_scores = align_images_to_representative(representative_image, cluster_images)
-        results_cluster[label] = [aligned_cluster_images, cluster_image_names, ssim_scores, cluster_vectors]
-
-    return results_cluster
-
-
-def display_images_in_clusters(labels, resultDict, output_dir, num_images_to_display=5):
-    # Store image names per cluster
-    best_clusters_with_names = {}
-    unique_labels = np.unique(labels)
-
-    for label in unique_labels:
-        aligned_images, image_names, ssim_scores, _ = resultDict[label]
-        aligned_images = np.array(aligned_images)
-
-        sorted_indices = np.argsort(ssim_scores)[::-1]  # Sort by SSIM in descending order
-        sorted_images = aligned_images[sorted_indices]
-        sorted_image_names = image_names[sorted_indices].tolist()
-        sorted_ssim_values = np.array(ssim_scores)[sorted_indices]
-
-        if label not in best_clusters_with_names:
-            best_clusters_with_names[label] = []
-        best_clusters_with_names[label].extend(sorted_image_names)
-
-        # Plot the representative image followed by the sorted images
-        plt.figure(figsize=(15, 3))
-        plt.suptitle(f'Cluster {label}', fontsize=10)
-        for i, img in enumerate(sorted_images[:num_images_to_display]):
-            plt.subplot(1, num_images_to_display, i + 1)
-            plt.imshow(img, cmap='gray')
-            plt.axis('off')
-            plt.title(f"SSIM: {sorted_ssim_values[i]:.2f}")
-
-        # Save the plot
-        output_path = os.path.join(output_dir, f'cluster_{label}.png')
-        plt.savefig(output_path)
-        plt.close()
-        #plt.show()
-
-    # You can save or print the cluster assignments with image names
-    print("Cluster assignments with image names:", best_clusters_with_names)
-
-    # Optionally, save this to a file
-    with open(os.path.join(output_dir, "best_clusters_with_names.txt"), "w") as f:
-        for label, names in best_clusters_with_names.items():
-            f.write(f"Cluster {label}:\n")
-            for name in names:
-                f.write(f"\t{name}\n")
-
-
-def plot_final_cluster_aligned(result_dict, output_directory,cluster_type='best', zoom=0.35):
-    labels = []
-    images = []
-    vectors = []
-
-    for label, results in result_dict.items():
-        aligned_cluster_images, _, _, cluster_vectors = results
-        # tmp_vectors = [vector for vector in cluster_vectors]
-        labels.extend([label] * len(cluster_vectors))
-        images.extend(aligned_cluster_images)
-        vectors.extend(cluster_vectors)
-
-    vectors_array = np.array(vectors)
-    images_array = np.array(images)
-    labels_array = np.array(labels)
-
-    tsne_result = apply_tsne_2d(data=vectors_array)
-
-    image_scatter(tsne_result, images_array, labels_array, output_directory, zoom=zoom,
-                  title='Aligned visualization of best clustered aligned images', cluster_type=cluster_type)
-
-
-# Function to create an image annotation box with colored border
-def image_scatter(vectors, images, labels, output_directory, zoom=0.35,
-                  title='t-SNE visualization of clustered images', cluster_type=''):
-    """Create a scatter plot of images using t-SNE results."""
-    create_directory(output_directory)
+    Args:
+        vectors: 2D array-like (t-SNE or PCA coordinates for images).
+        images: List of image arrays (grayscale images expected).
+        labels: Array of cluster labels for coloring borders.
+        output_directory: Directory to save the resulting plot.
+        zoom: Float value to control the size of images in the scatter plot.
+        title: Title of the plot.
+        cluster_type: Name of the cluster type (used in the output filename).
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+    from matplotlib.colors import ListedColormap
+    from matplotlib.patches import Patch
 
     fig, ax = plt.subplots(figsize=(16, 10))
 
-    # Use the label directly for colors without normalizing
-    scatter = ax.scatter(vectors[:, 0], vectors[:, 1], c=labels, cmap='viridis', alpha=0.6)
-    plt.colorbar(scatter, ticks=range(np.max(labels) + 1))
+    # Get unique cluster labels and their count
+    unique_labels = np.unique(labels)
+    num_clusters = len(unique_labels)
 
+    # Logic for selecting the colormap
+    if num_clusters <= 10:
+        cmap = plt.get_cmap('tab10')  # Up to 10 clusters
+    elif num_clusters <= 20:
+        cmap = plt.get_cmap('tab20')  # Between 11 and 20 clusters
+    else:
+        # For more than 20 clusters, generate a custom colormap using HSV
+        colors = plt.cm.hsv(np.linspace(0, 1, num_clusters))  # Generate distinct colors
+        cmap = ListedColormap(colors)
+
+    # Assign distinct colors to each cluster
+    cluster_colors = {label: cmap(i / num_clusters) for i, label in enumerate(unique_labels)}
+
+    # Scatter plot (no colormap normalization, uses cluster_colors)
+    scatter = ax.scatter(vectors[:, 0], vectors[:, 1], c=[cluster_colors[label] for label in labels], alpha=0.6)
+
+    # Annotate the plot with images
     for xy, img, label in zip(vectors, images, labels):
-        imagebox = OffsetImage(img, zoom=zoom)
+        # Create the OffsetImage with the 'gray' colormap
+        imagebox = OffsetImage(img, cmap='gray', zoom=zoom)
         imagebox.image.axes = ax
-        # Set the border color according to the label
+        # Set the border color according to the assigned cluster color
         ab = AnnotationBbox(imagebox, xy, frameon=True,
-                            bboxprops=dict(edgecolor=scatter.cmap(scatter.norm(label)), lw=2))
+                            bboxprops=dict(edgecolor=cluster_colors[label], lw=2))
         ax.add_artist(ab)
 
+    # Add a legend for cluster labels and their colors
+    legend_elements = [
+        Patch(facecolor=color, edgecolor=color, label=f'Cluster {label}')
+        for label, color in cluster_colors.items()
+    ]
+    ax.legend(handles=legend_elements, title="Clusters", bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
+
+    # Finalize the plot
     plt.title(title)
     tsne_plot_path = os.path.join(output_directory, cluster_type + '_cluster_visualization_with_images.png')
-    plt.savefig(tsne_plot_path)
+    plt.savefig(tsne_plot_path, bbox_inches='tight')
     plt.close()
-    # plt.show()
+    print(f"t-SNE plot saved to {tsne_plot_path}")
 
 
-def plot_alignment(image1, aligned_image):
-    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
-    axes[0].imshow(image1, cmap='gray')
-    axes[0].set_title('Sample 1 Image')
-    axes[0].axis('off')
+def plot_individual_clusters(sorted_results, output_dir, max_images_per_cluster=8):
+    """
+    Creates separate plots for each cluster.
 
-    axes[1].imshow(aligned_image, cmap='gray')
-    axes[1].set_title('Sample 2 Image')
-    axes[1].axis('off')
+    Args:
+        sorted_results: Dictionary mapping cluster labels to sorted image data (images, names, and scores).
+        output_dir: Directory to save the plots.
+        max_images_per_cluster: Maximum number of images to display per cluster.
+    """
+    import matplotlib.pyplot as plt
 
-    plt.show()
+    for label, (sorted_images, _, sorted_ssim_values) in sorted_results.items():
+        num_images = min(len(sorted_images), max_images_per_cluster)
+
+        plt.figure(figsize=(num_images * 2, 4))
+        for i in range(num_images):
+            plt.subplot(1, num_images, i + 1)
+            plt.imshow(sorted_images[i], cmap='gray')
+            plt.axis('off')
+            plt.title(f"SSIM: {sorted_ssim_values[i]:.2f}", fontsize=8)
+
+        plt.suptitle(f"Cluster {label}", fontsize=12)
+        plt.tight_layout()
+
+        # Save the plot
+        output_file = os.path.join(output_dir, f"cluster_{label}.png")
+        plt.savefig(output_file)
+        plt.close()
 
 
-def plot_similarity_matrix(similarity_matrix, labels=None):
-    import seaborn as sns
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(similarity_matrix, annot=True, fmt=".2f", cmap='viridis', xticklabels=labels, yticklabels=labels)
-    plt.title('Image Similarity Matrix (SSIM)')
-    plt.xlabel('Image Index')
-    plt.ylabel('Image Index')
-    plt.show()
+def plot_all_clusters(sorted_results, output_dir, max_images_per_cluster=8):
+    """
+    Plots all clusters and their images in a single plot with cluster names and counts displayed vertically.
 
+    Args:
+        sorted_results: Dictionary mapping cluster labels to sorted image data (images, names, and scores).
+        output_dir: Directory to save the consolidated plot.
+        max_images_per_cluster: Maximum number of images to display per cluster.
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib.gridspec as gridspec
+    import os
 
-def plot_PCA(explained_variance_ratio, output_directory):
-    # Calculate the cumulative explained variance
-    cumulative_variance = explained_variance_ratio.cumsum()
-    # Determine the number of components required to explain 95% of the variance
-    n_components_95 = next(i for i, cumulative_var in enumerate(cumulative_variance) if cumulative_var >= 0.95) + 1
-    # Print the results
-    print(f"Number of components to explain 95% of the variance: {n_components_95}")
-    # Optionally, plot the cumulative explained variance
-    plt.figure(figsize=(8, 5))
-    plt.plot(cumulative_variance, marker='o')
-    plt.axhline(y=0.95, color='r', linestyle='--', label='95% variance explained')
-    plt.xlabel('Number of Components')
-    plt.ylabel('Cumulative Explained Variance')
-    plt.title('Cumulative Explained Variance by PCA Components')
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(os.path.join(output_directory, 'pca_cumulative_components.png'))
+    num_clusters = len(sorted_results)
+
+    # Define figure and GridSpec
+    fig = plt.figure(figsize=(max_images_per_cluster * 2, num_clusters * 2))
+    gs = gridspec.GridSpec(num_clusters, max_images_per_cluster + 1, width_ratios=[0.5] + [1] * max_images_per_cluster)
+
+    for i, (label, (sorted_images, _, sorted_ssim_values)) in enumerate(sorted_results.items()):
+        # Get the number of images in the current cluster
+        num_images_in_cluster = len(sorted_images)
+
+        # Add vertical cluster name and image count to the first column
+        ax_label = fig.add_subplot(gs[i, 0])
+        ax_label.axis('off')  # Turn off axis
+        ax_label.text(
+            0.5, 0.5,
+            f"$\\bf{{Cluster\ {label}}}$\n({num_images_in_cluster} images)",  # Bold cluster name
+            fontsize=12, ha='center', va='center', rotation=90
+        )
+
+        # Add images to subsequent columns
+        num_images = min(num_images_in_cluster, max_images_per_cluster)
+        for j in range(max_images_per_cluster):
+            ax = fig.add_subplot(gs[i, j + 1])
+            if j < num_images:
+                ax.imshow(sorted_images[j], cmap='gray')  # Display image in grayscale
+                ax.set_title(f"SSIM: {sorted_ssim_values[j]:.2f}", fontsize=8)
+            else:
+                ax.axis('off')  # Turn off empty image slots
+            ax.axis('off')
+
+    # Adjust layout for better appearance
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_dir, "all_clusters_with_labels.png")
+    plt.savefig(output_file)
     plt.close()
-
-    return n_components_95
+    print(f"Consolidated cluster plot with labels and counts saved to {output_file}")
 
 
 # -------------------------------------------- MAIN ---------------------------------------------------------
-def main(input_images, output_directory, min_clusters=3, max_clusters=10, target_size=(64, 64), cores=8):
+def main(input_images, output_directory, min_clusters=3, max_clusters=10, target_size=(64, 64), cores=8, plots=1, debug_plots=0):
     """Main function to execute image clustering."""
-
     # Load images and preprocess
-    imgs_fn = input_images # .mrcs file
-    ref_ids_fn =  imgs_fn.replace('.mrcs', '.txt')
-
+    imgs_fn = input_images  # .mrcs file
+    ref_ids_fn = imgs_fn.replace('.mrcs', '.txt')
     image_list, image_names = load_and_preprocess_images_from_mrcs(imgs_fn, ref_ids_fn, target_size)
 
     # Build similarity matrix
     similarity_matrix = build_similarity_matrix(image_list, cpu_numbers=cores)
-    # Plot similarity matrix
-    # plot_similarity_matrix(similarity_matrix, labels=[f'Image {i + 1}' for i in range(len(image_list))])
 
     # Generate distance matrix
     distance_matrix = generate_distance_matrix(similarity_matrix)
 
     # PCA to reduce the dimensionality: apply PCA with 95% Variance retention
-    vectors, _ = apply_pca(distance_matrix, output_directory, variance=0.95)
+    vectors, pca_explained_variance_ratio = apply_pca(distance_matrix, variance=0.95)
+    # Calculate the cumulative explained variance
+    cumulative_variance = pca_explained_variance_ratio.cumsum()
+    # Determine the number of components required to explain 95% of the variance
+    n_components_95 = next(i for i, cumulative_var in enumerate(cumulative_variance) if cumulative_var >= 0.95) + 1
+    print(f"Number of components to explain 95% of the variance: {n_components_95}")
 
     # Perform t-SNE for visualization of multidimensional clustering into 2D
     tsne_result = apply_tsne_2d(data=vectors)
@@ -578,8 +709,10 @@ def main(input_images, output_directory, min_clusters=3, max_clusters=10, target
     image_array = np.array(image_list)
     image_names_array = np.array(image_names)
 
-    # STEP 4.a Determine optimal number of clusters
-    optimal_clusters = determine_optimal_clusters(vectors, output_directory, min_clusters=min_clusters, max_clusters=max_clusters)
+    # Determine optimal number of clusters
+    optimal_clusters = determine_optimal_clusters(vectors, output_directory,
+                                                  min_clusters=min_clusters, max_clusters=max_clusters,
+                                                  debug_plots=debug_plots)
 
     optimal_clusters_kmeans = optimal_clusters['kmeans']
     optimal_clusters_hierarchical = optimal_clusters['hierarchical']
@@ -594,16 +727,6 @@ def main(input_images, output_directory, min_clusters=3, max_clusters=10, target
     hierarchical_results = {}
     labels_hierarchical = perform_hierarchical_clustering(data=vectors, n_clusters=optimal_clusters_hierarchical)
     hierarchical_results[LABELS] = labels_hierarchical
-
-    # STEP 4.c Visualize t-SNE with kmeans clustering labels
-    dim = target_size[0]
-    zoom = 0.35 if dim>64 else 0.7
-
-    image_scatter(tsne_result, image_array, labels_KMeans, output_directory,
-                  title='t-SNE with K-mean Clustering', cluster_type='kMeans', zoom=zoom)
-    # Visualize t-SNE with hierarchical clustering labels
-    image_scatter(tsne_result, image_array, labels_hierarchical, output_directory,
-                  title='t-SNE with Hierarchical Clustering', cluster_type='hierarchical', zoom=zoom)
 
     # Compute Silhouette Score for each clustering method
     silhouette_kmeans = silhouette_score(vectors, labels_KMeans)
@@ -637,13 +760,44 @@ def main(input_images, output_directory, min_clusters=3, max_clusters=10, target
         best_labels = best_result[LABELS]
     else:
         print("No valid clustering results available.")
+        exit(0)
 
-    result_dict = get_images_to_representative_alignment(best_labels, image_array, image_names_array, vectors)
+    result_dict = get_images_to_representative_alignment(best_labels, image_array, image_names_array, vectors, cores)
+    labels_array, images_array, vectors_array = extract_array_like_results(result_dict)
 
-    plot_final_cluster_aligned(result_dict=result_dict, output_directory=output_directory ,cluster_type='best', zoom=zoom)
+    # Use t-SNE to have a 2D visual representation of the clustering
+    final_tsne_result = apply_tsne_2d(data=vectors_array)
 
-    # Display and save a few images from each cluster
-    display_images_in_clusters(best_labels, result_dict, output_directory, num_images_to_display=8)
+    # Sort images in cluster and write results
+    best_clusters_with_names, sorted_results = sort_images_in_cluster(best_labels, result_dict, output_directory)
+
+    # Visualize t-SNE with kmeans clustering labels
+    dim = target_size[0]
+    zoom = 0.35 if dim > 64 else 0.7
+
+    if plots:
+        image_scatter_plot(final_tsne_result, images_array, labels_array, output_directory, zoom=zoom,
+                           title='Aligned visualization of best clustered aligned images', cluster_type='best')
+
+        plot_all_clusters(sorted_results, output_directory, max_images_per_cluster=8)
+        # In case you want to have one figure per cluster
+        # plot_individual_clusters(sorted_results, output_directory, max_images_per_cluster=8)
+
+    if debug_plots:
+        # Plot similarity matrix
+        plot_similarity_matrix(similarity_matrix,
+                               labels=[f'Image {i + 1}' for i in range(len(image_list))],
+                               output_directory=output_directory)
+
+        # plot the cumulative explained variance
+        plot_PCA(cumulative_variance, output_directory)
+
+        # Visualize t-SNE with kmeans clustering labels
+        image_scatter_plot(tsne_result, image_array, labels_KMeans, output_directory,
+                           title='t-SNE with K-mean Clustering', cluster_type='kMeans', zoom=zoom)
+        # Visualize t-SNE with hierarchical clustering labels
+        image_scatter_plot(tsne_result, image_array, labels_hierarchical, output_directory,
+                           title='t-SNE with Hierarchical Clustering', cluster_type='hierarchical', zoom=zoom)
 
 
 class ScriptCl2dClustering(XmippScript):
