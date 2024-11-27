@@ -107,8 +107,8 @@ void ProgProject::defineParams()
     addParamsLine("                                              :+++                        %BR% ");
     addParamsLine("                                              : pad: controls the padding factor.");
     addParamsLine("                                              :+++                        %BR% ");
-    addParamsLine("                                              : maxfreq: is the maximum frequency for the pixels and by default ");
-    addParamsLine("                                              : pixels with frequency more than 0.25 are not considered.");
+    addParamsLine("                                              : maxfreq: is the maximum frequency for the projected pixels normalized to Nyquist=0.5");
+    addParamsLine("                                              : and by default pixels with frequency more than 0.25 are not considered.");
     addParamsLine("                                              :+++                        %BR% ");
     addParamsLine("                                              : interp: is the method for interpolation and the values can be: ");
     addParamsLine("                                              :+++                        %BR% ");
@@ -988,8 +988,11 @@ int PROJECT_Effectively_project(const FileName &fnOut,
     FourierProjector *Vfourier=nullptr;
     if (projType == SHEARS && side.phantomMode==PROJECT_Side_Info::VOXEL)
         Vshears=new RealShearsInfo(side.phantomVol());
-    if (projType == FOURIER && side.phantomMode==PROJECT_Side_Info::VOXEL)//////////////////////
+    if (projType == FOURIER && side.phantomMode==PROJECT_Side_Info::VOXEL)
         Vfourier=new FourierProjector(side.phantomVol(),side.paddFactor,side.maxFrequency,side.BSplineDeg);
+        #ifdef DEBUG
+        std::cout << "FourierProjector(side.phantomVol(),"<<side.paddFactor<<","<<side.maxFrequency<<","<<side.BSplineDeg<<");"<< std::endl;
+        #endif
                                      ///                   1              .5                        NEAREST
     fn_proj=fnOut;
     if (side.doCrystal)
