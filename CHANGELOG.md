@@ -1,4 +1,18 @@
-   ## Release 3.24.06 - O...
+   ## Release 3.24.12 - P
+   ### Xmipp Programs 
+   - New programs
+        - ..
+   - Programs updated
+      - ..
+   - Programs fixed
+      - ...
+   ### Installation and user guide
+   - ..
+   ### More Xmipp   
+   - ...
+
+ 
+ ## Release 3.24.06 - Oceanus
    ### Xmipp Programs 
    - New programs
       - xtomo tigre reconstruction: This program provides a variety of algorithms to reconstruct tomogram from a set of tilt series

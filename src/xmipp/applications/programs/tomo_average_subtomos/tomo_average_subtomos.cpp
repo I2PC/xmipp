@@ -1,7 +1,6 @@
 /***************************************************************************
  *
- * Authors:     Estrella Fernandez Gimenez (me.fernandez@cnb.csic.es)
- * 				Federico P. de Isidro-Gomez (federico.pdeisidro@astx.com)
+ * Authors:     J.L. Vilas
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -21,31 +20,9 @@
  * 02111-1307  USA
  *
  *  All comments concerning this program package may be sent to the
- *  e-mail address 'xmipp@cnb.uam.es'
+ *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <mpi.h>
-#include <parallel/xmipp_mpi.h>
-#include <reconstruction/subtract_projection.h>
+#include <tomo/tomo_average_subtomos.h>
 
-#define DEBUG
-
-class MpiProgSubtractProjection: public ProgSubtractProjection, public MpiMetadataProgram
-{
-public:
-
-    void defineParams() override;
-    void readParams() override;
-    void read(int argc, char **argv, bool reportErrors = true) override;
-    void preProcess() override;
-    void startProcessing() override;
-    void showProgress() override;
-    bool getImageToProcess(size_t &objId, size_t &objIndex) override
-    {
-        return getTaskToProcess(objId, objIndex);
-    }
-    void finishProcessing() override;
-    
-    void wait() override;
-    
-};
+RUN_XMIPP_PROGRAM(ProgAverageSubtomos)

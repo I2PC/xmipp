@@ -1,6 +1,6 @@
 /***************************************************************************
- * Authors:     Javier Vargas (jvargas@cnb.csic.es)
  *
+ * Authors:    Jose Luis Vilas (jlvilas@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,42 +23,48 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/multidim_array.h>
-#include <reconstruction/fringe_processing.h>
+#ifndef _PROG_CTF_WIENER2D_CORRECTION
+#define _PROG_CTF_WIENER2D_CORRECTION
+
+#include <core/xmipp_program.h>
+#include <core/xmipp_filename.h>
+#include <core/metadata_vec.h>
 #include <core/xmipp_image.h>
-#include <data/wavelet.h>
-#include <iostream>
-#include <gtest/gtest.h>
 
-// MORE INFO HERE: http://code.google.com/p/googletest/wiki/AdvancedGuide
-class WaveletTests : public ::testing::Test
+
+class ProgCTFWiener2DCorrection : public XmippProgram
 {
-protected:
-    //init metadatas
-    virtual void SetUp()
-    {
-#define len 128
-        //get example down1_42_Periodogramavg.psd
-        if (chdir(((String)(getXmippSrcPath() + (String)"/xmipp/resources/test/filters")).c_str())==-1)
-            REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot change directory");
-        Image<double> img;
-        img.read("KLH.tif");
-        im = img();
-    }
+private:
+    /* Filenames of the input subtomograms (.xmd file)
+	and output file (volume of the average) */
+    FileName fnIn, fnOut;
 
-    //Image to be processed:
-    MultidimArray<double> im;
+    /* Sampling rate */
+    double sampling;
 
+    /* Wiener constant */
+    double wc;
+
+    /* Defocus accuracy */
+    double sigmaDf;
+
+    /* Number of threads */
+    int nthreads;
+
+public:
+    /* Creating a gaussian mask to weight the CTF corrected images */
+    void gaussianMask(MultidimArray<double> &cumMask, 
+					 MultidimArray<double> &tiMask,  
+					 MultidimArray<double> &ptrImg, int x0, int stripeSize);
+
+    /* Defining the params and help of the algorithm */
+    void defineParams();
+
+    /* It reads the input parameters */
+    void readParams();
+
+    /* Run the program */
+    void run();
 };
 
-TEST_F(WaveletTests, phaseCongMono)
-{
-    MultidimArray< double > Or,Ph,Energy,lowPass,Radius;
-    MultidimArray< std::complex <double> > H;
-    int nScale = 2;
-    double minWaveLength=80;
-    double mult = 1.25;
-    double sigmaOnf = 2;
-
-    phaseCongMono(im,Or,Ph,Energy,lowPass,Radius,H,nScale,minWaveLength,mult,sigmaOnf);
-}
+#endif
