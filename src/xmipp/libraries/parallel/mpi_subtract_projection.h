@@ -1,6 +1,7 @@
 /***************************************************************************
  *
- * Authors:  Estrella Fernandez Gimenez (me.fernandez@cnb.csic.es)
+ * Authors:     Estrella Fernandez Gimenez (me.fernandez@cnb.csic.es)
+ * 				Federico P. de Isidro-Gomez (federico.pdeisidro@astx.com)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -27,6 +28,7 @@
 #include <parallel/xmipp_mpi.h>
 #include <reconstruction/subtract_projection.h>
 
+#define DEBUG
 
 class MpiProgSubtractProjection: public ProgSubtractProjection, public MpiMetadataProgram
 {
