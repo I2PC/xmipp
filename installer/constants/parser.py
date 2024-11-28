@@ -101,12 +101,15 @@ PARAM_BRANCH = 'branch'
 PARAM_MODELS_DIRECTORY = 'models-directory'
 PARAM_TEST_NAME = 'test-name'
 PARAM_SHOW_TESTS = 'show-tests'
+PARAM_TEST_PRO = 'allPrograms'
+PARAM_TEST_FUNC = 'allFuncs'
 PARAM_GIT_COMMAND = 'git-command'
 PARAM_LOGIN = 'login'
 PARAM_MODEL_PATH = 'model-path'
 PARAM_UPDATE = 'update'
 PARAM_OVERWRITE = 'overwrite'
 PARAM_KEEP_OUTPUT = "keep-output"
+
 PARAMS = {
 	PARAM_SHORT: {
 		LONG_VERSION: "--short",
@@ -130,6 +133,14 @@ PARAMS = {
 	PARAM_TEST_NAME: {
 		SHORT_VERSION: "testName",
 		DESCRIPTION: "Run certain test. If combined with --show, greps the test name from the test list."
+	},
+	PARAM_TEST_PRO: {
+		LONG_VERSION: "--allPrograms",
+		DESCRIPTION: "If set, all test available will be run."
+	},
+	PARAM_TEST_FUNC: {
+		LONG_VERSION: "--allFuncs",
+		DESCRIPTION: "If set, all function test available will be run."
 	},
 	PARAM_SHOW_TESTS: {
 		LONG_VERSION: "--show",
@@ -173,7 +184,7 @@ MODE_ARGS = {
 	MODE_GET_SOURCES: [PARAM_BRANCH, PARAM_KEEP_OUTPUT],
 	MODE_CLEAN_BIN: [],
 	MODE_CLEAN_ALL: [],
-	MODE_TEST: [PARAM_TEST_NAME, PARAM_SHOW_TESTS],
+	MODE_TEST: [PARAM_TEST_NAME, PARAM_SHOW_TESTS, PARAM_TEST_FUNC, PARAM_TEST_PRO],
 	MODE_GIT: [PARAM_GIT_COMMAND],
 	MODE_ADD_MODEL: [PARAM_LOGIN, PARAM_MODEL_PATH, PARAM_UPDATE]
 }
@@ -215,7 +226,10 @@ MODE_EXAMPLES = {
 	MODE_CLEAN_ALL: [],
 	MODE_TEST: [
 		f'./xmipp {MODE_TEST} xmipp_sample_test',
-		f'./xmipp {MODE_TEST} {PARAMS[PARAM_SHORT][LONG_VERSION]}',
+		f'./xmipp {MODE_TEST} {PARAMS[PARAM_SHOW_TESTS][LONG_VERSION]}',
+		f'./xmipp {MODE_TEST} {PARAMS[PARAM_TEST_FUNC][LONG_VERSION]}',
+		f'./xmipp {MODE_TEST} {PARAMS[PARAM_TEST_PRO][LONG_VERSION]}',
+	
 	],
 	MODE_GIT: [
 		f'./xmipp {MODE_GIT} pull',

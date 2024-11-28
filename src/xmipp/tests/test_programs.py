@@ -20,7 +20,14 @@
 # *  All comments concerning this program package may be sent to the
 # *  e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
-
+VAHID = "vahid"
+RM = 'rmarabini'
+COSS = 'coss'
+JMRT = 'delarosatrevin'
+JOTON = 'joton'
+DISCONTINUED = 'nobody'
+JMOTA = 'javimota'
+EFG = 'estrellafg'
 
 # import math
 import os
@@ -28,8 +35,7 @@ import os
 # import pyworkflow.utils as pwutils
 # import xmipp3
 # from pyworkflow.tests import DataSet
-from tests.test import *
-
+from tests.test import ProgramTest
 
 
 class XmippProgramTest(ProgramTest):
