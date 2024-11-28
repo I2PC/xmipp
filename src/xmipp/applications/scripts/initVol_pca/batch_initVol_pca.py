@@ -10,8 +10,6 @@ import mrcfile
 import argparse
 import sys, os
 import numpy as np
-# from functions.bnb_gpu import *
-# from functions.assessment import *
 from xmippPyModules.globalAlignFunction.bnb_gpu import *
 from xmippPyModules.globalAlignFunction.pca_gpu import *
 from xmippPyModules.globalAlignFunction.assessment import *
@@ -102,7 +100,7 @@ if __name__=="__main__":
     assess = evaluation()
     
     
-    #Precomputed rotation and shift applied to references  
+    #Precomputed rotation and shift   
     angSet = (-amax, amax, ang)
     shiftSet = (-maxshift, maxshift+shiftMove, shiftMove)
     vectorRot, vectorshift = bnb.setRotAndShift(angSet, shiftSet)
@@ -118,42 +116,10 @@ if __name__=="__main__":
     #Read Experimental Images
     mmap = mrcfile.mmap(expFile, permissive=True)
     nExp = mmap.data.shape[0]
-    dim = mmap.data.shape[1]
-    
-    
-    #Precomputing shift for particle centering
-    if apply_shifts:
-        print("Experimental particles will be centered")
-        prev_shifts = assess.getShifts(expStar, nExp)
         
 
-    print("---Precomputing the projections of the experimental images---")
-    
-    expBatchSize = 2048
-    count = 0
-    step = int(np.ceil(nExp/expBatchSize))
-    batch_projExp_cpu = [0 for i in range(step)] 
-                
-    for initBatch in range(0, nExp, expBatchSize):
-        
-        expImages = mmap.data[initBatch:initBatch+expBatchSize].astype(np.float32)#.copy()
-        Texp = torch.from_numpy(expImages).float().to(cuda)  
-        if radius:
-            Texp = Texp * bnb.create_mask(Texp, radius)    
-        del(expImages)
-
-        #center experimetal particles
-        if apply_shifts:
-            Texp = bnb.center_shifts(Texp, initBatch, expBatchSize, prev_shifts)
-
-        batch_projExp = bnb.create_batchExp(Texp, freqBn, coef, cvecs) 
-        del(Texp)
-        batch_projExp = torch.stack(batch_projExp)
-        batch_projExp_cpu[count] = batch_projExp.to("cpu")
-        del(batch_projExp)
-        count+=1 
-    
-    matches = [None] * numCl    
+    print("---Precomputing the projections of the references images---")
+    matches = [None] * numCl
     for i in range(numCl):    
         #Reading references particles 
        
@@ -167,11 +133,22 @@ if __name__=="__main__":
         else:
             prjImages = read_images(prjFile)
         
-        #convert ref images to tensor 
-        tref= torch.from_numpy(prjImages).float().to("cpu")
+                                
+        tref = torch.from_numpy(prjImages).float().to(cuda)  
         if radius:
-            tref = tref * bnb.create_mask(tref, radius)
+            tref = tref * bnb.create_mask(tref, radius)    
         del(prjImages)
+    
+        batch_projRef = bnb.create_batchExp(tref, freqBn, coef, cvecs) 
+ 
+    
+        
+        #Reading experimental images 
+        expImages = read_images(expFile)
+        texp= torch.from_numpy(expImages).float().to("cpu")
+        if radius:
+            texp = texp * bnb.create_mask(texp, radius)
+        del(expImages)
         
         
         matches[i] = torch.full((nExp, 5), float("Inf"), device = cuda)
@@ -179,18 +156,13 @@ if __name__=="__main__":
         for rot in vectorRot:
     
             print("rotation angle  %s"%rot) 
-            # print("---Computing the projections of the reference images---")      
-            batch_projRef = bnb.precalculate_projection(tref, freqBn, grid_flat, coef, cvecs, rot, vectorshift)
-            count = 0
+            # print("---Computing the projections of the experimental images---")      
+            batch_projExp = bnb.precalculate_projection(texp, freqBn, grid_flat, coef, cvecs, rot, vectorshift)
             # print("matches")
-            for initBatch in range(0, nExp, expBatchSize):
-    
-                batch_projExp = batch_projExp_cpu[count].to('cuda', non_blocking=True)
-    
-                matches[i] = bnb.match_batch(batch_projExp, batch_projRef, initBatch, matches[i], rot, nShift)
-                del(batch_projExp)
-                count+=1
-            del(batch_projRef)
+
+            matches[i] = bnb.match_batch_initVol(batch_projExp, batch_projRef, 0, matches[i], rot, nShift)
+            del(batch_projExp)    
+            # del(batch_projRef)
         
         # print(matches[i])
         matches[i] = bnb.match_batch_label_minScore(matches[i])
@@ -202,7 +174,6 @@ if __name__=="__main__":
         if not save_class:   
             # assess.writeExpStar(prjStar, expStar, matches[i], vectorshift, nExp, apply_shifts, output)
             assess.writeExpStar_minScore(prjStar, expStar, matches[i], vectorshift, nExp, apply_shifts, output)
-    
     
     if save_class:
         matches_min = bnb.match_batch_with_class(matches)

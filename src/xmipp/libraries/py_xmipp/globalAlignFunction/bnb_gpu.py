@@ -161,6 +161,88 @@ class BnBgpu:
         matches[initBatch:initBatch + nExp] = torch.where(cond.view(nExp, 1), iter_matches, matches[initBatch:initBatch + nExp])       
         # torch.cuda.empty_cache()              
         return(matches)
+    
+    
+    def match_batch_initVol(self, batchExp, batchRef, initBatch, matches, rot, nShift):
+        
+        nExp = int(batchExp[0].size(dim=0) / nShift)
+        nShift = torch.tensor(nShift, device=self.cuda)       
+                             
+        for n in range(self.nBand):
+            score = torch.cdist(batchRef[n], batchExp[n])
+            
+        num_rows, num_cols = score.shape    
+        
+        num_blocks = score.shape[1] // nShift
+        blocks = score.view(num_rows, num_blocks, nShift)
+        
+        block_min_values, block_min_indices_rows = blocks.min(dim=0)
+        block_min_value, block_min_indices_cols = block_min_values.min(dim=1)
+        block_min_indices_rows = block_min_indices_rows.gather(1, block_min_indices_cols.unsqueeze(1)).squeeze()  
+        del(score)
+           
+        exp = torch.arange(initBatch, initBatch+nExp, 1, device = self.cuda).view(nExp,1) 
+        sel = block_min_indices_rows.type(torch.int64) 
+        rotation = torch.full((nExp,1), rot, device = self.cuda) 
+        shift_location = (block_min_indices_cols).type(torch.int64)
+        
+        
+        # print(exp.shape)
+        # print(sel.shape)
+        # print(rotation.shape)
+        # print(shift_location.shape)
+        # print(block_min_value.view(nExp,1).shape)
+        
+        iter_matches = torch.cat((exp, sel.view(nExp,1), block_min_value.view(nExp,1), 
+                          rotation, shift_location.view(nExp,1)), dim=1)     
+        
+        # print(iter_matches.shape)
+        # print(iter_matches)  
+        # exit()  
+
+
+        cond = iter_matches[:, 2] < matches[initBatch:initBatch + nExp, 2]
+        matches[initBatch:initBatch + nExp] = torch.where(cond.view(nExp, 1), iter_matches, matches[initBatch:initBatch + nExp])       
+        # torch.cuda.empty_cache()              
+        return(matches)
+    
+    
+    
+    def match_batch_with_class(self, match_list):
+        
+        # N = match_list[0].shape[0]
+        stacked_tensores = torch.stack(match_list) 
+        N = stacked_tensores.shape[1] 
+
+        min_values, min_indices = torch.min(stacked_tensores[:, :, 2], dim=0)        
+        resultado = stacked_tensores[min_indices, torch.arange(N)]  
+        match_minScore = torch.cat((resultado, min_indices.unsqueeze(1)), dim=1)
+        
+        return(match_minScore)
+    
+    
+    def match_batch_label_minScore(self, tensor):
+        col2 = tensor[:, 1]  
+        col3 = tensor[:, 2]  
+    
+        _, indices_col3 = torch.sort(col3)
+        tensor_sorted_col3 = tensor[indices_col3]
+    
+        _, indices_col2 = torch.sort(tensor_sorted_col3[:, 1])
+        sorted_tensor = tensor_sorted_col3[indices_col2]
+    
+        col2_sorted = sorted_tensor[:, 1]
+        is_first_occurrence = torch.cat(
+            [torch.tensor([True], device=tensor.device), col2_sorted[1:] != col2_sorted[:-1]]
+        )
+        
+        indicator_column = torch.zeros(tensor.size(0), dtype=torch.int, device=tensor.device)
+        indicator_column[indices_col3[indices_col2[is_first_occurrence.nonzero(as_tuple=True)[0]]]] = 1
+    
+        tensor_with_indicator = torch.cat((tensor, indicator_column.unsqueeze(1)), dim=1)
+    
+        return tensor_with_indicator
+        
        
     
     def center_shifts(self, Texp, initBatch, expBatchSize, prev_shifts):
@@ -228,19 +310,19 @@ class BnBgpu:
         return self.mask
     
     
-    # def create_gaussian_mask(self, images, sigma):
-    #     dim = images.size(dim=1)
-    #     center = dim // 2
-    #     y, x = torch.meshgrid(torch.arange(dim) - center, torch.arange(dim) - center, indexing='ij')
-    #     dist = torch.sqrt(x**2 + y**2).float().to(images.device)  
-    #
-    #     sigma2 = sigma**2
-    #     K = 1. / (torch.sqrt(2 * torch.tensor(np.pi)) * sigma)**2
-    #
-    #     self.mask = K * torch.exp(-0.5 * (dist**2 / sigma2))
-    #     self.mask = self.mask / self.mask[center, center].clone()
-    #
-    #     return self.mask 
+    def create_gaussian_mask(self, images, sigma):
+        dim = images.size(dim=1)
+        center = dim // 2
+        y, x = torch.meshgrid(torch.arange(dim) - center, torch.arange(dim) - center, indexing='ij')
+        dist = torch.sqrt(x**2 + y**2).float().to(images.device)  
+    
+        sigma2 = sigma**2
+        K = 1. / (torch.sqrt(2 * torch.tensor(np.pi)) * sigma)**2
+    
+        self.mask = K * torch.exp(-0.5 * (dist**2 / sigma2))
+        self.mask = self.mask / self.mask[center, center].clone()
+    
+        return self.mask 
             
 
     

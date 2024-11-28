@@ -86,6 +86,8 @@ class evaluation:
         
     def writeExpStar(self, prjStar, expStar, matchPair, shiftVec, nExp, apply_shifts, output):
         
+        matchPair = matchPair.cpu().numpy()
+        
         self.getAngle(prjStar)
         if apply_shifts:
             self.getShifts(expStar, nExp)
@@ -117,9 +119,87 @@ class evaluation:
             star.loc[:, "shiftY"] = shiftVec[matchPair[:, 4].astype(int), 1]
     
         starfile.write(star, new)
+        
+        
+    def writeExpStarClass(self, prjStar, expStar, matchPair, shiftVec, nExp, apply_shifts, output):
+        
+        matchPair = matchPair.cpu().numpy()
+        
+        self.getAngle(prjStar)
+        if apply_shifts:
+            self.getShifts(expStar, nExp)
+            expShifts = self.expShifts.cpu().numpy()
+        star = starfile.read(expStar)
+        new = output  
+    
+        # Adjustment of Psi angles
+        psi_adjusted = -matchPair[:, 3]
+        psi_adjusted = np.where(psi_adjusted > 180, psi_adjusted - 360, psi_adjusted)
+    
+        columns = ["anglePsi", "angleRot", "angleTilt", "shiftX", "shiftY", "shiftZ", "class"]
+        for column in columns:
+            if column not in star.columns:
+                star[column] = 0.0
+    
+        # Updating columns in the dataframe
+        angle_triplet = np.array(self.angle_triplet)
+        shiftVec = np.array(shiftVec)
+        star.loc[:, "anglePsi"] = psi_adjusted + angle_triplet[matchPair[:, 1].astype(int), 0]
+        star.loc[:, "angleRot"] = angle_triplet[matchPair[:, 1].astype(int), 1]
+        star.loc[:, "angleTilt"] = angle_triplet[matchPair[:, 1].astype(int), 2]
+    
+        if apply_shifts:
+            star.loc[:, "shiftX"] = -shiftVec[matchPair[:, 4].astype(int), 0] + expShifts[:, 0]
+            star.loc[:, "shiftY"] = -hiftVec[matchPair[:, 4].astype(int), 1] + expShifts[:, 1]
+        else:
+            star.loc[:, "shiftX"] = -shiftVec[matchPair[:, 4].astype(int), 0]
+            star.loc[:, "shiftY"] = -shiftVec[matchPair[:, 4].astype(int), 1]
+    
+        star.loc[:, "class"] = matchPair[:, 6].astype(int)
+        starfile.write(star, new)
+        
+        
+    def writeExpStar_minScore(self, prjStar, expStar, matchPair, shiftVec, nExp, apply_shifts, output):
+        
+        matchPair = matchPair.cpu().numpy()
+        
+        self.getAngle(prjStar)
+        if apply_shifts:
+            self.getShifts(expStar, nExp)
+            expShifts = self.expShifts.cpu().numpy()
+        star = starfile.read(expStar)
+        new = output  
+    
+        # Adjustment of Psi angles
+        psi_adjusted = -matchPair[:, 3]
+        psi_adjusted = np.where(psi_adjusted > 180, psi_adjusted - 360, psi_adjusted)
+    
+        columns = ["anglePsi", "angleRot", "angleTilt", "shiftX", "shiftY", "shiftZ", "sel"]
+        for column in columns:
+            if column not in star.columns:
+                star[column] = 0.0
+    
+        # Updating columns in the dataframe
+        angle_triplet = np.array(self.angle_triplet)
+        shiftVec = np.array(shiftVec)
+        star.loc[:, "anglePsi"] = psi_adjusted + angle_triplet[matchPair[:, 1].astype(int), 0]
+        star.loc[:, "angleRot"] = angle_triplet[matchPair[:, 1].astype(int), 1]
+        star.loc[:, "angleTilt"] = angle_triplet[matchPair[:, 1].astype(int), 2]
+    
+        if apply_shifts:
+            star.loc[:, "shiftX"] = -shiftVec[matchPair[:, 4].astype(int), 0] + expShifts[:, 0]
+            star.loc[:, "shiftY"] = -shiftVec[matchPair[:, 4].astype(int), 1] + expShifts[:, 1]
+        else:
+            star.loc[:, "shiftX"] = -shiftVec[matchPair[:, 4].astype(int), 0]
+            star.loc[:, "shiftY"] = -shiftVec[matchPair[:, 4].astype(int), 1]
+    
+        star.loc[:, "sel"] = matchPair[:, 5].astype(int)
+        starfile.write(star, new)
     
         
     def writeExpStarRelion(self, prjStar, expStar, matchPair, shiftVec, sampling, nExp, apply_shifts, output):
+        
+        matchPair = matchPair.cpu().numpy()
         
         self.getAngle(prjStar)
         self.getShiftsRelion2(expStar, sampling, nExp)
@@ -235,6 +315,34 @@ class evaluation:
         # Save images
         with mrcfile.new(output, overwrite=True) as mrc_out:
             mrc_out.set_data(batch_mrc)
+            
+ 
+        #For random angle to generate initial random volume with classes
+            
+    # Generate random angles
+    def generate_random_angles(self, num_images, angle_range=(-180, 180)):
+        self.anglesRot = np.random.uniform(angle_range[0], angle_range[1], num_images)
+        self.anglesTilt = np.random.uniform(angle_range[0], angle_range[1], num_images)
+        return self.anglesRot, self.anglesTilt 
+        
+    #for experimental images with starfile module
+    def initRandomStar(self, expXMD, outXMD):
+        
+        star = starfile.read(expXMD) 
+        
+        num_images = len(star)
+        # num_images = len(star['particles'])
+        print(num_images)
+        
+        anglesRot, anglesTilt = self.generate_random_angles(num_images)
+        
+        star['angleRot'] = anglesRot
+        star['angleTilt'] = anglesTilt
+        # star['particles']['angleRot'] = anglesRot
+        # star['particles']['angleTilt'] = anglesTilt
+    
+   
+        starfile.write(star, outXMD, overwrite=True)
  
             
             

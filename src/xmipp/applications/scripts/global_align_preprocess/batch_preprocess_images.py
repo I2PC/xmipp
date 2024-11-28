@@ -116,7 +116,8 @@ if __name__=="__main__":
     convert_star_group = parser.add_argument_group('convert_star or create_stack', 'Arguments for converting star to xmd or create mrcs stack')
     convert_star_group.add_argument("-s", "--star", help="input star file")
     convert_star_group.add_argument("--convert", action="store_true", help="Convert Relion star to Xmipp xmd")
-    convert_star_group.add_argument("--create_stack", action="store_true", help="Create mrcs stack from star file")   
+    convert_star_group.add_argument("--create_stack", action="store_true", help="Create mrcs stack from star file")
+    convert_star_group.add_argument("--random_angles", action="store_true", help="Create xmd with random angles")   
     
     args = parser.parse_args()
     
@@ -128,6 +129,7 @@ if __name__=="__main__":
     star = args.star
     create_stack = args.create_stack
     convert = args.convert
+    random = args.random_angles
 
     if prjFile:
         #Read Images
@@ -159,6 +161,11 @@ if __name__=="__main__":
         assess = evaluation()
         print("Creating mrc stack")
         assess.createStack(star, output)
+        
+    if random:
+        assess = evaluation()
+        print("Generating XMD with random angles")
+        assess.initRandomStar(star, output)
 
 
 
