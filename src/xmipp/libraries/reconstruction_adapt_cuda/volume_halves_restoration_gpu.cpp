@@ -99,15 +99,6 @@ template< typename T >
 void ProgVolumeHalvesRestorationGpu<T>::readMaskParams() {
     if (checkParam("--mask")) {
         mask.readParams(this);
-        //mask.fn_mask = getParam("--mask");
-        //mask.mask_type = "binary_file";
-        //mask.type = READ_BINARY_MASK;
-
-        //if (checkParam("--center")) {
-        //    mask.x0 = getDoubleParam("--center", 0);
-        //    mask.y0 = getDoubleParam("--center", 1);
-        //    mask.z0 = getDoubleParam("--center", 2);
-        //}
     }
 }
 
@@ -139,8 +130,6 @@ void ProgVolumeHalvesRestorationGpu<T>::defineParams() {
     addParamsLine("                                : Weight function (0=mean, 1=min, 2=mean*diff");
     addParamsLine("  [--difference <N=0> <K=1.5>]  : Number of iterations of difference evaluation in real space");
     Mask::defineParams(this, INT_MASK);
-    // addParamsLine("  [--mask <binary_file>]        : Read from file and cast to binary");
-    // addParamsLine("  [--center <x0=0> <y0=0> <z0=0>]           : Mask center");
 }
 
 template< typename T >
