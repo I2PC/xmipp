@@ -25,7 +25,6 @@
 """
 Module containing all functions needed for the metric's API request.
 """
-import os.path
 # General imports
 import re, hashlib, http.client, json, ssl
 from typing import Dict, Optional
@@ -133,37 +132,21 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 	])
 	
 	# Obtaining variables in parallel
-	if os.path.isfile(VERSION_FILE):
-		data = parseCmakeVersions(VERSION_FILE)
-		version = {
-			"os": jsonData[0],
-			"architecture": jsonData[1],
-			"cuda": data.get(CMAKE_CUDA),
-			"cmake": data.get(CMAKE_CMAKE),
-			"gcc": data.get(CMAKE_GCC),
-			"gpp": data.get(CMAKE_GPP),
-			"mpi": data.get(CMAKE_MPI),
-			"python": data.get(CMAKE_PYTHON),
-			"sqlite": data.get(CMAKE_SQLITE),
-			"java": data.get(CMAKE_JAVA),
-			"hdf5": data.get(CMAKE_HDF5),
-			"jpeg": data.get(CMAKE_JPEG)
-		}
-	else:
-		version = {
-			"os": jsonData[0],
-			"architecture": jsonData[1],
-			"cuda": '',
-			"cmake": '',
-			"gcc": '',
-			"gpp": '',
-			"mpi": '',
-			"python": '',
-			"sqlite": '',
-			"java": '',
-			"hdf5": '',
-			"jpeg": ''
-		}
+	data = parseCmakeVersions(VERSION_FILE)
+	version = {
+		"os": jsonData[0],
+		"architecture": jsonData[1],
+		"cuda": data.get(CMAKE_CUDA),
+		"cmake": data.get(CMAKE_CMAKE),
+		"gcc": data.get(CMAKE_GCC),
+		"gpp": data.get(CMAKE_GPP),
+		"mpi": data.get(CMAKE_MPI),
+		"python": data.get(CMAKE_PYTHON),
+		"sqlite": data.get(CMAKE_SQLITE),
+		"java": data.get(CMAKE_JAVA),
+		"hdf5": data.get(CMAKE_HDF5),
+		"jpeg": data.get(CMAKE_JPEG)
+	}
 
 
 	# If branch is master or there is none, get release name
