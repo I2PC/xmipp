@@ -58,7 +58,6 @@ def sendApiPOST(retCode: int=0):
 		url = API_URL.split("/", maxsplit=1)
 		path = f"/{url[1]}"
 		url = url[0]
-		print('params: {} url: {}'.format(params, url))
 	
 		conn = http.client.HTTPSConnection(url, timeout=2, context=ssl._create_unverified_context()) # Unverified context because url does not have an ssl certificate
 
