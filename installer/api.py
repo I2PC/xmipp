@@ -123,6 +123,8 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 	if userId is None:
 		return
 	
+	# Obtaining variables in parallel
+	data = parseCmakeVersions(VERSION_FILE)
 	jsonData = runParallelJobs([
 		(getOSReleaseName, ()),
 		(__getArchitectureName, ()),
@@ -130,24 +132,6 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 		(isBranchUpToDate, ()),
 		(__getLogTail, ())
 	])
-	
-	# Obtaining variables in parallel
-	data = parseCmakeVersions(VERSION_FILE)
-	version = {
-		"os": jsonData[0],
-		"architecture": jsonData[1],
-		"cuda": data.get(CMAKE_CUDA),
-		"cmake": data.get(CMAKE_CMAKE),
-		"gcc": data.get(CMAKE_GCC),
-		"gpp": data.get(CMAKE_GPP),
-		"mpi": data.get(CMAKE_MPI),
-		"python": data.get(CMAKE_PYTHON),
-		"sqlite": data.get(CMAKE_SQLITE),
-		"java": data.get(CMAKE_JAVA),
-		"hdf5": data.get(CMAKE_HDF5),
-		"jpeg": data.get(CMAKE_JPEG)
-	}
-
 
 	# If branch is master or there is none, get release name
 	branchName = XMIPP_VERSIONS[XMIPP][VERSION_KEY] if not jsonData[2] or jsonData[2] == MASTER_BRANCHNAME else jsonData[2]
@@ -157,7 +141,20 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 		"user": {
 			"userId": userId
 		},
-		"version": version,
+		"version": {
+			"os": jsonData[0],
+			"architecture": jsonData[1],
+			"cuda": data.get(CMAKE_CUDA),
+			"cmake": data.get(CMAKE_CMAKE),
+			"gcc": data.get(CMAKE_GCC),
+			"gpp": data.get(CMAKE_GPP),
+			"mpi": data.get(CMAKE_MPI),
+			"python": data.get(CMAKE_PYTHON),
+			"sqlite": data.get(CMAKE_SQLITE),
+			"java": data.get(CMAKE_JAVA),
+			"hdf5": data.get(CMAKE_HDF5),
+			"jpeg": data.get(CMAKE_JPEG)
+		},
 		"xmipp": {
 			"branch": branchName,
 			"updated": jsonData[3]
