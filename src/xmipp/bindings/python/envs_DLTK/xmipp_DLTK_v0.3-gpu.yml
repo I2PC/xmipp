@@ -14,7 +14,7 @@ dependencies:
   - tensorflow-gpu=1.15
   - keras=2.2
   - scikit-learn=0.22
-  - libstdcxx-ng # To be compatible with scipion env
+  - libstdcxx-ng>=14.2.0 # To be compatible with scipion env
   - pip
   - pip:
       - numpy==1.21
