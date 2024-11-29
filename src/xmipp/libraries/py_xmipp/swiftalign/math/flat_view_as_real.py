@@ -20,12 +20,9 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .align import align
-from .train import train
-from .populate import populate
-from .generate_alignment_metadata import generate_alignment_metadata
+import torch
 
-from .FourierInPlaneTransformAugmenter import FourierInPlaneTransformAugmenter
-from .FourierInPlaneTransformGenerator import FourierInPlaneTransformGenerator
-from .FourierInPlaneTransformCorrector import FourierInPlaneTransformCorrector
-from .InPlaneTransformCorrector import InPlaneTransformCorrector
+def flat_view_as_real(input: torch.Tensor) -> torch.Tensor:
+    real = torch.view_as_real(input)
+    flat = torch.flatten(real, start_dim=-2, end_dim=-1)
+    return flat

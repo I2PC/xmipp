@@ -20,12 +20,6 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .align import align
-from .train import train
-from .populate import populate
-from .generate_alignment_metadata import generate_alignment_metadata
-
-from .FourierInPlaneTransformAugmenter import FourierInPlaneTransformAugmenter
-from .FourierInPlaneTransformGenerator import FourierInPlaneTransformGenerator
-from .FourierInPlaneTransformCorrector import FourierInPlaneTransformCorrector
-from .InPlaneTransformCorrector import InPlaneTransformCorrector
+from .basis import dct_ii_basis, dct_iii_basis
+from .dct import bases_generator, dct, idct
+from .project import project, project_nd

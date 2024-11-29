@@ -20,12 +20,32 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .align import align
-from .train import train
-from .populate import populate
-from .generate_alignment_metadata import generate_alignment_metadata
+from typing import Optional
+import torch
+import torchvision.transforms as T
 
-from .FourierInPlaneTransformAugmenter import FourierInPlaneTransformAugmenter
-from .FourierInPlaneTransformGenerator import FourierInPlaneTransformGenerator
-from .FourierInPlaneTransformCorrector import FourierInPlaneTransformCorrector
-from .InPlaneTransformCorrector import InPlaneTransformCorrector
+class ImageRotator:
+    def __init__(   self,
+                    angles: torch.Tensor,
+                    device: Optional[torch.device] = None ):
+        self._angles = angles
+        
+    def __call__(   self, 
+                    input: torch.Tensor,
+                    index: int,
+                    out: Optional[torch.Tensor] ) -> torch.Tensor:
+        
+        # TODO use the matrix
+        out = T.functional.rotate(
+            input,
+            self.get_angle(index),
+            T.InterpolationMode.BILINEAR,
+        )
+        return out
+
+    def get_count(self) -> int:
+        return len(self._angles)
+    
+    def get_angle(self, index: int) -> float:
+        return float(self._angles[index])
+        

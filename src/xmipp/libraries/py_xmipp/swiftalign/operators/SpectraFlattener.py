@@ -20,12 +20,14 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .align import align
-from .train import train
-from .populate import populate
-from .generate_alignment_metadata import generate_alignment_metadata
+from typing import Optional
+import torch
 
-from .FourierInPlaneTransformAugmenter import FourierInPlaneTransformAugmenter
-from .FourierInPlaneTransformGenerator import FourierInPlaneTransformGenerator
-from .FourierInPlaneTransformCorrector import FourierInPlaneTransformCorrector
-from .InPlaneTransformCorrector import InPlaneTransformCorrector
+from .MaskFlattener import MaskFlattener
+
+class SpectraFlattener(MaskFlattener):
+    def __init__(   self, 
+                    mask: torch.Tensor,
+                    padded_length: Optional[int] = None,
+                    device: Optional[torch.device] = None):
+        super().__init__(mask, padded_length, device)

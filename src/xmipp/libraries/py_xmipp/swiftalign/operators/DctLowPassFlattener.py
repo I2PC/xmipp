@@ -20,13 +20,39 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .Transformer2D import Transformer2D
-from .FourierTransformer2D import FourierTransformer2D
-from .DctTransformer2D import DctTransformer2D
-from .MaskFlattener import MaskFlattener
+from typing import Optional, Sequence
+import torch
+
 from .SpectraFlattener import SpectraFlattener
-from .FourierLowPassFlattener import FourierLowPassFlattener
-from .DctLowPassFlattener import DctLowPassFlattener
-from .ImageRotator import ImageRotator
-from .ImageShifter import ImageShifter
-from .FourierShiftFilter import FourierShiftFilter
+
+class DctLowPassFlattener(SpectraFlattener):
+    def __init__(   self, 
+                    dim: int, 
+                    cutoff: float, 
+                    exclude_dc: bool = True,
+                    padded_length: Optional[int] = None,
+                    device: Optional[torch.device] = None ):
+        SpectraFlattener.__init__(
+            self, 
+            self._compute_mask(dim, cutoff, exclude_dc), 
+            padded_length=padded_length,
+            device=device
+        )
+    
+    def _compute_mask(  self, 
+                        dim: int, 
+                        cutoff: float,
+                        exclude_dc: bool ) -> torch.Tensor:
+        
+        # Compute the frequency grid
+        freq_x = torch.linspace(start=0, end=0.5, steps=dim)
+        freq_y = freq_x[...,None]
+        freq2 = freq_x**2 + freq_y**2
+        
+        # Compute the mask
+        cutoff2 = cutoff ** 2
+        mask = freq2.less_equal(cutoff2)
+        if exclude_dc:
+            mask[0, 0] = False
+
+        return mask

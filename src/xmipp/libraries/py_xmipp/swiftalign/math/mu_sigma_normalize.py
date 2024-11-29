@@ -20,12 +20,19 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .align import align
-from .train import train
-from .populate import populate
-from .generate_alignment_metadata import generate_alignment_metadata
+from typing import Union, Sequence, Optional
+import torch
 
-from .FourierInPlaneTransformAugmenter import FourierInPlaneTransformAugmenter
-from .FourierInPlaneTransformGenerator import FourierInPlaneTransformGenerator
-from .FourierInPlaneTransformCorrector import FourierInPlaneTransformCorrector
-from .InPlaneTransformCorrector import InPlaneTransformCorrector
+def mu_sigma_normalize( data: torch.Tensor, 
+                        dim: Union[None, int, Sequence[int]],
+                        out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+    
+    if out is data:
+        std, mean = torch.std_mean(out, dim=dim, keepdim=True)
+        out -= mean
+        out /= std
+        
+    else:
+        raise NotImplementedError('Only implemented for out=data')
+    
+    return out

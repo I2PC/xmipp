@@ -20,12 +20,26 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .align import align
-from .train import train
-from .populate import populate
-from .generate_alignment_metadata import generate_alignment_metadata
+from typing import Iterable
+import torch
 
-from .FourierInPlaneTransformAugmenter import FourierInPlaneTransformAugmenter
-from .FourierInPlaneTransformGenerator import FourierInPlaneTransformGenerator
-from .FourierInPlaneTransformCorrector import FourierInPlaneTransformCorrector
-from .InPlaneTransformCorrector import InPlaneTransformCorrector
+from .. import search
+
+
+def train(db: search.Database, 
+          dataset: Iterable[torch.Tensor],
+          scratch: torch.Tensor ):
+
+    # Write
+    start = 0
+    for vectors in dataset:
+        end = start + len(vectors)
+        
+        # Write 
+        scratch[start:end,:] = vectors.to(scratch.device, non_blocking=True)
+
+        # Setup next iteration
+        start = end
+
+    # Train the database
+    db.train(scratch[:start])

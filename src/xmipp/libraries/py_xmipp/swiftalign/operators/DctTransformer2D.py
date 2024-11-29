@@ -20,12 +20,28 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .align import align
-from .train import train
-from .populate import populate
-from .generate_alignment_metadata import generate_alignment_metadata
+from typing import Optional
+import torch
 
-from .FourierInPlaneTransformAugmenter import FourierInPlaneTransformAugmenter
-from .FourierInPlaneTransformGenerator import FourierInPlaneTransformGenerator
-from .FourierInPlaneTransformCorrector import FourierInPlaneTransformCorrector
-from .InPlaneTransformCorrector import InPlaneTransformCorrector
+from ..dct import dct_ii_basis, project_nd
+
+from .Transformer2D import Transformer2D
+
+class DctTransformer2D(Transformer2D):
+    DIMS = (-1, -2) # Last two dimensions
+    
+    def __init__(self, dim: int, device: Optional[torch.device] = None) -> None:
+        self._bases = (dct_ii_basis(dim).to(device), )*len(self.DIMS)
+    
+    def __call__(   self, 
+                    input: torch.Tensor,
+                    out: Optional[torch.Tensor] = None) -> torch.Tensor:
+        
+        # To avoid warnings
+        if out is not None:
+            out.resize_(0)
+            
+        return project_nd(input, dims=self.DIMS, bases=self._bases, out=out)
+    
+    def has_complex_output(self) -> bool:
+        return False
