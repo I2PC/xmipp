@@ -46,10 +46,12 @@ def sendApiPOST(retCode: int=0):
 	"""
 	# Getting JSON data for curl command
 	bodyParams = __getJSON(retCode=retCode)
+	
 	# Send API POST request if there were no errors
 	if bodyParams is not None:
 		# Define the parameters for the POST request
 		params = json.dumps(bodyParams)
+
 		# Set up the headers
 		headers = {"Content-type": "application/json"}
 
@@ -57,7 +59,6 @@ def sendApiPOST(retCode: int=0):
 		url = API_URL.split("/", maxsplit=1)
 		path = f"/{url[1]}"
 		url = url[0]
-	
 		conn = http.client.HTTPSConnection(url, timeout=2, context=ssl._create_unverified_context()) # Unverified context because url does not have an ssl certificate
 
 		try:
