@@ -25,7 +25,7 @@
 """
 Module containing all functions needed for the metric's API request.
 """
-
+import os.path
 # General imports
 import re, hashlib, http.client, json, ssl
 from typing import Dict, Optional
@@ -47,7 +47,6 @@ def sendApiPOST(retCode: int=0):
 	"""
 	# Getting JSON data for curl command
 	bodyParams = __getJSON(retCode=retCode)
-
 	# Send API POST request if there were no errors
 	if bodyParams is not None:
 		# Define the parameters for the POST request
@@ -59,6 +58,8 @@ def sendApiPOST(retCode: int=0):
 		url = API_URL.split("/", maxsplit=1)
 		path = f"/{url[1]}"
 		url = url[0]
+		print('params: {} url: {}'.format(params, url))
+	
 		conn = http.client.HTTPSConnection(url, timeout=2, context=ssl._create_unverified_context()) # Unverified context because url does not have an ssl certificate
 
 		try:
@@ -124,8 +125,6 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 	if userId is None:
 		return
 	
-	# Obtaining variables in parallel
-	data = parseCmakeVersions(VERSION_FILE)
 	jsonData = runParallelJobs([
 		(getOSReleaseName, ()),
 		(__getArchitectureName, ()),
@@ -133,16 +132,11 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 		(isBranchUpToDate, ()),
 		(__getLogTail, ())
 	])
-
-	# If branch is master or there is none, get release name
-	branchName = XMIPP_VERSIONS[XMIPP][VERSION_KEY] if not jsonData[2] or jsonData[2] == MASTER_BRANCHNAME else jsonData[2]
-
-	# Introducing data into a dictionary
-	return {
-		"user": {
-			"userId": userId
-		},
-		"version": {
+	
+	# Obtaining variables in parallel
+	if os.path.isfile(VERSION_FILE):
+		data = parseCmakeVersions(VERSION_FILE)
+		version = {
 			"os": jsonData[0],
 			"architecture": jsonData[1],
 			"cuda": data.get(CMAKE_CUDA),
@@ -155,7 +149,33 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 			"java": data.get(CMAKE_JAVA),
 			"hdf5": data.get(CMAKE_HDF5),
 			"jpeg": data.get(CMAKE_JPEG)
+		}
+	else:
+		version = {
+			"os": jsonData[0],
+			"architecture": jsonData[1],
+			"cuda": '',
+			"cmake": '',
+			"gcc": '',
+			"gpp": '',
+			"mpi": '',
+			"python": '',
+			"sqlite": '',
+			"java": '',
+			"hdf5": '',
+			"jpeg": ''
+		}
+
+
+	# If branch is master or there is none, get release name
+	branchName = XMIPP_VERSIONS[XMIPP][VERSION_KEY] if not jsonData[2] or jsonData[2] == MASTER_BRANCHNAME else jsonData[2]
+
+	# Introducing data into a dictionary
+	return {
+		"user": {
+			"userId": userId
 		},
+		"version": version,
 		"xmipp": {
 			"branch": branchName,
 			"updated": jsonData[3]
@@ -163,7 +183,7 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 		"returnCode": retCode,
 		"logTail": jsonData[4] if retCode else None # Only needs log tail if something went wrong
 	}
-
+	
 def __getMACAddress() -> Optional[str]:
 	"""
 	### This function returns a physical MAC address for this machine. It prioritizes ethernet over wireless.
