@@ -76,7 +76,7 @@ def modeCleanBin():
 	runJob(f"find {SOURCES_PATH}/* -name \"*.os\" -exec rm -rf {{}} \;", showCommand=True)
 	runJob(f"find {SOURCES_PATH}/* -name \"*.o\" -exec rm -rf {{}} \;", showCommand=True)
 	runJob("find . -iname \"*.pyc\" -delete", showCommand=True)
-	runJob(f"rm -rf {CONFIG_FILE} {BUILD_PATH}", showCommand=True)
+	runJob(f"rm -rf {BUILD_PATH}", showCommand=True)
 	runJob("find . -iname \"*.dblite\" -delete", showCommand=True)
 	runJob(f"find {os.path.join(SOURCES_PATH, XMIPP, 'applications', 'programs')} --type d -empty", showCommand=True)
 
