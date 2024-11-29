@@ -25,6 +25,7 @@
 """
 Module containing all functions needed for the metric's API request.
 """
+
 # General imports
 import re, hashlib, http.client, json, ssl
 from typing import Dict, Optional
@@ -46,12 +47,11 @@ def sendApiPOST(retCode: int=0):
 	"""
 	# Getting JSON data for curl command
 	bodyParams = __getJSON(retCode=retCode)
-	
+
 	# Send API POST request if there were no errors
 	if bodyParams is not None:
 		# Define the parameters for the POST request
 		params = json.dumps(bodyParams)
-
 		# Set up the headers
 		headers = {"Content-type": "application/json"}
 
