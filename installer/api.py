@@ -165,7 +165,7 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 		"returnCode": retCode,
 		"logTail": jsonData[4] if retCode else None # Only needs log tail if something went wrong
 	}
-	
+
 def __getMACAddress() -> Optional[str]:
 	"""
 	### This function returns a physical MAC address for this machine. It prioritizes ethernet over wireless.
