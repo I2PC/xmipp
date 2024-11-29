@@ -72,15 +72,24 @@ def modeCleanBin():
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	warningStr = "WARNING: This will DELETE from {} all *.so, *.os and *.o files. Also the *.pyc and *.dblite files\n".format(SOURCES_PATH)
+	confirmationText = 'y'
+	warningStr = "WARNING: This will DELETE from {} all *.so, *.os and *.o files. Also the *.pyc and *.dblite files".format(SOURCES_PATH)
+	warningStr += f"\nIf you are sure you want to do this, type '{confirmationText}' (case sensitive):"
 	logger(yellow(warningStr), forceConsoleOutput=True)
-
-	runJob(f"find {SOURCES_PATH}/* -name \"*.so\" -exec rm -rf {{}} \;", showCommand=True)
-	runJob(f"find {SOURCES_PATH}/* -name \"*.os\" -exec rm -rf {{}} \;", showCommand=True)
-	runJob(f"find {SOURCES_PATH}/* -name \"*.o\" -exec rm -rf {{}} \;", showCommand=True)
-	runJob("find . -iname \"*.pyc\" -delete", showCommand=True)
-	runJob("find . -iname \"*.dblite\" -delete", showCommand=True)
-	runJob(f"find {os.path.join(SOURCES_PATH, XMIPP, 'applications', 'programs')} --type d -empty", showCommand=True)
+	try:
+		userInput = input()
+	except KeyboardInterrupt:
+		userInput = ''
+		logger("", forceConsoleOutput=True)
+	if userInput == confirmationText:
+		runJob(f"find {SOURCES_PATH}/* -name \"*.so\" -exec rm -rf {{}} \;", showCommand=True)
+		runJob(f"find {SOURCES_PATH}/* -name \"*.os\" -exec rm -rf {{}} \;", showCommand=True)
+		runJob(f"find {SOURCES_PATH}/* -name \"*.o\" -exec rm -rf {{}} \;", showCommand=True)
+		runJob("find . -iname \"*.pyc\" -delete", showCommand=True)
+		runJob("find . -iname \"*.dblite\" -delete", showCommand=True)
+		runJob(f"find {os.path.join(SOURCES_PATH, XMIPP, 'applications', 'programs')} --type d -empty", showCommand=True)
+	else:
+		logger(red("Operation cancelled."), forceConsoleOutput=True)
 
 def modeCleanAll():
 	"""
