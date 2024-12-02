@@ -88,6 +88,7 @@ def modeCleanBin():
 		runJob("find . -iname \"*.pyc\" -delete", showCommand=True)
 		runJob("find . -iname \"*.dblite\" -delete", showCommand=True)
 		runJob(f"find {os.path.join(SOURCES_PATH, XMIPP, 'applications', 'programs')} --type d -empty", showCommand=True)
+		runJob(f"rm -rf {BUILD_PATH}", showCommand=True)
 	else:
 		logger(red("Operation cancelled."), forceConsoleOutput=True)
 
