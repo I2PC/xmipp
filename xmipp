@@ -72,13 +72,25 @@ def modeCleanBin():
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	runJob(f"find {SOURCES_PATH}/* -name \"*.so\" -exec rm -rf {{}} \;", showCommand=True)
-	runJob(f"find {SOURCES_PATH}/* -name \"*.os\" -exec rm -rf {{}} \;", showCommand=True)
-	runJob(f"find {SOURCES_PATH}/* -name \"*.o\" -exec rm -rf {{}} \;", showCommand=True)
-	runJob("find . -iname \"*.pyc\" -delete", showCommand=True)
-	runJob(f"rm -rf {CONFIG_FILE} {BUILD_PATH}", showCommand=True)
-	runJob("find . -iname \"*.dblite\" -delete", showCommand=True)
-	runJob(f"find {os.path.join(SOURCES_PATH, XMIPP, 'applications', 'programs')} --type d -empty", showCommand=True)
+	confirmationText = 'y'
+	warningStr = "WARNING: This will DELETE from {} all *.so, *.os and *.o files. Also the *.pyc and *.dblite files".format(SOURCES_PATH)
+	warningStr += f"\nIf you are sure you want to do this, type '{confirmationText}' (case sensitive):"
+	logger(yellow(warningStr), forceConsoleOutput=True)
+	try:
+		userInput = input()
+	except KeyboardInterrupt:
+		userInput = ''
+		logger("", forceConsoleOutput=True)
+	if userInput == confirmationText:
+		runJob(f"find {SOURCES_PATH}/* -name \"*.so\" -exec rm -rf {{}} \;", showCommand=True)
+		runJob(f"find {SOURCES_PATH}/* -name \"*.os\" -exec rm -rf {{}} \;", showCommand=True)
+		runJob(f"find {SOURCES_PATH}/* -name \"*.o\" -exec rm -rf {{}} \;", showCommand=True)
+		runJob("find . -iname \"*.pyc\" -delete", showCommand=True)
+		runJob("find . -iname \"*.dblite\" -delete", showCommand=True)
+		runJob(f"find {os.path.join(SOURCES_PATH, XMIPP, 'applications', 'programs')} --type d -empty", showCommand=True)
+		runJob(f"rm -rf {BUILD_PATH}", showCommand=True)
+	else:
+		logger(red("Operation cancelled."), forceConsoleOutput=True)
 
 def modeCleanAll():
 	"""
@@ -89,7 +101,7 @@ def modeCleanAll():
 	"""
 	# Print warning text and await input
 	confirmationText = 'YeS'
-	warningStr = "WARNING: This will DELETE ALL content from src and build.\n"
+	warningStr = "WARNING: This will DELETE ALL content from src and build, also de xmipp.conf file.\n"
 	warningStr += "\tNotice that if you have unpushed changes, they will be deleted.\n"
 	warningStr += f"\nIf you are sure you want to do this, type '{confirmationText}' (case sensitive):"
 	logger(yellow(warningStr), forceConsoleOutput=True)
@@ -106,6 +118,7 @@ def modeCleanAll():
 		configDict = readConfig(CONFIG_FILE) if os.path.exists(CONFIG_FILE) else {}
 		installDir = configDict.get(CMAKE_INSTALL_PREFIX, INSTALL_PATH)
 		runJob(f"rm -rf {BUILD_PATH} {installDir} {' '.join(xmippSources)} {CONFIG_FILE}", showCommand=True)
+		runJob(f"rm -rf {CONFIG_FILE} {BUILD_PATH}", showCommand=True)
 	else:
 		logger(red("Operation cancelled."), forceConsoleOutput=True)
 
