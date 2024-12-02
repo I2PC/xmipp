@@ -328,10 +328,13 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 		exitXmipp(retCode=1)
 	
 	# Send API message
-	apiPost = True if readConfig(CONFIG_FILE).get(
-		SEND_INSTALLATION_STATISTICS) == 'ON' else False
-	if sendAPI and apiPost and os.path.exists(VERSION_FILE):
-		sendApiPOST()
+	try:
+		apiPost = True if readConfig(CONFIG_FILE).get(
+			SEND_INSTALLATION_STATISTICS) == 'ON' else False
+		if sendAPI and apiPost and os.path.exists(VERSION_FILE):
+			sendApiPOST()
+	except FileNotFoundError:
+		pass
 
 	# Print success message for specific modes
 	if args.mode == MODE_ALL or args.mode == MODE_COMPILE_AND_INSTALL:
