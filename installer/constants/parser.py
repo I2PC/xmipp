@@ -236,6 +236,8 @@ MODE_EXAMPLES = {
 		f'./xmipp {MODE_GIT} checkout devel'
 	],
 	MODE_ADD_MODEL: [
-		f'./xmipp {MODE_ADD_MODEL} myuser@127.0.0.1 /home/myuser/mymodel'
+		f'./xmipp {MODE_ADD_MODEL} myuser@127.0.0.1 /home/myuser/mymodel',
+		f'./xmipp {MODE_ADD_MODEL} myuser@127.0.0.1 /home/myuser/mymodel --update'
+
 	]
 }
