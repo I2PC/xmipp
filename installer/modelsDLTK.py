@@ -54,36 +54,3 @@ def addModels(login: str, modelPath: str, update: bool):
 		
 		
 		
-# def downloadDeepLearningModels(dest, dedicatedMode=False):
-# 	if not buildConfig.is_true('USE_DL') and not dedicatedMode:
-#         return True
-#
-#     if not os.path.exists('dist/bin/xmipp_sync_data'):
-# 		print(red('Xmipp has not been installed. Please, first install it '))
-# 		return False
-# 	if dest == 'build':
-# 		modelsPath = os.path.join(dest, 'models')
-# 	else:
-# 		modelsPath = dest
-# 	dataSet = "DLmodels"
-#
-# 	# downloading/updating the DLmodels
-# 	if os.path.isdir(modelsPath):
-# 		print("Updating the Deep Learning models (in backgound)")
-# 		task = "update"
-# 	else:
-# 		print("Downloading Deep Learning models (in backgound)")
-# 		task = "download"
-# 	global pDLdownload
-#
-# 	# using Popen instead of runJob in order to download in parallel
-# 	pDLdownload = runJob("bin/xmipp_sync_data %s %s %s %s"
-# 	                     % (task, dest, MODELS_URL, dataSet),
-# 	                     cwd='build', show_command=False,
-# 	                     in_parallel=not dedicatedMode)
-# 	if dedicatedMode:
-# 		ok = pDLdownload
-# 	else:  # in parallel poll() is None untill finished
-# 		ok = pDLdownload.poll() is None or pDLdownload.poll() == 0
-# 	return ok
-#
