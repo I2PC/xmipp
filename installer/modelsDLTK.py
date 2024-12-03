@@ -34,18 +34,18 @@ def addModels(login: str, modelPath: str, update: bool):
 	tgzFileModel = f"xmipp_model_{modelName}.tgz"
 	localFileModel = os.path.join(modelsDir, tgzFileModel)
 	logger(f"Creating the {tgzFileModel} model.",forceConsoleOutput=True)
-	runJob("tar czf %s %s" % (tgzFileModel, modelName), cwd=modelsDir)
+	runJob(f"tar czf {tgzFileModel} {modelName}", cwd=modelsDir)
 	
 	logger(yellow("Warning: Uploading, please BE CAREFUL! This can be dangerous."),forceConsoleOutput=True)
 	logger(f'You are going to be connected to {login} to write in folder {SCIPION_SOFTWARE_EM}.',forceConsoleOutput=True)
-	if input("Continue? YES/no\n").lower() != 'YES':
+	if input("Continue? YES/no\n") != 'YES':
 		sys.exit()
 	
-	logger("Trying to upload the model using '%s' as login" % login,forceConsoleOutput=True)
+	logger(f"Trying to upload the model using {login} as login",forceConsoleOutput=True)
 	args = "%s %s %s %s" % (login, os.path.abspath(localFileModel), SCIPION_SOFTWARE_EM, update)
 	retCode, log = runJob(f"dist/bin/xmipp_sync_data upload {args}", showCommand=True, showError=True)
 	if retCode == 0:
-		logger("'%s' model successfully uploaded! Removing the local .tgz" % modelName)
+		logger(f"{modelName} model successfully uploaded! Removing the local .tgz")
 		runJob("rm %s" % localFileModel)
 		
 		
