@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # ***************************************************************************
 # * Authors:		Alberto García (alberto.garcia@cnb.csic.es)
-# *							Martín Salinas (martin.salinas@cnb.csic.es)
+# *					Martín Salinas (martin.salinas@cnb.csic.es)
 # *
 # *
 # * This program is free software; you can redistribute it and/or modify
@@ -44,6 +44,7 @@ from installer.main import getSources, exitXmipp, handleRetCode, getSectionMessa
 from installer.logger import logger, yellow, red, blue
 from installer.api import sendApiPOST
 from installer.test import runTests
+from installer import modelsDLTK
 
 ####################### EXECUTION MODES #######################
 def __getProjectRootDir() -> str:
@@ -63,7 +64,11 @@ def modeAddModel(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	pass
+	if not os.path.isdir(args.modelPath):
+		logger("<modelsPath> is not a directory. Please, check the path. \n"
+		      "The name of the model will be the name of that folder.\n")
+	else:
+		modelsDLTK.addModels(login=args.login, modelPath=args.modelPath, update=args.update)
 
 def modeCleanBin():
 	"""
