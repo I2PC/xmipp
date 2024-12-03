@@ -22,7 +22,7 @@
 
 import os, sys
 from .utils import runJob
-from .constants import SCIPION_NOLAN, MODELS_URL
+from .constants import SCIPION_SOFTWARE_EM, MODELS_URL
 from .logger import blue, red, yellow, logger
 
 
@@ -30,27 +30,23 @@ def addModels(login: str, modelPath: str, update: bool):
 	modelPath = modelPath.rstrip("/")
 	modelName = os.path.basename(modelPath)
 	modelsDir = os.path.dirname(modelPath)
-	if update: update='--update'
-	else: update = ''
-	tgzFn = "xmipp_model_%s.tgz" % modelName
-	localFn = os.path.join(modelsDir, tgzFn)
-	
-	logger("Creating the '%s' model." % tgzFn)
-	runJob("tar czf %s %s" % (tgzFn, modelName), cwd=modelsDir)
+	update = '--update' if update else ''
+	tgzFileModel = f"xmipp_model_{modelName}.tgz"
+	localFileModel = os.path.join(modelsDir, tgzFileModel)
+	logger(f"Creating the {tgzFileModel} model.",forceConsoleOutput=True)
+	runJob("tar czf %s %s" % (tgzFileModel, modelName), cwd=modelsDir)
 	
 	logger(yellow("Warning: Uploading, please BE CAREFUL! This can be dangerous."))
-	logger('You are going to be connected to "%s" to write in folder '
-	      '"%s".' % (login, SCIPION_NOLAN))
+	logger(f'You are going to be connected to {login} to write in folder {SCIPION_SOFTWARE_EM}.')
 	if input("Continue? YES/no\n").lower() == 'no':
 		sys.exit()
 	
 	logger("Trying to upload the model using '%s' as login" % login)
-	args = "%s %s %s %s" % (login, os.path.abspath(localFn), SCIPION_NOLAN, update)
-	log = ''
-	retCode, log = runJob("dist/bin/xmipp_sync_data upload %s" % args, showCommand=True, showError=True)
-	if retCode:
+	args = "%s %s %s %s" % (login, os.path.abspath(localFileModel), SCIPION_SOFTWARE_EM, update)
+	retCode, log = runJob(f"dist/bin/xmipp_sync_data upload {args}", showCommand=True, showError=True)
+	if retCode == 0:
 		logger("'%s' model successfully uploaded! Removing the local .tgz" % modelName)
-		runJob("rm %s" % localFn)
+		runJob("rm %s" % localFileModel)
 		
 		
 		
