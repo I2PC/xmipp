@@ -21,7 +21,7 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
-import shutil
+import shutil, os
 from typing import Dict, Any, List
 from .constants import CMAKE, DEFAULT_CMAKE, INTERNAL_LOGIC_VARS
 from .utils import runJob
@@ -84,7 +84,9 @@ def parseCmakeVersions(path: str) -> Dict[str, Any]:
 	#### Returns:
 	- (dict): Dictionary containing all the versions from the file.
 	"""
-	result = dict()
+	result = {}
+	if not os.path.exists(path):
+		return result
 	
 	with open(path, 'r') as file:
 		for line in file.readlines():
