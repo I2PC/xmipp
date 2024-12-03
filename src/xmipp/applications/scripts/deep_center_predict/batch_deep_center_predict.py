@@ -20,6 +20,7 @@ class ScriptDeepCenterPredict(XmippScript):
         self.addParamsLine(' -i <metadata>                : xmd file with the list of experimental images')
         self.addParamsLine(' --model <model>              : .tf file with the centering model')
         self.addParamsLine(' -o <metadata>                : Output filename')
+        self.addParamsLine('[--scale <K=1>]               : Multiply the shifts by this factor')
         self.addParamsLine('[--gpu <id=0>]                : GPU Id')
 
     def run(self):
@@ -27,6 +28,7 @@ class ScriptDeepCenterPredict(XmippScript):
         fnModel = self.getParam("--model")
         fnOut = self.getParam("-o")
         gpuId = self.getParam("--gpu")
+        K = float(self.getParam("--scale"))
         maxSize = 32
 
         from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
@@ -46,6 +48,9 @@ class ScriptDeepCenterPredict(XmippScript):
                 x, y = shifts[Ydict[itemId]]
                 mdExp.setValue(xmippLib.MDL_SHIFT_X, x, objId)
                 mdExp.setValue(xmippLib.MDL_SHIFT_Y, y, objId)
+                mdExp.setValue(xmippLib.MDL_ANGLE_ROT, 0.0, objId)
+                mdExp.setValue(xmippLib.MDL_ANGLE_TILT, 0.0, objId)
+                mdExp.setValue(xmippLib.MDL_ANGLE_PSI, 0.0, objId)
             mdExp.write(fnOut)
 
         md = xmippLib.MetaData(fnExp)
@@ -69,7 +74,7 @@ class ScriptDeepCenterPredict(XmippScript):
                 Iexp = np.reshape(xmippLib.Image(fnImgs[k]).getData(), (Xdim, Xdim, 1))
                 Xexp[j,] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
                 k += 1
-            shifts[i * maxSize:(i * maxSize + numPredictions), :] = -shiftModel.predict(Xexp)
+            shifts[i * maxSize:(i * maxSize + numPredictions), :] = K*shiftModel.predict(Xexp)
 
         produce_output(fnExp, shifts, itemIds, fnOut)
 
