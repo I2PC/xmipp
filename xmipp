@@ -65,7 +65,7 @@ def modeAddModel(args: argparse.Namespace):
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	if not os.path.isdir(args.modelPath):
-		print("<modelsPath> is not a directory. Please, check the path. \n"
+		logger("<modelsPath> is not a directory. Please, check the path. \n"
 		      "The name of the model will be the name of that folder.\n")
 	else:
 		modelsDLTK.addModels(login=args.login, modelPath=args.modelPath, update=args.update)
