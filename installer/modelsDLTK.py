@@ -67,8 +67,6 @@ def downloadDeepLearningModels(dest:str, distPath: str):
     else:
         logger("Downloading Deep Learning models (in backgound)")
         task = "download"
-    global pDLdownload
-
     retCode, log = runJob(f"dist/bin/xmipp_sync_data {task} {modelsPath} {MODELS_URL} {dataSet}",
            showCommand=True, showError=True, showOutput=True)
     if retCode == 0:
