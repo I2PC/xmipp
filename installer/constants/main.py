@@ -68,6 +68,7 @@ CMAKE_INSTALL_DOCS_URL = 'https://i2pc.github.io/docs/Installation/InstallationN
 MODELS_URL = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
 SCIPION_FILES_REMOTE_PATH = "scipionfiles/downloads/scipion/software/em"
 SCIPION_TESTS_URLS = "http://scipion.cnb.csic.es/downloads/scipion/data/tests"
+SCIPION_SOFTWARE_EM = "scipionfiles/downloads/scipion/software/em"
 
 # Other variables
 TAB_SIZE = 4
