@@ -32,9 +32,4 @@ XMIPP_CONDA_ENVS = {
     "requirements": os.path.join(_REQUIREMENT_PATH, 'xmipp_graph.yml'),
     "xmippEnviron": True
   },
-
-  "xmipp_cl2dClustering": {
-    "requirements": os.path.join(_REQUIREMENT_PATH, 'xmipp_cl2d_clustering.yml'),
-    "xmippEnviron": True
-  },
 }

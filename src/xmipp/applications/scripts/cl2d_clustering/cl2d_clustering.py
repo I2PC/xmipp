@@ -38,7 +38,6 @@ from sklearn.cluster import KMeans, AgglomerativeClustering
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score, pairwise_distances_argmin_min
 from sklearn.manifold import TSNE
-#import scipy.cluster.hierarchy as sch
 from skimage.metrics import structural_similarity as ssim
 
 from xmipp_base import XmippScript
@@ -801,7 +800,6 @@ def main(input_images, output_directory, min_clusters=3, max_clusters=10, target
 
 
 class ScriptCl2dClustering(XmippScript):
-    _conda_env="xmipp_cl2dClustering"
 
     def __init__(self):
         XmippScript.__init__(self)
