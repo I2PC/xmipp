@@ -28,7 +28,7 @@ Submodule containing all constants needed for the argument parsing part of Xmipp
 
 # Other variables
 COMMON_USAGE_HELP_MESSAGE = 'Run \"./xmipp -h\" for usage help.'
-DEFAULT_BUILD_DIR = 'build'
+DEFAULT_BUILD_DIR = 'dist'
 DEFAULT_MODELS_DIR = DEFAULT_BUILD_DIR
 
 # Mode list (alphabetical order)
@@ -128,7 +128,7 @@ PARAMS = {
 	PARAM_MODELS_DIRECTORY: {
 		SHORT_VERSION: "-d",
 		LONG_VERSION: "--directory",
-		DESCRIPTION: f"Directory where models will be saved. Default is \"{DEFAULT_BUILD_DIR}\"."
+		DESCRIPTION: f"Directory where models will be saved. Default is \"{DEFAULT_MODELS_DIR}\"."
 	},
 	PARAM_TEST_NAME: {
 		SHORT_VERSION: "testName",
