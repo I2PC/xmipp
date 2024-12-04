@@ -207,7 +207,7 @@ def modeGetModels(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	pass
+	modelsDLTK.downloadDeepLearningModels(args.directory)
 
 def modeGetSources(args: argparse.Namespace):
 	"""
