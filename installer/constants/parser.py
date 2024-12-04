@@ -216,7 +216,9 @@ MODE_EXAMPLES = {
 	],
 	MODE_GET_MODELS: [
 		f'./xmipp {MODE_GET_MODELS}',
-		f'./xmipp {MODE_GET_MODELS} {PARAMS[PARAM_MODELS_DIRECTORY][SHORT_VERSION]} /path/to/my/model/directory'
+		f'./xmipp {MODE_GET_MODELS} -directory {PARAMS[PARAM_MODELS_DIRECTORY][SHORT_VERSION]} /path/to/my/model/directory',
+		f'./xmipp {MODE_GET_MODELS} -d {PARAMS[PARAM_MODELS_DIRECTORY][SHORT_VERSION]} /path/to/my/model/directory'
+	
 	],
 	MODE_GET_SOURCES: [
 		f'./xmipp {MODE_GET_SOURCES}'

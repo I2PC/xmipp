@@ -50,11 +50,11 @@ def addModels(login: str, modelPath: str, update: bool):
 		
 		
 
-def downloadDeepLearningModels(dest:str):
+def downloadDeepLearningModels(dest:str, distPath: str):
     if not os.path.exists('dist/bin/xmipp_sync_data'):
         logger(red('Xmipp has not been installed. Please, first install it '))
         sys.exit()
-    if dest == DEFAULT_MODELS_DIR:
+    if dest == os.path.join(distPath):
         modelsPath = os.path.join(dest, 'models')
     else:
         modelsPath = dest
