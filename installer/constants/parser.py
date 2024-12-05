@@ -28,8 +28,8 @@ Submodule containing all constants needed for the argument parsing part of Xmipp
 
 # Other variables
 COMMON_USAGE_HELP_MESSAGE = 'Run \"./xmipp -h\" for usage help.'
-DEFAULT_BUILD_DIR = 'dist'
-DEFAULT_MODELS_DIR = DEFAULT_BUILD_DIR
+DEFAULT_BUILD_DIR = 'build'
+DEFAULT_MODELS_DIR = 'dist'
 
 # Mode list (alphabetical order)
 MODE_ADD_MODEL = 'addModel'
