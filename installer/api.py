@@ -128,7 +128,7 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 	data = parseCmakeVersions(VERSION_FILE)
 	jsonData = runParallelJobs([
 		(getOSReleaseName, ()),
-		(__getArchitectureName, ()),
+		(__getCPUFlags, ()),
 		(getCurrentBranch, ()),
 		(isBranchUpToDate, ()),
 		(__getLogTail, ())
@@ -145,7 +145,7 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 		},
 		"version": {
 			"os": jsonData[0],
-			"architecture": jsonData[1],
+			"CPUFlags": jsonData[1],
 			"cuda": data.get(CMAKE_CUDA),
 			"cmake": data.get(CMAKE_CMAKE),
 			"gcc": data.get(CMAKE_GCC),
@@ -239,22 +239,20 @@ def __getLogTail() -> Optional[str]:
 	# Return content if it went right
 	return output if retCode == 0 else None
 
-def __getArchitectureName() -> str:
-	"""
-	### This function returns the name of the system's architecture name.
 
-	#### Returns:
-	- (str): Architecture name.
-	"""
-	# Initializing to unknown value
-	archName = UNKNOWN_VALUE
 
-	# Obtaining architecture name
-	retCode, architecture = runJob('cat /sys/devices/cpu/caps/pmu_name')
+def __getCPUFlags(lscpu_output) -> str:
+    lines = lscpu_output.splitlines()
+    flags = []
+    capture = False
 
-	# If command worked and returned info, extract it
-	if retCode == 0 and architecture:
-		archName = architecture
-	
-	# Returing architecture name
-	return archName
+    for line in lines:
+        if "Flags:" in line:
+            capture = True
+            flags.append(line.split("Flags:")[1].strip())
+        elif capture:
+            if line.startswith(" "):
+                flags.append(line.strip())
+            else:
+                break
+    return " ".join(flags)
