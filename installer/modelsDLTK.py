@@ -39,7 +39,7 @@ def addModels(login: str, modelPath: str, update: bool):
 	logger(yellow("Warning: Uploading, please BE CAREFUL! This can be dangerous."),forceConsoleOutput=True)
 	logger(f'You are going to be connected to {login} to write in folder {SCIPION_SOFTWARE_EM}.',forceConsoleOutput=True)
 	if input("Continue? YES/no\n") != 'YES':
-		return 1
+		return 
 	
 	logger(f"Trying to upload the model using {login} as login",forceConsoleOutput=True)
 	args = f"{login}, {os.path.abspath(localFileModel)}, {SCIPION_SOFTWARE_EM}, {update}"
@@ -53,7 +53,7 @@ def addModels(login: str, modelPath: str, update: bool):
 def downloadDeepLearningModels(dest:str, distPath: str):
     if not os.path.exists('dist/bin/xmipp_sync_data'):
         logger(red('Xmipp has not been installed. Please, first install it '),forceConsoleOutput=True)
-        return 1
+        return 
     if dest == distPath:
         modelsPath = os.path.join(dest, 'models')
     else:
