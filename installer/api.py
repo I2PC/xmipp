@@ -27,8 +27,10 @@ Module containing all functions needed for the metric's API request.
 """
 
 # General imports
-import re, hashlib, http.client, json, ssl
+import re, hashlib, http.client, json
 from typing import Dict, Optional
+from urllib.parse import urlparse
+
 import os
 # Self imports
 from .cmake import parseCmakeVersions
@@ -56,21 +58,19 @@ def sendApiPOST(retCode: int=0):
 		headers = {"Content-type": "application/json"}
 
 		# Establish a connection
-		url = API_URL.split("/", maxsplit=1)
-		path = f"/{url[1]}"
-		url = url[0]
-		conn = http.client.HTTPSConnection(url, timeout=2, context=ssl._create_unverified_context()) # Unverified context because url does not have an ssl certificate
+		parsedUrl = urlparse(API_URL)
+		conn = http.client.HTTPSConnection(parsedUrl.hostname, parsedUrl.port, timeout=4)
 
 		try:
 			# Send the POST request
-			conn.request("POST", path, params, headers)
+			conn.request("POST", parsedUrl.path, body=params, headers=headers)
 	
 			# Get response from server
 			conn.getresponse()
 	
 			# Close the connection
 			conn.close()
-		except Exception as e:
+		except TimeoutError:
 			pass
 	
 ####################### UTILS FUNCTIONS #######################
