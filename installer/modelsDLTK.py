@@ -22,7 +22,7 @@
 
 import os, sys
 from .utils import runJob
-from .constants import SCIPION_SOFTWARE_EM, MODELS_URL
+from .constants import SCIPION_SOFTWARE_EM, MODELS_URL, DEFAULT_MODELS_DIR
 from .logger import blue, red, yellow, logger
 
 
@@ -39,14 +39,38 @@ def addModels(login: str, modelPath: str, update: bool):
 	logger(yellow("Warning: Uploading, please BE CAREFUL! This can be dangerous."),forceConsoleOutput=True)
 	logger(f'You are going to be connected to {login} to write in folder {SCIPION_SOFTWARE_EM}.',forceConsoleOutput=True)
 	if input("Continue? YES/no\n") != 'YES':
-		sys.exit()
+		return 
 	
 	logger(f"Trying to upload the model using {login} as login",forceConsoleOutput=True)
-	args = "%s %s %s %s" % (login, os.path.abspath(localFileModel), SCIPION_SOFTWARE_EM, update)
-	retCode, log = runJob(f"dist/bin/xmipp_sync_data upload {args}", showCommand=True, showError=True)
+	args = f"{login}, {os.path.abspath(localFileModel)}, {SCIPION_SOFTWARE_EM}, {update}"
+	retCode, log = runJob(f"dist/bin/xmipp_sync_data upload {args}", showCommand=False, showError=True)
 	if retCode == 0:
 		logger(f"{modelName} model successfully uploaded! Removing the local .tgz")
-		runJob("rm %s" % localFileModel)
+		runJob(f"rm {localFileModel}")
 		
 		
-		
+
+def downloadDeepLearningModels(dest:str, distPath: str):
+    if not os.path.exists('dist/bin/xmipp_sync_data'):
+        logger(red('Xmipp has not been installed. Please, first install it '),forceConsoleOutput=True)
+        return 
+    if dest == distPath:
+        modelsPath = os.path.join(dest, 'models')
+    else:
+        modelsPath = dest
+    dataSet = "DLmodels"
+
+    # downloading/updating the DLmodels
+    if os.path.isdir(modelsPath):
+        logger("Updating the Deep Learning models (in backgound)")
+        task = "update"
+        taskMessage = "updated"
+    else:
+        logger("Downloading Deep Learning models (in backgound)")
+        task = "download"
+        taskMessage = "downloaded"
+    retCode, log = runJob(f"dist/bin/xmipp_sync_data {task} {modelsPath} {MODELS_URL} {dataSet}",
+           showCommand=True, showError=True, showOutput=True)
+    if retCode == 0:
+        logger(f"Models successfully {taskMessage}")
+
