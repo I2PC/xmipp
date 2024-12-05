@@ -25,11 +25,12 @@
 """
 Submodule containing all constants needed for the argument parsing part of Xmipp's installation.
 """
+from .main import INSTALL_PATH
 
 # Other variables
 COMMON_USAGE_HELP_MESSAGE = 'Run \"./xmipp -h\" for usage help.'
 DEFAULT_BUILD_DIR = 'build'
-DEFAULT_MODELS_DIR = DEFAULT_BUILD_DIR
+DEFAULT_MODELS_DIR = INSTALL_PATH
 
 # Mode list (alphabetical order)
 MODE_ADD_MODEL = 'addModel'
@@ -128,7 +129,7 @@ PARAMS = {
 	PARAM_MODELS_DIRECTORY: {
 		SHORT_VERSION: "-d",
 		LONG_VERSION: "--directory",
-		DESCRIPTION: f"Directory where models will be saved. Default is \"{DEFAULT_BUILD_DIR}\"."
+		DESCRIPTION: f"Directory where models will be saved. Default is \"{DEFAULT_MODELS_DIR}\"."
 	},
 	PARAM_TEST_NAME: {
 		SHORT_VERSION: "testName",
@@ -216,7 +217,9 @@ MODE_EXAMPLES = {
 	],
 	MODE_GET_MODELS: [
 		f'./xmipp {MODE_GET_MODELS}',
-		f'./xmipp {MODE_GET_MODELS} {PARAMS[PARAM_MODELS_DIRECTORY][SHORT_VERSION]} /path/to/my/model/directory'
+		f'./xmipp {MODE_GET_MODELS} -directory {PARAMS[PARAM_MODELS_DIRECTORY][SHORT_VERSION]} /path/to/my/model/directory',
+		f'./xmipp {MODE_GET_MODELS} -d {PARAMS[PARAM_MODELS_DIRECTORY][SHORT_VERSION]} /path/to/my/model/directory'
+	
 	],
 	MODE_GET_SOURCES: [
 		f'./xmipp {MODE_GET_SOURCES}'
