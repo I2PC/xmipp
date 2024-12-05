@@ -136,7 +136,7 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 
 	# If branch is master or there is none, get release name
 	branchName = XMIPP_VERSIONS[XMIPP][VERSION_KEY] if not jsonData[2] or jsonData[2] == MASTER_BRANCHNAME else jsonData[2]
-	installedByScipion = True if os.getenv("SCIPION_SOFTWARE") else  False
+	installedByScipion = bool(os.getenv("SCIPION_SOFTWARE"))
 
 	# Introducing data into a dictionary
 	return {
