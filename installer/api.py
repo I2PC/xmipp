@@ -30,8 +30,8 @@ Module containing all functions needed for the metric's API request.
 import re, hashlib, http.client, json
 from typing import Dict, Optional
 from urllib.parse import urlparse
-
 import os
+
 # Self imports
 from .cmake import parseCmakeVersions
 from .utils import runJob, getCurrentBranch, isBranchUpToDate, runParallelJobs
