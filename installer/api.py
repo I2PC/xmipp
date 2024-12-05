@@ -241,18 +241,14 @@ def __getLogTail() -> Optional[str]:
 
 
 
-def __getCPUFlags(lscpu_output) -> str:
-    lines = lscpu_output.splitlines()
-    flags = []
-    capture = False
-
-    for line in lines:
-        if "Flags:" in line:
-            capture = True
-            flags.append(line.split("Flags:")[1].strip())
-        elif capture:
-            if line.startswith(" "):
-                flags.append(line.strip())
-            else:
-                break
-    return " ".join(flags)
+def __getCPUFlags() -> str:
+    """
+    ### This function returns a string with the flags provided by lscpu.
+    """
+    log = []
+    returnCode, outputStr = runJob('lscpu | grep Flags', logOutput=log)
+    if returnCode == 0:
+	    flagsCPU = outputStr.replace('Flags:', '').replace('  ', '')
+	    return flagsCPU
+    else:
+	    return'Unknow'
