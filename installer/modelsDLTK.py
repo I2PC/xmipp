@@ -46,7 +46,7 @@ def addModels(login: str, modelPath: str, update: bool):
 	retCode, log = runJob(f"dist/bin/xmipp_sync_data upload {args}", showCommand=False, showError=True)
 	if retCode == 0:
 		logger(f"{modelName} model successfully uploaded! Removing the local .tgz")
-		runJob("rm %s" % localFileModel)
+		runJob(f"rm {localFileModel}")
 		
 		
 
