@@ -62,14 +62,14 @@ def sendApiPOST(retCode: int=0):
 
 		try:
 			# Send the POST request
-			conn.request("POST", path, body=params, headers=headers)
+			conn.request("POST", parsedUrl.path, body=params, headers=headers)
 	
 			# Get response from server
 			conn.getresponse()
 	
 			# Close the connection
 			conn.close()
-		except Exception as e:
+		except TimeoutError:
 			pass
 	
 ####################### UTILS FUNCTIONS #######################
