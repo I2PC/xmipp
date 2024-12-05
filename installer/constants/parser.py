@@ -25,11 +25,12 @@
 """
 Submodule containing all constants needed for the argument parsing part of Xmipp's installation.
 """
+from .main import INSTALL_PATH
 
 # Other variables
 COMMON_USAGE_HELP_MESSAGE = 'Run \"./xmipp -h\" for usage help.'
 DEFAULT_BUILD_DIR = 'build'
-DEFAULT_MODELS_DIR = 'dist'
+DEFAULT_MODELS_DIR = INSTALL_PATH
 
 # Mode list (alphabetical order)
 MODE_ADD_MODEL = 'addModel'
