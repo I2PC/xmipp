@@ -58,7 +58,7 @@ def sendApiPOST(retCode: int=0):
 
 		# Establish a connection
 		parsedUrl = urlparse(API_URL)
-		conn = http.client.HTTPSConnection(parsedUrl.hostname, parsedUrl.port, timeout=2)
+		conn = http.client.HTTPSConnection(parsedUrl.hostname, parsedUrl.port, timeout=4)
 
 		try:
 			# Send the POST request
