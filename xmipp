@@ -193,11 +193,14 @@ def modeConfig(overwrite: bool=False) -> Dict:
 	- (dict): Dictionary containig all config variables.
 	"""
 	configDict = {}
+	logger(getSectionMessage("Generating config file"), forceConsoleOutput=True)
 	if not overwrite and os.path.exists(CONFIG_FILE):
 		configDict = readConfig(CONFIG_FILE)
-
+	else:
+		logger('config file from scratch with default values', forceConsoleOutput=True)
+	logger('', forceConsoleOutput=True)
 	writeConfig(CONFIG_FILE, configDict=configDict)
-	
+	handleRetCode(0)
 	return readConfig(CONFIG_FILE)
 
 def modeGetModels(args: argparse.Namespace):
