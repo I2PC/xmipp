@@ -69,7 +69,7 @@ def sendApiPOST(retCode: int=0):
 	
 			# Close the connection
 			conn.close()
-		except TimeoutError:
+		except Exception:
 			pass
 	
 ####################### UTILS FUNCTIONS #######################
