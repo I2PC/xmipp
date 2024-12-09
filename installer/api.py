@@ -69,7 +69,7 @@ def sendApiPOST(retCode: int=0):
 	
 			# Close the connection
 			conn.close()
-		except Exception:
+		except Exception as e:
 			pass
 	
 ####################### UTILS FUNCTIONS #######################
