@@ -66,8 +66,8 @@ def sendApiPOST(retCode: int=0):
 			conn.request("POST", parsedUrl.path, body=params, headers=headers)
 	
 			# Get response from server
-			conn.getresponse()
-	
+			response = conn.getresponse()
+			# response.reason
 			# Close the connection
 			conn.close()
 		except TimeoutError:
@@ -145,7 +145,7 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 		},
 		"version": {
 			"os": jsonData[0],
-			"CPUFlags": jsonData[1],
+			"architecture": jsonData[1],
 			"cuda": data.get(CMAKE_CUDA),
 			"cmake": data.get(CMAKE_CMAKE),
 			"gcc": data.get(CMAKE_GCC),
@@ -239,16 +239,12 @@ def __getLogTail() -> Optional[str]:
 	# Return content if it went right
 	return output if retCode == 0 else None
 
-
-
 def __getCPUFlags() -> str:
     """
     ### This function returns a string with the flags provided by lscpu.
     """
-    log = []
-    returnCode, outputStr = runJob('lscpu | grep Flags', logOutput=log)
+    returnCode, outputStr = runJob('lscpu | grep Flags')
     if returnCode == 0:
-	    flagsCPU = outputStr.replace('Flags:', '').replace('  ', '')
-	    return flagsCPU
-    else:
-	    return'Unknow'
+        flagsCPU = outputStr.replace('Flags:', '').strip()
+        return flagsCPU
+    return UNKNOWN_VALUE
