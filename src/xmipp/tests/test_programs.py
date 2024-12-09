@@ -37,6 +37,8 @@ import os
 # from pyworkflow.tests import DataSet
 from tests.test import ProgramTest
 
+def yellow(text):
+    return f"\033[93m{text}\033[0m"
 
 class XmippProgramTest(ProgramTest):
     
@@ -264,7 +266,7 @@ class CtfEstimateFromMicrograph(XmippProgramTest):
                 outputs=["micrograph.psd"])
     
     def test_case2(self):
-        cause = 'ouputs of xmipp_ctf_estimate_from_micrograph are highly unstable'
+        cause = 'outputs of xmipp_ctf_estimate_from_micrograph are highly unstable'
         print(yellow('test_case2 is skipped as ' + cause))
         self.skipTest(cause)
         self.setTimeOut(400)
@@ -275,7 +277,7 @@ class CtfEstimateFromMicrograph(XmippProgramTest):
                 outputs=["micrograph.psd","micrograph_enhanced_psd.xmp","micrograph.ctfparam","Defocus.xmd"])
     
     def test_case3(self):
-        cause = 'ouputs of xmipp_ctf_estimate_from_micrograph are highly unstable'
+        cause = 'outputs of xmipp_ctf_estimate_from_micrograph are highly unstable'
         print(yellow('test_case3 is skipped as ' + cause))
         self.skipTest(cause)
         self.runCase("--micrograph input/Protocol_Preprocess_Micrographs/Micrographs/01nov26b.001.001.001.002.mrc --oroot %o/micrograph --sampling_rate 1.4 --voltage 200 --spherical_aberration 2.5 --pieceDim 256 --downSamplingPerformed 2.5 --ctfmodelSize 256  --defocusU 14900 --defocusV 14900 --min_freq 0.01 --max_freq 0.3 --defocus_range 1000 --acceleration1D",

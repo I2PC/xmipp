@@ -80,7 +80,8 @@ def handleRetCode(realRetCode: int, predefinedErrorCode: int=0, message: str='',
 		resultCode = __getPredefinedError(realRetCode=realRetCode, desiredRetCode=predefinedErrorCode)
 		message = message if resultCode != realRetCode else ''
 		logger.logError(message, retCode=resultCode, addPortalLink=resultCode != realRetCode)
-		if sendAPI and os.path.exists(VERSION_FILE) and resultCode != INTERRUPTED_ERROR:
+		
+		if sendAPI and resultCode != INTERRUPTED_ERROR:
 			sendApiPOST(resultCode)
 		exitXmipp(retCode=resultCode)
 	else:
