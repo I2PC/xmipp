@@ -270,7 +270,12 @@ void ProjectionRefencePoint(Matrix1D<double> &Parameters, int dim, double *R,
 	std::string atom_type;
 	int ttt = 0;
 	int kx, ky;
+	// Reading PDB/CIF file
+	PDBPhantom pdb;
+	FileName fileNameDeformedPdb(deformed_pdb.c_str());
+	pdb.read(fileNameDeformedPdb);
 
+	int nAtom = 0;
 	while (!fh_deformedPDB.eof()) {
 		ttt++;
 		// Read an ATOM line
@@ -284,10 +289,11 @@ void ProjectionRefencePoint(Matrix1D<double> &Parameters, int dim, double *R,
 		// Extract atom type and position
 		// Typical line:
 		// ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-		atom_type = line.substr(13, 2);
-		double x = textToFloat(line.substr(30, 8));
-		double y = textToFloat(line.substr(38, 8));
-		double z = textToFloat(line.substr(46, 8));
+		const auto& atom = pdb.atomList[nAtom];
+		atom_type = atom.atomType;
+		double x = atom.x;
+		double y = atom.y;
+		double z = atom.z;
 		coord_gaussian[0] = (x - centerOfMass(0))
 				/ (global_flexible_prog->sampling_rate);
 		coord_gaussian[1] = (y - centerOfMass(1))
@@ -315,6 +321,7 @@ void ProjectionRefencePoint(Matrix1D<double> &Parameters, int dim, double *R,
 				}
 			}
 		}
+		nAtom++;
 	}
 
 	Image<double> test1;
@@ -421,7 +428,13 @@ int partialpfunction(Matrix1D<double> &Parameters,
 	coord_img[3] = 1.0;
 	int k = 0;
 
+	// Reading PDB/CIF file
+	PDBPhantom pdb;
+	FileName fileNameDeformedPdb((fnRandom + "_deformedPDB.pdb").c_str());
+	pdb.read(fileNameDeformedPdb);
+
 	std::string kind;
+	int nAtom = 0;
 	while (!fh_deformedPDB.eof()) {
 		// Read an ATOM line
 		getline(fh_deformedPDB, line);
@@ -434,17 +447,18 @@ int partialpfunction(Matrix1D<double> &Parameters,
 		// Extract atom type and position
 		// Typical line:
 		// ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-		std::string atom_type = line.substr(13, 2);
-		double x = textToFloat(line.substr(30, 8));
-		double y = textToFloat(line.substr(38, 8));
-		double z = textToFloat(line.substr(46, 8));
+		const auto& atom = pdb.atomList[nAtom];
+		char atom_type = atom.atomType;
+		double xPos = atom.x;
+		double yPos = atom.y;
+		double zPos = atom.z;
 
 		// Correct position
-		coord_gaussian[0] = (x - centerOfMass(0))
+		coord_gaussian[0] = (xPos - centerOfMass(0))
 				/ global_flexible_prog->sampling_rate;
-		coord_gaussian[1] = (y - centerOfMass(1))
+		coord_gaussian[1] = (yPos - centerOfMass(1))
 				/ global_flexible_prog->sampling_rate;
-		coord_gaussian[2] = (z - centerOfMass(2))
+		coord_gaussian[2] = (zPos - centerOfMass(2))
 				/ global_flexible_prog->sampling_rate;
 
 		//MatrixMultiply( Tr, coord_gaussian, coord_gaussian,4L, 4L, 1L);
@@ -508,6 +522,7 @@ int partialpfunction(Matrix1D<double> &Parameters,
 			}
 		}
 		k++;
+		nAtom++;
 	}
 	fh_deformedPDB.close();
 	return (!ERROR);

@@ -159,14 +159,15 @@ class CondaEnvManager(object):
             > _conda_env preference: kwargs > protocol default > general default
         """
         name = kwargs.get('_conda_env', None)
-        if name is None and hasattr(xmippCls, '_conda_env'):
-            name = xmippCls._conda_env
-        else:
-            name = CondaEnvManager.CONDA_DEFAULT_ENVIRON
-            print("Warning: using default Xmipp conda environment '%s'. "
-                  "CondaJobs should be run under a specific environment to "
-                  "avoid problems. Please, fix it or contact to the developer."
-                  % name)
+        if name is None:
+            if hasattr(xmippCls, '_conda_env'):
+                name = xmippCls._conda_env
+            else:
+                name = CondaEnvManager.CONDA_DEFAULT_ENVIRON
+                print("Warning: using default Xmipp conda environment '%s'. "
+                    "CondaJobs should be run under a specific environment to "
+                    "avoid problems. Please, fix it or contact to the developer."
+                    % name)
         return name
 
     @staticmethod
@@ -319,7 +320,7 @@ class CondaEnvManager(object):
         
         target = name + '.yml'
         commands = [] 
-        commands.append('conda env create --force -f %s' % requirementsFn)
+        commands.append('conda env create -f %s || conda env update -f %s' % (requirementsFn, requirementsFn))
         commands.append('conda env export -f %s' % target)
         return ' && '.join(commands), target
 

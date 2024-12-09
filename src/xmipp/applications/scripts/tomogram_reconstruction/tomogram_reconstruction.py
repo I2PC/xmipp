@@ -30,28 +30,32 @@ import os
 import mrcfile
 
 import numpy as np
-import astra
+import re
+import scipy as sp
 import tigre
+from tigre.utilities.im3Dnorm import im3DNORM
 
 import xmippLib
 from xmipp_base import XmippScript
 
 
 class TomogramReconstruction(XmippScript):
-    _conda_env="xtomo_tigre_reconstruction" 
+    _conda_env="xtomo_tigre" 
 
     def __init__(self):
 
         XmippScript.__init__(self)
         
         # Command line parameters
-        self.fnTs      = None
-        self.fnAngles  = None
-        self.thickness = None
-        self.libRec    = None
-        self.method    = None
-        self.fnOut     = None
-        self.gpuId     = 0
+        self.fnTs          = None
+        self.fnAngles      = None
+        self.thickness     = None
+        self.libRec        = None
+        self.method        = None
+        self.fnOut         = None
+        self.normalizeTi   = None
+        self.backprojector = None
+        self.gpuId         = 0
         
         # Global parameters
         self.xdim = None
@@ -118,10 +122,10 @@ class TomogramReconstruction(XmippScript):
         
         # Params
         self.addParamsLine(' --tiltseries <fnTs>                  : Tilt series file. It must be a .mrc, .mrcs, .ali, or .st file')
-        self.addParamsLine(' --angles <fnAngles>                  : Metadata file .xmd with the list of angles of the tilt series. ')
+        self.addParamsLine(' --angles <fnAngles>                  : Tlt file with the list of angles of the tilt series. ')
         self.addParamsLine(' --thickness <thickness>              : Thickness in pixels of the reconstructed tomogram')
         self.addParamsLine(' [--iter <iterations>]                : Number of iterations for the reconstructoin algorithm. Only used by SIRT (default 20), SART (20), OSSART(20), MLEM (500)')
-        self.addParamsLine(' [--lmbda <lmbda>]                    : Hyperparameter. The update will be multiplied by this number every iteration, to make the steps bigger or smaller. Default: lmbda=1.0 for all algorithms except for irn-tv-cgls for which lmbda=5.0')
+        self.addParamsLine(' [--lambda <lmbda>]                   : Hyperparameter. The update will be multiplied by this number every iteration, to make the steps bigger or smaller. Default: lmbda=1.0 for all algorithms except for irn-tv-cgls for which lmbda=5.0')
         self.addParamsLine(' [--lambdared <lambdared>]            : Reduction multiplier for the hyperparameter. lambda=lambda*lambdared every iterations, so the steps can be smaller the further the update. Default=0.99')
         self.addParamsLine(' [--order <order>]                    : (Used by ossart)  Chooses the subset ordering strategy. Options are  1) ordered : uses them in the input order, but divided. 2) random: orders them randomply. 3) angularDistance: chooses the next subset with the biggest angular distance with the ones used (default)')
         
@@ -130,68 +134,78 @@ class TomogramReconstruction(XmippScript):
         self.addParamsLine(' [--tvlambda <tvlambda>]              : Multiplier for TV. Default: 50 for SART-TV. 20 for FISTA.')
         self.addParamsLine(' [--alpha_red <alpha_red>]            : Defines the reduction rate of the TV hyperparameter')
         self.addParamsLine(' [--ratio <ratio>]                    : The maximum allowed image/TV update ration. If the TV update changes the image more than this, the parameter will be reduced. Default is 0.95')
+        self.addParamsLine(' [--backprojector <backprojector>]    : This is the used algorithm for backprojecting at each iteration. ')
         
         self.addParamsLine(' [--blocksize <blocksize>]            : (Used by ossart) Sets the projection block size used simultaneously. If BlockSize = 1 OS-SART becomes SART and if  BlockSize = size(angles,2) then OS-SART becomes SIRT. Default is 20.')
-        
-        self.addParamsLine(' [--astra]                            : Use the astra library')
         self.addParamsLine(' [--method <method>]                  : List of reconstruction algorithms. See the full list in the description.')
 
         self.addParamsLine(' [--filter <filterToApply> ]          : List of filters for FDK or FBP: *ram_lak  (default). * shepp_logan. * cosine. * hamming. *hann. The choice of filter will modify the noise and some discreatization errors, depending on which is chosen.')
+        self.addParamsLine(' [--normalize <normalizeTi>]          : Preprocess the set of images to present zero mean and unit standard deviation')
         self.addParamsLine(' -o <fnOut>                           : Output filename of the tomogram.')
-        self.addParamsLine(' --gpu <gpuId>                        : GPU Ids to be use in the image processing') 
+        self.addParamsLine(' [--gpu <gpuId>]                      : GPU Ids to be use in the image processing. (by default gpu 0) If this parameter is not set, the gpu 0 will be used') 
         
         # Examples       
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method wbp -o tomogram.mrc --filter ram_lak')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method fdk -o tomogram.mrc --filter hamming')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method sirt -o tomogram.mrc --iter 20')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method sart -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method ossart -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method lsmr -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method asd-pocs -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method os-asd-pocs -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method awasd-pocs -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method irn-tv-cgls -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method ab-gmres -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method ab-gmres -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method hybrid_lsqr -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method lsqr -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method cgls -o tomogram.mrc')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method wbp --filter ram_lak')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method fdk --filter hamming')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method sirt --iter 20')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method sart')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method ossart')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method lsmr')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method asd-pocs')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method os-asd-pocs')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method awasd-pocs')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method irn-tv-cgls')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method ab-gmres')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method ab-gmres')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method hybrid_lsqr')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method lsqr')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method cgls')
         
 
     def readInputParams(self):
         '''
         In this function the parameters are read. For for information about their use see the help
         '''
-        
+
         self.fnTs          = self.getParam('--tiltseries')
         self.fnAngles      = self.getParam('--angles')
         self.thickness     = self.getIntParam('--thickness')
-        self.useAstra      = self.checkParam('--astra')
-        self.method        = self.getParam('--method').lower()
+        self.method        = self.fixMethod(self.getParam('--method').lower())
         self.fnOut         = self.getParam('-o')
+        self.normalizeTi   = self.getParam('--normalize').lower()
         self.gpuId         = self.getIntParam('--gpu') if self.checkParam('--gpu') else 0
+        self.useTigreInterpolation = False
         
         if self.method == 'wbp':
             self.method = 'fbp'
         
         if self.method == 'fdk' or self.method == 'fbp':
-            self.filterToApply = self.getParam('--filter') if self.checkParam('--filter') else 'ram_lak'
-            self.checkFilter(self.filterToApply)
+            self.filterToApply = self.getParam('--filter').lower() if self.checkParam('--filter') else 'ram_lak'
+            self.checkFilter(self.filterToApply, self.method)
             
         if self.method == 'sirt' or self.method == 'sart' or self.method == 'ossart':
             self.iterations    = self.getIntParam('--iter') if self.checkParam('--iter') else 20
-            self.lmbda         = self.getDoubleParam('--lmbda') if self.checkParam('--lmbda') else 1.0
+            self.lmbda         = self.getDoubleParam('--lambda') if self.checkParam('--lambda') else 1.0
             self.lambdared     = self.getDoubleParam('--lambdared') if self.checkParam('--lambdared') else 0.999
             self.qualmeas      = ["RMSE", "SSD"]
             
         if self.method == 'ossart':
             self.blocksize     = self.getIntParam('--blocksize') if self.checkParam('--blocksize') else 10
             self.order         = self.getParam('--order') if self.checkParam('--order') else "random"
+        
+        if self.method == 'cgls' or self.method == 'lsqr' or self.method == 'lsmr' or self.method == 'hybridlsqr' or self.method == 'abgmres' or self.method == 'bagmres':
+            self.iterations    = self.getIntParam('--iter') if self.checkParam('--iter') else 30
             
-        if self.method == 'lsmr' or self.method == 'asd-pocs' or self.method == 'os-asd-pocs': 
-            self.lmbda         = self.getDoubleParam('--lmbda') if self.checkParam('--lmbda') else 1.0
+        if self.method == 'abgmres' or self.method == 'bagmres':
+            self.backprojector = self.getParam('--backprojector') if self.checkParam('--backprojector') else None
+             
+        if self.method == 'asdpocs':
+            self.iterations = self.getIntParam('--iter') if self.checkParam('--iter') else 30
             
-        if self.method == 'asd-pocs' or self.method == 'os-asd-pocs' or self.method == 'awasd-pocs':
+        if self.method == 'lsmr' or self.method == 'asdpocs' or self.method == 'osasdpocs':
+            self.lmbda         = self.getDoubleParam('--lambda') if self.checkParam('--lambda') else 1.0
+            
+        if self.method == 'asdpocs' or self.method == 'osasdpocs' or self.method == 'awasdpocs':
             self.alpha         = self.getDoubleParam('--alpha') if self.checkParam('--alpha') else 0.002
             self.tviter        = self.getIntParam('--tviter') if self.checkParam('--tviter') else 25
             self.lambdared     = self.getDoubleParam('--lambdared') if self.checkParam('--lambdared') else 0.9999
@@ -201,186 +215,255 @@ class TomogramReconstruction(XmippScript):
         if self.method == 'pcsd' or self.method == 'awpcsd':
             self.iterations    = self.getIntParam('--iter') if self.checkParam('--iter') else 20
             
-        if self.method == 'os-asd-pocs':
+        if self.method == 'osasdpocs':
             self.blocksize     = self.getIntParam('--blocksize') if self.checkParam('--blocksize') else 10
+            self.iterations    = self.getIntParam('--iter') if self.checkParam('--iter') else 20
 
-        if self.method == 'awasd-pocs':
+        if self.method == 'awasdpocs':
             self.blocksize     = self.getIntParam('--blocksize') if self.checkParam('--blocksize') else 20
 
-        if self.method == 'irn-tv-cgls':
-            self.lmbda         = self.getDoubleParam('--lmbda') if self.checkParam('--lmbda') else 5.0
+        if self.method == 'irntvcgls':
+            self.lmbda         = self.getDoubleParam('--lambda') if self.checkParam('--lambda') else 5.0
+            self.iterations    = self.getIntParam('--iter') if self.checkParam('--iter') else 10
             self.niter_outer   = 2
             
         if self.method == 'fista':
-            self.iterations    = self.getintParam('--iter') if self.checkParam('--iter') else 100
+            self.iterations    = self.getIntParam('--iter') if self.checkParam('--iter') else 100
             self.tviter        = self.getIntParam('--tviter') if self.checkParam('--tviter') else 100
             self.tvlambda      = self.getIntParam('--tvlambda') if self.checkParam('--tvlambda') else 20
         
-        if self.method == 'sart-tv':
-            self.iterations    = self.getintParam('--iter') if self.checkParam('--iter') else 100
-            self.tviter        = self.getIntParam('--tviter') if self.checkParam('--tviter') else 20
+        if self.method == 'sarttv':
+            self.iterations    = self.getIntParam('--iter') if self.checkParam('--iter') else 30
+            self.tviter        = self.getIntParam('--tviter') if self.checkParam('--tviter') else 50
             self.tvlambda      = self.getIntParam('--tvlambda') if self.checkParam('--tvlambda') else 50
+            self.alpha_red    = self.getDoubleParam('--alpha_red') if self.checkParam('--alpha_red') else 0.95
+            
         
-        if self.method == 'MLEM':
+        if self.method == 'mlem':
             self.iterations    = self.getIntParam('--iter') if self.checkParam('--iter') else 500
             
             
 
     def run(self):
         print('Starting ...')
+        from scipy.spatial.transform import Rotation as R
         
         self.readInputParams()
         
-        mdTs, ts = self.readTiltSeries(self.fnAngles)
-        
-        tiltAngles = []
-        for objId in mdTs:
-            tiltAngles.append(mdTs.getValue(xmippLib.MDL_ANGLE_TILT, objId))
-        
+        ts = self.readTiltSeries()
+        print(os.path.splitext(self.fnAngles)[1])
+
+        rotAngles = None
+        offSets = None
+
+        if os.path.splitext(self.fnAngles)[1] == '.tlt':
+            tiltAngles = self.readTltFile(self.fnAngles)
+            self.useTigreInterpolation= False
+        else:
+            self.useTigreInterpolation=True
+            mdTs = xmippLib.MetaData(os.path.expanduser(self.fnAngles))
+            tiltAngles = []
+            rotAngles = []
+            offSets = []
+            for objId in mdTs:
+                tilt = mdTs.getValue(xmippLib.MDL_ANGLE_TILT, objId)
+
+                if mdTs.containsLabel(xmippLib.MDL_ANGLE_ROT):
+                    rot = mdTs.getValue(xmippLib.MDL_ANGLE_ROT, objId)
+                else:
+                    rot = 0.0
+
+                if mdTs.containsLabel(xmippLib.MDL_SHIFT_X):
+                    sx = mdTs.getValue(xmippLib.MDL_SHIFT_X, objId)
+                else:
+                    sx = 0.0
+
+                if mdTs.containsLabel(xmippLib.MDL_SHIFT_Y):
+                    sy = mdTs.getValue(xmippLib.MDL_SHIFT_Y, objId)
+                else:
+                    sy = 0.0
+                offSets.append([-sy,-sx])
+                rotAngles.append([-rot, 0.0, 0.0])
+                
+                # Given ZYZ Euler angles
+                zyz_angles = [tilt, rot, 0.0]  # replace with actual values
+
+                # Create a rotation object from ZYZ Euler angles
+                r_zyz = R.from_euler('ZYZ', zyz_angles, degrees=True)
+
+                # Convert the rotation to ZXZ Euler angles
+                zxz_angles = r_zyz.as_euler('ZXZ', degrees=True)
+                tiltAngles.append(zxz_angles)
+
+            tiltAngles = np.vstack(tiltAngles)
+            offSets    = np.vstack(offSets)
+
         tiltAngles  = np.array(tiltAngles) * np.pi/180.0
+        self.tigreReconstruction(ts, tiltAngles, rotAngles=None, offSets=offSets)
 
-        if self.useAstra:
-            self.astraReconstruction(ts, tiltAngles, 'FP3D_CUDA')
-        else:
-            self.tigreReconstruction(ts, tiltAngles)
-
-
-    def astraReconstruction(self, ts_orig, tiltAngles, recAlgorithm):
+    def fixMethod(self, method):
         
-        Nangles = len(tiltAngles)
-        ts = np.zeros((self.xdim, Nangles, self.ydim))
-
-        for i in range(0, Nangles):
-            ts[:,i,:] = ts_orig[i,:,:]
+        method = method.replace("-","")
+        method = method.replace("_","")
         
-        proj_geom = astra.create_proj_geom('parallel3d', 1.0, 1.0, self.xdim, self.ydim, tiltAngles)
-        projections_id = astra.data3d.create('-sino', proj_geom, ts)
-  
-        vol_geo = astra.create_vol_geom(self.thickness, self.xdim, self.ydim)
-                           
-        reconstruction_id = astra.data3d.create('-vol', vol_geo, data=0)
+        return method
 
-        alg_cfg = astra.astra_dict(recAlgorithm)
-        alg_cfg['ProjectionDataId'] = projections_id
-        alg_cfg['ReconstructionDataId'] = reconstruction_id
-        
-        '''
-        cfg['option'] = { 'FilterType': 'Ram-Lak' }
 
-        # possible values for FilterType:
-        # none, ram-lak, shepp-logan, cosine, hamming, hann, tukey, lanczos,
-        # triangular, gaussian, barlett-hann, blackman, nuttall, blackman-harris,
-        # blackman-nuttall, flat-top, kaiser, parzen
-        '''
-        
-        algorithm_id = astra.algorithm.create(alg_cfg)
-        astra.algorithm.run(algorithm_id)
-        reconstruction = astra.data3d.get(reconstruction_id)
-
-        
-        with mrcfile.new(self.fnOut, overwrite=True) as mrc:
-            mrc.set_data(np.swapaxes(reconstruction, 0, 1))
-            
+    def readTltFile(self, fnTlt):
+        try:
+            with open(fnTlt, 'r') as tlt:
+                lines = tlt.readlines()
     
-    def checkFilter(self, candidate):
-        fdkFilters = ["ram_lak", "shepp_logan", "cosine", "hamming", "hann"]
-        
-            # Check if the word is in the list
-        if candidate in fdkFilters:
-            print("%s is in the list in the list of filters." % candidate)
-        else:
-            raise Exception('The selected filter does not exist check the --filter flag')
+                # Regular expression for matching numbers in the first column
+                number_pattern = re.compile(r'^\s*([\d.-]+)')
     
-    def tigreReconstruction(self, ts, tiltAngles):
+                # Try to extract the first column using a comma or whitespace as the delimiter
+                first_column = []
+                for line in lines:
+                    match = number_pattern.match(line)
+                    if match:
+                        first_column.append(float(match.group(1)))
+    
+                return np.array(first_column)
+    
+        except IOError:
+            raise FileNotFoundError("Error parsing the tlt file")
+    
+    
+    def fixFilter(self, candidate, method):
+        if method == 'fdk':
+            listFilters = ["ram_lak", "shepp_logan", "cosine", "hamming", "hann"]
+            if '-' in candidate:
+                candidate = candidate.replace('-', '_')
+                
+        elif method == 'fbp':
+            listFilters = ["ram-lak", "shepp-logan", "cosine", "hamming", "hann"]
+            if '_' in candidate:
+                candidate = candidate.replace('_', '-')
+        else:
+            raise Exception('The selected filter presents a problem, please check the --filter')
+        
+        return candidate, listFilters
+    
+    def checkFilter(self, candidate, method):
+        candidate, listFilters = self.fixFilter(candidate, method)
+
+        if candidate in listFilters:
+            self.filterToApply = listFilters[listFilters.index(candidate)]
+        else:
+            raise Exception('The selected filter does not exist, please check the --filter flag')
+        print(self.filterToApply)
+
+    def getGPUs(self):
+        return str(self.gpuId)
+
+    
+    def tigreReconstruction(self, ts, tiltAngles, rotAngles=None, offSets=None):
         import tigre.algorithms as algs
+        from tigre.utilities import gpu
+
+        gpuids = gpu.GpuIds()
+        gpuids.devices = [int(self.getGPUs())]
+
         geo = tigre.geometry(mode="parallel", nVoxel=np.array([self.xdim, self.ydim, self.thickness]))
+        if self.useTigreInterpolation:
+            if rotAngles is not None:
+                geo.rotDetector = rotAngles
+
+            if offSets is not None:
+                geo.offDetector = offSets  # Offset of image from origin
+
+
         
+        # EXACT ALGORITHMS
         if self.method == 'fbp': 
-            reconstruction = algs.fbp(ts, geo, tiltAngles, filter=self.filterToApply)
+            reconstruction = algs.fbp(ts, geo, tiltAngles, filter=self.filterToApply, noneg=False, gpuids=gpuids)
      
         elif self.method == 'fdk':
-            reconstruction = algs.fdk(ts, geo, tiltAngles, filter=self.filterToApply)
+            reconstruction = algs.fdk(ts, geo, tiltAngles, filter=self.filterToApply, noneg=False, gpuids=gpuids)
         
+        # GRADIENT ALGORITHMS
         elif self.method =='sirt':
-            reconstruction, quality = algs.sirt(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, lmbda_red=self.lambdared, verbose=True, Quameasopts=self.qualmeas, computel2=True)
+            reconstruction = algs.sirt(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, lmbda_red=self.lambdared, verbose=True, noneg=False, gpuids=gpuids) #, Quameasopts=self.qualmeas, computel2=True)
             
         elif self.method == 'sart':
-            reconstruction, quality = algs.sart(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, lmbda_red=self.lambdared, verbose=True, Quameasopts=self.qualmeas, computel2=True)
+            reconstruction = algs.sart(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, lmbda_red=self.lambdared, verbose=True,  noneg=False, gpuids=gpuids)#, Quameasopts=self.qualmeas, computel2=True)
             
         elif self.method == 'ossart':
-            reconstruction, quality = algs.ossart(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, lmbda_red=self.lambdared, verbose=True, Quameasopts=self.qualmeas, blocksize=self.blocksize, OrderStrategy=self.order, computel2=True)
-            
+            reconstruction = algs.ossart(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, lmbda_red=self.lambdared, verbose=True,  noneg=False, blocksize=self.blocksize, OrderStrategy=self.order, gpuids=gpuids)#, Quameasopts=self.qualmeas, computel2=True)
+       
+        # KRYLOV ALGORITHMS     
         elif self.method == 'cgls':
-            reconstruction, quality = algs.cgls(ts, geo, tiltAngles, self.iterations, computel2=True)
+            reconstruction = algs.cgls(ts, geo, tiltAngles, self.iterations, noneg=False, gpuids=gpuids)#, computel2=True)
             
         elif self.method == 'lsqr':
-            reconstruction, quality = algs.lsqr(ts, geo, tiltAngles, self.iterations, computel2=True)
+            reconstruction = algs.lsqr(ts, geo, tiltAngles, self.iterations,  noneg=False, gpuids=gpuids)#, computel2=True)
             
         elif self.method == 'lsmr':
-            reconstruction, quality = algs.lsmr(ts, geo, tiltAngles, self.iterations, computel2=True,lmbda=self.lmbda)
+            reconstruction = algs.lsmr(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda,  noneg=False, gpuids=gpuids)#, computel2=True, 
             
-        elif self.method == 'hybrid_lsqr':
-            reconstruction, quality = algs.hybrid_lsqr(ts, geo, tiltAngles, self.iterations, computel2=True)
+        elif self.method == 'hybridlsqr':
+            reconstruction = algs.hybrid_lsqr(ts, geo, tiltAngles, self.iterations,  noneg=False, gpuids=gpuids)#, computel2=True)
             
-        elif self.method == 'ab-gmres':   
-            if self.backprojector == 'fdk':
-                reconstruction, quality = algs.ab_gmres(ts, geo, tiltAngles, self.iterations, computel2=True, backprojector="FDK")
+        elif self.method == 'abgmres':   
+            if self.backprojector is None:
+                reconstruction = algs.ab_gmres(ts, geo, tiltAngles, self.iterations,  noneg=False, gpuids=gpuids)#, computel2=True)
             else:
-                reconstruction, quality = algs.ab_gmres(ts, geo, tiltAngles, self.iterations, computel2=True)
+                reconstruction = algs.ab_gmres(ts, geo, tiltAngles, self.iterations, backprojector="FDK",  noneg=False, gpuids=gpuids)#, computel2=True)
             
-        elif self.method == 'ba-gmres':
-            if self.backprojector == 'fdk':
-                reconstruction, quality = algs.ba_gmres(ts, geo, tiltAngles, self.iterations, computel2=True, backprojector="FDK")
+        elif self.method == 'bagmres':
+            if self.backprojector is None:
+                reconstruction = algs.ba_gmres(ts, geo, tiltAngles, self.iterations,  noneg=False)#, computel2=True)
             else:
-                reconstruction, quality = algs.ba_gmres(ts, geo, tiltAngles, self.iterations, computel2=True)
+                reconstruction = algs.ba_gmres(ts, geo, tiltAngles, self.iterations, backprojector="FDK",  noneg=False, gpuids=gpuids)#, computel2=True)
             
-        elif self.method == 'asd-pocs':
+        elif self.method == 'asdpocs':
             epsilon = im3DNORM(tigre.Ax(algs.fdk(ts, geo, tiltAngles), geo, tiltAngles) - ts, 2) * 0.15
             reconstruction = algs.asd_pocs(ts, geo, tiltAngles, self.iterations, tviter=self.tviter, maxl2err=epsilon, 
-                                           alpha=self.alpha, lmbda=self.lmbda, lmbda_red=self.lambdared, rmax=self.ratio, verbose=True)
+                                           alpha=self.alpha, lmbda=self.lmbda, lmbda_red=self.lambdared, rmax=self.ratio, verbose=True,  noneg=False, gpuids=gpuids)
             
-        elif self.method == 'os-asd-pocs':
+        elif self.method == 'osasdpocs':
             epsilon = im3DNORM(tigre.Ax(algs.fdk(ts, geo, tiltAngles), geo, tiltAngles) - ts, 2) * 0.15
             reconstruction = algs.os_asd_pocs(ts, geo, tiltAngles, self.iterations, tviter=self.tviter, maxl2err=epsilon,
                                                alpha=self.alpha, lmbda=self.lmbda, lmbda_red=self.lambdared, rmax=self.ratio, 
-                                               verbose=True, blocksize=self.blocksize)
+                                               verbose=True, blocksize=self.blocksize,  noneg=False, gpuids=gpuids)
                        
-        elif self.method == 'awasd-pocs':
+        elif self.method == 'awasdpocs':
             epsilon = im3DNORM(tigre.Ax(algs.fdk(ts, geo, tiltAngles), geo, tiltAngles) - ts, 2) * 0.15
             reconstruction = algs.awasd_pocs(ts, geo, tiltAngles, self.iterations, tviter=self.tviter, maxl2err=epsilon, 
                                              alpha=self.alpha, lmbda=self.lmbda, lmbda_red=self.lambdared, rmax=self.ratio, verbose=True, 
-                                             delta=np.array([-0.005]))
+                                             delta=np.array([-0.005]), noneg=False, gpuids=gpuids)
             
-        elif self.method == 'irn-tv-cgls':
-            reconstruction = algs.irn_tv_cgls(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, niter_outer=self.niter_outer)
+        elif self.method == 'irntvcgls':
+            reconstruction = algs.irn_tv_cgls(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, niter_outer=self.niter_outer, noneg=False, gpuids=gpuids)
         
         elif self.method == 'fista':
-            reconstruction = algs.fista(ts, geo, tiltAngles, self.iterations, tviter=self.tviter, tvlambda=self.tvlambda)
+            reconstruction = algs.fista(ts, geo, tiltAngles, self.iterations, tviter=self.tviter, tvlambda=self.tvlambda, noneg=False, gpuids=gpuids)
             
-        elif self.method == 'sart-tv':
-            reconstruction = algs.sart_tv(ts, geo, self.alpha, self.iterations, self.tvlambda, self.tviter)
+        elif self.method == 'sarttv':
+            reconstruction = algs.sart_tv(ts, geo, tiltAngles, self.iterations, tvlambda=self.tvlambda, tviter=self.tviter, noneg=False, gpuids=gpuids)
             
         elif self.method == 'mlem':
-            reconstruction = algs.mlem(ts, geo, tiltAngles, self.iterations)
+            reconstruction = algs.mlem(ts, geo, tiltAngles, self.iterations, noneg=False, gpuids=gpuids)
         
         elif self.method == 'pcsd':
-            reconstruction = algs.pscd(ts, geo, tiltAngles, self.iterations)
+            reconstruction = algs.pcsd(ts, geo, tiltAngles, self.iterations, noneg=False, gpuids=gpuids)
             
         elif self.method == 'awpcsd':
-            reconstruction = algs.awpscd(ts, geo, tiltAngles, self.iterations)
+            reconstruction = algs.aw_pcsd(ts, geo, tiltAngles, self.iterations, noneg=False, gpuids=gpuids)
             
         else:
             raise  Exception('The selected reconstruction method does not exist, check the --method flag')
 
 
         with mrcfile.new(self.fnOut, overwrite=True) as mrc:
-            mrc.set_data(np.swapaxes(reconstruction, 0, 2))
+            mrc.set_data(np.transpose(reconstruction, (2, 0, 1)))
         
 
     def getMethod(self):
         
         if self.method == 'FDK': 
-            fdkFilters = ["ram_lak", "shepp_logan", "cosine", "hamming", "hann"]
+            fdkFilters = ["ram-lak", "shepp-logan", "cosine", "hamming", "hann"]
         
             # Check if the word is in the list
             if self.filterToApply in fdkFilters:
@@ -394,7 +477,7 @@ class TomogramReconstruction(XmippScript):
             return self.method, self.filterToApply
             
 
-    def readTiltSeries(self, fnIn):
+    def readTiltSeries(self):
         
         #Get tilt series
         ts_aux = mrcfile.read(self.fnTs)
@@ -403,9 +486,19 @@ class TomogramReconstruction(XmippScript):
         dims = np.shape(ts_aux)
         self.xdim = dims[2]
         self.ydim = dims[1]
+        self.nimages = dims[0]
         
-        return xmippLib.MetaData(os.path.expanduser(fnIn)), ts_aux
+        stdTi = []
+        meanTi = []
+        if self.normalizeTi == 'standard':
+            for i in range(0, self.nimages):
+                ti = ts_aux[i,:,:]
+                stdTi = np.std(ti)
+                meanTi = np.mean(ti)
+                ti = (ti-meanTi)/stdTi
+                ts_aux[i,:,:] = ti
 
+        return ts_aux.astype(np.float32)
 
 if __name__ == '__main__':
     '''

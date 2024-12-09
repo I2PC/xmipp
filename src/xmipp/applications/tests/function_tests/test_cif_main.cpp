@@ -18,7 +18,6 @@ protected:
     //init metadatas
     virtual void SetUp()
     {
-
     }
 };
 

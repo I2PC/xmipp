@@ -100,7 +100,7 @@ static dim3 block;
 void VolumeDeformSph::setupConstantParameters() 
 {
     if (program == nullptr)
-        throw new std::runtime_error("VolumeDeformSph not associated with the program!");
+        throw(std::runtime_error("VolumeDeformSph not associated with the program!"));
 
     // kernel arguments
     this->Rmax2 = program->Rmax * program->Rmax;
@@ -128,7 +128,7 @@ void VolumeDeformSph::setupConstantParameters()
 void VolumeDeformSph::setupChangingParameters() 
 {
     if (program == nullptr)
-        throw new std::runtime_error("VolumeDeformSph not associated with the program!");
+        throw(std::runtime_error("VolumeDeformSph not associated with the program!"));
 
     setupClnm();
 

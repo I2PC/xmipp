@@ -29,6 +29,7 @@
 #include <iostream>
 #include <core/xmipp_program.h>
 #include <core/xmipp_image.h>
+#include <core/metadata_extension.h>
 #include <limits>
 #include <complex>
 #include <string>
@@ -51,6 +52,7 @@ public:
     bool invertContrast, normalize, swapXY, setCTF, defocusPositive;
     std::vector<double> tsTiltAngles, tsRotAngles, tsShiftX, tsShiftY, tsDefU, tsDefV, tsDefAng, tsDose;
     std::vector<MultidimArray<double> > tsImages;
+    std::vector<bool> tsFlip;
 
     double scaleFactor, sampling;
 
@@ -64,9 +66,18 @@ public:
 
     void createCircle(MultidimArray<double> &maskNormalize);
     
-    void readTiltSeriesInfo(std::string &tsid);
+    void readTiltSeriesInfo();
 
-    void getCoordinateOnTiltSeries(int xcoor, int ycoor, int zcoor, double &rot, double &tilt, double &tx, double &ty, int &x_2d, int &y_2d);
+    void getCoordinateOnTiltSeries(const double xcoor, const double ycoor, const double zcoor,
+    							   const double rot, const double tilt, const double tx, const double ty,
+								   int &x_2d, int &y_2d);
+
+    void extractTiltSeriesParticle(double &xcoor, double &ycoor, double &zcoor, double &signValue,
+									const MultidimArray<double> &maskNormalize,
+									std::vector<MultidimArray<double>> &imgVec,
+									std::string &tsid, size_t &subtomoId, MetaDataVec &mdTSParticle);
+
+    void normalizeTiltParticle(const MultidimArray<double> &maskNormalize, MultidimArray<double> &singleImage);
 
     void readParams();
 

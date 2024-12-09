@@ -226,7 +226,7 @@ void ProgTransformGeometry::processImage(const FileName &fnImg,
       B.initIdentity(dim + 1);
 
 
-    if (apply_geo || mdVol)
+    if (apply_geo || mdVol || applyTransform)
         geo2TransformationMatrix(rowOut, B);
 
       T = A * B;

@@ -12,7 +12,44 @@ This is the main repository, which contains the majority of the source code for 
 
 
 ## Getting started
-To have a complete overview aout Xmipp please visit the [documentation web](https://i2pc.github.io/docs/). The recommended way for users (not developers) to install and use Xmipp is via the [Scipion](http://scipion.i2pc.es/) framework, where you can use Xmipp with other Cryo-EM-related software. Xmipp  will be installed during Scipion installation (pay attemption on the -noXmipp flag). The Scipion installer should take care of all dependencies for you, however, you can make its life easier if you have your compiler, CUDA and HDF5 library ready and available in the standard paths. Read below for more details about these softwares requirements. Follow the official [installation guide](https://scipion-em.github.io/docs/release-3.0.0/docs/scipion-modes/how-to-install.html#installation) of Scipion for more details.
+To have a complete overview about Xmipp please visit the [documentation web](https://i2pc.github.io/docs/). The recommended way for users (not developers) to install and use Xmipp is via the [Scipion](http://scipion.i2pc.es/) framework, where you can use Xmipp with other Cryo-EM-related software. 
+
+### As a Scipion plugin (Recommended)
+
+Mind that for this command to succeed, all dependencies need to be pre-installed and findable by Xmipp. When using non-standard install directories, this needs to be indicated to Xmipp though the Scipion configuration file. See [Software dependency section](https://github.com/I2PC/xmipp?tab=readme-ov-file#software-dependencies) for further details.
+To correctly interoperate with CUDA, please visit the official [installation guide](https://scipion-em.github.io/docs/release-3.0.0/docs/scipion-modes/how-to-install.html#installation) of Scipion.
+
+Once Scipion is in working order, launch the Xmipp Plugin installer with
+
+`scipion3 installp -p scipion-em-xmipp`
+
+By default this will employ all CPU cores available in the system for compilation. If this is not the desired behavior, please consider using `-j <N>` flag to limit the amount of CPU cores.
+
+### Developer installation with Scipion
+For developers, it becomes handy to install Xmipp in an external directory for easy integration with IDEs. By default Xmipp installer takes care of linking to Scipion.
+
+The first step is to download Xmipp sources:
+
+`git clone https://github.com/I2PC/xmipp.git`
+
+`cd xmipp`
+
+If you want to checkout an scpecific branch use the following command. For repositories where the branch does not exist, devel is utilized.
+
+`./xmipp getSources -b branch`
+
+Compile Xmipp
+
+`scipion3 run ./xmipp`
+
+Refer to `./xmipp --help` for additional info on the compilation process and possible customizations.
+
+Install the Scipion plugin.
+
+`scipion3 installp -p src/scipion-em-xmipp/ --devel`
+
+## Using Xmipp
+Xmipp is installed in the build directory located in the same directory where the xmipp script is located. To set all necessary environment variables and paths to all Xmipp programs, you can simply run `source dist/xmipp.bashrc`.
 
 ## Installation requirements
 ### Supported OS
@@ -25,61 +62,44 @@ While compilation and execution might be possible on other systems, it might not
 At least 2 processors are required to run Xmipp. In some virtual machine tools only one is assigned, please check that at least two processors are assigned to the virtual machine
 
 ### Software dependencies
-#### Compiler
-Xmipp requires C++17 compatible compiler. We recommend GCC with G++, we have good experience with GCC/G++-8.4 in any case a version >= 8.4 is required. If use GCC/G++-10.3 and CUDA=11 and experience issues, [please change the compiler version](https://github.com/NVIDIA/nccl/issues/494). If use GCC-11 and experience issues, [please visit this](https://github.com/I2PC/xmipp/issues/583). For more details about the compilation proces and installation of gcc, please visit [compiler](https://github.com/I2PC/xmipp/wiki/Compiler)
+Note that these dependencies are installed by default though conda (except for CUDA). Only install them externally when required.
 
-#### Cmake
-Xmipp requires Cmake 3.16 or above. To update it please [visit](https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install)
-#### Cuda
-Xmipp supports Cuda 8 through 11.7. CUDA is optional but highly recommended. We recommend you to use the newest version available for your operating system, though Cuda 10.2 has the widest support among other Scipion plugins. Pay attemption to the [compiler - CUDA](https://gist.github.com/ax3l/9489132) compatibility.
+#### Compiler
+Xmipp requires C++17 compatible compiler (see table below for minimum versions). We have had good experience with using GCC. Clang is mostly untested. Mind that when compiling with CUDA, a [compatible compiler](https://gist.github.com/ax3l/9489132) must be installed and findable (although it may not be used for non-CUDA sources) for Xmipp.
+
+| Compiler | Minumum version |
+|----------|-----------------|
+| GCC      | 8.4             |
+| Clang    | 5.0             |
+
+
+#### CMake
+Xmipp requires CMake 3.17 or above. To update it please visit the [dedicated section in the Wiki](https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install).
+
+#### CUDA
+Xmipp supports CUDA 10.2 through 12.2. CUDA is optional but highly recommended. We recommend you to use the newest version available for your operating system. Some Xmipp programs are only compiled if CUDA 11 is available. Pay attention to the [compiler - CUDA compatibility](https://gist.github.com/ax3l/9489132).
+
 To install CUDA for your operating system, follow the [official install guide](https://developer.nvidia.com/cuda-toolkit-archive).
 
-#### OpenCV
-OpenCV is used for some programs: movie_optical_alignment (with GPU support) and volume_homogenizer, however, it is not required.
-If you installed OpenCV via apt (`sudo apt install libopencv-dev`), it should be automatically picked up by the Xmipp script
+#### Installing dependencies via apt
+`sudo apt install -y libfftw3-dev libopenmpi-dev libhdf5-dev python3-numpy python3-dev libtiff5-dev libjpeg-dev libsqlite3-dev default-jdk git cmake gcc-10 g++-10`
 
-#### HDF5
-We sometimes see issues regarding the HDF5 dependency. Please visit the [HDF5 Troubleshooting wiki](https://github.com/I2PC/xmipp/wiki/HDF5-Troubleshooting)
+#### Installing dependencies via yum
+> Note: For HDF5 to be available Extra Packages for Enterprise Linux (EPEL) repository needs to be activated in certain distros with
+> `yum install epel-release`
 
-#### Full list of dependencies
+> Note: On CentOS-7 the gcc available by default is not compatible with Xmipp. You can enable newer gcc releases using:
+> 
+> `yum install centos-release-scl`
+>
+> `yum install devtoolset-10`
+> 
+> `scl enable devtoolset-10 bash`
 
-`sudo apt install -y libfftw3-dev libopenmpi-dev libhdf5-dev python3-numpy python3-dev libtiff5-dev libsqlite3-dev default-jdk git cmake`
-
-`pip install scons` in the enviroment that xmipp will be compiled (scipion3 if you will run Xmipp within Scipion)
-
-Also a compiler will be required (`sudo apt install gcc-10 g++-10`)
-
-## Standalone installation
-Standalone installation of Xmipp is recommended for researchers and developers. This installation allows you to use Xmipp without Scipion, however, in the next section it is explained how to link it with Scipion. Xmipp script automatically downloads several dependencies and then creates a configuration file that contains paths and flags used during the compilation. Please refer to the [Xmipp configuration](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration) guide for more info.
-
-Start by cloning the repository and then navigate to the right directory.
-
-`git clone https://github.com/I2PC/xmipp.git xmipp-bundle && cd xmipp-bundle`
-
-Refer to `./xmipp --help` for additional info on the compilation process and possible customizations.
-
-Next is to compile xmipp. There are to possibilities and in both you will can run Xmipp in Scipion (see [linking step](https://github.com/I2PC/xmipp/edit/agm_refactoring_readme/README.md#linking-xmipp-standalone-to-scipion))
-- Compile Xmipp by invoking the compilation script, which will take you through the rest of the process:`./xmipp` that way you will install Xmipp with the dependencies and thier versions that the enviroment you decide, or the default one.
-- Compile Xmipp via Scipion enviroment `scipion3 run ./xmipp` that way you will install Xmipp with the dependencies and their versions that Scipion decided. 
-
-It is important to highlight that this step only compiles Xmipp, but it does not link to Scipion. The linking to Scipion is explained in the next section.
-
-### Linking Xmipp standalone to Scipion
-
-Once the Standalone version has been installed, the user can link such installation to Scipion to have the posibility of use Xmipp inside Scipion. Linking with Scipion requires to the repository of `scipion-em-xmipp` which can be found in the folder `src/scipion-em-xmipp`. This repository contains the files that Scipion needs to execute Xmipp programs. However, it remains to link the Xmipp binaries with Scipion. To do that we need Scipion installed ([see Scipion installation web page](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html#)) and just launch the next command to link the binaries
-
-`scipion3 installp -p ~/scipion-em-xmipp --devel`
-
-where `scipion-em-xmipp` is the folder of the repository, it means `src/scipion-em-xmipp`.
-This command should work in most of the cases. However, if you do this and Scipion does not find Xmipp, please visit [Linking Xmipp to Scipion Troubleshooting](https://github.com/I2PC/xmipp/wiki/Linking-Xmipp-to-Scipion-Troubleshooting)
-
-## Using Xmipp
-Xmipp is installed in the build directory located in the same directory where the xmipp script is located. To set all necessary environment variables and paths to all Xmipp programs, you can simply 
-`source build/xmipp.bashrc`
-
+`yum install python3-devel python3-numpy fftw-devel openmpi-devel hdf5-devel sqlite-devel libtiff-devel libjpeg-turbo-devel java-17-openjdk-devel git cmake gcc g++`
 
 ## That's all
 
-If you miss some feature or find a bug, please [create an issue](https://github.com/I2PC/xmipp/issues/new) and we will have a look at it, you can also contact us by xmipp@cnb.csic.es. For more details, troubleshootings and information visit the [wikip page.](https://github.com/I2PC/xmipp/wiki)
+If you miss some feature or find a bug, please [create an issue](https://github.com/I2PC/xmipp/issues/new) and we will have a look at it, you can also contact us by xmipp@cnb.csic.es. For more details, troubleshootings and information visit the [wiki page.](https://github.com/I2PC/xmipp/wiki)
 
 If you like this project, Watch or Star it! We are also looking for new collaborators, so contact us if you’re interested
