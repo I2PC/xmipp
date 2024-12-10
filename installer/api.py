@@ -243,6 +243,6 @@ def __getCPUFlags() -> str:
     """
     returnCode, outputStr = runJob('lscpu | grep Flags')
     if returnCode == 0:
-        flagsCPU = outputStr.replace('Flags:', '').strip().split(" ")
+        flagsCPU = outputStr.replace('Flags:', '').strip()
         return flagsCPU
     return UNKNOWN_VALUE
