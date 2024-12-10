@@ -30,6 +30,7 @@ Module containing all functions needed for the metric's API request.
 import re, hashlib, http.client, json
 from typing import Dict, Optional
 from urllib.parse import urlparse
+import os
 
 # Self imports
 from .cmake import parseCmakeVersions
@@ -48,25 +49,20 @@ def sendApiPOST(retCode: int=0):
 	"""
 	# Getting JSON data for curl command
 	bodyParams = __getJSON(retCode=retCode)
-
 	# Send API POST request if there were no errors
 	if bodyParams is not None:
 		# Define the parameters for the POST request
 		params = json.dumps(bodyParams)
 		# Set up the headers
 		headers = {"Content-type": "application/json"}
-
-		# Establish a connection
 		parsedUrl = urlparse(API_URL)
-		conn = http.client.HTTPSConnection(parsedUrl.hostname, parsedUrl.port, timeout=4)
-
 		try:
+			# Establish a connection
+			conn = http.client.HTTPSConnection(parsedUrl.hostname, parsedUrl.port, timeout=4)
 			# Send the POST request
 			conn.request("POST", parsedUrl.path, body=params, headers=headers)
-	
 			# Get response from server
 			conn.getresponse()
-	
 			# Close the connection
 			conn.close()
 		except Exception:
@@ -127,7 +123,7 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 	data = parseCmakeVersions(VERSION_FILE)
 	jsonData = runParallelJobs([
 		(getOSReleaseName, ()),
-		(__getArchitectureName, ()),
+		(__getCPUFlags, ()),
 		(getCurrentBranch, ()),
 		(isBranchUpToDate, ()),
 		(__getLogTail, ())
@@ -135,6 +131,7 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 
 	# If branch is master or there is none, get release name
 	branchName = XMIPP_VERSIONS[XMIPP][VERSION_KEY] if not jsonData[2] or jsonData[2] == MASTER_BRANCHNAME else jsonData[2]
+	installedByScipion = bool(os.getenv("SCIPION_SOFTWARE"))
 
 	# Introducing data into a dictionary
 	return {
@@ -157,7 +154,8 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 		},
 		"xmipp": {
 			"branch": branchName,
-			"updated": jsonData[3]
+			"updated": jsonData[3],
+			"installedByScipion": installedByScipion
 		},
 		"returnCode": retCode,
 		"logTail": jsonData[4] if retCode else None # Only needs log tail if something went wrong
@@ -236,22 +234,12 @@ def __getLogTail() -> Optional[str]:
 	# Return content if it went right
 	return output if retCode == 0 else None
 
-def __getArchitectureName() -> str:
-	"""
-	### This function returns the name of the system's architecture name.
-
-	#### Returns:
-	- (str): Architecture name.
-	"""
-	# Initializing to unknown value
-	archName = UNKNOWN_VALUE
-
-	# Obtaining architecture name
-	retCode, architecture = runJob('cat /sys/devices/cpu/caps/pmu_name')
-
-	# If command worked and returned info, extract it
-	if retCode == 0 and architecture:
-		archName = architecture
-	
-	# Returing architecture name
-	return archName
+def __getCPUFlags() -> str:
+    """
+    ### This function returns a string with the flags provided by lscpu.
+    """
+    returnCode, outputStr = runJob('lscpu | grep Flags')
+    if returnCode == 0:
+        flagsCPU = outputStr.replace('Flags:', '').strip()
+        return flagsCPU
+    return UNKNOWN_VALUE
