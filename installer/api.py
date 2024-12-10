@@ -49,7 +49,6 @@ def sendApiPOST(retCode: int=0):
 	"""
 	# Getting JSON data for curl command
 	bodyParams = __getJSON(retCode=retCode)
-
 	# Send API POST request if there were no errors
 	if bodyParams is not None:
 		# Define the parameters for the POST request
@@ -66,8 +65,7 @@ def sendApiPOST(retCode: int=0):
 			conn.request("POST", parsedUrl.path, body=params, headers=headers)
 	
 			# Get response from server
-			response = conn.getresponse()
-			# response.reason
+			conn.getresponse()
 			# Close the connection
 			conn.close()
 		except Exception:
