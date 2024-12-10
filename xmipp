@@ -41,7 +41,7 @@ from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandl
 from installer.config import readConfig, writeConfig
 from installer.cmake import getCMake, getCMakeVarsStr
 from installer.main import getSources, exitXmipp, handleRetCode, getSectionMessage, getSuccessMessage, getVersionMessage
-from installer.logger import logger, yellow, red, blue
+from installer.logger import logger, yellow, red, blue, green
 from installer.api import sendApiPOST
 from installer.test import runTests
 from installer import modelsDLTK
@@ -198,9 +198,8 @@ def modeConfig(overwrite: bool=False) -> Dict:
 		configDict = readConfig(CONFIG_FILE)
 	else:
 		logger('config file from scratch with default values', forceConsoleOutput=True)
-	logger('', forceConsoleOutput=True)
 	writeConfig(CONFIG_FILE, configDict=configDict)
-	handleRetCode(0)
+	logger(green("Done"), forceConsoleOutput=True)
 	return readConfig(CONFIG_FILE)
 
 def modeGetModels(args: argparse.Namespace):
