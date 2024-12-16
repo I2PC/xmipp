@@ -70,26 +70,8 @@ ProgClassifyPartialOccupancy::~ProgClassifyPartialOccupancy()
 	XmippMetadataProgram::readParams();
  	fnVolR = getParam("--ref");
 	fnMaskRoi=getParam("--mask_roi");
-	sigma=getIntParam("--sigma");
-	sampling = getDoubleParam("--sampling");
 	padFourier = getDoubleParam("--padding");
-    maxResol = getDoubleParam("--max_resolution");
-
-	if (checkParam("--cirmaskrad"))
-	{
-		cirmaskrad = getDoubleParam("--cirmaskrad");
-		maskVolProvided = false;
-	}
-	else if (checkParam("--mask"))
-	{
-		fnMaskVol = getParam("--mask");
-		maskVolProvided = true;
-	}
-	
 	fnProj = getParam("--save"); 
-	nonNegative = checkParam("--nonNegative");
-	boost = checkParam("--boost");
-	subtract = checkParam("--subtract");
 	realSpaceProjector = checkParam("--realSpaceProjection");
  }
 
@@ -102,10 +84,7 @@ ProgClassifyPartialOccupancy::~ProgClassifyPartialOccupancy()
 	<< "Input particles:\t" << fnParticles << std::endl
 	<< "Reference volume:\t" << fnVolR << std::endl
 	<< "Mask of the region of interest to keep or subtract:\t" << fnMaskRoi << std::endl
-	<< "Sigma of low pass filter:\t" << sigma << std::endl
-	<< "Sampling rate:\t" << sampling << std::endl
 	<< "Padding factor:\t" << padFourier << std::endl
-    << "Max. Resolution:\t" << maxResol << std::endl
 	<< "Output particles:\t" << fnOut << std::endl;
  }
 
@@ -121,22 +100,14 @@ ProgClassifyPartialOccupancy::~ProgClassifyPartialOccupancy()
     //Parameters
 	XmippMetadataProgram::defineParams();
     addParamsLine("--ref <volume>\t: Reference volume to subtract");
-    addParamsLine("[--mask_roi <mask_roi=\"\">]     : 3D mask for region of interest to keep or subtract, no mask implies subtraction of whole images");
-	addParamsLine("[--sampling <sampling=1>]		: Sampling rate (A/pixel)");
-	addParamsLine("[--max_resolution <f=-1>]		: Maximum resolution in Angtroms up to which the substraction is calculated. \
-													  By default (-1) it is set to sampling/sqrt(2).");
-	addParamsLine("[--padding <p=2>]				: Padding factor for Fourier projector");
-	addParamsLine("[--sigma <s=1>]					: Decay of the filter (sigma) to smooth the mask transition");
-	addParamsLine("[--nonNegative]					: Ignore particles with negative beta0 or R2");
-	addParamsLine("[--boost]						: Perform a boosting of original particles");
-	addParamsLine("[--save <structure=\"\">]		: Path for saving intermediate files");
-	addParamsLine("[--subtract]						: The mask contains the region to SUBTRACT");
+    addParamsLine("--mask_roi <mask_roi=\"\">     : 3D mask for region of interest to keep or subtract, no mask implies subtraction of whole images");
+	addParamsLine("--save <structure=\"\">		: Path for saving intermediate files");
 	addParamsLine("[--realSpaceProjection]			: Project volume in real space to avoid Fourier artifacts");
+	addParamsLine("[--padding <p=2>]				: Padding factor for Fourier projector");
 
 	// Example
     addExampleLine("A typical use is:",false);
-    addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask_roi mask_vol.mrc "
-				   "-o output_particles --sampling 1 --max_resolution 4");
+    addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask_roi mask_vol.mrc -o output_particles");
  }
 
  // I/O methods ===================================================================
@@ -152,17 +123,9 @@ ProgClassifyPartialOccupancy::~ProgClassifyPartialOccupancy()
 	img.write(fnImgOut);
 
 	rowOut.setValue(MDL_IMAGE, fnImgOut);
-	rowOut.setValue(MDL_SUBTRACTION_R2, R2a); 
-	rowOut.setValue(MDL_SUBTRACTION_BETA0, b0save); 
-	rowOut.setValue(MDL_SUBTRACTION_BETA1, b1save); 
-	rowOut.setValue(MDL_SUBTRACTION_B, b); 
 	rowOut.setValue(MDL_AVG, avg); 
 	rowOut.setValue(MDL_STDDEV, std); 
 	rowOut.setValue(MDL_ZSCORE, zScore); 
-	if (nonNegative && (disable || R2a < 0))
-	{
-		rowOut.setValue(MDL_ENABLED, -1);
-	}
  }
 
  // Utils methods ===================================================================
@@ -196,8 +159,7 @@ void ProgClassifyPartialOccupancy::processParticle(const MDRow &rowprocess, int 
 	rowprocess.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 	roffset *= -1;
 	
-	// Project volume + apply translation, CTF and mask
-	// If provided, mask already have been applied to volume
+	// Project volume + apply translation
 	if (realSpaceProjector)
 	{
 		projectVolume(V(), P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
@@ -211,13 +173,7 @@ void ProgClassifyPartialOccupancy::processParticle(const MDRow &rowprocess, int 
 
 void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<double> &M, FileName fnImgOut, double &avg, double &std, double &zScore)
 {	
-	const auto sizeI = (int)XSIZE(I());
 	MultidimArray<double> &mI=I();
-
-	#ifdef DEBUG_OUTPUT_FILES
-	MultidimArray<double> maskedIdiff;
-	maskedIdiff.initZeros(mIdiff);
-	#endif
 
 	double sum = 0;
 	double sum2 = 0;
@@ -227,7 +183,7 @@ void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<
 	{
 		if (DIRECT_MULTIDIM_ELEM(M(),n) > 0)
 		{
-			double value = DIRECT_MULTIDIM_ELEM(mIdiff, n);
+			double value = DIRECT_MULTIDIM_ELEM(mI, n);
 
 			sum += value;
 			sum2 += value*value;
@@ -244,7 +200,7 @@ void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<
 	{
 		if (DIRECT_MULTIDIM_ELEM(M(),n) > 0)
 		{
-			double value = DIRECT_MULTIDIM_ELEM(mIdiff, n);
+			double value = DIRECT_MULTIDIM_ELEM(mI, n);
 
 			zScore += (value - avg) / std;
 			// if(value > (avg + std * zScoreThr))
@@ -276,10 +232,6 @@ void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<
     }
     fnMaskedImgOut = fnImgOut.substr(0, dotPos) + "_masked" + fnImgOut.substr(dotPos);
 
-	Image<double> saveImage;
-	saveImage() = maskedIdiff;
-	saveImage.write(fnMaskedImgOut);
-
 	M.write(fnImgOut.substr(0, dotPos) + "_mask" + fnImgOut.substr(dotPos));
 	#endif
 }
@@ -299,11 +251,10 @@ void ProgClassifyPartialOccupancy::preProcess()
 	size_t Ndim;
 	V.getDimensions(Xdim, Ydim, Zdim, Ndim);
 
-	// Read or create mask keep and compute inverse of mask keep (mask subtract)
-	vM.read(fnM);
-	vM().setXmippOrigin();
+	I().initZeros((int)Ydim, (int)Xdim);
 
-	double cutFreq = 0.5 * (sampling/maxResol);
+	// Initialize projectors
+	double cutFreq = 0.5;
 
 	if (rank==0)
 	{
@@ -334,34 +285,35 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 
 	// Project volume and process projections 
 	const auto sizeI = (int)XSIZE(I());
+
 	processParticle(rowIn, sizeI);
+
+	// Read ROI mask
+	vM.read(fnMaskRoi);
+	vM().setXmippOrigin();
 
 	// Build projected and final masks. Mask projection is always calculated in real space
 	projectVolume(vM(), PmaskRoi, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
-
-	#ifdef DEBUG_OUTPUT_FILES
-	size_t dotPos = fnImgOut.find_last_of('.');
-	PmaskRoi.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi" + fnImgOut.substr(dotPos));
-	#endif
 
 	// Apply binarization, shift and gaussian filter to the projected mask
 	M = binarizeMask(PmaskRoi);
 
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t dotPos = fnImgOut.find_last_of('.');
+	P.write(fnImgOut.substr(0, dotPos) + "_P" + fnImgOut.substr(dotPos));
+	PmaskRoi.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi" + fnImgOut.substr(dotPos));
 	M.write(fnImgOut.substr(0, dotPos) + "_M" + fnImgOut.substr(dotPos));
 	#endif
 
 	// Create empty new image for output particle
 	MultidimArray<double> &mIw=Iw();
-	mIdiff.initZeros(I());
-	mIdiff.setXmippOrigin();
+	mIw.initZeros(I());
+	mIw.setXmippOrigin();
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIw)
 		DIRECT_MULTIDIM_ELEM(mIw,n) = (DIRECT_MULTIDIM_ELEM(I(),n) * DIRECT_MULTIDIM_ELEM(P(),n));
 	
 	#ifdef DEBUG_OUTPUT_FILES
-	dotPos = fnImgOut.find_last_of('.');
 	P.write(fnImgOut.substr(0, dotPos) + "_P" + fnImgOut.substr(dotPos));
 	I.write(fnImgOut.substr(0, dotPos) + "_I" + fnImgOut.substr(dotPos));
 	Iw.write(fnImgOut.substr(0, dotPos) + "_Iw" + fnImgOut.substr(dotPos));
@@ -372,9 +324,9 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 	double std;
 	double zScore;
 
-	computeParticleStats(mIw, M, fnImgOut, avg, std, zScore);
+	computeParticleStats(Iw, M, fnImgOut, avg, std, zScore);
 
-	writeParticle(rowOut, fnImgOut, mIw, avg, std, zScore); 
+	writeParticle(rowOut, fnImgOut, Iw, avg, std, zScore); 
 }
 
 void ProgClassifyPartialOccupancy::postProcess()

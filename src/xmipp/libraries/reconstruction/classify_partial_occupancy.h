@@ -52,21 +52,14 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
     FileName fnMaskRoi; // Input 3D mask for region of interest to keep or subtract
     FileName fnProj; // Path to save intermediate files
 
-	double sampling; 
 	double padFourier; 
-	double maxResol;
-	int sigma;
     int maxwiIdx;
-    bool nonNegative;
-    bool boost;
-    bool subtract;
     bool realSpaceProjector;
 	MultidimArray<int> wi;
 
     // Data variables
  	Image<double> V; // volume
  	Image<double> vM; // mask 3D
-    Image<double> ivM; // invert mask 3D
 
  	Image<double> M; // mask projected and smooth
  	Image<double> I; // particle
@@ -74,7 +67,6 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
 
  	Projection P; // projection
  	Projection Pmask; // mask projection for the protein
- 	Image<double> PmaskImg; // mask projection for the protein as Image
  	Projection PmaskRoi; // mask projection for region to keep
 
     const MultidimArray<double> *ctfImage = nullptr; // needed for FourierProjector
