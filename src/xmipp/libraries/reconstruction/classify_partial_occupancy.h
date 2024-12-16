@@ -1,0 +1,148 @@
+/***************************************************************************
+ *
+ * Authors:    Federico P. de Isidro-Gomez (federico.pdeisidro@astx.com)
+ *
+ * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+ * 02111-1307  USA
+ *
+ *  All comments concerning this program package may be sent to the
+ *  e-mail address 'xmipp@cnb.csic.es'
+ ***************************************************************************/
+
+ #ifndef _PROG_CLASSIFY_PARTIAL_OCCUPANCY
+ #define _PROG_CLASSIFY_PARTIAL_OCCUPANCY
+
+ #include "core/metadata_vec.h"
+ #include "core/xmipp_program.h"
+ #include "core/xmipp_image.h"
+ #include "data/fourier_filter.h"
+ #include "data/fourier_projection.h"
+ #include "core/xmipp_metadata_program.h"
+
+ #define DEBUG
+ #define DEBUG_OUTPUT_FILES
+
+/**@defgroup ProgClassifyPartialOccupancy Subtract projections
+   @ingroup ReconsLibrary */
+//@{
+/** Subtract projections from particles */
+
+class ProgClassifyPartialOccupancy: public XmippMetadataProgram
+ {
+ public:
+    // Input params
+    FileName fnVolR; // Input reference volume
+    FileName fnParticles; // Input metadata
+	FileName fnImgI; // Particle filename
+    FileName fnOut; // Output metadata
+    FileName fnMaskRoi; // Input 3D mask for region of interest to keep or subtract
+    FileName fnProj; // Path to save intermediate files
+
+	double sampling; 
+	double padFourier; 
+	double maxResol;
+	int sigma;
+    int maxwiIdx;
+    bool nonNegative;
+    bool boost;
+    bool subtract;
+    bool realSpaceProjector;
+	MultidimArray<int> wi;
+
+    // Data variables
+ 	Image<double> V; // volume
+ 	Image<double> vM; // mask 3D
+    Image<double> ivM; // invert mask 3D
+
+ 	Image<double> M; // mask projected and smooth
+ 	Image<double> I; // particle
+    Image<double> Iw; // weighter image
+
+ 	Projection P; // projection
+ 	Projection Pmask; // mask projection for the protein
+ 	Image<double> PmaskImg; // mask projection for the protein as Image
+ 	Projection PmaskRoi; // mask projection for region to keep
+
+    const MultidimArray<double> *ctfImage = nullptr; // needed for FourierProjector
+	FourierTransformer transformerP; // Fourier transformer for projection
+    FourierTransformer transformerI; // Fourier transformer for particle
+    
+    MultidimArray< std::complex<double> > IFourier; // FT(particle)
+	MultidimArray< std::complex<double> > PFourier; // FT(projection)
+    MultidimArray< std::complex<double> > PFourier0; // FT(projection) estimation of order 0
+	MultidimArray< std::complex<double> > PFourier1; // FT(projection) estimation of order 1
+    MultidimArray< std::complex<double> > IiMFourier;
+	MultidimArray< std::complex<double> > PiMFourier;
+
+
+    FourierTransformer transformerIiM;
+	FourierTransformer transformerPiM;
+
+    CTFDescription ctf;
+	FourierFilter FilterCTF;
+	Image<double> padp; // padded image when applying CTF
+	Image<double> PmaskI; // inverted projected mask
+	Image<double> ImgiM; // auxiliary image for computing estimation images
+	MultidimArray< std::complex<double> > ImgiMFourier; // FT(ImgiM)
+
+    // Particle metadata
+    MetaDataVec mdParticles;
+    MDRowVec row;
+    Matrix1D<double> roffset; // particle shifts
+    struct Angles // particle angles for projection
+    {
+    	double rot;
+    	double tilt;
+    	double psi;
+    };
+    struct Angles part_angles; 
+
+    bool disable;
+    /// Read and write methods
+    void readParticle(const MDRow &rowIn);
+    void writeParticle(MDRow &rowOut, FileName, Image<double> &, double, double, double);
+    /// Processing methods
+    Image<double> binarizeMask(Projection &) const;
+    Image<double> invertMask(const Image<double> &);
+    void processParticle(const MDRow &rowIn, int sizeImg);
+    void computeParticleStats(Image<double> &I, Image<double> &M, FileName fnImgOut, double &avg, double &std, double &zScore);
+
+
+    int rank; // for MPI version
+    FourierProjector *projector;
+
+    // Empty constructor
+    ProgClassifyPartialOccupancy();
+
+    // Destructor
+    ~ProgClassifyPartialOccupancy();
+
+    // Read argument from command line
+    void readParams() override;
+
+    // Show
+    void show() const override;
+
+    // Define parameters
+    void defineParams() override;
+    void preProcess() override;
+    void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
+    void postProcess() override;
+ };
+ //@}
+#endif
+
