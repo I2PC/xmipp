@@ -92,6 +92,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	boost = checkParam("--boost");
 	subtract = checkParam("--subtract");
 	realSpaceProjector = checkParam("--realSpaceProjection");
+	ignoreCTF = checkParam("--ignoreCTF");
  }
 
  // Show ====================================================================
@@ -135,6 +136,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	addParamsLine("[--save <structure=\"\">]		: Path for saving intermediate files");
 	addParamsLine("[--subtract]						: The mask contains the region to SUBTRACT");
 	addParamsLine("[--realSpaceProjection]			: Project volume in real space to avoid Fourier artifacts");
+	addParamsLine("[--ignoreCTF]					: Do not consider CTF in the subtraction. Use if particles have been CTF corrected.");
 
 	// Example
     addExampleLine("A typical use is:",false);
@@ -258,7 +260,16 @@ void ProgSubtractProjection::processParticle(const MDRow &rowprocess, int sizeIm
 		selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
 	}
 	
-	Pctf = applyCTF(rowprocess, P);
+	if (ignoreCTF)
+	{
+		std::cout << "ignore CTF!!" << std::endl;
+		Pctf = P;
+	}
+	else
+	{
+		std::cout << "do not ignore CTF!!" << std::endl;
+		Pctf = applyCTF(rowprocess, P);
+	}	
 
 	MultidimArray<double> &mPctf = Pctf();
 	MultidimArray<double> &mI = I();
