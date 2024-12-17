@@ -262,12 +262,10 @@ void ProgSubtractProjection::processParticle(const MDRow &rowprocess, int sizeIm
 	
 	if (ignoreCTF)
 	{
-		std::cout << "ignore CTF!!" << std::endl;
 		Pctf = P;
 	}
 	else
 	{
-		std::cout << "do not ignore CTF!!" << std::endl;
 		Pctf = applyCTF(rowprocess, P);
 	}	
 
