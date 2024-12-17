@@ -25,7 +25,7 @@
 
 #include <mpi.h>
 #include <parallel/xmipp_mpi.h>
-#include <reconstruction/classify_partial_occupancy>
+#include <reconstruction/classify_partial_occupancy.h>
 
 
 class MpiProgClassifyPartialOccupancy: public ProgClassifyPartialOccupancy, public MpiMetadataProgram
