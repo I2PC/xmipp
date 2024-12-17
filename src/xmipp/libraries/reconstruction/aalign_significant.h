@@ -29,7 +29,7 @@
 
 #include <core/xmipp_program.h>
 #include "data/dimensions.h"
-#include <CTPL/ctpl_stl.h>
+#include <ctpl_stl.h>
 #include "data/cpu.h"
 #include "data/alignment_estimation.h"
 #include "core/metadata_extension.h"

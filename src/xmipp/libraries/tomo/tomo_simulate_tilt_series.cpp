@@ -155,8 +155,6 @@ void ProgTomoSimulateTiltseries::maskingRotatedSubtomo(MultidimArray<double> &su
 	auto halfbox = round(0.5*boxsize);
 	auto halfbox2 =halfbox*halfbox;
 
-	std::cout << " boxsize = " << boxsize << "    halfboxsize = " << halfbox << std::endl;
-
 	long n=0;
 	for (size_t k= 0; k<boxsize; k++)
 	{
@@ -297,10 +295,12 @@ void ProgTomoSimulateTiltseries::run()
 
 			theta = 360.0*u;
 			phi = acos(2*v - 1.0)*180.0/PI;
-			xi = 360*w;
+			xi = 360.0*w;
 
 			//eulerMat_proj.initIdentity(4);
 		}
+
+		std::cout << "theta = " << theta << "   " << "phi = " << phi << "   " << "xi = " << xi << std::endl;
 
 		Euler_angles2matrix(theta, phi, xi, eulerMat_VolRotation, true);
 
@@ -328,7 +328,6 @@ void ProgTomoSimulateTiltseries::run()
 
 			projectVolume(projector, imgPrj, boxsize, boxsize, 0.0, tiltProj, 0.0);
 
-            Matrix1D<double> shifts(2);
             tiltProj *= PI/180.0;
 
 			double ct = cos(tiltProj);

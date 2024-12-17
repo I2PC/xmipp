@@ -1,58 +1,69 @@
-# Workflow name
 name: Build Xmipp
 
-# Specify when the Action should be triggered: when a pull request is opened against the 'devel' or 'master' branch
 on:
   pull_request:
-    branches: [devel, master]
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-22.04
-    env:
-      SEND_INSTALLATION_STATISTICS: "False"
+    strategy:
+      matrix:
+        os:
+        - 'ubuntu-latest'
+
+        cuda:
+        - {version: '11.8.0', method: 'network'} 
+        - {version: '12.2.2', method: 'network'} 
+        - {version: 'None'}
+
+        compiler:
+        - {cc: gcc, cxx: g++}
+
+        include:
+          - os: 'ubuntu-20.04'
+            cuda: {version: '11.3.1', method: 'network'}
+            compiler: {cc: gcc-9, cxx: g++-9, update-alternatives: True}
+          - os: 'ubuntu-20.04'
+            cuda: {version: '10.2.89', method: 'local'}
+            compiler: {cc: gcc-8, cxx: g++-8, update-alternatives: True}
+    
+    runs-on: ${{ matrix.os }}
     steps:
-      # Installing apt dependencies
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libfftw3-dev libopenmpi-dev libhdf5-dev libtiff5-dev python3-numpy python3-dev libsqlite3-dev default-jdk git cmake libopencv-dev openmpi-bin
-      
-      # Setting up Python
+          sudo apt-get install -y libfftw3-dev libopenmpi-dev libhdf5-dev libtiff5-dev libsqlite3-dev default-jdk git cmake openmpi-bin ${{ matrix.compiler.cc }} ${{ matrix.compiler.cxx }}
+          
+      - if: ${{matrix.compiler.update-alternatives}}
+        run: |
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/${{ matrix.compiler.cc }} 128
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/${{ matrix.compiler.cxx }} 128
+
       - uses: actions/setup-python@main
         with:
-          python-version: '3.9.15' # Version range or exact version of a Python version to use, using SemVer's version range syntax
+          python-version: '3.9.15'
+      - run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy
 
-
-      # Installing Python dependencies
-      - name: Install python dependencies
-        run: |
-           python -m pip install --upgrade pip
-           pip install scons numpy
-
-       # Installing CUDA                
       - uses: Jimver/cuda-toolkit@master
+        if: matrix.cuda.version != 'None'
         id: cuda-toolkit
         with:
-          cuda: '11.8.0'
-          method: network
-          sub-packages: '["nvcc", "toolkit"]'
-
-      # Using CCache to speed C/C++ compilation
-      - uses: hendrikmuhs/ccache-action@main
-      
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+          cuda: ${{ matrix.cuda.version }}
+          method: ${{ matrix.cuda.method }}
+          sub-packages: ${{ matrix.cuda.method=='network' && '["nvcc", "toolkit"]' || '[]' }} # Fake ternary operator
+          
       - uses: actions/checkout@main
         with:
-            fetch-depth: 0
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
 
-      # Compiling Xmipp in the Pull Request branch
-      - name: Compile Xmipp will all dependencies in branch ${{ github.head_ref }} (if such branch exists, default is devel)
+      - name: Compile Xmipp with all dependencies in branch ${{ github.head_ref }} (if such branch exists, default is devel)
         env:
           BRANCH_NAME: ${{ github.head_ref }}
-          CIBuild: 1
-          BUILD_TESTS: True
-        run: ./xmipp all br=$BRANCH_NAME noAsk || (cat compileLOG.txt && false)
+          SEND_INSTALLATION_STATISTICS: 'OFF'
+        run: |
+          ./xmipp all -b $BRANCH_NAME --keep-output || (cat compilation.log && false)
+
+      - name: Cat
+        run: cat xmipp.conf
