@@ -316,7 +316,6 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 	#ifdef DEBUG_OUTPUT_FILES
 	P.write(fnImgOut.substr(0, dotPos) + "_P" + fnImgOut.substr(dotPos));
 	I.write(fnImgOut.substr(0, dotPos) + "_I" + fnImgOut.substr(dotPos));
-	Iw.write(fnImgOut.substr(0, dotPos) + "_Iw" + fnImgOut.substr(dotPos));
 	#endif
 
 	// Compute particle stats after subtraction
