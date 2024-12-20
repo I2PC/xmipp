@@ -22,12 +22,14 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import argparse
+import bisect
 import numpy as np
 import scipy.linalg
 import scipy.sparse
+import scipy.stats
 import cvxpy as cp
 
 def check_graph(graph: scipy.sparse.spmatrix,
@@ -41,173 +43,285 @@ def check_graph(graph: scipy.sparse.spmatrix,
     
     return n
 
-def check_weights(graph: scipy.sparse.spmatrix,
-                  weights: scipy.sparse.spmatrix ):
-    if graph.shape != weights.shape:
-        raise RuntimeError("Weights must match graph size")
-
-def get_optimization_objective_function(p: cp.Variable,
-                                        graph: scipy.sparse.spmatrix,
-                                        weights: Optional[scipy.sparse.spmatrix] = None,
-                                        triangular_upper: bool = False ) -> cp.Expression:
-    # Convert to coordinate format
-    if triangular_upper:
-        graph_coo = scipy.sparse.triu(graph, format='coo')
-    else:
-        graph_coo = graph.tocoo()
-
-    # Obtain items
-    positions = (graph_coo.row, graph_coo.col)
-    values = graph_coo.data
+def orthogonalize_matrices(matrices: np.ndarray, special: bool = False) -> np.ndarray:
+    u, _, vh = np.linalg.svd(matrices, full_matrices=False)
+    result = u @ vh
     
-    # Ensemble the cost function
-    if weights is None:
-        result = cp.sum_squares(p[positions] - values)
-    else:
-        weights = weights.tocsr()
-        weights_sqrt = np.sqrt(weights[positions].A1)
-        result = cp.sum_squares(cp.multiply(weights_sqrt, (p[positions] - values)))
+    if special:
+        sign = np.linalg.det(result)
+        result[...,:,-1] *= sign
     
     return result
+
+def ortho_group_synchronization_objective(samples: scipy.sparse.csr_matrix,
+                                          adjacency: scipy.sparse.coo_matrix,
+                                          transforms: np.ndarray,
+                                          k: int) -> float:
+    result = 0.0
+
+    for i, j in zip(adjacency.row, adjacency.col):
+        start0 = i*k
+        end0 = start0+k
+        start1 = j*k
+        end1 = start1+k
+        sample = samples[start0:end0, start1:end1].todense()
+        delta = transforms[i] @ transforms[j].T
+        result += np.trace(sample @ delta.T)
+
+    return result
+
+def calculate_pairwise_matrix(transforms: np.ndarray, 
+                              n: int,
+                              k: int,
+                              k2: int ) -> np.ndarray:
+    p = transforms.reshape(n*k, k2)
+    return p @ p.T 
+
+def get_sdp_objective(x: cp.Variable,
+                      samples: scipy.sparse.csr_matrix,
+                      adjacency: scipy.sparse.coo_matrix,
+                      k: int ) -> cp.Expression:
+    result = None
     
-def get_optimization_constraints(p: cp.Variable,
-                                 n: int,
-                                 k: int ) -> List[cp.Constraint]:
-    constraints = [p >> 0] # Semi-definite positive
+    for i, j in zip(adjacency.row, adjacency.col):
+        start0 = i*k
+        end0 = start0+k
+        start1 = j*k
+        end1 = start1+k
+        sample = samples[start0:end0, start1:end1].todense()
+        result += cp.trace(sample @ x[start0:end0,start1:end1].T)
+
+    return result
+    
+def get_sdp_constraints(x: cp.Variable,
+                        n: int,
+                        k: int ) -> List[cp.Constraint]:
+    constraints = [x >> 0] # Semi-definite positive
 
     # Diagonal blocks with identity
     eye = np.eye(k)
     for i in range(n):
         start = k*i
         end = start+k
-        constraints.append(p[start:end, start:end] == eye)
+        constraints.append(x[start:end, start:end] == eye)
         
     return constraints
 
-def optimize_pairwise_matrix(graph: scipy.sparse.spmatrix,
-                             n: int,
-                             k: int,
-                             weights: Optional[scipy.sparse.spmatrix] = None,
-                             verbose: bool = False,
-                             triangular_upper: bool = False ) -> np.ndarray:
-    p = cp.Variable(graph.shape, symmetric=True)
-    objective_function = get_optimization_objective_function(
-        p=p,
-        graph=graph,
-        weights=weights,
-        triangular_upper=triangular_upper
+def sdp_optimize_pairwise_matrix(samples: scipy.sparse.spmatrix,
+                                 adjacency: scipy.sparse.coo_matrix,
+                                 n: int,
+                                 k: int,
+                                 verbose: bool = False ) -> np.ndarray:
+    x = cp.Variable(samples.shape, symmetric=True)
+    objective_function = get_sdp_objective(
+        x=x,
+        samples=samples,
+        adjacency=adjacency,
+        k=k
     )
-    constraints = get_optimization_constraints(p=p, n=n, k=k)
+    constraints = get_sdp_constraints(x=x, n=n, k=k)
     
-    problem = cp.Problem(cp.Minimize(objective_function), constraints)
-    objective_value = problem.solve(verbose=verbose)
+    problem = cp.Problem(cp.Maximize(objective_function), constraints)
+    problem.solve(verbose=verbose)
     
-    return p.value, objective_value
+    return x.value
 
-def orthogonalize(matrices: np.ndarray, special: bool = False) -> np.ndarray:
-    u, s, vt = np.linalg.svd(matrices, full_matrices=False)
-    if not special:
-        u *= np.sign(s)[...,None,:]
-    return u @ vt
-    
-def compute_bases(pairwise: np.ndarray,
-                  n: int,
-                  k: int,
-                  k2: Optional[int] = None,
-                  norm: Optional[str] = None ) -> np.ndarray:
+def decompose_pairwise(pairwise: np.ndarray,
+                       n: int,
+                       k: int,
+                       k2: int,
+                       special: bool = False ) -> Tuple[np.ndarray, np.ndarray]:
 
     w, v = scipy.linalg.eigh(pairwise)
     
     # Compute the number of principal components
-    if k2 is not None:
-        v = v[:,-k2:]
-        w = w[-k2:]
-    else:
-        k2 = len(w)
+    v = v[:,-k2:]
+    w = w[-k2:]
     
     v *= np.sqrt(w)
     v = v.reshape(n, k, k2)
     
-    if norm == 'O':
-        v = orthogonalize(v, special=False)
-    elif norm == 'SO':
-        v = orthogonalize(v, special=True)
+    transforms = orthogonalize_matrices(v, special=special)
     
-    return v, w
+    return transforms, w
 
-def main(input_graph_path: str,
-         output_bases: str,
-         k: int,
-         k2: Optional[int] = None,
-         output_eigenvalues: Optional[str] = None,
-         output_pairwise: Optional[str] = None,
-         weight_path: Optional[str] = None, 
-         verbose: bool = False,
-         norm: Optional[str] = None,
-         triangular_upper: bool = False ):
+def sdp_ortho_group_synchronization(samples: scipy.sparse.csr_matrix,
+                                    adjacency: scipy.sparse.coo_matrix,
+                                    n: int,
+                                    k: int,
+                                    k2: int,
+                                    special: bool = False,
+                                    triu: bool = True,
+                                    verbose: bool = False ) -> np.ndarray:
+    if triu:
+        adjacency = scipy.sparse.triu(adjacency)
     
-    graph = scipy.sparse.load_npz(input_graph_path)
-    n = check_graph(graph=graph, k=k)
-
-    weights = None
-    if weight_path is not None:
-        weights = scipy.sparse.load_npz(weight_path)
-        check_weights(graph=graph, weights=weights)
-    
-    pairwise, error = optimize_pairwise_matrix(
-        graph=graph, 
-        n=n, 
-        k=k, 
-        weights=weights,
-        verbose=verbose,
-        triangular_upper=triangular_upper
-    )
-    print('Matrix completion error (ideally 0): ', error)
-    
-    if output_pairwise is not None:
-        np.save(output_pairwise, pairwise)
-    
-    bases, eigen_values = compute_bases(
-        pairwise=pairwise,
+    pairwise = sdp_optimize_pairwise_matrix(
+        samples=samples,
+        adjacency=adjacency,
         n=n,
         k=k,
-        k2=k2,
-        norm=norm
+        verbose=verbose
+    )
+
+    transforms, eigenvalues = decompose_pairwise(
+        pairwise=pairwise, 
+        n=n, 
+        k=k, 
+        k2=k2, 
+        special=special
     )
     
-    if output_eigenvalues is not None:
-        np.save(output_eigenvalues, eigen_values)
+    return transforms, eigenvalues
+
+def bm_optimization_step(samples: scipy.sparse.csr_matrix,
+                         adjacency: scipy.sparse.coo_matrix,
+                         transforms: np.ndarray,
+                         k: int,
+                         special: bool = False) -> np.ndarray:
+    result = np.zeros_like(transforms)
+
+    for i, j in zip(adjacency.row, adjacency.col):
+        start0 = i*k
+        end0 = start0+k
+        start1 = j*k
+        end1 = start1+k
+        sample = samples[start0:end0, start1:end1].todense()
+        transform = transforms[j]
+        result[i,:,:] += (sample @ transform)
+
+    result = orthogonalize_matrices(result, special=special)
+    return result
+
+def bm_ortho_group_synchronization(samples: scipy.sparse.csr_matrix,
+                                   adjacency: scipy.sparse.csr_matrix,
+                                   n: int,
+                                   k: int,
+                                   k2: int,
+                                   special: bool = False,
+                                   verbose: bool = False,
+                                   tol: float = 1e-6,
+                                   max_iter: int = 256,
+                                   start: Optional[np.ndarray] = None ) -> np.ndarray:
+  x = start if start is not None else scipy.stats.ortho_group(k2).rvs(n)[:,:k,:]
+
+  #last_cost = ortho_group_synchronization_objective(measurements, positions, x)
+  for _ in range(max_iter):
+    x = bm_optimization_step(
+        samples=samples,
+        adjacency=adjacency,
+        transforms=x,
+        k=k,
+        special=special
+    )
+
+    if verbose:
+        cost = ortho_group_synchronization_objective(
+            samples=samples,
+            adjacency=adjacency,
+            transforms=x,
+            k=k
+        )
+        print(cost, flush=True)
     
-    np.save(output_bases, bases)
+    #r = (cost - last_cost) / last_cost
+    #if r < tol:
+    #  break
+
+  return x
+
+def main(input_samples_path: str,
+         input_adjacency_path: str,
+         output_transforms_path: str,
+         k: int,
+         k2: int,
+         method: str,
+         output_pairwise_path: Optional[str] = None,
+         output_eigenvalues_path: Optional[str] = None,
+         special: bool = False,
+         triu: bool = True,
+         verbose: bool = False ):
+    
+    samples = scipy.sparse.load_npz(input_samples_path).tocsr(copy=False)
+    adjacency = scipy.sparse.load_npz(input_adjacency_path).tocoo(copy=False)
+    n = adjacency.shape[0] # TODO validate
+    
+    if method == 'sdp':
+        transforms, eigenvalues = sdp_ortho_group_synchronization(
+            samples=samples,
+            adjacency=adjacency,
+            n=n,
+            k=k,
+            k2=k2,
+            special=special,
+            triu=triu,
+            verbose=verbose
+        )
+        
+        if output_eigenvalues_path is not None:
+            np.save(output_eigenvalues_path, eigenvalues)
+        
+    elif method == 'burer-monteiro':
+        transforms = bm_ortho_group_synchronization(
+            samples=samples,
+            adjacency=adjacency,
+            n=n,
+            k=k,
+            k2=k2,
+            special=special,
+            verbose=verbose
+        )
+        
+    else:
+        raise ValueError(
+            'Unknown method, only sdp and burer-monteiro are supported'
+        )
+    
+    if verbose:
+        objective = ortho_group_synchronization_objective(
+            samples=samples,
+            adjacency=adjacency,
+            transforms=transforms,
+            k=k
+        )
+        print(f'Final objective function value: {objective}')
+    
+    if output_pairwise_path is not None:
+        pairwise = calculate_pairwise_matrix(transforms, n=n, k=k, k2=k2)
+        np.save(output_pairwise_path, pairwise)
+    
+    np.save(output_transforms_path, transforms)
     
 if __name__ == '__main__':
     # Define the input
     parser = argparse.ArgumentParser(prog='Synchronize bases on a graph')
     parser.add_argument('-i', required=True)
+    parser.add_argument('-a', '--adjacency', required=True)
     parser.add_argument('-o', required=True)
     parser.add_argument('-k', required=True, type=int)
-    parser.add_argument('-k2', type=int)
-    parser.add_argument('--eigenvalues')
-    parser.add_argument('-p')
-    parser.add_argument('-w')
+    parser.add_argument('-k2', type=int, required=True)
+    parser.add_argument('-m', '--method', required=True)
+    parser.add_argument('-p', '--pairwise')
+    parser.add_argument('-e', '--eigenvalues')
     parser.add_argument('-v', '--verbose', action='store_true')
-    parser.add_argument('--norm')
     parser.add_argument('--triangular_upper', action='store_true')
+    parser.add_argument('--special', action='store_true')
 
     # Parse
     args = parser.parse_args()
 
     # Run the program
     main(
-        input_graph_path=args.i,
-        output_bases=args.o,
+        input_samples_path=args.i,
+        output_transforms_path=args.o,
+        input_adjacency_path=args.adjacency,
+        output_pairwise_path=args.pairwise,
+        output_eigenvalues_path=args.eigenvalues,
         k=args.k,
         k2=args.k2,
-        output_eigenvalues=args.eigenvalues,
-        output_pairwise=args.p,
-        weight_path=args.w,
-        verbose=args.verbose,
-        norm=args.norm,
-        triangular_upper=args.triangular_upper
+        method=args.method,
+        special=args.special,
+        triu=args.triangular_upper,
+        verbose=args.verbose
     )
     
