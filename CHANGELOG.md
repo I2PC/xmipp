@@ -1,4 +1,4 @@
-   ## Release 24.12.0 - Poseidon
+   ## Release 3.24.12.0 - Poseidon
    ### Xmipp Programs 
    - New programs
         - tomo_average_subtomos: This method carries out a subtomogram averaging. It means, given a set of subtomogram the program will estimate the average map
