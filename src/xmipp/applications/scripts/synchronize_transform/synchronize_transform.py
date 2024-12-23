@@ -70,11 +70,9 @@ def ortho_group_synchronization_objective(samples: scipy.sparse.csr_matrix,
 
     return result
 
-def calculate_pairwise_matrix(transforms: np.ndarray, 
-                              n: int,
-                              k: int,
-                              k2: int ) -> np.ndarray:
-    p = transforms.reshape(n*k, k2)
+def calculate_pairwise_matrix(transforms: np.ndarray) -> np.ndarray:
+    n, k, p = transforms.shape
+    p = transforms.reshape(n*k, p)
     return p @ p.T 
 
 def get_sdp_objective(x: cp.Variable,
@@ -139,11 +137,17 @@ def decompose_pairwise(pairwise: np.ndarray,
     w = w[-k2:]
     
     v *= np.sqrt(w)
-    v = v.reshape(n, k, k2)
     
-    transforms = orthogonalize_matrices(v, special=special)
-    
+    transforms = orthogonalize_matrices(v.reshape(n, k, k2), special=special)
     return transforms, w
+
+def decompose_bases(bases: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    n, k, p = bases.shape
+    u, s, _ = np.linalg.svd(bases.reshape(n*k, p), full_matrices=False)
+    u *= s
+    transforms = np.reshape(u, (n, k, p))
+    eigenvalues = np.square(s)
+    return transforms, eigenvalues
 
 def sdp_ortho_group_synchronization(samples: scipy.sparse.csr_matrix,
                                     adjacency: scipy.sparse.coo_matrix,
@@ -200,35 +204,36 @@ def bm_ortho_group_synchronization(samples: scipy.sparse.csr_matrix,
                                    k2: int,
                                    special: bool = False,
                                    verbose: bool = False,
-                                   tol: float = 1e-6,
+                                   tol: float = 1e-8,
                                    max_iter: int = 256,
                                    start: Optional[np.ndarray] = None ) -> np.ndarray:
-  x = start if start is not None else scipy.stats.ortho_group(k2).rvs(n)[:,:k,:]
+    x = start if start is not None else scipy.stats.ortho_group(k2).rvs(n)[:,:k,:]
 
-  #last_cost = ortho_group_synchronization_objective(measurements, positions, x)
-  for _ in range(max_iter):
-    x = bm_optimization_step(
-        samples=samples,
-        adjacency=adjacency,
-        transforms=x,
-        k=k,
-        special=special
-    )
-
-    if verbose:
-        cost = ortho_group_synchronization_objective(
+    #last_cost = ortho_group_synchronization_objective(measurements, positions, x)
+    for _ in range(max_iter):
+        prev_x = x
+        x = bm_optimization_step(
             samples=samples,
             adjacency=adjacency,
             transforms=x,
-            k=k
+            k=k,
+            special=special
         )
-        print(cost, flush=True)
-    
-    #r = (cost - last_cost) / last_cost
-    #if r < tol:
-    #  break
 
-  return x
+        if verbose:
+            cost = ortho_group_synchronization_objective(
+                samples=samples,
+                adjacency=adjacency,
+                transforms=x,
+                k=k
+            )
+            print(cost, flush=True)
+        
+        delta = np.linalg.norm(x-prev_x)
+        if delta < tol:
+            break
+
+    return decompose_bases(x)
 
 def main(input_samples_path: str,
          input_adjacency_path: str,
@@ -262,7 +267,7 @@ def main(input_samples_path: str,
             np.save(output_eigenvalues_path, eigenvalues)
         
     elif method == 'burer-monteiro':
-        transforms = bm_ortho_group_synchronization(
+        transforms, eigenvalues = bm_ortho_group_synchronization(
             samples=samples,
             adjacency=adjacency,
             n=n,
@@ -287,7 +292,7 @@ def main(input_samples_path: str,
         print(f'Final objective function value: {objective}')
     
     if output_pairwise_path is not None:
-        pairwise = calculate_pairwise_matrix(transforms, n=n, k=k, k2=k2)
+        pairwise = calculate_pairwise_matrix(transforms)
         np.save(output_pairwise_path, pairwise)
     
     np.save(output_transforms_path, transforms)
