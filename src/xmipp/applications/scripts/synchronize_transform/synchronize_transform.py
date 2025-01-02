@@ -126,35 +126,34 @@ def sdp_optimize_pairwise_matrix(samples: scipy.sparse.spmatrix,
 
 def decompose_pairwise(pairwise: np.ndarray,
                        n: int,
-                       k: int,
-                       k2: int,
-                       special: bool = False ) -> Tuple[np.ndarray, np.ndarray]:
+                       k: int ) -> Tuple[np.ndarray, np.ndarray]:
 
-    w, v = scipy.linalg.eigh(pairwise)
-    
-    # Compute the number of principal components
-    v = v[:,-k2:]
-    w = w[-k2:]
+    w, v = np.linalg.eigh(pairwise)
+    w = np.flip(w)
+    v = np.flip(v, axis=1)
     
     v *= np.sqrt(w)
-    
-    transforms = orthogonalize_matrices(v.reshape(n, k, k2), special=special)
+    transforms = v.reshape(n, k, k*n)
+
     return transforms, w
 
 def decompose_bases(bases: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     n, k, p = bases.shape
     u, s, _ = np.linalg.svd(bases.reshape(n*k, p), full_matrices=False)
+
     u *= s
     transforms = np.reshape(u, (n, k, p))
     eigenvalues = np.square(s)
+
     return transforms, eigenvalues
+
+def auto_trim_eigenvalues(eigenvalues: np.ndarray) -> int:
+    return np.argmin(np.diff(eigenvalues))+1
 
 def sdp_ortho_group_synchronization(samples: scipy.sparse.csr_matrix,
                                     adjacency: scipy.sparse.coo_matrix,
                                     n: int,
                                     k: int,
-                                    k2: int,
-                                    special: bool = False,
                                     triu: bool = True,
                                     verbose: bool = False ) -> np.ndarray:
     if triu:
@@ -171,29 +170,16 @@ def sdp_ortho_group_synchronization(samples: scipy.sparse.csr_matrix,
     transforms, eigenvalues = decompose_pairwise(
         pairwise=pairwise, 
         n=n, 
-        k=k, 
-        k2=k2, 
-        special=special
+        k=k
     )
     
     return transforms, eigenvalues
 
 def bm_optimization_step(samples: scipy.sparse.csr_matrix,
-                         adjacency: scipy.sparse.coo_matrix,
                          transforms: np.ndarray,
-                         k: int,
                          special: bool = False) -> np.ndarray:
-    result = np.zeros_like(transforms)
-
-    for i, j in zip(adjacency.row, adjacency.col):
-        start0 = i*k
-        end0 = start0+k
-        start1 = j*k
-        end1 = start1+k
-        sample = samples[start0:end0, start1:end1].todense()
-        transform = transforms[j]
-        result[i,:,:] += (sample @ transform)
-
+    result = samples @ transforms.reshape(-1, transforms.shape[-1])
+    result = result.reshape(transforms.shape)
     result = orthogonalize_matrices(result, special=special)
     return result
 
@@ -201,22 +187,23 @@ def bm_ortho_group_synchronization(samples: scipy.sparse.csr_matrix,
                                    adjacency: scipy.sparse.csr_matrix,
                                    n: int,
                                    k: int,
-                                   k2: int,
                                    special: bool = False,
                                    verbose: bool = False,
                                    tol: float = 1e-8,
-                                   max_iter: int = 256,
+                                   max_iter: int = 512,
                                    start: Optional[np.ndarray] = None ) -> np.ndarray:
-    x = start if start is not None else scipy.stats.ortho_group(k2).rvs(n)[:,:k,:]
-
-    #last_cost = ortho_group_synchronization_objective(measurements, positions, x)
+    if start is None:
+        p = 2*k+1
+        start = np.random.randn(n*k, p)
+        start, _ = np.linalg.qr(start, mode='reduced')
+        start = start.reshape(n, k, p)
+    
+    x = start
     for _ in range(max_iter):
         prev_x = x
         x = bm_optimization_step(
             samples=samples,
-            adjacency=adjacency,
             transforms=x,
-            k=k,
             special=special
         )
 
@@ -239,11 +226,12 @@ def main(input_samples_path: str,
          input_adjacency_path: str,
          output_transforms_path: str,
          k: int,
-         k2: int,
          method: str,
+         p: Optional[int] = None,
+         group: Optional[str] = None,
+         auto_trim: bool = False,
          output_pairwise_path: Optional[str] = None,
          output_eigenvalues_path: Optional[str] = None,
-         special: bool = False,
          triu: bool = True,
          verbose: bool = False ):
     
@@ -257,14 +245,9 @@ def main(input_samples_path: str,
             adjacency=adjacency,
             n=n,
             k=k,
-            k2=k2,
-            special=special,
             triu=triu,
             verbose=verbose
         )
-        
-        if output_eigenvalues_path is not None:
-            np.save(output_eigenvalues_path, eigenvalues)
         
     elif method == 'burer-monteiro':
         transforms, eigenvalues = bm_ortho_group_synchronization(
@@ -272,8 +255,6 @@ def main(input_samples_path: str,
             adjacency=adjacency,
             n=n,
             k=k,
-            k2=k2,
-            special=special,
             verbose=verbose
         )
         
@@ -282,6 +263,16 @@ def main(input_samples_path: str,
             'Unknown method, only sdp and burer-monteiro are supported'
         )
     
+    if group is not None:
+        p = k
+    elif auto_trim:
+        p = auto_trim_eigenvalues(eigenvalues)
+        
+    if p is not None:
+        special = (group=='SO')
+        transforms = transforms[:,:,:p]
+        transforms = orthogonalize_matrices(transforms, special=special)
+
     if verbose:
         objective = ortho_group_synchronization_objective(
             samples=samples,
@@ -294,6 +285,9 @@ def main(input_samples_path: str,
     if output_pairwise_path is not None:
         pairwise = calculate_pairwise_matrix(transforms)
         np.save(output_pairwise_path, pairwise)
+
+    if output_eigenvalues_path is not None:
+        np.save(output_eigenvalues_path, eigenvalues)
     
     np.save(output_transforms_path, transforms)
     
@@ -304,13 +298,14 @@ if __name__ == '__main__':
     parser.add_argument('-a', '--adjacency', required=True)
     parser.add_argument('-o', required=True)
     parser.add_argument('-k', required=True, type=int)
-    parser.add_argument('-k2', type=int, required=True)
-    parser.add_argument('-m', '--method', required=True)
-    parser.add_argument('-p', '--pairwise')
-    parser.add_argument('-e', '--eigenvalues')
+    parser.add_argument('-p', type=int)
+    parser.add_argument('--group')
+    parser.add_argument('--auto_trim', action='store_true')
+    parser.add_argument('--method', required=True)
+    parser.add_argument('--pairwise')
+    parser.add_argument('--eigenvalues')
     parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('--triangular_upper', action='store_true')
-    parser.add_argument('--special', action='store_true')
 
     # Parse
     args = parser.parse_args()
@@ -323,9 +318,10 @@ if __name__ == '__main__':
         output_pairwise_path=args.pairwise,
         output_eigenvalues_path=args.eigenvalues,
         k=args.k,
-        k2=args.k2,
+        p=args.p,
+        group=args.group,
+        auto_trim=args.auto_trim,
         method=args.method,
-        special=args.special,
         triu=args.triangular_upper,
         verbose=args.verbose
     )
