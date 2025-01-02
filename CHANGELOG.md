@@ -1,9 +1,4 @@
 ## Release 3.24.12.0 - Poseidon
-   - More scipion-em-xmipp
-      - Updating version for pypi requirements
-      - Bug cloning tag
-      - New branch for plugin in production pipeline
-## Release 3.24.12.0 - Poseidon
    ### Xmipp Programs 
    - New programs
         - tomo_average_subtomos: This method carries out a subtomogram averaging. It means, given a set of subtomogram the program will estimate the average map
