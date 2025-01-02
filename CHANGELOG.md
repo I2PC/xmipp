@@ -2,7 +2,7 @@
    - More scipion-em-xmipp
       - Updating version for pypi requirements
       - Bug cloning tag
-      - 
+      - New branch for plugin in production pipeline
 ## Release 3.24.12.0 - Poseidon
    ### Xmipp Programs 
    - New programs
