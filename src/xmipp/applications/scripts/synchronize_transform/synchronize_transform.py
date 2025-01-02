@@ -54,21 +54,9 @@ def orthogonalize_matrices(matrices: np.ndarray, special: bool = False) -> np.nd
     return result
 
 def ortho_group_synchronization_objective(samples: scipy.sparse.csr_matrix,
-                                          adjacency: scipy.sparse.coo_matrix,
-                                          transforms: np.ndarray,
-                                          k: int) -> float:
-    result = 0.0
-
-    for i, j in zip(adjacency.row, adjacency.col):
-        start0 = i*k
-        end0 = start0+k
-        start1 = j*k
-        end1 = start1+k
-        sample = samples[start0:end0, start1:end1].todense()
-        delta = transforms[i] @ transforms[j].T
-        result += np.trace(sample @ delta.T)
-
-    return result
+                                          transforms: np.ndarray ) -> float:
+    n, k, p = transforms.shape
+    return np.trace(samples @ transforms.reshape(n*k, p))
 
 def calculate_pairwise_matrix(transforms: np.ndarray) -> np.ndarray:
     n, k, p = transforms.shape
@@ -76,20 +64,8 @@ def calculate_pairwise_matrix(transforms: np.ndarray) -> np.ndarray:
     return p @ p.T 
 
 def get_sdp_objective(x: cp.Variable,
-                      samples: scipy.sparse.csr_matrix,
-                      adjacency: scipy.sparse.coo_matrix,
-                      k: int ) -> cp.Expression:
-    result = None
-    
-    for i, j in zip(adjacency.row, adjacency.col):
-        start0 = i*k
-        end0 = start0+k
-        start1 = j*k
-        end1 = start1+k
-        sample = samples[start0:end0, start1:end1].todense()
-        result += cp.trace(sample @ x[start0:end0,start1:end1].T)
-
-    return result
+                      samples: scipy.sparse.csr_matrix ) -> cp.Expression:
+    return cp.trace(samples @ x.T)
     
 def get_sdp_constraints(x: cp.Variable,
                         n: int,
@@ -113,9 +89,7 @@ def sdp_optimize_pairwise_matrix(samples: scipy.sparse.spmatrix,
     x = cp.Variable(samples.shape, symmetric=True)
     objective_function = get_sdp_objective(
         x=x,
-        samples=samples,
-        adjacency=adjacency,
-        k=k
+        samples=samples
     )
     constraints = get_sdp_constraints(x=x, n=n, k=k)
     
@@ -210,9 +184,7 @@ def bm_ortho_group_synchronization(samples: scipy.sparse.csr_matrix,
         if verbose:
             cost = ortho_group_synchronization_objective(
                 samples=samples,
-                adjacency=adjacency,
-                transforms=x,
-                k=k
+                transforms=x
             )
             print(cost, flush=True)
         
@@ -269,16 +241,12 @@ def main(input_samples_path: str,
         p = auto_trim_eigenvalues(eigenvalues)
         
     if p is not None:
-        special = (group=='SO')
-        transforms = transforms[:,:,:p]
-        transforms = orthogonalize_matrices(transforms, special=special)
+        transforms = orthogonalize_matrices(transforms[:,:,:p], special=group=='SO')
 
     if verbose:
         objective = ortho_group_synchronization_objective(
             samples=samples,
-            adjacency=adjacency,
-            transforms=transforms,
-            k=k
+            transforms=transforms
         )
         print(f'Final objective function value: {objective}')
     
