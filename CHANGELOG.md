@@ -1,4 +1,9 @@
-   ## Release 3.24.12.0 - Poseidon
+## Release 3.24.12.2 - Poseidon
+   - More scipion-em-xmipp
+      - Updating version for pypi requirements
+      - Bug cloning tag
+      - 
+## Release 3.24.12.0 - Poseidon
    ### Xmipp Programs 
    - New programs
         - tomo_average_subtomos: This method carries out a subtomogram averaging. It means, given a set of subtomogram the program will estimate the average map
@@ -33,7 +38,7 @@
    - Fix for rare axis orderings in MRC/MAP files
    - Local average label added (used to measure the intensity of the particles in the original micrographs)
  
- ## Release 3.24.06 - Oceanus
+## Release 3.24.06 - Oceanus
    ### Xmipp Programs 
    - New programs
       - xtomo tigre reconstruction: This program provides a variety of algorithms to reconstruct tomogram from a set of tilt series
@@ -72,7 +77,7 @@
    - Adding fixed extension to tomo
 
   
- ## Release 3.23.11 - Nereus
+## Release 3.23.11 - Nereus
    ### Xmipp Programs 
    
    - New programs
@@ -151,7 +156,7 @@
 
 
    
-   ## Release 3.23.03 - Kratos
+## Release 3.23.03 - Kratos
    ### Xmipp Programs 
    
   - New programs: tomo_confidence_map, tomo_extract_particlestacks, tomo_extract_subtomograms, tomo_tiltseries_dose_filter, psd_estimatator
