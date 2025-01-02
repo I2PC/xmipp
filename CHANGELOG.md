@@ -1,4 +1,4 @@
-## Release 3.24.12.2 - Poseidon
+## Release 3.24.12.0 - Poseidon
    - More scipion-em-xmipp
       - Updating version for pypi requirements
       - Bug cloning tag
