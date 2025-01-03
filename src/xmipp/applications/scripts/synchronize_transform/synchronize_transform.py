@@ -241,7 +241,12 @@ def main(input_samples_path: str,
         p = auto_trim_eigenvalues(eigenvalues)
         
     if p is not None:
-        transforms = orthogonalize_matrices(transforms[:,:,:p], special=group=='SO')
+        transforms = transforms[:,:,:p]
+        
+    if group == 'O':
+        transforms = orthogonalize_matrices(transforms, special=False)
+    elif group == 'SO':
+        transforms = orthogonalize_matrices(transforms, special=True)
 
     if verbose:
         objective = ortho_group_synchronization_objective(
