@@ -82,7 +82,6 @@ def get_sdp_constraints(x: cp.Variable,
     return constraints
 
 def sdp_optimize_pairwise_matrix(samples: scipy.sparse.spmatrix,
-                                 adjacency: scipy.sparse.coo_matrix,
                                  n: int,
                                  k: int,
                                  verbose: bool = False ) -> np.ndarray:
@@ -121,21 +120,17 @@ def decompose_bases(bases: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 
     return transforms, eigenvalues
 
-def auto_trim_eigenvalues(eigenvalues: np.ndarray) -> int:
-    return np.argmin(np.diff(eigenvalues))+1
+def auto_trim_eigenvalues(eigenvalues: np.ndarray, power: float) -> int:
+    rep = np.cumsum(eigenvalues)
+    rep /= rep[-1]
+    return np.where(rep >= power)
 
 def sdp_ortho_group_synchronization(samples: scipy.sparse.csr_matrix,
-                                    adjacency: scipy.sparse.coo_matrix,
                                     n: int,
                                     k: int,
-                                    triu: bool = True,
                                     verbose: bool = False ) -> np.ndarray:
-    if triu:
-        adjacency = scipy.sparse.triu(adjacency)
-    
     pairwise = sdp_optimize_pairwise_matrix(
         samples=samples,
-        adjacency=adjacency,
         n=n,
         k=k,
         verbose=verbose
@@ -158,7 +153,6 @@ def bm_optimization_step(samples: scipy.sparse.csr_matrix,
     return result
 
 def bm_ortho_group_synchronization(samples: scipy.sparse.csr_matrix,
-                                   adjacency: scipy.sparse.csr_matrix,
                                    n: int,
                                    k: int,
                                    special: bool = False,
@@ -195,36 +189,30 @@ def bm_ortho_group_synchronization(samples: scipy.sparse.csr_matrix,
     return decompose_bases(x)
 
 def main(input_samples_path: str,
-         input_adjacency_path: str,
          output_transforms_path: str,
+         n: int,
          k: int,
          method: str,
          p: Optional[int] = None,
          group: Optional[str] = None,
-         auto_trim: bool = False,
+         auto_trim: Optional[float] = None,
          output_pairwise_path: Optional[str] = None,
          output_eigenvalues_path: Optional[str] = None,
-         triu: bool = True,
          verbose: bool = False ):
     
     samples = scipy.sparse.load_npz(input_samples_path).tocsr(copy=False)
-    adjacency = scipy.sparse.load_npz(input_adjacency_path).tocoo(copy=False)
-    n = adjacency.shape[0] # TODO validate
     
     if method == 'sdp':
         transforms, eigenvalues = sdp_ortho_group_synchronization(
             samples=samples,
-            adjacency=adjacency,
             n=n,
             k=k,
-            triu=triu,
             verbose=verbose
         )
         
     elif method == 'burer-monteiro':
         transforms, eigenvalues = bm_ortho_group_synchronization(
             samples=samples,
-            adjacency=adjacency,
             n=n,
             k=k,
             verbose=verbose
@@ -237,8 +225,8 @@ def main(input_samples_path: str,
     
     if group is not None:
         p = k
-    elif auto_trim:
-        p = auto_trim_eigenvalues(eigenvalues)
+    elif auto_trim is not None:
+        p = auto_trim_eigenvalues(eigenvalues, auto_trim)
         
     if p is not None:
         transforms = transforms[:,:,:p]
@@ -266,19 +254,18 @@ def main(input_samples_path: str,
     
 if __name__ == '__main__':
     # Define the input
-    parser = argparse.ArgumentParser(prog='Synchronize bases on a graph')
+    parser = argparse.ArgumentParser(prog='Synchronize transforms on a graph')
     parser.add_argument('-i', required=True)
-    parser.add_argument('-a', '--adjacency', required=True)
     parser.add_argument('-o', required=True)
+    parser.add_argument('-n', required=True, type=int)
     parser.add_argument('-k', required=True, type=int)
     parser.add_argument('-p', type=int)
     parser.add_argument('--group')
-    parser.add_argument('--auto_trim', action='store_true')
+    parser.add_argument('--auto_trim', type=float)
     parser.add_argument('--method', required=True)
     parser.add_argument('--pairwise')
     parser.add_argument('--eigenvalues')
     parser.add_argument('-v', '--verbose', action='store_true')
-    parser.add_argument('--triangular_upper', action='store_true')
 
     # Parse
     args = parser.parse_args()
@@ -287,15 +274,14 @@ if __name__ == '__main__':
     main(
         input_samples_path=args.i,
         output_transforms_path=args.o,
-        input_adjacency_path=args.adjacency,
         output_pairwise_path=args.pairwise,
         output_eigenvalues_path=args.eigenvalues,
+        n=args.n,
         k=args.k,
         p=args.p,
         group=args.group,
         auto_trim=args.auto_trim,
         method=args.method,
-        triu=args.triangular_upper,
         verbose=args.verbose
     )
     
