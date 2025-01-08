@@ -35,7 +35,7 @@ from io import BufferedReader
 
 # Installer imports
 from .constants import XMIPP, VERNAME_KEY, XMIPP_VERSIONS, INTERRUPTED_ERROR
-from .constants.versions import __RELEASE_NAME
+from .constants.versions import LATEST_RELEASE_NAME
 from .logger import blue, red, logger
 
 ####################### RUN FUNCTIONS #######################
@@ -228,7 +228,7 @@ def getCurrentName():
 	- (str): The name of the branch or the tag.
 	"""
 	if isTag():
-		return __RELEASE_NAME
+		return LATEST_RELEASE_NAME
 	else:
 		return getCurrentBranch()
 
