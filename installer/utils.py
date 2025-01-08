@@ -35,7 +35,7 @@ from io import BufferedReader
 
 # Installer imports
 from .constants import XMIPP, VERNAME_KEY, XMIPP_VERSIONS, INTERRUPTED_ERROR
-from .constants.versions import __LATEST_RELEASE_NAME
+from .constants.versions import __RELEASE_NAME
 from .logger import blue, red, logger
 
 ####################### RUN FUNCTIONS #######################
@@ -217,7 +217,7 @@ def isTag(dir: str='./') -> bool:
 	return not currentBranch or currentBranch == "HEAD"
 
 
-def getCurrentBranchOrTag():
+def getCurrentName():
 	"""
 	### This function returns the current branch of the repository of the given directory or the name of the tag.
 
@@ -228,7 +228,7 @@ def getCurrentBranchOrTag():
 	- (str): The name of the branch or the tag.
 	"""
 	if isTag():
-		return __LATEST_RELEASE_NAME
+		return __RELEASE_NAME
 	else:
 		return getCurrentBranch()
 

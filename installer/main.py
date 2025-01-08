@@ -30,7 +30,7 @@ import os, sys
 from typing import Tuple, Optional
 
 # Module imports
-from .utils import runJob, getCurrentBranch, isProductionMode, getCurrentBranchOrTag
+from .utils import runJob, getCurrentBranch, isProductionMode, getCurrentName
 from .logger import logger, yellow, green, bold
 from .constants import (REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH, MASTER_BRANCHNAME,
 	SOURCE_CLONE_ERROR, TAG_BRANCH_NAME, INTERRUPTED_ERROR, VERSION_FILE, RELEASE_DATE,
@@ -101,7 +101,7 @@ def getSuccessMessage() -> str:
 	- (str): Success message.
 	"""
 	# Getting release name
-	branchName = getCurrentBranchOrTag()
+	branchName = getCurrentName()
 	releaseName = branchName
 	if branchName is None or branchName == MASTER_BRANCHNAME:
 		releaseName = XMIPP_VERSIONS[XMIPP][VERSION_KEY]
