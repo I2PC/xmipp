@@ -128,7 +128,6 @@ PARAMS = {
 		DESCRIPTION: "Branch for the source repositories."
 	},
 	PARAM_PRODUCTION: {
-		SHORT_VERSION: "-prod",
 		LONG_VERSION: "--production",
 		DESCRIPTION: "Flag to identify a production compilation (avoid the download of the plugin)."
 	},
@@ -213,7 +212,7 @@ MODE_EXAMPLES = {
 		'./xmipp',
 		f'./xmipp {MODE_ALL}',
 		f'./xmipp {PARAMS[PARAM_JOBS][SHORT_VERSION]} 20',
-		f'./xmipp {PARAMS[PARAM_PRODUCTION][SHORT_VERSION]}',
+		f'./xmipp {PARAMS[PARAM_PRODUCTION][LONG_VERSION]}',
 		f'./xmipp {PARAMS[PARAM_BRANCH][SHORT_VERSION]} devel',
 		f'./xmipp {MODE_ALL} {PARAMS[PARAM_JOBS][SHORT_VERSION]} 20 '
 		f'{PARAMS[PARAM_BRANCH][SHORT_VERSION]} devel'
