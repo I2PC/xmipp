@@ -87,9 +87,9 @@ def modeCleanBin():
 		userInput = ''
 		logger("", forceConsoleOutput=True)
 	if userInput == confirmationText:
-		runJob(f"find {SOURCES_PATH}/* -name \"*.so\" -exec rm -rf {{}} \;", showCommand=True)
-		runJob(f"find {SOURCES_PATH}/* -name \"*.os\" -exec rm -rf {{}} \;", showCommand=True)
-		runJob(f"find {SOURCES_PATH}/* -name \"*.o\" -exec rm -rf {{}} \;", showCommand=True)
+		runJob(f"find {SOURCES_PATH}/* -name \"*.so\" -exec rm -rf {{}}", showCommand=True)
+		runJob(f"find {SOURCES_PATH}/* -name \"*.os\" -exec rm -rf {{}}", showCommand=True)
+		runJob(f"find {SOURCES_PATH}/* -name \"*.o\" -exec rm -rf {{}}", showCommand=True)
 		runJob("find . -iname \"*.pyc\" -delete", showCommand=True)
 		runJob("find . -iname \"*.dblite\" -delete", showCommand=True)
 		runJob(f"find {os.path.join(SOURCES_PATH, XMIPP, 'applications', 'programs')} --type d -empty", showCommand=True)
