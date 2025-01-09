@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         os:
-        - 'ubuntu-latest'
+        - 'ubuntu-22.04'
 
         cuda:
         - {version: '11.8.0', method: 'network'} 
