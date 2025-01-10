@@ -38,10 +38,6 @@ Install the Scipion plugin.
 
 `scipion3 installp -p src/scipion-em-xmipp/ --devel`
 
-## Using Xmipp
-Xmipp is installed in the build directory located in the same directory where the xmipp script is located. To set all necessary environment variables and paths to all Xmipp programs, you can simply run `source dist/xmipp.bashrc`.
-
-
 ## That's all
 
 If you miss some feature or find a bug, please [create an issue](https://github.com/I2PC/xmipp/issues/new) and we will have a look at it, you can also contact us by xmipp@cnb.csic.es. For more details, troubleshootings and information visit the [wiki page.](https://github.com/I2PC/xmipp/wiki)
