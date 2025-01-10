@@ -40,6 +40,6 @@ Install the Scipion plugin.
 
 ## That's all
 
-If you miss some feature or find a bug, please [create an issue](https://github.com/I2PC/xmipp/issues/new) and we will have a look at it, you can also contact us by xmipp@cnb.csic.es. For more details, troubleshootings and information visit the [wiki page.](https://github.com/I2PC/xmipp/wiki)
+If you miss some feature or find a bug, please [create an issue](https://github.com/I2PC/xmipp/issues/new) and we will have a look at it, you can also contact us by xmipp@cnb.csic.es or Discord (Scipion chanel). For more details, troubleshootings and information visit the [documentation web.]([https://github.com/I2PC/xmipp/wiki](https://i2pc.github.io/docs/index.html))
 
 If you like this project, Watch or Star it! We are also looking for new collaborators, so contact us if you’re interested
