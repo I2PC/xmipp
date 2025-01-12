@@ -123,7 +123,7 @@ def decompose_bases(bases: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 def auto_trim_eigenvalues(eigenvalues: np.ndarray, power: float) -> int:
     rep = np.cumsum(eigenvalues)
     rep /= rep[-1]
-    return np.where(rep >= power)
+    return int(np.argmax(rep >= power))
 
 def sdp_ortho_group_synchronization(samples: scipy.sparse.csr_matrix,
                                     n: int,
