@@ -244,6 +244,15 @@ void ProgClassifyPartialOccupancy::preProcess()
 	V.read(fnVolR);
 	V().setXmippOrigin();
 
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+	{
+		if (DIRECT_MULTIDIM_ELEM(V(), n) < 0)
+		{
+			DIRECT_MULTIDIM_ELEM(V(), n) = 0;
+		}
+		
+	}
+
 	// Create 2D circular mask to avoid edge artifacts after wrapping
 	size_t Xdim;
 	size_t Ydim;
