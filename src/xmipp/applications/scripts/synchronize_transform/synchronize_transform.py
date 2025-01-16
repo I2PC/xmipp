@@ -55,8 +55,7 @@ def orthogonalize_matrices(matrices: np.ndarray, special: bool = False) -> np.nd
 
 def ortho_group_synchronization_objective(samples: scipy.sparse.csr_matrix,
                                           transforms: np.ndarray ) -> float:
-    n, k, p = transforms.shape
-    return np.trace(samples @ transforms.reshape(n*k, p))
+    pass # TODO
 
 def calculate_pairwise_matrix(transforms: np.ndarray) -> np.ndarray:
     n, k, p = transforms.shape
@@ -65,7 +64,7 @@ def calculate_pairwise_matrix(transforms: np.ndarray) -> np.ndarray:
 
 def get_sdp_objective(x: cp.Variable,
                       samples: scipy.sparse.csr_matrix ) -> cp.Expression:
-    return cp.trace(samples @ x.T)
+    return cp.trace(samples @ x)
     
 def get_sdp_constraints(x: cp.Variable,
                         n: int,
