@@ -488,15 +488,19 @@ class BnBgpu:
             current_length = len(newCL[n])
             if iter < 3 and current_length > 2:
                 split1, split2 = torch.split(newCL[n], current_length // 2 + 1, dim=0)
-                clk_list.append(torch.mean(split1, dim=0))
-                insert = torch.mean(split2, dim=0).view(mmap.data.shape[1], mmap.data.shape[2])
-                clk_list.append(insert)
+                # clk_list.append(torch.mean(split1, dim=0))
+                # insert = torch.mean(split2, dim=0).view(mmap.data.shape[1], mmap.data.shape[2])
+                # clk_list.append(insert)
+                sum1 = torch.mean(split1, dim=0)
+                sum2 = torch.mean(split2, dim=0)
+                clk_list.append(sum1)
+                clk_list.append(sum2)
             
             else:
                 if current_length:
                     clk_list.append(torch.mean(newCL[n], dim=0))
         
-        clk = torch.stack(clk_list)                           
+        clk = torch.stack(clk_list)
         return(clk)
     
     
