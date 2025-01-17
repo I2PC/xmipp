@@ -150,7 +150,7 @@ class evaluation:
     
         if apply_shifts:
             star.loc[:, "shiftX"] = -shiftVec[matchPair[:, 4].astype(int), 0] + expShifts[:, 0]
-            star.loc[:, "shiftY"] = -hiftVec[matchPair[:, 4].astype(int), 1] + expShifts[:, 1]
+            star.loc[:, "shiftY"] = -shiftVec[matchPair[:, 4].astype(int), 1] + expShifts[:, 1]
         else:
             star.loc[:, "shiftX"] = -shiftVec[matchPair[:, 4].astype(int), 0]
             star.loc[:, "shiftY"] = -shiftVec[matchPair[:, 4].astype(int), 1]

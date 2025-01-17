@@ -10,8 +10,6 @@ import mrcfile
 import argparse
 import sys, os
 import numpy as np
-# from functions.bnb_gpu import *
-# from functions.assessment import *
 from xmippPyModules.globalAlignFunction.bnb_gpu import *
 from xmippPyModules.globalAlignFunction.pca_gpu import *
 from xmippPyModules.globalAlignFunction.assessment import *
@@ -62,6 +60,7 @@ if __name__=="__main__":
     parser.add_argument("--apply_shifts",  action="store_true", help="Apply starfile shifts to experimental images")
     parser.add_argument("-nCl", "--numCl", type=int, default=1, help="number of classes for initial model")
     parser.add_argument("--save_class",  action="store_true", help="Save the corresponding class in output xmd")
+    parser.add_argument("--initVol",  action="store_true", help="Reconstrution of initial volume")
     
     args = parser.parse_args()
     
@@ -81,6 +80,7 @@ if __name__=="__main__":
     apply_shifts = args.apply_shifts
     numCl = args.numCl
     save_class = args.save_class
+    initVol = args.initVol
            
     torch.cuda.is_available()
     torch.cuda.current_device()
@@ -199,9 +199,10 @@ if __name__=="__main__":
         score = matches[i][:, 2].mean()
         print("mean score = %s" %score.item())
         #Write new starfile
-        if not save_class:   
-            # assess.writeExpStar(prjStar, expStar, matches[i], vectorshift, nExp, apply_shifts, output)
+        if initVol:
             assess.writeExpStar_minScore(prjStar, expStar, matches[i], vectorshift, nExp, apply_shifts, output)
+        else:   
+            assess.writeExpStar(prjStar, expStar, matches[i], vectorshift, nExp, apply_shifts, output)
     
     
     if save_class:
