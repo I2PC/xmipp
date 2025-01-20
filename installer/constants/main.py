@@ -73,7 +73,7 @@ SCIPION_SOFTWARE_EM = "scipionfiles/downloads/scipion/software/em"
 # Other variables
 TAB_SIZE = 4
 SECTION_MESSAGE_LEN = 60
-TAG_BRANCH_NAME = 'HEAD'
+TAG_BRANCH_NAME = 'v3.24.12.0-Poseidon'
 
 # File names
 CONFIG_FILE = 'xmipp.conf'
