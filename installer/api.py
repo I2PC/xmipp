@@ -182,7 +182,7 @@ def __getMACAddress() -> Optional[str]:
 
     # Regular expression to match the MAC address and interface names
     macRegex = r"link/ether ([0-9a-f:]{17})"
-    interfaceRegex = r"^\d+: (enp|wlp|eth)\w+"
+    interfaceRegex = r"^\d+: (enp|wlp|eth|ens)\w+"
 
     # Split the output into lines
     lines = output.split('\n')
@@ -190,6 +190,7 @@ def __getMACAddress() -> Optional[str]:
     # Iterate over the lines looking for MAC address
     macAddress = None
     for line in lines:
+
         # If this line contains an interface name
         if re.match(interfaceRegex, line):
             # Extract the interface name
