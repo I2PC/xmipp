@@ -341,6 +341,7 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 		logger('Hola logger')
 		apiPost = True if readConfig(CONFIG_FILE).get(
 			SEND_INSTALLATION_STATISTICS) == 'ON' else False
+		logger(f'os.path.exists(VERSION_FILE) {os.path.exists(VERSION_FILE)}')
 		if sendAPI and apiPost and os.path.exists(VERSION_FILE):
 			sendApiPOST()
 	except FileNotFoundError:
