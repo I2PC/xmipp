@@ -338,8 +338,14 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 	
 	# Send API message
 	try:
+		print('Hola')
+		logger('Hola logger')
 		apiPost = True if readConfig(CONFIG_FILE).get(
 			SEND_INSTALLATION_STATISTICS) == 'ON' else False
+
+		logger(f'apiPost{apiPost},'
+		       f'sendAPI: {sendAPI}'
+		       f'SEND_INSTALLATION_STATISTICS: {readConfig(CONFIG_FILE).get(SEND_INSTALLATION_STATISTICS)}')
 		if sendAPI and apiPost and os.path.exists(VERSION_FILE):
 			sendApiPOST()
 	except FileNotFoundError:
