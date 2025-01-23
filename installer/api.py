@@ -54,30 +54,30 @@ def sendApiPOST(retCode: int=0):
     with open(os.path.join(os.getcwd(), 'datosRequest.txt'), 'w') as file:
         file.write(f'bodyParams: {bodyParams}')
     # Send API POST request if there were no errors
-    if bodyParams is not None:
-        # Define the parameters for the POST request
-        params = json.dumps(bodyParams)
-        # Set up the headers
-        headers = {"Content-type": "application/json"}
-        parsedUrl = urlparse(API_URL)
-        # Establish a connection
-        conn = http.client.HTTPSConnection(parsedUrl.hostname, parsedUrl.port, timeout=5)
-        f'path: { parsedUrl.path}\nparams: {params}\nheaders: {headers}'
-        logger(os.path.join(os.getcwd(), 'datosRequest.txt'))
-        with open(os.path.join(os.getcwd(), 'datosRequest.txt'), 'w') as file:
-            file.write(f'path: { parsedUrl.path}\nparams: {params}\nheaders: {headers}')
-        try:
-            # Send the POST request
-            conn.request("POST", parsedUrl.path, body=params, headers=headers)
+    #if bodyParams is not None:
+    # Define the parameters for the POST request
+    params = json.dumps(bodyParams)
+    # Set up the headers
+    headers = {"Content-type": "application/json"}
+    parsedUrl = urlparse(API_URL)
+    # Establish a connection
+    conn = http.client.HTTPSConnection(parsedUrl.hostname, parsedUrl.port, timeout=5)
+    f'path: { parsedUrl.path}\nparams: {params}\nheaders: {headers}'
+    logger(os.path.join(os.getcwd(), 'datosRequest.txt'))
+    with open(os.path.join(os.getcwd(), 'datosRequest.txt'), 'w') as file:
+        file.write(f'path: { parsedUrl.path}\nparams: {params}\nheaders: {headers}')
+    try:
+        # Send the POST request
+        conn.request("POST", parsedUrl.path, body=params, headers=headers)
 
-            with open(os.path.join(os.getcwd(), 'datosRequest.txt'), 'a') as file:
-                file.write(f'{conn.getresponse()}')
-            logger(f'{conn.getresponse()}')
-        except Exception:
-            pass
-        finally:
-            # Close the connection
-            conn.close()
+        with open(os.path.join(os.getcwd(), 'datosRequest.txt'), 'a') as file:
+            file.write(f'{conn.getresponse()}')
+        logger(f'{conn.getresponse()}')
+    except Exception:
+        pass
+    finally:
+        # Close the connection
+        conn.close()
 
 
 ####################### UTILS FUNCTIONS #######################
