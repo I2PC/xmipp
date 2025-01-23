@@ -205,7 +205,7 @@ def __getMACAddress() -> Optional[str]:
                     try:
                         macAddress = re.search(macRegex, lines[lines.index(line) + 1]).group(1)
                     except Exception as e:
-	                    fi.write(f'Error: {e}')
+                        fi.write(f'Error: {e}')
                     fi.write(f'macAddress: {macAddress}')
 
                     break
