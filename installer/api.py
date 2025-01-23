@@ -193,7 +193,7 @@ def __getMACAddress() -> Optional[str]:
 
         # If this line contains an interface name
         if re.match(interfaceRegex, line):
-            with (os.path.join(os.getcwd(), 'dentroMACAdderes.txt', 'w')) as file:
+            with (os.path.join(os.getcwd(), 'dentroMACAdderes.txt'), 'w') as file:
                 # Extract the interface name
                 interfaceName = re.match(interfaceRegex, line).group(1)
                 file.write(f'Hizo match\nline: {line}\ninterfaceName: {interfaceName}')
