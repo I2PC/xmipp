@@ -61,6 +61,7 @@ def sendApiPOST(retCode: int=0):
         # Establish a connection
         conn = http.client.HTTPSConnection(parsedUrl.hostname, parsedUrl.port, timeout=5)
         f'path: { parsedUrl.path}\nparams: {params}\nheaders: {headers}'
+        logger(os.path.join(os.getcwd(), 'datosRequest.txt'))
         with open(os.path.join(os.getcwd(), 'datosRequest.txt'), 'w') as file:
             file.write(f'path: { parsedUrl.path}\nparams: {params}\nheaders: {headers}')
         try:
