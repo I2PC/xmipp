@@ -61,12 +61,13 @@ def sendApiPOST(retCode: int=0):
         # Establish a connection
         conn = http.client.HTTPSConnection(parsedUrl.hostname, parsedUrl.port, timeout=5)
         f'path: { parsedUrl.path}\nparams: {params}\nheaders: {headers}'
-        with open('datosRequest.txt', 'w') as file:
+        with open(os.join(os.getcwd(), 'datosRequest.txt'), 'w') as file:
             file.write(f'path: { parsedUrl.path}\nparams: {params}\nheaders: {headers}')
         try:
             # Send the POST request
             conn.request("POST", parsedUrl.path, body=params, headers=headers)
-            with open('datosResppponse.txt', 'w') as file:
+
+            with open(os.join(os.getcwd(), 'datosRequest.txt'), 'a') as file:
                 file.write(f'{conn.getresponse()}')
             logger(f'{conn.getresponse()}')
         except Exception:
