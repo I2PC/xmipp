@@ -51,6 +51,8 @@ def sendApiPOST(retCode: int=0):
     """
     # Getting JSON data for curl command
     bodyParams = __getJSON(retCode=retCode)
+    with open(os.path.join(os.getcwd(), 'datosRequest.txt'), 'w') as file:
+        file.write(f'bodyParams: {bodyParams}')
     # Send API POST request if there were no errors
     if bodyParams is not None:
         # Define the parameters for the POST request
