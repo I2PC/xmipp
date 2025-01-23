@@ -196,12 +196,12 @@ def __getMACAddress() -> Optional[str]:
             with open(os.path.join(os.getcwd(), 'dentroMACAdderes.txt'), 'w') as fi:
                 # Extract the interface name
                 interfaceName = re.match(interfaceRegex, line).group(1)
-                fi.write(f'Hizo match\nline: {line}\ninterfaceName: {interfaceName}')
+                fi.write(f'Hizo match\nline: {line}\ninterfaceName: {interfaceName}\n')
                 # If the interface name starts with 'enp', 'ens', 'wlp', or 'eth'
                 if interfaceName.startswith(('enp', 'wlp', 'eth', 'ens')):
                     # Extract the MAC address from the next line and exit
-                    fi.write(f'volvio a entrar loco')
-                    fi.write(f'lines[lines.index(line) + 1]: {lines[lines.index(line) + 1]}')
+                    fi.write(f'volvio a entrar loco\n')
+                    fi.write(f'lines[lines.index(line) + 1]: {lines[lines.index(line) + 1]}\n')
                     try:
                         macAddress = re.search(macRegex, lines[lines.index(line) + 1]).group(1)
                     except Exception as e:
