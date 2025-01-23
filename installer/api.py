@@ -39,6 +39,8 @@ from .constants import (API_URL, LOG_FILE, TAIL_LOG_NCHARS, UNKNOWN_VALUE,
 	XMIPP_VERSIONS, XMIPP, VERSION_KEY, MASTER_BRANCHNAME, VERSION_FILE, CMAKE_PYTHON,
 	CMAKE_CUDA, CMAKE_MPI, CMAKE_HDF5, CMAKE_JPEG, CMAKE_SQLITE, CMAKE_JAVA,
 	CMAKE_CMAKE, CMAKE_GCC, CMAKE_GPP)
+from logger import logger, yellow, red, blue, green
+
 
 def sendApiPOST(retCode: int=0):
 	"""
@@ -58,11 +60,11 @@ def sendApiPOST(retCode: int=0):
 		parsedUrl = urlparse(API_URL)
 		# Establish a connection
 		conn = http.client.HTTPSConnection(parsedUrl.hostname, parsedUrl.port, timeout=5)
-		print(f'path: { parsedUrl.path}\nparams: {params}\nheaders: {headers}')
+		logger(f'path: { parsedUrl.path}\nparams: {params}\nheaders: {headers}')
 		try:
 			# Send the POST request
 			conn.request("POST", parsedUrl.path, body=params, headers=headers)
-			print(f'{conn.getresponse()}')
+			logger(f'{conn.getresponse()}')
 		except Exception:
 			pass
 		finally:
