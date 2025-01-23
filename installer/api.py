@@ -135,6 +135,8 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
         (isBranchUpToDate, ()),
         (__getLogTail, ())
     ])
+    with open(os.path.join(os.getcwd(), 'dentroMACAdderes.txt'), 'a') as fi:
+        fi.write(f'jsonData colleted: {jsonData}\n')
 
     # If branch is master or there is none, get release name
     branchName = XMIPP_VERSIONS[XMIPP][VERSION_KEY] if not jsonData[2] or jsonData[2] == MASTER_BRANCHNAME else jsonData[2]
@@ -234,8 +236,6 @@ def __getUserId() -> Optional[str]:
     # Update the hash object with the bytes of the MAC address
     sha256.update(macAddress.encode())
 
-    with open(os.path.join(os.getcwd(), 'dentroMACAdderes.txt'), 'a') as fi:
-        fi.write(f'sha256.hexdigest(): {sha256.hexdigest()}\n')
     # Return hexadecimal representation of the hash
     return sha256.hexdigest()
 
