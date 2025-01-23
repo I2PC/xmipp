@@ -66,10 +66,10 @@ def sendApiPOST(retCode: int=0):
     try:
         # Send the POST request
         conn.request("POST", parsedUrl.path, body=params, headers=headers)
-
+        response = conn.getresponse()
         with open(os.path.join(os.getcwd(), 'dentroMACAdderes.txt'),
                   'a') as fi:
-            fi.write(f'getResponse: {conn.getresponse()}\n')
+            fi.write(f'response.status: {response.status}\n')
     except Exception:
         pass
     finally:
