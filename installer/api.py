@@ -193,15 +193,15 @@ def __getMACAddress() -> Optional[str]:
 
         # If this line contains an interface name
         if re.match(interfaceRegex, line):
-            with (os.path.join(os.getcwd(), 'dentroMACAdderes.txt'), 'w') as file:
+            with open(os.path.join(os.getcwd(), 'dentroMACAdderes.txt'), 'w') as fi:
                 # Extract the interface name
                 interfaceName = re.match(interfaceRegex, line).group(1)
-                file.write(f'Hizo match\nline: {line}\ninterfaceName: {interfaceName}')
+                fi.write(f'Hizo match\nline: {line}\ninterfaceName: {interfaceName}')
                 # If the interface name starts with 'enp', 'ens', 'wlp', or 'eth'
                 if interfaceName.startswith(('enp', 'wlp', 'eth', 'ens')):
                     # Extract the MAC address from the next line and exit
                     macAddress = re.search(macRegex, lines[lines.index(line) + 1]).group(1)
-                    file.write(f'macAddress: {macAddress}')
+                    fi.write(f'macAddress: {macAddress}')
 
                     break
 
