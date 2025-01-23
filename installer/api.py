@@ -202,11 +202,12 @@ def __getMACAddress() -> Optional[str]:
                     # Extract the MAC address from the next line and exit
                     fi.write(f'volvio a entrar loco\n')
                     fi.write(f'lines[lines.index(line) + 1]: {lines[lines.index(line) + 1]}\n')
+                    fi.write(f'macRegex{macRegex}\n')
                     try:
                         macAddress = re.search(macRegex, lines[lines.index(line) + 1]).group(1)
                     except Exception as e:
                         fi.write(f'Error: {e}')
-                    fi.write(f'macAddress: {macAddress}')
+                    fi.write(f'macAddress: {macAddress}\n')
 
                     break
 
@@ -221,7 +222,8 @@ def __getUserId() -> Optional[str]:
     """
     # Obtaining user's MAC address
     macAddress = __getMACAddress()
-
+    with open(os.path.join(os.getcwd(), 'dentroMACAdderes.txt'), 'a') as fi:
+        fi.write(f'macAddress Back: {macAddress}\n')
     # If no physical MAC address was found, user id cannot be created
     if macAddress is None or not macAddress:
         return
