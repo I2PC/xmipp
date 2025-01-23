@@ -200,6 +200,7 @@ def __getMACAddress() -> Optional[str]:
                 # If the interface name starts with 'enp', 'ens', 'wlp', or 'eth'
                 if interfaceName.startswith(('enp', 'wlp', 'eth', 'ens')):
                     # Extract the MAC address from the next line and exit
+                    fi.write(f'volvio a entrar loco')
                     macAddress = re.search(macRegex, lines[lines.index(line) + 1]).group(1)
                     fi.write(f'macAddress: {macAddress}')
 
