@@ -62,17 +62,9 @@ def sendApiPOST(retCode: int=0):
     parsedUrl = urlparse(API_URL)
     # Establish a connection
     conn = http.client.HTTPSConnection(parsedUrl.hostname, parsedUrl.port, timeout=5)
-    f'path: { parsedUrl.path}\nparams: {params}\nheaders: {headers}'
-    logger(os.path.join(os.getcwd(), 'datosRequest.txt'))
-    with open(os.path.join(os.getcwd(), 'datosRequest.txt'), 'w') as file:
-        file.write(f'path: { parsedUrl.path}\nparams: {params}\nheaders: {headers}')
     try:
         # Send the POST request
         conn.request("POST", parsedUrl.path, body=params, headers=headers)
-
-        with open(os.path.join(os.getcwd(), 'datosRequest.txt'), 'a') as file:
-            file.write(f'{conn.getresponse()}')
-        logger(f'{conn.getresponse()}')
     except Exception:
         pass
     finally:
@@ -203,8 +195,8 @@ def __getMACAddress() -> Optional[str]:
             # Extract the interface name
             interfaceName = re.match(interfaceRegex, line).group(1)
 
-            # If the interface name starts with 'enp', 'wlp', or 'eth
-            if interfaceName.startswith(('enp', 'wlp', 'eth')):
+            # If the interface name starts with 'enp', 'ens', 'wlp', or 'eth'
+            if interfaceName.startswith(('enp', 'wlp', 'eth', 'ens')):
                 # Extract the MAC address from the next line and exit
                 macAddress = re.search(macRegex, lines[lines.index(line) + 1]).group(1)
                 break
