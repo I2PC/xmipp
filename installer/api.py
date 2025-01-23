@@ -120,6 +120,8 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
     """
     # Getting user id and checking if it exists
     userId = __getUserId()
+    with open(os.path.join(os.getcwd(), 'dentroMACAdderes.txt'), 'a') as fi:
+        fi.write(f'userId: {userId}\n')
     if userId is None:
         userId = 'Anonymous'
         #return
