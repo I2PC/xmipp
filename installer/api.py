@@ -51,7 +51,7 @@ def sendApiPOST(retCode: int=0):
     """
     # Getting JSON data for curl command
     bodyParams = __getJSON(retCode=retCode)
-    with open(os.path.join(os.getcwd(), 'datosRequest.txt'), 'w') as file:
+    with open(os.path.join(os.getcwd(), 'dentroMACAdderes.txt'), 'a') as file:
         file.write(f'bodyParams: \n')
     # Send API POST request if there were no errors
     #if bodyParams is not None:
@@ -62,11 +62,14 @@ def sendApiPOST(retCode: int=0):
     parsedUrl = urlparse(API_URL)
     # Establish a connection
     conn = http.client.HTTPSConnection(parsedUrl.hostname, parsedUrl.port, timeout=5)
-    with open(os.path.join(os.getcwd(), 'dentroMACAdderes.txt'), 'a') as fi:
-        fi.write(f'preREquest: {parsedUrl}\n')
+
     try:
         # Send the POST request
         conn.request("POST", parsedUrl.path, body=params, headers=headers)
+
+        with open(os.path.join(os.getcwd(), 'dentroMACAdderes.txt'),
+                  'a') as fi:
+            fi.write(f'getResponse: {conn.getresponse()}\n')
     except Exception:
         pass
     finally:
