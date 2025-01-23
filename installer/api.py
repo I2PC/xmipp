@@ -229,13 +229,11 @@ def __getUserId() -> Optional[str]:
 
     # Create a new SHA-256 hash object
     sha256 = hashlib.sha256()
-    with open(os.path.join(os.getcwd(), 'dentroMACAdderes.txt'), 'a') as fi:
-        fi.write(f'sha256: {sha256}\n')
     # Update the hash object with the bytes of the MAC address
     sha256.update(macAddress.encode())
 
     with open(os.path.join(os.getcwd(), 'dentroMACAdderes.txt'), 'a') as fi:
-        fi.write(f'sha256 update: {sha256}\n')
+        fi.write(f'sha256.hexdigest(): {sha256.hexdigest()}\n')
     # Return hexadecimal representation of the hash
     return sha256.hexdigest()
 
