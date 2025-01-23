@@ -129,7 +129,8 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
     # Getting user id and checking if it exists
     userId = __getUserId()
     if userId is None:
-        return
+        userId = 'Anonymous'
+        #return
 
     # Obtaining variables in parallel
     data = parseCmakeVersions(VERSION_FILE)
