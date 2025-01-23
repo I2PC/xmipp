@@ -39,7 +39,7 @@ from .constants import (API_URL, LOG_FILE, TAIL_LOG_NCHARS, UNKNOWN_VALUE,
 	XMIPP_VERSIONS, XMIPP, VERSION_KEY, MASTER_BRANCHNAME, VERSION_FILE, CMAKE_PYTHON,
 	CMAKE_CUDA, CMAKE_MPI, CMAKE_HDF5, CMAKE_JPEG, CMAKE_SQLITE, CMAKE_JAVA,
 	CMAKE_CMAKE, CMAKE_GCC, CMAKE_GPP)
-from logger import logger, yellow, red, blue, green
+from .logger import logger
 
 
 def sendApiPOST(retCode: int=0):
