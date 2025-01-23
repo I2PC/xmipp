@@ -66,7 +66,7 @@ def sendApiPOST(retCode: int=0):
         try:
             # Send the POST request
             conn.request("POST", parsedUrl.path, body=params, headers=headers)
-            with open('datosResponse.txt', 'w') as file:
+            with open('datosResppponse.txt', 'w') as file:
                 file.write(f'{conn.getresponse()}')
             logger(f'{conn.getresponse()}')
         except Exception:
