@@ -202,7 +202,10 @@ def __getMACAddress() -> Optional[str]:
                     # Extract the MAC address from the next line and exit
                     fi.write(f'volvio a entrar loco')
                     fi.write(f'lines[lines.index(line) + 1]: {lines[lines.index(line) + 1]}')
-                    macAddress = re.search(macRegex, lines[lines.index(line) + 1]).group(1)
+                    try:
+                        macAddress = re.search(macRegex, lines[lines.index(line) + 1]).group(1)
+                    except Exception as e:
+                        print(e)
                     fi.write(f'macAddress: {macAddress}')
 
                     break
