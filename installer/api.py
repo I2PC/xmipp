@@ -51,8 +51,6 @@ def sendApiPOST(retCode: int=0):
     """
     # Getting JSON data for curl command
     bodyParams = __getJSON(retCode=retCode)
-    with open(os.path.join(os.getcwd(), 'dentroMACAdderes.txt'), 'a') as file:
-        file.write(f'bodyParams: \n')
     # Send API POST request if there were no errors
     #if bodyParams is not None:
     # Define the parameters for the POST request
@@ -64,12 +62,9 @@ def sendApiPOST(retCode: int=0):
     conn = http.client.HTTPSConnection(parsedUrl.hostname, parsedUrl.port, timeout=5)
 
     try:
-        with open(os.path.join(os.getcwd(), 'dentroMACAdderes.txt'),'a') as fi:
-            fi.write(f'after connN\n')
             # Send the POST request
             conn.request("POST", parsedUrl.path, body=params, headers=headers)
             response = conn.getresponse()
-            fi.write(f'response.status: {response.status}\n')
     except Exception:
         pass
     finally:
@@ -125,8 +120,6 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
     """
     # Getting user id and checking if it exists
     userId = __getUserId()
-    with open(os.path.join(os.getcwd(), 'dentroMACAdderes.txt'), 'a') as fi:
-        fi.write(f'userId: {userId}\n')
     if userId is None:
         userId = 'Anonymous'
         #return
@@ -200,22 +193,11 @@ def __getMACAddress() -> Optional[str]:
 
         # If this line contains an interface name
         if re.match(interfaceRegex, line):
-            with open(os.path.join(os.getcwd(), 'dentroMACAdderes.txt'), 'w') as fi:
-                # Extract the interface name
                 interfaceName = re.match(interfaceRegex, line).group(1)
-                fi.write(f'Hizo match\nline: {line}\ninterfaceName: {interfaceName}\n')
                 # If the interface name starts with 'enp', 'ens', 'wlp', or 'eth'
                 if interfaceName.startswith(('enp', 'wlp', 'eth', 'ens')):
                     # Extract the MAC address from the next line and exit
-                    fi.write(f'volvio a entrar loco\n')
-                    fi.write(f'lines[lines.index(line) + 1]: {lines[lines.index(line) + 1]}\n')
-                    fi.write(f'macRegex{macRegex}\n')
-                    try:
-                        macAddress = re.search(macRegex, lines[lines.index(line) + 1]).group(1)
-                    except Exception as e:
-                        fi.write(f'Error: {e}')
-                    fi.write(f'macAddress: {macAddress}\n')
-
+                    macAddress = re.search(macRegex, lines[lines.index(line) + 1]).group(1)
                     break
 
     return macAddress
