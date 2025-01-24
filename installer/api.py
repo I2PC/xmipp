@@ -56,17 +56,17 @@ def sendApiPOST(retCode: int=0):
 		# Set up the headers
 		headers = {"Content-type": "application/json"}
 		parsedUrl = urlparse(API_URL)
+		# Establish a connection
+		conn = http.client.HTTPSConnection(parsedUrl.hostname, parsedUrl.port, timeout=5)
 		try:
-			# Establish a connection
-			conn = http.client.HTTPSConnection(parsedUrl.hostname, parsedUrl.port, timeout=4)
 			# Send the POST request
 			conn.request("POST", parsedUrl.path, body=params, headers=headers)
-			# Get response from server
-			conn.getresponse()
-			# Close the connection
-			conn.close()
 		except Exception:
 			pass
+		finally:
+			# Close the connection
+			conn.close()
+
 	
 ####################### UTILS FUNCTIONS #######################
 def getOSReleaseName() -> str:
