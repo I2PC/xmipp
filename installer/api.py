@@ -116,9 +116,7 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 	"""
 	# Getting user id and checking if it exists
 	userId = __getUserId()
-	if userId is None:
-		return
-	
+
 	# Obtaining variables in parallel
 	data = parseCmakeVersions(VERSION_FILE)
 	jsonData = runParallelJobs([
@@ -177,7 +175,7 @@ def __getMACAddress() -> Optional[str]:
 	
 	# Regular expression to match the MAC address and interface names
 	macRegex = r"link/ether ([0-9a-f:]{17})"
-	interfaceRegex = r"^\d+: (enp|wlp|eth)\w+"
+	interfaceRegex = r"^\d+: (enp|wlp|eth|ens)\w+"
 
 	# Split the output into lines
 	lines = output.split('\n')
@@ -191,7 +189,7 @@ def __getMACAddress() -> Optional[str]:
 			interfaceName = re.match(interfaceRegex, line).group(1)
 			
 			# If the interface name starts with 'enp', 'wlp', or 'eth
-			if interfaceName.startswith(('enp', 'wlp', 'eth')):
+			if interfaceName.startswith(('enp', 'wlp', 'eth', 'ens')):
 				# Extract the MAC address from the next line and exit
 				macAddress = re.search(macRegex, lines[lines.index(line) + 1]).group(1)
 				break
@@ -210,7 +208,7 @@ def __getUserId() -> Optional[str]:
 
 	# If no physical MAC address was found, user id cannot be created
 	if macAddress is None or not macAddress:
-		return
+		return 'Anonymous'
 	
 	# Create a new SHA-256 hash object
 	sha256 = hashlib.sha256()
