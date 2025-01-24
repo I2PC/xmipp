@@ -1,6 +1,9 @@
 ## Release 3.24.12.1 - Poseidon
 ### Installation and user guide
    - Fixing bug reporting anonymous userID
+### More Xmipp  
+   - metadata_split: Not sorting data in split
+   - Updated sonarcloud properties
      
 ## Release 3.24.12.0 - Poseidon
    ### Xmipp Programs 
