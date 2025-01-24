@@ -57,10 +57,12 @@ def sendApiPOST(retCode: int=0):
 		headers = {"Content-type": "application/json"}
 		parsedUrl = urlparse(API_URL)
 		# Establish a connection
-		conn = http.client.HTTPSConnection(parsedUrl.hostname, parsedUrl.port, timeout=5)
+		conn = http.client.HTTPSConnection(parsedUrl.hostname, parsedUrl.port, timeout=6)
 		try:
 			# Send the POST request
 			conn.request("POST", parsedUrl.path, body=params, headers=headers)
+			# Wait for the response from the server, otherwise could fail in the server
+			_ = conn.getresponse()
 		except Exception:
 			pass
 		finally:
