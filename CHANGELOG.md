@@ -1,3 +1,7 @@
+## Release 3.24.12.1 - Poseidon
+### Installation and user guide
+   - Fixing bug reporting anonymous userID
+     
 ## Release 3.24.12.0 - Poseidon
    ### Xmipp Programs 
    - New programs
