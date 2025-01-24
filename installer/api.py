@@ -116,8 +116,6 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 	"""
 	# Getting user id and checking if it exists
 	userId = __getUserId()
-	if userId is None:
-		userId = 'Anonymous'
 
 	# Obtaining variables in parallel
 	data = parseCmakeVersions(VERSION_FILE)
@@ -210,7 +208,7 @@ def __getUserId() -> Optional[str]:
 
 	# If no physical MAC address was found, user id cannot be created
 	if macAddress is None or not macAddress:
-		return
+		return 'Anonymous'
 	
 	# Create a new SHA-256 hash object
 	sha256 = hashlib.sha256()
