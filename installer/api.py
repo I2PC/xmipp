@@ -34,7 +34,7 @@ import os
 
 # Self imports
 from .cmake import parseCmakeVersions
-from .utils import runJob, getCurrentBranch, isBranchUpToDate, runParallelJobs
+from .utils import runJob, getCurrentName, isBranchUpToDate, runParallelJobs
 from .constants import (API_URL, LOG_FILE, TAIL_LOG_NCHARS, UNKNOWN_VALUE,
 	XMIPP_VERSIONS, XMIPP, VERSION_KEY, MASTER_BRANCHNAME, VERSION_FILE, CMAKE_PYTHON,
 	CMAKE_CUDA, CMAKE_MPI, CMAKE_HDF5, CMAKE_JPEG, CMAKE_SQLITE, CMAKE_JAVA,
@@ -56,17 +56,19 @@ def sendApiPOST(retCode: int=0):
 		# Set up the headers
 		headers = {"Content-type": "application/json"}
 		parsedUrl = urlparse(API_URL)
+		# Establish a connection
+		conn = http.client.HTTPSConnection(parsedUrl.hostname, parsedUrl.port, timeout=6)
 		try:
-			# Establish a connection
-			conn = http.client.HTTPSConnection(parsedUrl.hostname, parsedUrl.port, timeout=4)
 			# Send the POST request
 			conn.request("POST", parsedUrl.path, body=params, headers=headers)
-			# Get response from server
-			conn.getresponse()
-			# Close the connection
-			conn.close()
+			# Wait for the response from the server, otherwise could fail in the server
+			_ = conn.getresponse()
 		except Exception:
 			pass
+		finally:
+			# Close the connection
+			conn.close()
+
 	
 ####################### UTILS FUNCTIONS #######################
 def getOSReleaseName() -> str:
@@ -116,15 +118,13 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 	"""
 	# Getting user id and checking if it exists
 	userId = __getUserId()
-	if userId is None:
-		return
-	
+
 	# Obtaining variables in parallel
 	data = parseCmakeVersions(VERSION_FILE)
 	jsonData = runParallelJobs([
 		(getOSReleaseName, ()),
 		(__getCPUFlags, ()),
-		(getCurrentBranch, ()),
+		(getCurrentName, ()),
 		(isBranchUpToDate, ()),
 		(__getLogTail, ())
 	])
@@ -177,7 +177,7 @@ def __getMACAddress() -> Optional[str]:
 	
 	# Regular expression to match the MAC address and interface names
 	macRegex = r"link/ether ([0-9a-f:]{17})"
-	interfaceRegex = r"^\d+: (enp|wlp|eth)\w+"
+	interfaceRegex = r"^\d+: (enp|wlp|eth|ens)\w+"
 
 	# Split the output into lines
 	lines = output.split('\n')
@@ -191,7 +191,7 @@ def __getMACAddress() -> Optional[str]:
 			interfaceName = re.match(interfaceRegex, line).group(1)
 			
 			# If the interface name starts with 'enp', 'wlp', or 'eth
-			if interfaceName.startswith(('enp', 'wlp', 'eth')):
+			if interfaceName.startswith(('enp', 'wlp', 'eth', 'ens')):
 				# Extract the MAC address from the next line and exit
 				macAddress = re.search(macRegex, lines[lines.index(line) + 1]).group(1)
 				break
@@ -210,7 +210,7 @@ def __getUserId() -> Optional[str]:
 
 	# If no physical MAC address was found, user id cannot be created
 	if macAddress is None or not macAddress:
-		return
+		return 'Anonymous'
 	
 	# Create a new SHA-256 hash object
 	sha256 = hashlib.sha256()
