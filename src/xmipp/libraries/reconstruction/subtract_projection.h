@@ -65,6 +65,7 @@ class ProgSubtractProjection: public XmippMetadataProgram
     bool subtract;
     bool realSpaceProjector;
     bool maskVolProvided;
+    bool ignoreCTF;
 	MultidimArray<int> wi;
 
     // Data variables

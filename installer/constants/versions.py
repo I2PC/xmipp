@@ -28,9 +28,9 @@ Submodule containing all version info required for Xmipp's installation process.
 from .main import XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN
 
 # Xmipp's current versions
-LATEST_RELEASE_NUMBER = '3.24.12.0'
-LATEST_RELEASE_NAME = 'v3.24.12.0-Poseidon'
-RELEASE_DATE = '23/12/2024'
+LATEST_RELEASE_NUMBER = '3.24.12.1'
+LATEST_RELEASE_NAME = 'v3.24.12.1-Poseidon'
+RELEASE_DATE = '28/01/2025'
 #####################################
 DEVEL_BRANCHNAME = 'devel'					
 MASTER_BRANCHNAME = 'master'				

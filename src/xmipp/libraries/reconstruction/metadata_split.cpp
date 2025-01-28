@@ -125,7 +125,7 @@ public:
         size_t Num_images = mdPtr->size();
         size_t Num_groups = XMIPP_MIN(N, Num_images);
         if (!use_cc)
-        	mdPtr->split(Num_groups, mdVector); //Split MD in Num_groups
+        	mdPtr->split(Num_groups, mdVector, MDL_UNDEFINED); //Split MD in Num_groups
         else
         {
         	Image<double> cc;
