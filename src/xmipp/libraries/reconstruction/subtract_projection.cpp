@@ -1,6 +1,7 @@
 /***************************************************************************
  *
  * Authors:     Estrella Fernandez Gimenez (me.fernandez@cnb.csic.es)
+ * 				Federico P. de Isidro-Gomez (federico.pdeisidro@astx.com)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -56,14 +57,12 @@ ProgSubtractProjection::ProgSubtractProjection()
 	save_metadata_stack = true;
     remove_disabled = false;
 	projector = nullptr;
-	projectorMask = nullptr;
 	rank = 0;
 }
 
 ProgSubtractProjection::~ProgSubtractProjection()
 {
 	delete projector;
-	delete projectorMask;
 }
 
  // Read arguments ==========================================================
@@ -71,82 +70,109 @@ ProgSubtractProjection::~ProgSubtractProjection()
  {
 	XmippMetadataProgram::readParams();
  	fnVolR = getParam("--ref");
-	fnMask=getParam("--mask");
+	fnMaskRoi=getParam("--mask_roi");
 	sigma=getIntParam("--sigma");
 	sampling = getDoubleParam("--sampling");
 	padFourier = getDoubleParam("--padding");
     maxResol = getDoubleParam("--max_resolution");
-	limitfreq = getIntParam("--limit_freq");
-	cirmaskrad = getDoubleParam("--cirmaskrad");
+
+	if (checkParam("--cirmaskrad"))
+	{
+		cirmaskrad = getDoubleParam("--cirmaskrad");
+		maskVolProvided = false;
+	}
+	else if (checkParam("--mask"))
+	{
+		fnMaskVol = getParam("--mask");
+		maskVolProvided = true;
+	}
+	
 	fnProj = getParam("--save"); 
 	nonNegative = checkParam("--nonNegative");
 	boost = checkParam("--boost");
 	subtract = checkParam("--subtract");
+	realSpaceProjector = checkParam("--realSpaceProjection");
+	ignoreCTF = checkParam("--ignoreCTF");
  }
 
  // Show ====================================================================
- void ProgSubtractProjection::show() const{
+ void ProgSubtractProjection::show() const
+ {
     if (!verbose)
         return;
 	std::cout
 	<< "Input particles:\t" << fnParticles << std::endl
 	<< "Reference volume:\t" << fnVolR << std::endl
-	<< "Mask of the region to keep:\t" << fnMask << std::endl
+	<< "Mask of the region of interest to keep or subtract:\t" << fnMaskRoi << std::endl
 	<< "Sigma of low pass filter:\t" << sigma << std::endl
 	<< "Sampling rate:\t" << sampling << std::endl
 	<< "Padding factor:\t" << padFourier << std::endl
     << "Max. Resolution:\t" << maxResol << std::endl
-	<< "Limit frequency:\t" << limitfreq << std::endl
 	<< "Output particles:\t" << fnOut << std::endl;
  }
 
- // usage ===================================================================
+ // Usage ===================================================================
  void ProgSubtractProjection::defineParams()
  {
-	 //Usage
-     addUsageLine("This program computes the subtraction between particles and a reference"); 
-	 addUsageLine(" volume, by computing its projections with the same angles that input particles have."); 
-	 addUsageLine(" Then, each particle and the correspondent projection of the reference volume are numerically");
-	 addUsageLine(" adjusted and subtracted using a mask which denotes the region to keep or subtract.");
-     //Parameters
-	 XmippMetadataProgram::defineParams();
-     addParamsLine("--ref <volume>\t: Reference volume to subtract");
-     addParamsLine("[--mask <mask=\"\">]\t: 3D mask for region to keep, no mask implies subtraction of whole images");
-	 addParamsLine("[--sampling <sampling=1>]\t: Sampling rate (A/pixel)");
-	 addParamsLine("[--max_resolution <f=4>]\t: Maximum resolution (A)");
-	 addParamsLine("[--fmask_width <w=40>]\t: Extra width of final mask (A). -1 means no masking."); 
-	 addParamsLine("[--padding <p=2>]\t: Padding factor for Fourier projector");
-	 addParamsLine("[--sigma <s=2>]\t: Decay of the filter (sigma) to smooth the mask transition");
-	 addParamsLine("[--limit_freq <l=0>]\t: Limit frequency (= 1) or not (= 0) in adjustment process");
-	 addParamsLine("[--nonNegative]\t: Ignore particles with negative beta0 or R2"); 
-	 addParamsLine("[--boost]\t: Perform a boosting of original particles"); 
-	 addParamsLine("[--cirmaskrad <c=-1.0>]\t: Radius of the circular mask");
-	 addParamsLine("[--save <structure=\"\">]\t: Path for saving intermediate files"); 
-	 addParamsLine("[--subtract]\t: The mask contains the region to SUBTRACT"); 
-     addExampleLine("A typical use is:",false);
-     addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask mask_vol.mrc "
-    		 "-o output_particles --sampling 1 --fmask_width 40 --max_resolution 4");
+	//Usage
+    addUsageLine("This program computes the subtraction between particles and a reference"); 
+	addUsageLine(" volume, by computing its projections with the same angles that input particles have."); 
+	addUsageLine(" Then, each particle and the correspondent projection of the reference volume are numerically");
+	addUsageLine(" adjusted and subtracted using a mask which denotes the region of interest to keep or subtract.");
+
+    //Parameters
+	XmippMetadataProgram::defineParams();
+    addParamsLine("--ref <volume>\t: Reference volume to subtract");
+    addParamsLine("[--mask_roi <mask_roi=\"\">]     : 3D mask for region of interest to keep or subtract, no mask implies subtraction of whole images");
+ 	addParamsLine("--cirmaskrad <c=-1.0>			: Apply circular mask to proyected particles. Radius = -1 fits a sphere in the reference volume.");
+	addParamsLine("or --mask <mask=\"\">            : Provide a mask to be applied. Any desity out of the mask is removed from further analysis.");
+	addParamsLine("[--sampling <sampling=1>]		: Sampling rate (A/pixel)");
+	addParamsLine("[--max_resolution <f=-1>]		: Maximum resolution in Angtroms up to which the substraction is calculated. \
+													  By default (-1) it is set to sampling/sqrt(2).");
+	addParamsLine("[--padding <p=2>]				: Padding factor for Fourier projector");
+	addParamsLine("[--sigma <s=1>]					: Decay of the filter (sigma) to smooth the mask transition");
+	addParamsLine("[--nonNegative]					: Ignore particles with negative beta0 or R2");
+	addParamsLine("[--boost]						: Perform a boosting of original particles");
+	addParamsLine("[--save <structure=\"\">]		: Path for saving intermediate files");
+	addParamsLine("[--subtract]						: The mask contains the region to SUBTRACT");
+	addParamsLine("[--realSpaceProjection]			: Project volume in real space to avoid Fourier artifacts");
+	addParamsLine("[--ignoreCTF]					: Do not consider CTF in the subtraction. Use if particles have been CTF corrected.");
+
+	// Example
+    addExampleLine("A typical use is:",false);
+    addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask_roi mask_vol.mrc "
+				   "-o output_particles --sampling 1 --max_resolution 4");
  }
 
- void ProgSubtractProjection::readParticle(const MDRow &r) {
+ // I/O methods ===================================================================
+ void ProgSubtractProjection::readParticle(const MDRow &r) 
+ {
 	r.getValueOrDefault(MDL_IMAGE, fnImgI, "no_filename");
 	I.read(fnImgI);
 	I().setXmippOrigin();
  }
 
- void ProgSubtractProjection::writeParticle(MDRow &rowOut, FileName fnImgOut, Image<double> &img, double R2a, double b0save, double b1save) {
+ void ProgSubtractProjection::writeParticle(MDRow &rowOut, FileName fnImgOut, Image<double> &img, double R2a, double b0save, double b1save, double b, double avg, double std, double zScore) 
+ {
 	img.write(fnImgOut);
+
 	rowOut.setValue(MDL_IMAGE, fnImgOut);
 	rowOut.setValue(MDL_SUBTRACTION_R2, R2a); 
 	rowOut.setValue(MDL_SUBTRACTION_BETA0, b0save); 
 	rowOut.setValue(MDL_SUBTRACTION_BETA1, b1save); 
-	if (nonNegative && (disable || R2a < 0)) 
+	rowOut.setValue(MDL_SUBTRACTION_B, b); 
+	rowOut.setValue(MDL_AVG, avg); 
+	rowOut.setValue(MDL_STDDEV, std); 
+	rowOut.setValue(MDL_ZSCORE, zScore); 
+	if (nonNegative && (disable || R2a < 0))
 	{
 		rowOut.setValue(MDL_ENABLED, -1);
 	}
  }
 
- void ProgSubtractProjection::createMask(const FileName &fnM, Image<double> &m, Image<double> &im) {
+ // Utils methods ===================================================================
+ void ProgSubtractProjection::createMask(const FileName &fnM, Image<double> &m, Image<double> &im) 
+ {
 	if (fnM.isEmpty()) 
 	{
 		m().initZeros((int)XSIZE(V()),(int)YSIZE(V()),(int)ZSIZE(V()));
@@ -163,21 +189,21 @@ ProgSubtractProjection::~ProgSubtractProjection()
 		{
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(im())
 				DIRECT_MULTIDIM_ELEM(im(),n) = (DIRECT_MULTIDIM_ELEM(m(),n)*(-1))+1;
-		} 
+		}
 	}
  }
 
- Image<double> ProgSubtractProjection::binarizeMask(Projection &m) const {
- 	double maxMaskVol;
- 	double minMaskVol;
+ Image<double> ProgSubtractProjection::binarizeMask(Projection &m) const 
+ {
 	MultidimArray<double> &mm=m();
- 	mm.computeDoubleMinMax(minMaskVol, maxMaskVol);
+
  	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mm)
-		DIRECT_MULTIDIM_ELEM(mm,n) = (DIRECT_MULTIDIM_ELEM(mm,n)>0.1*maxMaskVol) ? 1:0; 
+		DIRECT_MULTIDIM_ELEM(mm,n) = (DIRECT_MULTIDIM_ELEM(mm,n)>0) ? 1:0; 
  	return m;
  }
 
- Image<double> ProgSubtractProjection::invertMask(const Image<double> &m) {
+ Image<double> ProgSubtractProjection::invertMask(const Image<double> &m) 
+ {
 	PmaskI = m;
 	MultidimArray<double> &mPmaskI=PmaskI();
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mPmaskI)
@@ -185,7 +211,8 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	return PmaskI;
  }
 
- Image<double> ProgSubtractProjection::applyCTF(const MDRow &r, Projection &proj) {
+ Image<double> ProgSubtractProjection::applyCTF(const MDRow &r, Projection &proj) 
+ {
 	if (r.containsLabel(MDL_CTF_DEFOCUSU) || r.containsLabel(MDL_CTF_MODEL)){
 		ctf.readFromMdRow(r);
 		ctf.Tm = sampling;
@@ -193,6 +220,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	 	FilterCTF.FilterBand = CTF;
 	 	FilterCTF.ctf.enable_CTFnoise = false;
 		FilterCTF.ctf = ctf;
+
 		// Padding before apply CTF
 		MultidimArray <double> &mpad = padp();
 		mpad.setXmippOrigin();
@@ -200,14 +228,17 @@ ProgSubtractProjection::~ProgSubtractProjection()
 		mproj.setXmippOrigin();
 		mproj.window(mpad,STARTINGY(mproj)*(int)padFourier, STARTINGX(mproj)*(int)padFourier, FINISHINGY(mproj)*(int)padFourier, FINISHINGX(mproj)*(int)padFourier);
 		FilterCTF.generateMask(mpad);
-		FilterCTF.applyMaskSpace(mpad); 
+		FilterCTF.applyMaskSpace(mpad);
+
 		//Crop to restore original size
 		mpad.window(mproj,STARTINGY(mproj), STARTINGX(mproj), FINISHINGY(mproj), FINISHINGX(mproj));
 	}
 	return proj;
  }
 
-void ProgSubtractProjection::processParticle(const MDRow &rowprocess, int sizeImg, FourierTransformer &transformerPf, FourierTransformer &transformerIf) {
+void ProgSubtractProjection::processParticle(const MDRow &rowprocess, int sizeImg) 
+{	
+	// Read metadata information for projection
 	readParticle(rowprocess);
 	rowprocess.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
 	rowprocess.getValueOrDefault(MDL_ANGLE_TILT, part_angles.tilt, 0);
@@ -216,28 +247,78 @@ void ProgSubtractProjection::processParticle(const MDRow &rowprocess, int sizeIm
 	rowprocess.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
 	rowprocess.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 	roffset *= -1;
-	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
-	selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
-	Pctf = applyCTF(rowprocess, P);
+	
+	// Project volume + apply translation, CTF and mask
+	// If provided, mask already have been applied to volume
+	if (realSpaceProjector)
+	{
+		projectVolume(V(), P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
+	}
+	else
+	{
+		projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
+		selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
+	}
+	
+	if (ignoreCTF)
+	{
+		Pctf = P;
+	}
+	else
+	{
+		Pctf = applyCTF(rowprocess, P);
+	}	
+
 	MultidimArray<double> &mPctf = Pctf();
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mPctf)
-		DIRECT_MULTIDIM_ELEM(mPctf,n) = DIRECT_MULTIDIM_ELEM(mPctf,n) * DIRECT_MULTIDIM_ELEM(cirmask(),n);
-	transformerPf.FourierTransform(Pctf(), PFourier, false);
-	transformerIf.FourierTransform(I(), IFourier, false);
+	MultidimArray<double> &mI = I();
+
+	if(maskVolProvided)
+	{
+		projectVolume(maskVol(), Pmask, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
+		PmaskImg() = Pmask();
+	}
+	else
+	{
+		Pmask() = maskVol();
+		PmaskImg() = maskVol();
+	}
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PmaskImg())
+	{
+		if (!(DIRECT_MULTIDIM_ELEM(PmaskImg(),n) > 0))
+		{
+			DIRECT_MULTIDIM_ELEM(mPctf,n) = 0;
+			DIRECT_MULTIDIM_ELEM(mI,n) = 0;
+		}
+	}
+
+	// FT of projection and particle
+	transformerP.FourierTransform(Pctf(), PFourier, false);
+	transformerI.FourierTransform(I(), IFourier, false);
 }
 
 MultidimArray< std::complex<double> > ProgSubtractProjection::computeEstimationImage(const MultidimArray<double> &Img, 
-const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
+const MultidimArray<double> *InvM, FourierTransformer &transformerImgiM) 
+{
 	ImgiM().initZeros(Img);
 	ImgiM().setXmippOrigin();
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Img)
-		DIRECT_MULTIDIM_ELEM(ImgiM(),n) = DIRECT_MULTIDIM_ELEM(Img,n) * DIRECT_MULTIDIM_ELEM(InvM,n);
+
+	if(InvM)
+	{
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Img)
+			DIRECT_MULTIDIM_ELEM(ImgiM(),n) = DIRECT_MULTIDIM_ELEM(Img,n) * DIRECT_MULTIDIM_ELEM(*(InvM),n);
+	}
+	else
+	{
+		ImgiM = Img;
+	}
+
 	transformerImgiM.FourierTransform(ImgiM(),ImgiMFourier,false);
 	return ImgiMFourier;
 }
 
- double ProgSubtractProjection::evaluateFitting(const MultidimArray< std::complex<double> > &y,
-                                                const MultidimArray< std::complex<double> > &yp) const{
+ double ProgSubtractProjection::evaluateFitting(const MultidimArray< std::complex<double> > &y, const MultidimArray< std::complex<double> > &yp) const
+{
 	double sumY = 0;
 	double sumY2 = 0;
 	double sumE2 = 0;
@@ -257,7 +338,8 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
  }
 
 Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double> > &PFourierf, const MultidimArray< std::complex<double> > &PFourierf0,
- const MultidimArray< std::complex<double> > &PFourierf1, const MultidimArray< std::complex<double> > &IFourierf) const { 
+ const MultidimArray< std::complex<double> > &PFourierf1, const MultidimArray< std::complex<double> > &IFourierf) const 
+ { 
 	// Compute R2 coefficient for order 0 model (R20) and order 1 model (R21)
 	auto N = 2.0*(double)MULTIDIM_SIZE(PFourierf);
 	double R20adj = evaluateFitting(IFourierf, PFourierf0); // adjusted R2 for an order 0 model = R2
@@ -278,7 +360,9 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 	return R2;
 }
 
- void ProgSubtractProjection::preProcess() {
+ // Main methods ===================================================================
+void ProgSubtractProjection::preProcess() 
+{
 	// Read input volume, mask and particles metadata
 	show();
 	V.read(fnVolR);
@@ -290,55 +374,109 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 	size_t Zdim;
 	size_t Ndim;
 	V.getDimensions(Xdim, Ydim, Zdim, Ndim);
-	cirmask().initZeros((int)Ydim, (int)Xdim);
-	cirmask().setXmippOrigin();
-	if (cirmaskrad == -1.0)
-		cirmaskrad = (double)XSIZE(V())/2;
-	RaisedCosineMask(cirmask(), cirmaskrad*0.8, cirmaskrad*0.9);
-	cirmask.write(formatString("%s/cirmask.mrc", fnProj.c_str()));
-	
-	// Create mock image of same size as particles (and referencce volume) to get
+
+	if (maskVolProvided)
+	{
+		maskVol.read(fnMaskVol);
+		maskVol().setXmippOrigin();
+
+		#ifdef DEBUG_OUTPUT_FILES
+		maskVol.write(formatString("%s/maskVol.mrc", fnProj.c_str()));
+		#endif
+	}
+	else
+	{
+		maskVol().initZeros((int)Ydim, (int)Xdim);
+		maskVol().setXmippOrigin();
+
+		if (cirmaskrad == -1.0)
+			cirmaskrad = (double)XSIZE(V())/2;
+
+		/// *** Check again with real data
+		// RaisedCosineMask(maskVol(), cirmaskrad*0.8, cirmaskrad*0.9);
+		RaisedCosineMask(maskVol(), cirmaskrad, cirmaskrad);
+
+		#ifdef DEBUG_OUTPUT_FILES
+		maskVol.write(formatString("%s/cirmask.mrc", fnProj.c_str()));
+		#endif
+	}
+
+	// Create mock image of same size as particles (and reference volume) to construct frequencies map
 	I().initZeros((int)Ydim, (int)Xdim);
 	I().initConstant(1);
 	transformerI.FourierTransform(I(), IFourier, false);
 
-	// Initialize Gaussian LPF to smooth mask
-	FilterG.FilterShape=REALGAUSSIAN;
-	FilterG.FilterBand=LOWPASS;
-	FilterG.w1=sigma;
-
-	// Construct frequencies image
 	wi.initZeros(IFourier);
-	Matrix1D<double> w(2); 	
-	double cutFreq = sampling/maxResol;
+	Matrix1D<double> w(2);
+
 	for (int i=0; i<YSIZE(wi); i++) {
 		FFT_IDX2DIGFREQ(i,YSIZE(IFourier),YY(w)) 
 		for (int j=0; j<XSIZE(wi); j++)  {
-			FFT_IDX2DIGFREQ(j,XSIZE(IFourier),XX(w))
-			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)XSIZE(IFourier)); // indexes
+			FFT_IDX2DIGFREQ(j,YSIZE(IFourier),XX(w))
+			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)YSIZE(IFourier));
 		}
 	}
-	if (limitfreq == 0)
-		maxwiIdx = (int)XSIZE(wi); 
-	else
-		DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(IFourier), maxwiIdx)
+
+	#ifdef DEBUG_OUTPUT_FILES
+	Image<int> saveImage;
+	saveImage() = wi; 
+	saveImage.write(formatString("%s/wi_freqMap.mrc", fnProj.c_str()));
+	#endif
+
+	// Calculate index corresponding to cut-off freq
+	if (maxResol == -1.0)
+		maxResol = sampling;
+	
+	// Normalize Nyquist=0.5
+	double cutFreq = 0.5 * (sampling/maxResol);
+	
+	// Analyze up to proyection Freq / sqrt(2) to consider corners
+	double substractionCutFreq = (sampling/maxResol) / sqrt(2);
+	DIGFREQ2FFT_IDX(substractionCutFreq, (int)YSIZE(IFourier), maxwiIdx);
+
+	#ifdef DEBUG
+	std::cout << "------------------- sampling " << sampling << std::endl;
+	std::cout << "------------------- maxResol " << maxResol << std::endl;
+	std::cout << "------------------- cutFreq " << cutFreq << std::endl;
+	std::cout << "------------------- substractionCutFreq " << substractionCutFreq << std::endl;
+	std::cout << "------------------- maxwiIdx " << maxwiIdx << std::endl;
+	#endif
+
+	// Read or create mask keep and compute inverse of mask keep (mask subtract)
+	createMask(fnMaskRoi, vM, ivM);
+
+	// If real space projector every execution must mask-multiply and project the input volume
+	if (realSpaceProjector)
+	{
+		// Apply mask to volume
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+			DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n);
+	}
 
 	if (rank==0)
 	{
-		// Read or create mask keep and compute inverse of mask keep (mask subtract)
-		createMask(fnMask, vM, ivM);
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
-			DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n); 
-		// Initialize Fourier projectors
-		std::cout << "-------Initializing projectors-------" << std::endl;
-		projector = new FourierProjector(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
-		projectorMask = new FourierProjector(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
-		std::cout << "-------Projectors initialized-------" << std::endl;
+		if (!realSpaceProjector)
+		{
+			// If  Fourier projector one volume is shared by all execution and this operation is done only once
+			// Apply mask to volume
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+				DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n);
+
+			// Initialize Fourier projectors
+			std::cout << "-------Initializing projectors-------" << std::endl;
+			
+			projector = new FourierProjector(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+			std::cout << "Volume ---> FourierProjector(V(),"<<padFourier<<","<<cutFreq<<","<<xmipp_transformation::BSPLINE3<<");"<< std::endl;
+
+			std::cout << "-------Projectors initialized-------" << std::endl;
+		}
 	}
 	else
 	{
-		projector = new FourierProjector(padFourier,cutFreq,xmipp_transformation::BSPLINE3);
-		projectorMask = new FourierProjector(padFourier,cutFreq,xmipp_transformation::BSPLINE3);
+		if (!realSpaceProjector)
+		{
+			projector = new FourierProjector(padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+		}
 	}
  }
 
@@ -346,30 +484,71 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
  { 
 	// Initialize aux variable
 	disable = false;
+
 	// Project volume and process projections 
 	const auto sizeI = (int)XSIZE(I());
-	processParticle(rowIn, sizeI, transformerP, transformerI);
+	processParticle(rowIn, sizeI);
+
 	// Build projected and final masks
-	if (fnMask.isEmpty()) { // If there is no provided mask
+	if (fnMaskRoi.isEmpty())  // If there is no provided mask
+	{
 		M().initZeros(P());
 		// inverse mask (iM) is all 1s
 		iM = invertMask(M);
 	}
-	else { // If a mask has been provided
-		projectVolume(*projectorMask, Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
+	else  // If a mask has been provided
+	{
+		// Mask projection is always calculated in real space
+		projectVolume(vM(), PmaskRoi, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
+
+		#ifdef DEBUG_OUTPUT_FILES
+		size_t dotPos = fnImgOut.find_last_of('.');
+		PmaskRoi.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi" + fnImgOut.substr(dotPos));
+		Pmask.write(fnImgOut.substr(0, dotPos) + "_Pmask" + fnImgOut.substr(dotPos));
+		#endif
+
 		// Apply binarization, shift and gaussian filter to the projected mask
-		M = binarizeMask(Pmask);
-		selfTranslate(xmipp_transformation::LINEAR, M(), roffset, xmipp_transformation::DONT_WRAP);
-		FilterG.applyMaskSpace(M());
+		M = binarizeMask(PmaskRoi);
+
 		if (subtract) // If the mask contains the part to SUBTRACT: iM = input mask
 			iM = M;
-		else // If the mask contains the part to KEEP: iM = INVERSE of original mask
+		else // If the mask contains the part to KEEP: iM = INVERSE of original maskImgIm
 			iM = invertMask(M);
 	}
-	
+
+	#ifdef DEBUG_OUTPUT_FILES
+	size_t dotPos = fnImgOut.find_last_of('.');
+	M.write(fnImgOut.substr(0, dotPos) + "_M" + fnImgOut.substr(dotPos));
+	iM.write(fnImgOut.substr(0, dotPos) + "_iM" + fnImgOut.substr(dotPos));
+	#endif
+
+	// Estimate background adjustment (b) as the mean difference of the pixels of the regions to adjust
+	// (outside iM mask)
+	double meanP = 0;
+	double meanI = 0;
+	double Nelems = 0;
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(P())
+		if(DIRECT_MULTIDIM_ELEM(iM(), n) > 0 && DIRECT_MULTIDIM_ELEM(PmaskImg(), n) > 0)
+		{
+			meanP += DIRECT_MULTIDIM_ELEM(P(), n); 
+			meanI += DIRECT_MULTIDIM_ELEM(I(), n);
+			Nelems++;
+		}
+
+	double b = (meanI - meanP) / Nelems;
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
+		DIRECT_MULTIDIM_ELEM(I(), n) -= b;
+
+		// if(DIRECT_MULTIDIM_ELEM(PmaskImg(), n) > 0)
+		// {
+		// 		DIRECT_MULTIDIM_ELEM(I(), n) -= b;
+		// }
+
 	// Compute estimation images: IiM = I*iM and PiM = P*iM	
-	IiMFourier = computeEstimationImage(I(), iM(), transformerIiM);
-	PiMFourier = computeEstimationImage(Pctf(), iM(), transformerPiM);	
+	IiMFourier = computeEstimationImage(I(), &(iM()), transformerIiM);
+	PiMFourier = computeEstimationImage(Pctf(), &(iM()), transformerPiM);
 
 	// Estimate transformation with model of order 0: T(w) = beta00 and model of order 1: T(w) = beta01 + beta1*w
 	MultidimArray<double> num0;
@@ -382,7 +561,7 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	b1.initZeros(2);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PiMFourier) {
 		int win = DIRECT_MULTIDIM_ELEM(wi, n);
-		if (win < maxwiIdx) 
+		if (win > 0 && win < maxwiIdx) 
 		{
 			double realPiMFourier = real(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
 			double imagPiMFourier = imag(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
@@ -399,16 +578,24 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	A1(1,0) = A1(0,1);
 
 	// Compute beta00 from order 0 model
-	double beta00 = num0.sum()/den0.sum();
+	double beta00 = num0.sum()/den0.sum();	
+
+	// If selected, filter particles with negative beta00
 	if (nonNegative && beta00 < 0) 
 	{
 		disable = true;
 	}
+
 	// Apply adjustment order 0: PFourier0 = T(w) * PFourier = beta00 * PFourier
 	PFourier0 = PFourier;
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier0) 
-		DIRECT_MULTIDIM_ELEM(PFourier0,n) *= beta00; 
-	PFourier0(0,0) = IiMFourier(0,0); 
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier0)
+	{
+		int win = DIRECT_MULTIDIM_ELEM(wi, n);
+		if (win < maxwiIdx) 
+		{
+			DIRECT_MULTIDIM_ELEM(PFourier0,n) *= beta00;
+		}
+	}
 
 	// Compute beta01 and beta1 from order 1 model
 	PseudoInverseHelper h;
@@ -425,10 +612,12 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 		DIRECT_MULTIDIM_ELEM(PFourier1,n) *= (beta01+beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
 	PFourier1(0,0) = IiMFourier(0,0); 
 
-	// Check best model
+	// Check best model, this function also saves best fitted model in PFourier
 	Matrix1D<double> R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier);
+
 	double beta0save;
 	double beta1save;		
+
 	if (R2adj(1) == 0)
 	{
 		beta0save = beta00;
@@ -455,7 +644,7 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 		else if (R2adj(1) == 1)
 		{
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(IFourier)
-				DIRECT_MULTIDIM_ELEM(IFourier,n) /= (beta01+beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
+				DIRECT_MULTIDIM_ELEM(IFourier,n) /= (beta01+beta1*DIRECT_MULTIDIM_ELEM(wi,n));
 		}
 		transformerI.inverseFourierTransform(IFourier, Idiff());
 	} 
@@ -463,12 +652,24 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	{
 		// Recover adjusted projection (P) in real space
 		transformerP.inverseFourierTransform(PFourier, P());
-		mIdiff.initZeros(I());
-		mIdiff.setXmippOrigin();
+
+		// Subtract projection
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-			DIRECT_MULTIDIM_ELEM(mIdiff,n) = DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n);
+			DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n) - DIRECT_MULTIDIM_ELEM(P(),n));
 	}
-	writeParticle(rowOut, fnImgOut, Idiff, R2adj(0), beta0save, beta1save); 
+
+	#ifdef DEBUG_OUTPUT_FILES
+	dotPos = fnImgOut.find_last_of('.');
+	P.write(fnImgOut.substr(0, dotPos) + "_P" + fnImgOut.substr(dotPos));
+	I.write(fnImgOut.substr(0, dotPos) + "_I" + fnImgOut.substr(dotPos));
+	#endif
+
+	// Compute particle stats after subtraction
+	double avg;
+	double std;
+	double zScore;
+
+	writeParticle(rowOut, fnImgOut, Idiff, R2adj(0), beta0save, beta1save, b, avg, std, zScore); 
 }
 
 void ProgSubtractProjection::postProcess()

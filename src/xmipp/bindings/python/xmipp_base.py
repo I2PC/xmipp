@@ -320,7 +320,7 @@ class CondaEnvManager(object):
         
         target = name + '.yml'
         commands = [] 
-        commands.append('conda env create --yes -f %s' % requirementsFn)
+        commands.append('conda env create -f %s || conda env update -f %s' % (requirementsFn, requirementsFn))
         commands.append('conda env export -f %s' % target)
         return ' && '.join(commands), target
 

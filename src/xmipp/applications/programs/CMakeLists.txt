@@ -36,12 +36,12 @@ foreach(PROGRAM_DIRECTORY ${PROGRAM_DIRECTORIES})
 		set(IS_CUDA_PROGRAM ${PROGRAM_NAME} MATCHES "cuda")
 		set(IS_CUDA11_PROGRAM ${PROGRAM_NAME} MATCHES "cuda11") 
 		if(${IS_CUDA11_PROGRAM})
-			string(REPLACE "cuda11" "cuda" ${PROGRAM_NAME} ${PROGRAM_NAME})
+			string(REPLACE "cuda11" "cuda" PROGRAM_NAME ${PROGRAM_NAME})
 		endif()
 
 		if(${IS_CUDA_PROGRAM})
 			if(${XMIPP_USE_CUDA})
-				if(${IS_CUDA11_PROGRAM} AND ${CUDAToolkit_VERSION_MAJOR} LESS 11)
+				if(${CUDAToolkit_VERSION} VERSION_LESS 11 AND ${IS_CUDA11_PROGRAM})
 					message("Skipping ${PROGRAM_NAME} as CUDA 11 is not supported")
 					continue()
 				endif()
@@ -57,6 +57,11 @@ foreach(PROGRAM_DIRECTORY ${PROGRAM_DIRECTORIES})
 		endif()
 
 		file(GLOB_RECURSE PROGRAM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/${PROGRAM_DIRECTORY}/*.cpp)	
+
+		if (NOT PROGRAM_SOURCES)
+			message(WARNING "${PROGRAM_DIRECTORY} directory is empty. Skipping program.")
+			continue()
+		endif()
 
 		add_executable(
 			${PROGRAM_NAME}

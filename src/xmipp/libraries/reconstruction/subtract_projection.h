@@ -1,6 +1,7 @@
 /***************************************************************************
  *
  * Authors:    Estrella Fernandez Gimenez (me.fernandez@cnb.csic.es)
+ *             Federico P. de Isidro-Gomez (federico.pdeisidro@astx.com)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -33,6 +34,9 @@
  #include "data/fourier_projection.h"
  #include "core/xmipp_metadata_program.h"
 
+ #define DEBUG
+//  #define DEBUG_OUTPUT_FILES
+
 /**@defgroup ProgSubtractProjection Subtract projections
    @ingroup ReconsLibrary */
 //@{
@@ -44,21 +48,24 @@ class ProgSubtractProjection: public XmippMetadataProgram
     // Input params
     FileName fnVolR; // Input reference volume
     FileName fnParticles; // Input metadata
+    FileName fnMaskVol; // Input 3D mask of the reference volume
 	FileName fnImgI; // Particle filename
     FileName fnOut; // Output metadata
-    FileName fnMaskVol; // Input 3D mask of the reference volume
-    FileName fnMask; // Input 3D mask for region to keep
+    FileName fnMaskRoi; // Input 3D mask for region of interest to keep or subtract
     FileName fnProj; // Path to save intermediate files
+
 	double sampling; 
 	double padFourier; 
 	double maxResol;
     double cirmaskrad; // Radius of the circular mask
 	int sigma;
-    int limitfreq;
     int maxwiIdx;
     bool nonNegative;
     bool boost;
     bool subtract;
+    bool realSpaceProjector;
+    bool maskVolProvided;
+    bool ignoreCTF;
 	MultidimArray<int> wi;
 
     // Data variables
@@ -72,12 +79,12 @@ class ProgSubtractProjection: public XmippMetadataProgram
     Image<double> iM; // inverse mask of the region to keep
     Image<double> Mfinal; // final dilated mask
     Image<double> Idiff; // final subtracted image
-	Image<double> cirmask; // circular mask to avoid edge artifacts	
+	Image<double> maskVol; // mask for reference volume (circular if not provided)	
 
  	Projection P; // projection
- 	Projection Pmask; // mask projection for region to keep
-    Projection PmaskVol; // reference volume mask projection
-	FourierFilter FilterG; // Gaussian LPF to smooth mask
+ 	Projection Pmask; // mask projection for the protein
+ 	Image<double> PmaskImg; // mask projection for the protein as Image
+ 	Projection PmaskRoi; // mask projection for region to keep
 
     const MultidimArray<double> *ctfImage = nullptr; // needed for FourierProjector
 	FourierTransformer transformerP; // Fourier transformer for projection
@@ -116,31 +123,35 @@ class ProgSubtractProjection: public XmippMetadataProgram
     bool disable;
     /// Read and write methods
     void readParticle(const MDRow &rowIn);
-    void writeParticle(MDRow &rowOut, FileName, Image<double> &, double, double, double);
+    void writeParticle(MDRow &rowOut, FileName, Image<double> &, double, double, double, double, double, double, double);
     /// Processing methods
     void createMask(const FileName &, Image<double> &, Image<double> &);
     Image<double> binarizeMask(Projection &) const;
     Image<double> invertMask(const Image<double> &);
     Image<double> applyCTF(const MDRow &, Projection &);
-    void processParticle(const MDRow &rowIn, int, FourierTransformer &, FourierTransformer &);
+    void processParticle(const MDRow &rowIn, int sizeImg);
     MultidimArray< std::complex<double> > computeEstimationImage(const MultidimArray<double> &, 
-        const MultidimArray<double> &, FourierTransformer &);
+        const MultidimArray<double> *, FourierTransformer &);
     double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
     Matrix1D<double> checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
         const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
 
     int rank; // for MPI version
     FourierProjector *projector;
-    FourierProjector *projectorMask;
-    /// Empty constructor
+
+    // Empty constructor
     ProgSubtractProjection();
-    /// Destructor
+
+    // Destructor
     ~ProgSubtractProjection();
-    /// Read argument from command line
+
+    // Read argument from command line
     void readParams() override;
-    /// Show
+
+    // Show
     void show() const override;
-    /// Define parameters
+
+    // Define parameters
     void defineParams() override;
     void preProcess() override;
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
