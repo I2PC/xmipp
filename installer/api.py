@@ -161,7 +161,6 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
         "logTail": jsonData[4] if retCode else None # Only needs log tail if something went wrong
     }
 
-
 def __getUserName() -> Optional[str]:
     """
     ### This function returns the userName.
@@ -174,7 +173,6 @@ def __getUserName() -> Optional[str]:
         return output
     else:
         return
-
 
 
 def __getMACAddress() -> Optional[str]:
@@ -222,10 +220,12 @@ def __getUserId() -> Optional[str]:
     - (str | None): User id, or None if there were any errors.
     """
     # Obtaining user's MAC address
+
+
     identifier = __getMACAddress()
     if identifier is None or not identifier:
         identifier = 'Anonymous'
-        #In case the macAddres is nos available, at least take the username trying to identify the user/machine
+        # In case the macAddres is nos available, at least take the username trying to identify the user/machine
         userName = __getUserName()
         if userName is None or not userName:
             userName = 'Unknow'
