@@ -36,9 +36,9 @@ import os
 from .cmake import parseCmakeVersions
 from .utils import runJob, getCurrentName, isBranchUpToDate, runParallelJobs
 from .constants import (API_URL, LOG_FILE, TAIL_LOG_NCHARS, UNKNOWN_VALUE,
-        XMIPP_VERSIONS, XMIPP, VERSION_KEY, MASTER_BRANCHNAME, VERSION_FILE, CMAKE_PYTHON,
-        CMAKE_CUDA, CMAKE_MPI, CMAKE_HDF5, CMAKE_JPEG, CMAKE_SQLITE, CMAKE_JAVA,
-        CMAKE_CMAKE, CMAKE_GCC, CMAKE_GPP)
+	XMIPP_VERSIONS, XMIPP, VERSION_KEY, MASTER_BRANCHNAME, VERSION_FILE, CMAKE_PYTHON,
+	CMAKE_CUDA, CMAKE_MPI, CMAKE_HDF5, CMAKE_JPEG, CMAKE_SQLITE, CMAKE_JAVA,
+	CMAKE_CMAKE, CMAKE_GCC, CMAKE_GPP)
 
 def sendApiPOST(retCode: int=0):
 	"""
@@ -121,11 +121,11 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 	# Obtaining variables in parallel
 	data = parseCmakeVersions(VERSION_FILE)
 	jsonData = runParallelJobs([
-	        (getOSReleaseName, ()),
-	        (__getCPUFlags, ()),
-	        (getCurrentName, ()),
-	        (isBranchUpToDate, ()),
-	        (__getLogTail, ())
+		(getOSReleaseName, ()),
+		(__getCPUFlags, ()),
+		(getCurrentName, ()),
+		(isBranchUpToDate, ()),
+		(__getLogTail, ())
 	])
 
 	# If branch is master or there is none, get release name
@@ -240,24 +240,24 @@ def __getUserId() -> Optional[str]:
 	return sha256.hexdigest()
 
 def __getLogTail() -> Optional[str]:
-        """
-        ### This function returns the last lines of the installation log.
+	"""
+	### This function returns the last lines of the installation log.
 
-        #### Returns:
-        - (str | None): Installation log's last lines, or None if there were any errors.
-        """
-        # Obtaining log tail
-        retCode, output = runJob(f"tail -n {TAIL_LOG_NCHARS} {LOG_FILE}")
+	#### Returns:
+	- (str | None): Installation log's last lines, or None if there were any errors.
+	"""
+	# Obtaining log tail
+	retCode, output = runJob(f"tail -n {TAIL_LOG_NCHARS} {LOG_FILE}")
 
-        # Return content if it went right
-        return output if retCode == 0 else None
+	# Return content if it went right
+	return output if retCode == 0 else None
 
 def __getCPUFlags() -> str:
-    """
-    ### This function returns a string with the flags provided by lscpu.
-    """
-    returnCode, outputStr = runJob('lscpu | grep Flags')
-    if returnCode == 0:
-        flagsCPU = outputStr.replace('Flags:', '').strip()
-        return flagsCPU
-    return UNKNOWN_VALUE
+	"""
+	### This function returns a string with the flags provided by lscpu.
+	"""
+	returnCode, outputStr = runJob('lscpu | grep Flags')
+	if returnCode == 0:
+		flagsCPU = outputStr.replace('Flags:', '').strip()
+		return flagsCPU
+	return UNKNOWN_VALUE
