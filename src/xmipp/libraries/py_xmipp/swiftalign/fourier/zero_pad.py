@@ -20,12 +20,36 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from . import ctf
-from . import fourier
-from . import alignment
-from . import classification
-from . import image
-from . import metadata
-from . import operators
-from . import transform
-from . import utils
+from typing import Sequence, Optional
+import torch
+
+def _compute_padded_shape(shape: torch.Size, dim: Sequence[int], factor: int) -> torch.Size:
+    shape_as_list = list(shape) # To mutate
+    for d in dim:
+        shape_as_list[d] *= factor
+    return torch.Size(shape_as_list)
+
+def zero_pad(x: torch.Tensor,
+             dim: Sequence[int],
+             factor: int,
+             copy: bool = False,
+             out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+    if factor > 1 or copy:
+        padded_size = _compute_padded_shape(x.shape, dim=dim, factor=factor)
+        out = torch.zeros(
+            size=padded_size,
+            dtype=x.dtype,
+            device=x.device,
+            out=out
+        )
+        
+        # Write
+        write_slice = tuple(map(slice, x.shape))
+        out[write_slice] = x
+    
+    else:
+        out = x
+        
+    return out
+    
+
