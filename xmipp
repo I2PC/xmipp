@@ -123,7 +123,6 @@ def modeCleanAll():
 		configDict = readConfig(CONFIG_FILE) if os.path.exists(CONFIG_FILE) else {}
 		installDir = configDict.get(CMAKE_INSTALL_PREFIX, INSTALL_PATH)
 		runJob(f"rm -rf {BUILD_PATH} {installDir} {' '.join(xmippSources)} {CONFIG_FILE}", showCommand=True)
-		runJob(f"rm -rf {CONFIG_FILE} {BUILD_PATH}", showCommand=True)
 	else:
 		logger(red("Operation cancelled."), forceConsoleOutput=True)
 
