@@ -31,7 +31,7 @@ import re, hashlib, http.client, json
 from typing import Dict, Optional
 from urllib.parse import urlparse
 import os
-
+import getpass
 # Self imports
 from .cmake import parseCmakeVersions
 from .utils import runJob, getCurrentName, isBranchUpToDate, runParallelJobs
@@ -170,8 +170,6 @@ def __getUserName() -> Optional[str]:
 	status, output = runJob("whoami")
 	if status == 0:
 		return output
-	else:
-	        return
 
 
 def __getMACAddress() -> Optional[str]:
@@ -222,12 +220,12 @@ def __getUserId() -> Optional[str]:
 
 
 	identifier = __getMACAddress()
-	if identifier is None or not identifier:
+	if not identifier:
 		identifier = 'Anonymous'
 		# In case the macAddres is nos available, at least take the username trying to identify the user/machine
 		userName = __getUserName()
-		if userName is None or not userName:
-			userName = 'Unknow'
+		if not userName:
+			userName = 'Unknown'
 		identifier = userName + identifier
 
 	# Create a new SHA-256 hash object
