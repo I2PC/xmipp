@@ -60,7 +60,7 @@ BUILD_TYPE = "Release"
 CMAKE_CACHE_PATH = os.path.join(BUILD_PATH, 'CMakeCache.txt')
 
 # Internal URLs
-API_URL = 'http://127.0.0.1:8000/api/attempts/'
+API_URL = 'https://xmipp.i2pc.es/api/attempts/'
 DOCUMENTATION_URL = 'https://i2pc.github.io/docs/'
 
 # External URLs
