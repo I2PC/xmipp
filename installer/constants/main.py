@@ -60,11 +60,11 @@ BUILD_TYPE = "Release"
 CMAKE_CACHE_PATH = os.path.join(BUILD_PATH, 'CMakeCache.txt')
 
 # Internal URLs
-API_URL = 'https://xmipp.i2pc.es/api/attempts/'
+API_URL = 'http://127.0.0.1:8000/api/attempts/'
 DOCUMENTATION_URL = 'https://i2pc.github.io/docs/'
 
 # External URLs
-CMAKE_INSTALL_DOCS_URL = 'https://i2pc.github.io/docs/Installation/InstallationNotes/index.html#cmake'
+CMAKE_INSTALL_DOCS_URL = 'https://i2pc.github.io/docs/Installation/Requirements/index.html#requirements'
 MODELS_URL = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
 SCIPION_FILES_REMOTE_PATH = "scipionfiles/downloads/scipion/software/em"
 SCIPION_TESTS_URLS = "http://scipion.cnb.csic.es/downloads/scipion/data/tests"
