@@ -50,7 +50,6 @@ class ProgSubtractProjection: public XmippMetadataProgram
     FileName fnParticles; // Input metadata
     FileName fnMaskVol; // Input 3D mask of the reference volume
 	FileName fnImgI; // Particle filename
-    FileName fnOut; // Output metadata
     FileName fnMaskRoi; // Input 3D mask for region of interest to keep or subtract
     FileName fnProj; // Path to save intermediate files
 
