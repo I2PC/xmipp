@@ -311,7 +311,7 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 	size_t dotPos = fnImgOut.find_last_of('.');
 	P.write(fnImgOut.substr(0, dotPos) + "_P" + fnImgOut.substr(dotPos));
 	PmaskRoi.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi" + fnImgOut.substr(dotPos));
-	M.write(fnImgOut.substr(0, dotPos) + "_M" + fnImgOut.substr(dotPos));
+	M.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi" + fnImgOut.substr(dotPos));
 	#endif
 
 	// Create empty new image for output particle
