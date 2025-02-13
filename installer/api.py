@@ -161,15 +161,13 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 	}
 
 def __getUserName() -> Optional[str]:
-	"""
-	### This function returns the userName.
+    """
+    ### This function returns the userName.
 
-	#### Returns:
-	- (str | None): UserName, or None if there were any errors.
-	"""
-	status, output = runJob("whoami")
-	if status == 0:
-		return output
+    #### Returns:
+    - (str | None): UserName, or None if there were any errors.
+    """
+    return getpass.getuser()
 
 
 def __getMACAddress() -> Optional[str]:
@@ -224,7 +222,7 @@ def __getUserId() -> Optional[str]:
 		# In case the macAddres is nos available, at least take the username trying to identify the user/machine
 		identifier = __getUserName()
 		if not identifier:
-			identifier = 'Unknown'
+			return 'Anonymous'
 
 	# Create a new SHA-256 hash object
 	sha256 = hashlib.sha256()
