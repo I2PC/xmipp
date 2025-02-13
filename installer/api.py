@@ -221,12 +221,10 @@ def __getUserId() -> Optional[str]:
 
 	identifier = __getMACAddress()
 	if not identifier:
-		identifier = 'Anonymous'
 		# In case the macAddres is nos available, at least take the username trying to identify the user/machine
-		userName = __getUserName()
-		if not userName:
-			userName = 'Unknown'
-		identifier = userName + identifier
+		identifier = __getUserName()
+		if not identifier:
+			identifier = 'Unknown'
 
 	# Create a new SHA-256 hash object
 	sha256 = hashlib.sha256()
