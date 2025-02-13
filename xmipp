@@ -221,7 +221,6 @@ def modeGetSources(args: argparse.Namespace):
     """
     # Clone sources from specified branch
     if hasattr(args, "production"):
-        print(args.production)
         getSources(branch=args.branch, production=args.production)
     else:
         getSources(branch=args.branch)
