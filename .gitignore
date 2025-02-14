@@ -65,5 +65,5 @@ gmon.out
 /src/xmipp/Debug/
 /src/xmipp/applications/programs/version
 
-# Compilation database
+# Output files from compilation
 compilation.log
