@@ -112,8 +112,7 @@ void ProgSubtomoSubtraction::show() const {
 	<< "Iterations:\t" << iter << std::endl
 	<< "Cutoff frequency:\t" << cutFreq << std::endl
 	<< "Relaxation factor:\t" << lambda << std::endl
-	<< "Match radial averages:\t" << radavg << std::endl
-	<< "Output:\t" << fnOut << std::endl;
+	<< "Match radial averages:\t" << radavg << std::endl;
 }
 
 void ProgSubtomoSubtraction::readParticle(const MDRow &r) {

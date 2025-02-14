@@ -27,7 +27,7 @@
 #define LIBRARIES_RECONSTRUCTION_CORRELATION_COMPUTER_H_
 
 #include "amerit_computer.h"
-#include "CTPL/ctpl_stl.h"
+#include "ctpl_stl.h"
 #include "data/filters.h"
 #include "data/cpu.h"
 

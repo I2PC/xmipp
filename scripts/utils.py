@@ -370,8 +370,6 @@ def askPath(default='', ask=True):
             print(red("No alternative found in the system."))
         return default
 
-def askShell(msg='', default=True):
-    runJob()
 
 def askYesNo(msg='', default=True, actually_ask=True):
     if not actually_ask:
@@ -504,7 +502,7 @@ def errorList(errorNum):
         [15, 'Scons package not found', 'Install it in the enviroment you install Xmipp (pip install SCons) or in the system'],
         [16, 'Cannot build cuFFTAdvisor dependence', 'Review the documentation about CUDA and if the error persist \n'
             'you could disable CUDA functionalities with CUDA=False on the xmipp.conf file'],
-        [17, 'Cannot build googletest dependence', 'Review the repository has been downloaded correctly. Run /xmipp cleanAll \nto remove all repositories (local changes will be removed) and compile Xmipp from scrach'
+        [17, 'Cannot build googletest dependence', 'Review the repository has been downloaded correctly. Run /xmipp cleanAll \nto remove all repositories (local changes will be removed) and compile Xmipp from scratch \n'
                                                    'Review the cmake version of your system and review compileLOG.txt file\n for more details about the error '],
         [18, 'Cannot build libsvm dependence', 'Review the repository has been downloaded correctly run ./xmipp cleanAll \nto remove all repositories (local changes would be removed'],
         [19, 'Cannot build libcifpp dependences', 'Review the repository has been downloaded correctly. Review the cmake version of your system. Visit https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install \n'

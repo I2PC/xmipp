@@ -445,7 +445,8 @@ class Config:
         return True, 0
 
     def _ensure_compiler_version(self, compiler):
-        if 'g++' in compiler or 'gcc' in compiler:
+        if 'g++' in compiler or 'gcc' in compiler\
+		        or 'cc' in compiler or 'c++' in compiler:
             status = self._ensure_GCC_GPP_version(compiler)
             if status[0] == False:
                 return status #status = [False, index, error msg, suport Msg]

@@ -26,7 +26,7 @@
 #include "cuda_fft.h"
 #include <cufft.h>
 #include "cuda_asserts.h"
-#include "cuFFTAdvisor/advisor.h"
+#include "advisor.h"
 
 #include <iostream>
 
@@ -156,6 +156,9 @@ std::complex<T>* CudaFFT<T>::fft(const T *h_in,
                 toProcess * m_settings->sBytesSingle(),
                 cudaMemcpyHostToDevice, *(cudaStream_t*)m_gpu->stream()));
 
+    	// Wipe out memory before calling transformation
+    	gpuErrchk(cudaMemset(m_d_FD, 0., m_settings->fBytesBatch()));
+
         fft(*m_plan, m_d_SD, m_d_FD);
 
         // copy data back
@@ -188,6 +191,9 @@ T* CudaFFT<T>::ifft(const std::complex<T> *h_in,
                 h_in + offset * m_settings->fDim().xyzPadded(),
                 toProcess * m_settings->fBytesSingle(),
                 cudaMemcpyHostToDevice, *(cudaStream_t*)m_gpu->stream()));
+
+    	// Wipe out memory before calling transformation
+    	gpuErrchk(cudaMemset(m_d_SD, 0., m_settings->sBytesBatch()));
 
         ifft(*m_plan, m_d_FD, m_d_SD);
 
