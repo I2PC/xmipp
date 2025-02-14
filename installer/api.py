@@ -31,7 +31,7 @@ import re, hashlib, http.client, json
 from typing import Dict, Optional
 from urllib.parse import urlparse
 import os
-
+import getpass
 # Self imports
 from .cmake import parseCmakeVersions
 from .utils import runJob, getCurrentName, isBranchUpToDate, runParallelJobs
@@ -43,7 +43,7 @@ from .constants import (API_URL, LOG_FILE, TAIL_LOG_NCHARS, UNKNOWN_VALUE,
 def sendApiPOST(retCode: int=0):
 	"""
 	### Sends a POST request to Xmipp's metrics's API.
-	
+
 	#### Params:
 	- retCode (int): Optional. Return code for the API request.
 	"""
@@ -69,7 +69,7 @@ def sendApiPOST(retCode: int=0):
 			# Close the connection
 			conn.close()
 
-	
+
 ####################### UTILS FUNCTIONS #######################
 def getOSReleaseName() -> str:
 	"""
@@ -78,9 +78,9 @@ def getOSReleaseName() -> str:
 	#### Returns:
 	- (str): OS release name.
 	"""
-	# Initializing default release name 
+	# Initializing default release name
 	releaseName = UNKNOWN_VALUE
-	
+
 	# Text around release name
 	textBefore = 'PRETTY_NAME="'
 	textAfter = '"\n'
@@ -99,20 +99,19 @@ def getOSReleaseName() -> str:
 			# Calculate release name's start index
 			nameStart = targetStart + len(textBefore)
 			if nameEnd != -1 and nameStart != nameEnd:
-				# If everything was correctly found and string is 
+				# If everything was correctly found and string is
 				# not empty, extract release name
 				releaseName = name[nameStart:nameEnd]
 
-	# Return release name
 	return releaseName
 
 def __getJSON(retCode: int=0) -> Optional[Dict]:
 	"""
 	### Creates a JSON with the necessary data for the API POST message.
-	
+
 	#### Params:
 	- retCode (int): Optional. Return code for the API request.
-	
+
 	#### Return:
 	- (dict | None): JSON with the required info or None if user id could not be produced.
 	"""
@@ -161,10 +160,20 @@ def __getJSON(retCode: int=0) -> Optional[Dict]:
 		"logTail": jsonData[4] if retCode else None # Only needs log tail if something went wrong
 	}
 
+def __getUserName() -> Optional[str]:
+    """
+    ### This function returns the userName.
+
+    #### Returns:
+    - (str | None): UserName, or None if there were any errors.
+    """
+    return getpass.getuser()
+
+
 def __getMACAddress() -> Optional[str]:
 	"""
 	### This function returns a physical MAC address for this machine. It prioritizes ethernet over wireless.
-	
+
 	#### Returns:
 	- (str | None): MAC address, or None if there were any errors.
 	"""
@@ -174,7 +183,7 @@ def __getMACAddress() -> Optional[str]:
 	# If command failed, return None to avoid sending POST request
 	if status != 0:
 		return
-	
+
 	# Regular expression to match the MAC address and interface names
 	macRegex = r"link/ether ([0-9a-f:]{17})"
 	interfaceRegex = r"^\d+: (enp|wlp|eth|ens)\w+"
@@ -189,42 +198,45 @@ def __getMACAddress() -> Optional[str]:
 		if re.match(interfaceRegex, line):
 			# Extract the interface name
 			interfaceName = re.match(interfaceRegex, line).group(1)
-			
+
 			# If the interface name starts with 'enp', 'wlp', or 'eth
 			if interfaceName.startswith(('enp', 'wlp', 'eth', 'ens')):
 				# Extract the MAC address from the next line and exit
 				macAddress = re.search(macRegex, lines[lines.index(line) + 1]).group(1)
 				break
-	
+
 	return macAddress
 
 def __getUserId() -> Optional[str]:
 	"""
 	### This function returns the unique user id for this machine.
-	
+
 	#### Returns:
 	- (str | None): User id, or None if there were any errors.
 	"""
 	# Obtaining user's MAC address
-	macAddress = __getMACAddress()
 
-	# If no physical MAC address was found, user id cannot be created
-	if macAddress is None or not macAddress:
-		return 'Anonymous'
-	
+
+	identifier = __getMACAddress()
+	if not identifier:
+		# In case the macAddres is nos available, at least take the username trying to identify the user/machine
+		identifier = __getUserName()
+		if not identifier:
+			return 'Anonymous'
+
 	# Create a new SHA-256 hash object
 	sha256 = hashlib.sha256()
-	
+
 	# Update the hash object with the bytes of the MAC address
-	sha256.update(macAddress.encode())
-	
+	sha256.update(identifier.encode())
+
 	# Return hexadecimal representation of the hash
 	return sha256.hexdigest()
 
 def __getLogTail() -> Optional[str]:
 	"""
 	### This function returns the last lines of the installation log.
-	
+
 	#### Returns:
 	- (str | None): Installation log's last lines, or None if there were any errors.
 	"""
@@ -235,11 +247,11 @@ def __getLogTail() -> Optional[str]:
 	return output if retCode == 0 else None
 
 def __getCPUFlags() -> str:
-    """
-    ### This function returns a string with the flags provided by lscpu.
-    """
-    returnCode, outputStr = runJob('lscpu | grep Flags')
-    if returnCode == 0:
-        flagsCPU = outputStr.replace('Flags:', '').strip()
-        return flagsCPU
-    return UNKNOWN_VALUE
+	"""
+	### This function returns a string with the flags provided by lscpu.
+	"""
+	returnCode, outputStr = runJob('lscpu | grep Flags')
+	if returnCode == 0:
+		flagsCPU = outputStr.replace('Flags:', '').strip()
+		return flagsCPU
+	return UNKNOWN_VALUE
