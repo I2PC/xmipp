@@ -44,7 +44,7 @@ void ProgTomoCalculateLandmarkResiduals::readParams()
  	fnInputCoord = getParam("--inputCoord");
 
 	thrFiducialDistance = getDoubleParam("--thrFiducialDistance");
-    numberFTdirOfDirections = getIntParam("--numberFTdirOfDirections");
+    numberFTdirOfDirections = getIntParam("--numberFTdirOfDirections");  // *** this parametr can be removed
 
 	targetFS = getDoubleParam("--targetLMsize");
 }
