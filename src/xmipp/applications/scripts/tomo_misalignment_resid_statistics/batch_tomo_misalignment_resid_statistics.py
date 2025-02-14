@@ -460,7 +460,14 @@ class ScriptTomoResidualStatistics(XmippScript):
       sumRadius = 0
       varianceMatrix = np.zeros([2, 2])
 
+      self.residModuleAccImagen = {}
+
       for i in range(len(self.imageX[key])):
+        if i == 0:
+          self.residModuleAccImagen[key] = [sqrt(self.imageX[key][i]*self.imageX[key][i] + self.imageY[key][i]*self.imageY[key][i])]
+        else:
+          self.residModuleAccImagen[key].append(self.residModuleAccImagen[key][i-1]+sqrt(self.imageX[key][i]*self.imageX[key][i] + self.imageY[key][i]*self.imageY[key][i]))
+
         rx = self.imageX[key][i]
         ry = self.imageY[key][i]
 
@@ -505,11 +512,15 @@ class ScriptTomoResidualStatistics(XmippScript):
       pvBinY = self.binomialTest(self.nImagePosY[key], rs)
       pvF = self.fTestVar(fTestStat, rs)
 
+      adfStatistic, pvADF, cvADF = self.augmentedDickeyFullerTest(self.residModuleAccImagen[key])
+
       pValues.append([pvBinX, str(key) + "_pvBinX"])
       pValues.append([pvBinY, str(key) + "_pvBinY"])
       pValues.append([pvF,    str(key) + "_pvF"])
+      pValues.append([pvF,    str(key) + "_pvF"])
+      pValues.append([pvADF,  str(key) + "_pvADF"])
 
-    pValues.sort()
+    # pValues.sort()
  
     residualStats = ch
     firstFail = True
@@ -520,17 +531,7 @@ class ScriptTomoResidualStatistics(XmippScript):
         print(p)
 
     for j, pv in enumerate(pValues):
-      i = j + 1
-
-      if pv[0] > self.alpha:
-        residualStats.append([-1, pv[0], pv[0], pv[1]])
-        
-        if firstFail:
-          print("Failed test "+ str(pv[1]) + " with value " + str(pv[0]) + ". Test " + str(i) + "/" + str(len(pValues)))
-          firstFail = False
-      
-      else:
-        residualStats.append([1, pv[0], pv[0]*i, pv[1]])
+      residualStats.append([-1, pv[0], pv[0], pv[1]])
 
     mdFilePath = self.getParam('-o')
     mdFileName, mdFileExt = os.path.splitext(mdFilePath)
