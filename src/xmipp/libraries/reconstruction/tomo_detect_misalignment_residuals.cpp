@@ -42,7 +42,7 @@ void ProgTomoDetectMisalignmentResiduals::readParams()
 	removeOutliers = checkParam("--removeOutliers");
 	voteCriteria = checkParam("--voteCriteria");
 
-	thrFiducialDistance = getDoubleParam("--thrFiducialDistance");
+	thrFiducialDistance = getDoubleParam("--thrFiducialDistance");  // *** this parameter can be removed (only in unused methods)
 }
 
 
