@@ -84,226 +84,6 @@ void ProgTomoExtractSubtomograms::createSphere(int halfboxsize)
 	}
 }
 
-
-void ProgTomoExtractSubtomograms::normalizeSubtomo(MultidimArray<double> &subtomo, int halfboxsize)
-{
-		MultidimArray<double> maskNormalize;
-
-		double sumVal = 0;
-		double sumVal2 = 0;
-
-		auto counter = maskIdx.size();
-		for (size_t i=0; i<maskIdx.size(); i++)
-		{
-				double val = DIRECT_MULTIDIM_ELEM(subtomo, maskIdx[i]);
-				sumVal += val;
-				sumVal2 += val*val;
-
-		}
-
-		double mean;
-		double sigma2;
-		mean = sumVal/counter;
-		sigma2 = sqrt(sumVal2/counter - mean*mean);
-
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(subtomo)
-		{
-			DIRECT_MULTIDIM_ELEM(subtomo, n) -= mean;
-			DIRECT_MULTIDIM_ELEM(subtomo, n) /= sigma2;
-		}
-}
-
-void ProgTomoExtractSubtomograms::writeSubtomo(int idx, int xcoor, int ycoor, int zcoor, size_t particleid)
-{
-	FileName fn;
-	fn = fnCoor.getBaseName() + formatString("-%i.mrc", idx);
-
-	#ifdef DEBUG
-	std::cout << fn << std::endl;
-	std::cout << fnOut << std::endl;
-	std::cout << fnOut+fn << std::endl;
-	#endif
-
-	subtomoImg.write(fnOut+"/"+fn);
-
-	if (particleid != -1)
-	{
-		rowout.setValue(MDL_PARTICLE_ID, particleid);
-	}
-
-	rowout.setValue(MDL_XCOOR, xcoor);
-	rowout.setValue(MDL_YCOOR, ycoor);
-	rowout.setValue(MDL_ZCOOR, zcoor);
-	rowout.setValue(MDL_IMAGE, fn);
-	mdout.addRow(rowout);
-
-	fn = fnCoor.getBaseName() + "_extracted.xmd";
-	mdout.write(fnOut+"/"+fn);
-}
-
-void ProgTomoExtractSubtomograms::extractSubtomoFixedSize(MultidimArray<double> &subtomoExtraction)
-{
-	// Downsampling
-	FourierTransformer transformer1;
-	FourierTransformer transformer2;
-
-	MultidimArray< std::complex<double> > fftSubtomoExtraction;
-	MultidimArray< std::complex<double> > fftSubtomo;
-
-	fftSubtomo.initZeros(boxsize, boxsize, (boxsize/2)+1);
-	transformer1.FourierTransform(subtomoExtraction, fftSubtomoExtraction, true);
-
-	#ifdef DEBUG
-	std::cout << "XSIZE(fftSubtomo) " << XSIZE(fftSubtomo) << std::endl;
-	std::cout << "YSIZE(fftSubtomo) " << YSIZE(fftSubtomo) << std::endl;
-	std::cout << "ZSIZE(fftSubtomo) " << ZSIZE(fftSubtomo) << std::endl;
-
-	std::cout << "XSIZE(fftSubtomoExtraction) " << XSIZE(fftSubtomoExtraction) << std::endl;
-	std::cout << "YSIZE(fftSubtomoExtraction) " << YSIZE(fftSubtomoExtraction) << std::endl;
-	std::cout << "ZSIZE(fftSubtomoExtraction) " << ZSIZE(fftSubtomoExtraction) << std::endl;
-	#endif
-
-	if (downsampleFactor > 1)
-	{
-		downsample(fftSubtomoExtraction, fftSubtomo);
-	}
-	else  // downsampleFactor < 1
-	{
-		upsample(fftSubtomoExtraction, fftSubtomo);
-	}
-
-	subtomoExtraction.initZeros(1, boxsize, boxsize, boxsize);
-
-	transformer2.inverseFourierTransform(fftSubtomo, subtomoExtraction);
-}
-
-void ProgTomoExtractSubtomograms::run()
-{
-	std::cout << "Starting ... "<< std::endl;
-
-	md.read(fnCoor);
-
-	Image<double> tomImg;
-	auto &tom = tomImg();
-	tomImg.read(fnTom);
-
-	size_t Xtom;
-	size_t Ytom;
-	size_t Ztom;
-
-	Xtom = XSIZE(tom);
-	Ytom = YSIZE(tom);
-	Ztom = ZSIZE(tom);
-
-	auto &subtomo = subtomoImg();
-
-	MultidimArray<double> subtomoExtraction;
-
-	int xcoor;
-	int ycoor;
-	int zcoor;
-	int xinit;
-	int yinit;
-	int zinit;
-
-	size_t idx=1;
-
-	int halfboxsize = floor(0.5*boxsize);
-
-	double invertSign = 1.0;
-
-	if (invertContrast)
-	{
-		invertSign = -1;
-	}
-
-	if (normalize)
-	{
-		createSphere(halfboxsize);
-	}
-
-	double dsFactorTolerance = 0.01;
-	double dsFactorDiff = abs(downsampleFactor - 1);
-
-	size_t boxSizeExtraction;
-	if (fixedBoxSize && dsFactorDiff > dsFactorTolerance)
-	{
-		#ifdef DEBUG
-		std::cout << "Entering fixed box size mode" << std::endl;
-		#endif
-
-
-		boxSizeExtraction = boxsize * downsampleFactor;
-		halfboxsize = floor(0.5*boxSizeExtraction);
-	}
-
-	for (const auto& row : md)
-	{
-		row.getValue(MDL_XCOOR, xcoor);
-		row.getValue(MDL_YCOOR, ycoor);
-		row.getValue(MDL_ZCOOR, zcoor);
-
-		int xlim = xcoor + halfboxsize;
-		int ylim = ycoor + halfboxsize;
-		int zlim = zcoor + halfboxsize;
-
-		xinit = xcoor - halfboxsize;
-		yinit = ycoor - halfboxsize;
-		zinit = zcoor - halfboxsize;
-
-		if ((xlim>Xtom) || (ylim>Ytom) || (zlim>Ztom) || (xinit<0) || (yinit<0) || (zinit<0))
-			continue;
-
-		if (fixedBoxSize && dsFactorDiff > dsFactorTolerance)
-		{
-			subtomo.initZeros(1, boxSizeExtraction, boxSizeExtraction, boxSizeExtraction);
-		}
-		else
-		{
-			subtomo.initZeros(1, boxsize, boxsize, boxsize);
-		}
-
-		// Contrast inversion
-		for (int k=zinit; k<zlim; k++)
-		{
-			int kk = k - zcoor;
-			for (int i=yinit; i<ylim; i++)
-			{
-				int ii = i-ycoor;
-				for (int j=xinit; j<xlim; j++)
-				{
-					A3D_ELEM(subtomo, kk+halfboxsize, ii+halfboxsize, j+halfboxsize-xcoor) = invertSign * A3D_ELEM(tom, k, i, j);
-				}
-			}
-		}
-
-		if (fixedBoxSize && dsFactorDiff > dsFactorTolerance)
-		{
-			extractSubtomoFixedSize(subtomo);
-		}
-
-		// Normalization
-		if (normalize)
-		{
-			normalizeSubtomo(subtomo, halfboxsize);
-		}
-
-		size_t particleid = -1;
-		if (row.containsLabel(MDL_PARTICLE_ID))
-		{
-			row.getValue(MDL_PARTICLE_ID, particleid);
-		}
-
-		writeSubtomo(idx, xcoor, ycoor, zcoor, particleid);
-
-		++idx;
-	}
-
-
-	std::cout << "Subtomo substraction finished succesfully!!" << std::endl;
-}
-
-
 void ProgTomoExtractSubtomograms::upsample(const MultidimArray<std::complex<double>> &from, MultidimArray<std::complex<double>> &to)
 {
 	for (size_t k = 0; k < ZSIZE(from)/2; k++)
@@ -357,3 +137,212 @@ void ProgTomoExtractSubtomograms::downsample(const MultidimArray<std::complex<do
 		}
 	}
 }
+
+void ProgTomoExtractSubtomograms::normalizeSubtomo(MultidimArray<double> &subtomo, int halfboxsize)
+{
+		MultidimArray<double> maskNormalize;
+
+		double sumVal = 0;
+		double sumVal2 = 0;
+
+		auto counter = maskIdx.size();
+		for (size_t i=0; i<maskIdx.size(); i++)
+		{
+				double val = DIRECT_MULTIDIM_ELEM(subtomo, maskIdx[i]);
+				sumVal += val;
+				sumVal2 += val*val;
+
+		}
+
+		double mean;
+		double sigma2;
+		mean = sumVal/counter;
+		sigma2 = sqrt(sumVal2/counter - mean*mean);
+
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(subtomo)
+		{
+			DIRECT_MULTIDIM_ELEM(subtomo, n) -= mean;
+			DIRECT_MULTIDIM_ELEM(subtomo, n) /= sigma2;
+		}
+}
+
+
+void ProgTomoExtractSubtomograms::extractSubtomoFixedSize(MultidimArray<double> &subtomoExtraction)
+{
+	// Downsampling
+	FourierTransformer transformer1;
+	FourierTransformer transformer2;
+
+	MultidimArray< std::complex<double> > fftSubtomoExtraction;
+	MultidimArray< std::complex<double> > fftSubtomo;
+
+	fftSubtomo.initZeros(boxsize, boxsize, (boxsize/2)+1);
+	transformer1.FourierTransform(subtomoExtraction, fftSubtomoExtraction, true);
+
+	#ifdef DEBUG
+	std::cout << "XSIZE(fftSubtomo) " << XSIZE(fftSubtomo) << std::endl;
+	std::cout << "YSIZE(fftSubtomo) " << YSIZE(fftSubtomo) << std::endl;
+	std::cout << "ZSIZE(fftSubtomo) " << ZSIZE(fftSubtomo) << std::endl;
+
+	std::cout << "XSIZE(fftSubtomoExtraction) " << XSIZE(fftSubtomoExtraction) << std::endl;
+	std::cout << "YSIZE(fftSubtomoExtraction) " << YSIZE(fftSubtomoExtraction) << std::endl;
+	std::cout << "ZSIZE(fftSubtomoExtraction) " << ZSIZE(fftSubtomoExtraction) << std::endl;
+	#endif
+
+	if (downsampleFactor > 1)
+	{
+		downsample(fftSubtomoExtraction, fftSubtomo);
+	}
+	else  // downsampleFactor < 1
+	{
+		upsample(fftSubtomoExtraction, fftSubtomo);
+	}
+
+	subtomoExtraction.initZeros(1, boxsize, boxsize, boxsize);
+	transformer2.inverseFourierTransform(fftSubtomo, subtomoExtraction);
+}
+
+
+void ProgTomoExtractSubtomograms::extractSubtomo(const MultidimArray<double> &tom, MultidimArray<double> &subtomo,
+												 const int xinit, const int yinit, const int zinit, double invertSign)
+{
+	for (int k=0; k<boxsize; k++)
+	{
+		auto kk = k + zinit;
+		for (int i=0; i<boxsize; i++)
+		{
+			int ii = i+yinit;
+			for (int j=0; j<boxsize; j++)
+			{
+				int jj = j+xinit;
+				A3D_ELEM(subtomo, k, i, j) = invertSign * A3D_ELEM(tom, kk, ii, jj);
+			}
+		}
+	}
+}
+
+
+void ProgTomoExtractSubtomograms::run()
+{
+	std::cout << "Starting ... "<< std::endl;
+
+	md.read(fnCoor);
+
+	Image<double> tomImg;
+	auto &tom = tomImg();
+	tomImg.read(fnTom);
+
+	//auto &subtomo = subtomoImg();
+	MultidimArray<double> subtomo;
+
+	//MultidimArray<double> subtomoExtraction;
+
+	int xcoor;
+	int ycoor;
+	int zcoor;
+	int xinit;
+	int yinit;
+	int zinit;
+	int xlim;
+	int ylim;
+	int zlim;
+
+	auto Xtom = XSIZE(tom);
+	auto Ytom = YSIZE(tom);
+	auto Ztom = ZSIZE(tom);
+
+	size_t idx=1;
+
+	int halfboxsize = floor(0.5*boxsize);
+
+	double invertSign = invertContrast ? -1 : 1;
+
+	if (normalize)
+	{
+		createSphere(halfboxsize);
+	}
+
+	double dsFactorTolerance = 0.01;
+	double dsFactorDiff = abs(downsampleFactor - 1);
+
+	size_t boxSizeExtraction;
+	if (fixedBoxSize && dsFactorDiff > dsFactorTolerance)
+	{
+		#ifdef DEBUG
+		std::cout << "Entering fixed box size mode" << std::endl;
+		#endif
+
+
+		boxSizeExtraction = boxsize * downsampleFactor;
+		halfboxsize = floor(0.5*boxSizeExtraction);
+	}
+
+	std::vector<std::vector<int>> position;
+
+	FileName fn, fnCoorBase;
+	fnCoorBase = fnCoor.getBaseName();
+	fn = fnCoorBase + ".mrc";
+
+	//for (size_t idx = 0; idx<numberOfSubtomos; idx++)
+	for (const auto& row : md)
+	{
+		row.getValue(MDL_XCOOR, xcoor);
+		row.getValue(MDL_YCOOR, ycoor);
+		row.getValue(MDL_ZCOOR, zcoor);
+
+		xlim = xcoor + halfboxsize;
+		ylim = ycoor + halfboxsize;
+		zlim = zcoor + halfboxsize;
+
+		xinit = xcoor - halfboxsize;
+		yinit = ycoor - halfboxsize;
+		zinit = zcoor - halfboxsize;
+
+		if ((xlim>Xtom) || (ylim>Ytom) || (zlim>Ztom) || (xinit<0) || (yinit<0) || (zinit<0))
+			continue;
+
+		if (fixedBoxSize && dsFactorDiff > dsFactorTolerance)
+			subtomo.initZeros(1, boxSizeExtraction, boxSizeExtraction, boxSizeExtraction);
+		else
+			subtomo.initZeros(1, boxsize, boxsize, boxsize);
+
+		extractSubtomo(tom, subtomo,  xinit, yinit, zinit, invertSign);
+
+		if (fixedBoxSize && dsFactorDiff > dsFactorTolerance)
+			extractSubtomoFixedSize(subtomo);
+
+		// Normalization
+		if (normalize)
+			normalizeSubtomo(subtomo, halfboxsize);
+
+		#ifdef DEBUG
+		std::cout << fn << std::endl;
+		std::cout << fnOut << std::endl;
+		std::cout << fnOut+fn << std::endl;
+		#endif
+
+
+		Image<double> saveImg;
+		saveImg() = subtomo;
+		saveImg.write(fnOut+"/"+fnCoorBase + ".mrc", idx+FIRST_IMAGE, true, WRITE_APPEND);
+
+
+		FileName composedFn;
+		composedFn.compose(idx, fn);
+		rowout = row;
+		rowout.setValue(MDL_IMAGE, composedFn);
+		mdout.addRow(rowout);
+
+		++idx;
+
+	}
+
+
+	fn = fnCoorBase + "_extracted.xmd";
+	mdout.write(fnOut+"/"+fn);
+
+	std::cout << "Subtomogram extraction succesfully finished!!" << std::endl;
+
+
+}
+

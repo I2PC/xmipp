@@ -26,7 +26,7 @@
 #include "cuda_fft.h"
 #include <cufft.h>
 #include "cuda_asserts.h"
-#include "cuFFTAdvisor/advisor.h"
+#include "advisor.h"
 
 #include <iostream>
 

@@ -28,7 +28,7 @@
 #define XMIPP__SVM_CLASSIFIER_HH__
 
 /* Includes ---------------------------------------------------------------- */
-#include <libsvm/svm.h>
+#include <svm.h>
 
 template<typename T>
 class MultidimArray;

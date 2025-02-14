@@ -1,4 +1,78 @@
-   ## Release 3.23.11 - Nereus
+## Release 3.24.12.0 - Poseidon
+   ### Xmipp Programs 
+   - New programs
+        - tomo_average_subtomos: This method carries out a subtomogram averaging. It means, given a set of subtomogram the program will estimate the average map
+        - denoising_tv: The program will make denoising using total variation
+        - tomo_ctf_wiener2d_correction: This method performs a CTF correction of a tilt series
+        - angular_continuous_assign2_gpu: Make a continuous angular assignment with GPU
+        - cuda_fourier_projection
+        - predict_deep_center
+        - cl2d_clustering.py
+
+   - Programs updated
+      - tomogram_reconstruction:  averaging with gold standard, tigre with internal interpolation, enviroment of tigre updated
+      - mpi_subtract_projection / subtract_projection: Improvements on projection subtraction a particle boosting both in MPI and single thread version
+
+   - Programs fixed
+      - resolution_directional
+      - ctf_estimate_from_psd: Bug fix with no defocus
+      - mpi_subtract_projection / subtract_projection: subtraction a particle boosting both in MPI and single thread version
+      - volume_halves_restoration_gpu: Fixed failure when using masks
+
+   ### Installation and user guide
+   - Total new installer based on CMake. More robust and simplified
+   - New posting of statistics about installations
+   - Allow re-compilation without internet
+   - Added next generation of libstdcxx to DLTKv0.3 env to enhance compatibility
+   - Forcing to compile Xmipp with the libstdc++ availabe in the scipion3 env if exist
+     
+   ### More Xmipp  
+   - Added support for reading EER
+   - Handling .gain files correctly
+   - Added MADV_HUGEPAGE support check
+   - Fix for rare axis orderings in MRC/MAP files
+   - Local average label added (used to measure the intensity of the particles in the original micrographs)
+ 
+## Release 3.24.06 - Oceanus
+   ### Xmipp Programs 
+   - New programs
+      - xtomo tigre reconstruction: This program provides a variety of algorithms to reconstruct tomogram from a set of tilt series
+      - graph_max_cut: split volume program
+      - tomo_simulate_tilt_series: simualtion of ts, tomograms and coordinates
+   - Programs updated
+      - Deep_center: interface simplified, calculate shift for particles
+      - deep_misalignment_detection: update model
+      - pdb_label_from_volume:Added CIF format support
+      - resolution_monotomo: Fast subtomo extraction
+      - resolution_monotomo: accelarating monotomo with float
+      - tomogram_reconstruction: tigre reconstruction added
+      - tomo_extract_subtomograms: solving some bugs and enhancing performance
+      - tomo_extract_particlestacks: solving some bugs and enhancing performance
+   - Programs fixed
+      - movie_estimate_gain: Initialize sigma values
+      - resolution_localfilter: double not integer
+      - movie_estimate_gain: Initialize sigma values
+      - project_tomography: internal loop
+      - pdb: Fixed PDB write function when no categories are present
+      - fourier_filter:Fix WEDGE option in FourierFilter
+      - resolution_pdb_bfactor:fix unaccounted column in res bfac pdb
+      - fourier_filter: Fixing missing cone
+   ### Installation and user guide
+   - Fixed PyXmipp installation
+   - Update pythorch version on DLTK pyTorch enviroment
+   - Fix DLTK installation
+   - Removed force flag on conda installations (new conda version)
+   ### More Xmipp 
+   - API for collecting xmipp installation statistics
+   - Local average added: Now the micrograph scissor annotates the local intensity value around the particles in the original micrographs.
+   - Added support for half precision float micrographs
+   - Wipe out memory ouptut in cuFFT
+   - Deprecated deep_denoising
+   - Fix for rare axis orderings in MRC/MAP files
+   - Adding fixed extension to tomo
+
+  
+## Release 3.23.11 - Nereus
    ### Xmipp Programs 
    
    - New programs
@@ -77,7 +151,7 @@
 
 
    
-   ## Release 3.23.03 - Kratos
+## Release 3.23.03 - Kratos
    ### Xmipp Programs 
    
   - New programs: tomo_confidence_map, tomo_extract_particlestacks, tomo_extract_subtomograms, tomo_tiltseries_dose_filter, psd_estimatator

@@ -28,7 +28,7 @@
 #include "core/userSettings.h"
 #include "reconstruction_cuda/cuda_fft.h"
 #include "reconstruction_adapt_cuda/basic_mem_manager.h"
-#include <CTPL/ctpl_stl.h>
+#include <ctpl_stl.h>
 
 
 

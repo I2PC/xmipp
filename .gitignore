@@ -27,6 +27,7 @@
 
 #### Python
 *.pyc
+__pycache__
 
 #### Eclipse and so on
 .project
@@ -36,9 +37,6 @@
 .idea
 .vscode
 .vscode/settings.json
-
-# Scons auxiliary files
-.sconsign.dblite
 
 # Other
 gmon.out
@@ -50,18 +48,17 @@ gmon.out
 .settings
 
 # ignore everything in src folder
-/build/*
-/src/*
-# except xmipp folder
-!/src/xmipp/
+/build
+/dist
 
+/src/scipion-em-xmipp
+/src/xmippViz
+/src/xmippCore
 /src/xmipp/bin
 /src/xmipp/lib
 /src/xmipp/models/*
 /src/xmipp/tests/data
 *.conf
-xmippEnv.json
-compile_commands.json
 *.tgz
 
 # Ignore version file
@@ -76,3 +73,4 @@ xmipp_version.txt
 
 # Compilation database
 compile_commands.json
+compilation.log

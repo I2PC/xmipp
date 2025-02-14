@@ -118,14 +118,14 @@ void ProgTomoSimulateTiltseries::createSphere(MultidimArray<int> &mask, int boxs
 	int halfbox = round(0.5*boxsize);
 	auto halfbox2 =halfbox*halfbox;
 
-	std::cout << "halfbox = " << halfbox << std::endl;
+	//std::cout << "halfbox = " << halfbox << std::endl;
 
 	size_t idx = 0;
 	long n=0;
 	for (int k= 0; k<boxsize; k++)
 	{
 		int k2 = (k-halfbox)*(k-halfbox);
-		std::cout << "k2 = " << k2 << std::endl;
+		//std::cout << "k2 = " << k2 << std::endl;
 		for (int i= 0; i<boxsize; i++)
 		{
 			int i2 = (i-halfbox)*(i-halfbox);
@@ -134,8 +134,15 @@ void ProgTomoSimulateTiltseries::createSphere(MultidimArray<int> &mask, int boxs
 			{
 				int j2 = (j-halfbox)*(j-halfbox);
 
-				const bool inside = i2k2+j2 <= halfbox2;
-				A3D_ELEM(mask, k, i, j) = static_cast<int>(inside);
+				if (i2k2+j2>halfbox2)
+				{
+
+					A3D_ELEM(mask, k, i, j) = 0;
+				}
+				else
+				{
+					A3D_ELEM(mask, k, i, j) = 1;
+				}
 				n++;
 			}
 		}
@@ -147,8 +154,6 @@ void ProgTomoSimulateTiltseries::maskingRotatedSubtomo(MultidimArray<double> &su
 	//subtomo.resetOrigin();
 	auto halfbox = round(0.5*boxsize);
 	auto halfbox2 =halfbox*halfbox;
-
-	std::cout << " boxsize = " << boxsize << "    halfboxsize = " << halfbox << std::endl;
 
 	long n=0;
 	for (size_t k= 0; k<boxsize; k++)
@@ -290,10 +295,12 @@ void ProgTomoSimulateTiltseries::run()
 
 			theta = 360.0*u;
 			phi = acos(2*v - 1.0)*180.0/PI;
-			xi = 360*w;
+			xi = 360.0*w;
 
 			//eulerMat_proj.initIdentity(4);
 		}
+
+		std::cout << "theta = " << theta << "   " << "phi = " << phi << "   " << "xi = " << xi << std::endl;
 
 		Euler_angles2matrix(theta, phi, xi, eulerMat_VolRotation, true);
 
@@ -321,7 +328,6 @@ void ProgTomoSimulateTiltseries::run()
 
 			projectVolume(projector, imgPrj, boxsize, boxsize, 0.0, tiltProj, 0.0);
 
-            Matrix1D<double> shifts(2);
             tiltProj *= PI/180.0;
 
 			double ct = cos(tiltProj);
