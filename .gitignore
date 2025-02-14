@@ -36,7 +36,6 @@ __pycache__
 .classpath
 .idea
 .vscode
-.vscode/settings.json
 
 # Other
 gmon.out
@@ -66,11 +65,5 @@ gmon.out
 /src/xmipp/Debug/
 /src/xmipp/applications/programs/version
 
-# Output files from compilation
-compileLOG.txt
-reportInstallation.tar.gz
-xmipp_version.txt
-
 # Compilation database
-compile_commands.json
 compilation.log
