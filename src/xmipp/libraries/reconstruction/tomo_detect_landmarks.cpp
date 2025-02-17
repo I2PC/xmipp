@@ -1614,56 +1614,6 @@ void ProgTomoDetectLandmarks::adaptiveHistogramEqualization(MultidimArray<double
 //     }
 // }
 
-
-// // ------------------------------------------------------------------------------------------------------------------------------
-// // HOUGH TRANSFORM
-// void ProgTomoDetectLandmarks::houghTransform(MultidimArray<double> &image, int minRadius, int maxRadius) 
-// {
-// 	// Define accumulator array
-// 	std::vector<std::vector<std::vector<int>>> accumulator(
-// 		xSize_d, 
-// 		std::vector<std::vector<int>>(
-// 			ySize_d, 
-// 			std::vector<int>(maxRadius - minRadius + 1, 0)));
-
-// 	for (int i = 0; i < ySize; ++i) {
-// 		for (int j = 0; j < xSize; ++j) {
-			
-// 			// Check if the pixel is part of an edge (assuming 1 for foreground, 0 for background)
-// 			if (DIRECT_A2D_ELEM(image, i, j) > 0) {
-				
-// 				// Iterate over possible circle radii
-// 				for (int r = minRadius; r <= maxRadius; ++r) {
-					
-// 					// Iterate over possible circle centers
-// 					for (int theta = 0; theta < 360; ++theta) {
-// 						int cx = i + r * cos(theta * M_PI / 180.0);
-// 						int cy = j + r * sin(theta * M_PI / 180.0);
-
-// 						// Check if the circle center is within the image boundaries
-// 						if (cx >= 0 && cx < xSize && cy >= 0 && cy < ySize) {
-// 							// Accumulate a vote for this circle
-// 							accumulator[cx][cy][r - minRadius]++;
-// 						}
-// 					}
-// 				}
-// 			}
-// 		}
-// 	}
-
-// 	// Process accumulator to find circle parameters
-// 	for (int i = 0; i < ySize; ++i) {
-// 		for (int j = 0; j < xSize; ++j) {
-// 			for (int r = minRadius; r <= maxRadius; ++r) {
-// 				if (accumulator[j][i][r - minRadius] > 0) {
-// 					std::cout << "Detected circle at center (" << j << ", " << i << ") with radius " << r << std::endl;
-// 				}
-// 			}
-// 		}
-// 	}
-// }
-// // ------------------------------------------------------------------------------------------------------------------------------
-
 void ProgTomoDetectLandmarks::filterFourierDirections(MultidimArray<double> &image, size_t k) 
 {
 	MultidimArray<double> imageTmp;
