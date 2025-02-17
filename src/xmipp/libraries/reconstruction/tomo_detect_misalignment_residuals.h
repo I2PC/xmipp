@@ -69,7 +69,7 @@ public:
     double samplingRate;
 
     /** Thresholds */
-    float thrFiducialDistance;   // Maximum distance of a detected landmark to consider it belongs to a chain
+    float thrRatioMahalanobis;   // Maximum ratio of elements (chains on individual residuals) with Mahalnobis distance > 1
 
     /** Coordinate model structure */
     struct resMod {

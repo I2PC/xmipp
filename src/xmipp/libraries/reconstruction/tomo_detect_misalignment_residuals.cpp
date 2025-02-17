@@ -38,7 +38,7 @@ void ProgTomoDetectMisalignmentResiduals::readParams()
 	nSize = getIntParam("--numberTiltImages");
 	removeOutliers = checkParam("--removeOutliers");
 	voteCriteria = checkParam("--voteCriteria");
-	thrFiducialDistance = getDoubleParam("--thrFiducialDistance");
+	thrRatioMahalanobis = getDoubleParam("--thrRatioMahalanobis");
 }
 
 
@@ -52,7 +52,7 @@ void ProgTomoDetectMisalignmentResiduals::defineParams()
 	addParamsLine("  [--numberTiltImages <numberTiltImages=60>]				: Number of tilt-images. Needed in case some image is missing form residual information.");
 	addParamsLine("  [--removeOutliers]										: Remove outliers before calculate mahalanobis distance.");
 	addParamsLine("  [--voteCriteria]										: Use a votting system (instead of the average) to detect local misalignment.");
-	addParamsLine("  [--thrFiducialDistance <thrFiducialDistance=0.5>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate projection and the detected fiducial.");
+	addParamsLine("  [--thrRatioMahalanobis <thrRatioMahalanobis=0.8>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate projection and the detected fiducial.");
 }
 
 
@@ -148,14 +148,12 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 			rationMisalignedChains += 1;
 		}
 
+		#ifdef DEBUG_RESIDUAL_ANALYSIS
 		std::cout << "Average mahalanobis distance for 3D cooridinate " << n << ": " << avgMahaDist << std::endl;
+		#endif
 	}
 
-	// If more than thrRatioMisalignedChains of coordinates are misaligned, set global misalignment
-	double thrRatioMisalignedChains = 0.8;
-	double thrRatioMisalignedResid = 0.8;
-
-	if (rationMisalignedChains / numberOfInputCoords > thrRatioMisalignedChains)
+	if (rationMisalignedChains / numberOfInputCoords > thrRatioMahalanobis)
 	{
 		globalAlignment = false;
 	}
@@ -189,7 +187,7 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 
 				rationMisalignedResid /= numberResMod;
 
-				if (rationMisalignedResid > thrRatioMisalignedResid)
+				if (rationMisalignedResid > thrRatioMahalanobis)
 				{
 					localAlignment[n] = false;
 					std::cout << "------> Local misalignment detected at image: " << n << " with ratio " << rationMisalignedResid << std::endl;
@@ -235,10 +233,12 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 					std::cout << "------> Local misalignment detected at image: " << n << std::endl;
 				}
 
+				#ifdef DEBUG_RESIDUAL_ANALYSIS
 				std::cout << "Statistics of mahalanobis distances for tilt-image " << n << std::endl;
 				std::cout << "Number of residual models: " << numberResMod << std::endl;
 				std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
 				std::cout << "STD mahalanobis distance: " << stdMahaDist << std::endl;
+				#endif
 			}
 
 			else
@@ -311,15 +311,13 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 		{
 			rationMisalignedChains += 1;
 		}
-
+		
+		#ifdef DEBUG_RESIDUAL_ANALYSIS
 		std::cout << "Average mahalanobis distance for 3D cooridinate " << n << ": " << avgMahaDist << std::endl;
+		#endif
 	}
 
-	// If more than thrRatioMisalignedChains of coordinates are misaligned, set global misalignment ***
-	double thrRatioMisalignedChains = 0.8;
-	double thrRatioMisalignedResid = 0.8;
-
-	if (rationMisalignedChains / numberOfInputCoords > thrRatioMisalignedChains)
+	if (rationMisalignedChains / numberOfInputCoords > thrRatioMahalanobis)
 	{
 		globalAlignment = false;
 	}
@@ -353,7 +351,7 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 
 				rationMisalignedResid /= numberResMod;
 
-				if (rationMisalignedResid > thrRatioMisalignedResid)
+				if (rationMisalignedResid > thrRatioMahalanobis)
 				{
 					localAlignment[n] = false;
 					std::cout << "------> Local misalignment detected at image: " << n << " with ratio " << rationMisalignedResid << std::endl;
@@ -401,11 +399,13 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 					localAlignment[n] = false;
 					std::cout << "------> Local misalignment detected at image: " << n << std::endl;
 				}
-
+				
+				#ifdef DEBUG_RESIDUAL_ANALYSIS
 				std::cout << "Statistics of mahalanobis distances for tilt-image " << n << std::endl;
 				std::cout << "Number of residual models: " << numberResMod << std::endl;
 				std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
 				std::cout << "STD mahalanobis distance: " << stdMahaDist << std::endl;
+				#endif
 			}
 
 			else
@@ -523,7 +523,7 @@ void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 	}
 
 	// Complete residual info
-	double mod2Thr = (fiducialSizePx * thrFiducialDistance) * (fiducialSizePx * thrFiducialDistance);
+	double mod2Thr = (fiducialSizePx * thrRatioMahalanobis) * (fiducialSizePx * thrRatioMahalanobis);
 
 	for (size_t n = 0; n < numberOfInputCoords; n++)
 	{
