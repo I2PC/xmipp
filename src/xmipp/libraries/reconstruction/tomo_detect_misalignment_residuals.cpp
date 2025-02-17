@@ -153,6 +153,7 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 
 	// If more than thrRatioMisalignedChains of coordinates are misaligned, set global misalignment
 	double thrRatioMisalignedChains = 0.8;
+	double thrRatioMisalignedResid = 0.8;
 
 	if (rationMisalignedChains / numberOfInputCoords > thrRatioMisalignedChains)
 	{
@@ -164,46 +165,87 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 	// Local alignment analysis
 	std::cout << "---------------- Local misaligment analysis" << std::endl;
 	
-	for (size_t n = 0; n < nSize; n++)
+	// Use votting as criteria for local misalignment detection
+	if (voteCriteria)
 	{
-		std::vector<resMod> resMod_image;
-		getResModByImage(n, resMod_image);
-
-		size_t numberResMod = resMod_image.size();
-
-		if (numberResMod > 1)
+		for (size_t n = 0; n < nSize; n++)
 		{
+			std::vector<resMod> resMod_image;
+			getResModByImage(n, resMod_image);
 
-			double sumMahaDist = 0;
-			double sumMahaDist2 = 0;
+			size_t numberResMod = resMod_image.size();
 
-			for (size_t i = 0; i < numberResMod; i++)
+			if (numberResMod > 1)
 			{
-				sumMahaDist += resMod_image[i].mahalanobisDistance;
-				sumMahaDist2 += resMod_image[i].mahalanobisDistance * resMod_image[i].mahalanobisDistance; 
+				double rationMisalignedResid = 0.0;
+
+				for (size_t i = 0; i < numberResMod; i++)
+				{
+					if (resMod_image[i].mahalanobisDistance > 1)
+					{
+						rationMisalignedResid += 1;
+					}
+				}
+
+				rationMisalignedResid /= numberResMod;
+
+				if (rationMisalignedResid > thrRatioMisalignedResid)
+				{
+					localAlignment[n] = false;
+					std::cout << "------> Local misalignment detected at image: " << n << " with ratio " << rationMisalignedResid << std::endl;
+				}
 			}
 
-			double avgMahaDist = sumMahaDist / numberResMod;
-			double stdMahaDist = sqrt(sumMahaDist2 / numberResMod - avgMahaDist * avgMahaDist);
-
-			avgMahalanobisDistanceV[n] = avgMahaDist;
-			stdMahalanobisDistanceV[n] = stdMahaDist;
-
-			if (avgMahaDist > 1)
+			else
 			{
+				std::cout << "ERROR: impossible to study misalignment in tilt-image " << n << ". Number of residuals for this image: " << numberResMod << std::endl;
 				localAlignment[n] = false;
-				std::cout << "------> Local misalignment detected at image: " << n << std::endl;
+			}
+		}
+	}
+	else // Use average as criteria for local misalignment detection
+	{
+		for (size_t n = 0; n < nSize; n++)
+		{
+			std::vector<resMod> resMod_image;
+			getResModByImage(n, resMod_image);
+
+			size_t numberResMod = resMod_image.size();
+
+			if (numberResMod > 1)
+			{
+				sumMahaDist = 0;
+				sumMahaDist2 = 0;
+
+				for (size_t i = 0; i < numberResMod; i++)
+				{
+					sumMahaDist += resMod_image[i].mahalanobisDistance;
+					sumMahaDist2 += resMod_image[i].mahalanobisDistance * resMod_image[i].mahalanobisDistance;
+				}
+
+				avgMahaDist = sumMahaDist / numberResMod;
+				double stdMahaDist = sqrt(sumMahaDist2 / numberResMod - avgMahaDist * avgMahaDist);
+
+				avgMahalanobisDistanceV[n] = avgMahaDist;
+				stdMahalanobisDistanceV[n] = stdMahaDist;
+
+				if (avgMahaDist > 1)
+				{
+					localAlignment[n] = false;
+					std::cout << "------> Local misalignment detected at image: " << n << std::endl;
+				}
+
+				std::cout << "Statistics of mahalanobis distances for tilt-image " << n << std::endl;
+				std::cout << "Number of residual models: " << numberResMod << std::endl;
+				std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
+				std::cout << "STD mahalanobis distance: " << stdMahaDist << std::endl;
 			}
 
-			std::cout << "Statistics of mahalanobis distances for tilt-image " << n << std::endl;
-			std::cout << "Number of residual models: " << numberResMod << std::endl;
-			std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
-			std::cout << "STD mahalanobis distance: " << stdMahaDist << std::endl;
-		}
-		else
-		{
-			std::cout << "ERROR: impossible to study misalignment in tilt-image " << n << ". No residuals calculated for this image" << std::endl;
-			localAlignment[n] = false;
+			else
+			{
+				std::cout << "ERROR: impossible to study misalignment in tilt-image " << n << ". Number of residuals for this image: " << numberResMod << std::endl;
+				localAlignment[n] = false;
+			}
 		}
 	}
 }
