@@ -814,6 +814,7 @@ bool ProgTomoCalculateLandmarkResiduals::checkProjectedCoordinateInInterpolation
 	}
 }
 
+
 void ProgTomoCalculateLandmarkResiduals::getCMbyFiducial(size_t fiducialNumber, std::vector<CM> &vCM_fiducial)
 {
 	for (size_t i = 0; i < vCM.size(); i++)
@@ -821,19 +822,6 @@ void ProgTomoCalculateLandmarkResiduals::getCMbyFiducial(size_t fiducialNumber, 
 		if (vCM[i].id == fiducialNumber)
 		{
 			vCM_fiducial.push_back(vCM[i]);
-		}
-	}
-}
-
-
-
-void ProgTomoCalculateLandmarkResiduals::getCMbyImage(size_t tiltImageNumber, std::vector<CM> &vCM_image)
-{
-	for (size_t i = 0; i < vCM.size(); i++)
-	{
-		if ((size_t)(vCM[i].detectedCoordinate.z) == tiltImageNumber)
-		{
-			vCM_image.push_back(vCM[i]);
 		}
 	}
 }

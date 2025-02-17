@@ -197,11 +197,6 @@ public:
     void getCMbyFiducial(size_t fiducialNumber, std::vector<CM> &vCM_fiducial);
 
     /**
-     * Return all coodinate models belongign to the same tilt image.
-    */
-    void getCMbyImage(size_t tiltImageNumber, std::vector<CM> &vCM_image);
-
-    /**
      * Check in projected coordinate falls into interpolation edges.
     */
     bool checkProjectedCoordinateInInterpolationEdges(Matrix1D<double> projectedCoordinate, size_t slice);
