@@ -68,15 +68,18 @@ void ProgTomoDetectLandmarks::generateSideInfo()
 
 	#ifdef VERBOSE_OUTPUT
     std::cout << "Generating side info: " << std::endl;
-    std::cout << "fiducialSizePx: " << fiducialSizePx << std::endl;
-    std::cout << "ds_factor: " << ds_factor << std::endl;
-    std::cout << "xSize_d: " << xSize_d << std::endl;
-    std::cout << "ySize_d: " << ySize_d << std::endl;
-    std::cout << "fnVol: " << fnVol << std::endl;
-    std::cout << "fnOut: " << fnOut << std::endl;
-    std::cout << "fiducialSize: " << fiducialSize << std::endl;
-    std::cout << "targetFS: " << targetFS << std::endl;
-    std::cout << "thrSD: " << thrSD << std::endl;
+    std::cout << "Input tilt-series: " << fnVol << std::endl;
+    std::cout << "Output metadata file: " << fnOut << std::endl;
+    std::cout << "Sampling rate: " << samplingRate << std::endl;
+	std::cout << "Dowmsampling factor: " << ds_factor << std::endl;
+	std::cout << "X dimension size: " << xSize << std::endl;
+    std::cout << "Y dimension size: " << ySize << std::endl;
+	std::cout << "X dimension size after dowsampling: " << xSize_d << std::endl;
+    std::cout << "Y dimension size after dowsampling: " << ySize_d << std::endl;
+    std::cout << "Fiducial size (A): " << fiducialSize << std::endl;
+	std::cout << "Fiducial size (px): " << fiducialSizePx << std::endl;
+    std::cout << "Target fiducial size (px): " << targetFS << std::endl;
+    std::cout << "Z-score threshold: " << thrSD << std::endl;
 	#endif
 }
 
@@ -1741,8 +1744,6 @@ void ProgTomoDetectLandmarks::directionalFilterFourier(MultidimArray<double> &im
 	freqMap.resizeNoCopy(fftImg);
 	freqMap.initConstant(1.9);  //Nyquist is 2, we take 1.9 greater than Nyquist
 
-
-
 	// Directional frequencies along each direction
 	double uy, ux, uy2;
 	long n=0;
@@ -1772,20 +1773,17 @@ void ProgTomoDetectLandmarks::directionalFilterFourier(MultidimArray<double> &im
 			++n;
 		}
 	}
-	// Image<double> img;
-	// img() = freqMap;
-	// img.write("freqMap.mrc");
-	double cosAngle;
-	// cosAngle = 1.0/sqrt(2);
-	// cosAngle = 0.9397;  // 20º cosine
-	cosAngle = 0.9848; // 10º cosine
+	#ifdef DEBUG_OUTPUT_FILES
+	Image<double> img;
+	img() = freqMap;
+	img.write("freqMap.mrc");
+	#endif
+
+	double cosAngle = 0.9848; // 10º cosine
 	auto aux = (8.0/((cosAngle -1)*(cosAngle -1)));
-	//cosine = expf( -((cosine -1)*(cosine -1))*aux); 
 
-	double lowerBound, upperBound;
-
-	lowerBound = 1/targetFS-0.1;
-	upperBound = 1/targetFS+0.1;
+	double lowerBound = 1/targetFS-0.1;
+	double upperBound = 1/targetFS+0.1;
 
 	n = 0;
 	for (int i=0; i<YdimFT; i++)
@@ -1801,19 +1799,15 @@ void ProgTomoDetectLandmarks::directionalFilterFourier(MultidimArray<double> &im
 			if (1/iun<upperBound && 1/iun>lowerBound)
 			{
 				// Si nos queremos y nos amamos porque no nos besamos por donde meamos
+				// 														   - J.L Vilas
 				auto ux_norm = ux*iun;
 				auto uy_norm = uy*iun;
 				double cosine = fabs(xdir*ux_norm + ydir*uy_norm);
 
 				if (cosine >= cosAngle)	
 				{
-					//------
-
 					cosine = exp( -((cosine -1)*(cosine -1))*aux); 
 					DIRECT_MULTIDIM_ELEM(fftImg, n) *= cosine;
-					//------
-					
-					// DIRECT_MULTIDIM_ELEM(fftImg, n) = 0.0;
 				}
 				else
 				{
@@ -1821,19 +1815,21 @@ void ProgTomoDetectLandmarks::directionalFilterFourier(MultidimArray<double> &im
 				}
 			}
 
-			// ------
-			else{
+			else
+			{
 				DIRECT_MULTIDIM_ELEM(fftImg, n) = 0.0;
 			}
-			// ------
 			n++;
 		}
 	}
 
 	transformer1.inverseFourierTransform(fftImg, image);
-	// Image<double> img;
-	// img() = image;
-	// img.write("dirMap.mrc");
+
+	#ifdef DEBUG_OUTPUT_FILES
+	Image<double> img;
+	img() = image;
+	img.write("dirMap.mrc");
+	#endif
 }
 
 // FILTER FOURIER DIRECTIONS: inteto con una sola FT
