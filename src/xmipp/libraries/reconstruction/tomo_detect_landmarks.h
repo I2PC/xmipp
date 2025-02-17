@@ -218,8 +218,6 @@ public:
     void createLandmarkTemplate();
     void createLandmarkTemplate_Gaussian();
     void createLandmarkTemplate_FTdir();
-    // void histogramEqualization(MultidimArray<double> &data);
-    void adaptiveHistogramEqualization(MultidimArray<double> &image, size_t windowSize);
     void maxPooling(MultidimArray<double> &image, size_t windowSize, std::vector<Point2D<int>> interLim);
 
     void filterFourierDirections(MultidimArray<double> &imag, size_t k);

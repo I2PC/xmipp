@@ -1496,54 +1496,6 @@ void ProgTomoDetectLandmarks::maxPooling(MultidimArray<double> &image, size_t wi
 }
 
 
-// // ------------------------------------------------------------------------------------------------------------------------------
-// // ADAPTATIVE HISTOGRAM EQUALIZATION
-void ProgTomoDetectLandmarks::adaptiveHistogramEqualization(MultidimArray<double> &image, size_t windowSize) 
-{
-	MultidimArray<double> window;
-
-	// Ensure windowSize is an odd number
-    windowSize = (windowSize % 2 == 0) ? windowSize + 1 : windowSize;
-	size_t halfWindowSize = windowSize / 2;
-
-    // Apply adaptive histogram equalization
-    for (int i = (halfWindowSize-1); i < ySize_d; i += windowSize) 
-	{
-        for (int j = (halfWindowSize-1); j < xSize_d; j += windowSize) 
-		{
-            int y0 = std::max(0, int(i - windowSize / 2));
-            int x0 = std::max(0, int(j - windowSize / 2));
-            int yF = std::min(ySize_d - 1, i + windowSize / 2);
-            int xF = std::min(xSize_d - 1, j + windowSize / 2);
-
-			std::cout << "y0 " << y0 << std::endl;
-			std::cout << "x0 " << x0 << std::endl;
-			std::cout << "yF " << yF << std::endl;
-			std::cout << "xF " << xF << std::endl;
-
-			window2D(image, window, y0, x0, yF, xF); 
-			// for (size_t k = y0; k < yF; k++)
-			// {
-			// 	for (size_t l = x0; l < xF; l++)
-			// 	{
-			// 		DIRECT_A2D_ELEM(window, k-y0, l-x0) = DIRECT_A2D_ELEM(image, k, l);
-			// 	}
-			// }
-
-			histogram_equalization(window, 255);
-
-            for (size_t k = y0; k < yF; k++)
-			{
-				for (size_t l = x0; l < xF; l++)
-				{
-					DIRECT_A2D_ELEM(image, k, l) = DIRECT_A2D_ELEM(window, k-y0, l-x0);
-				}
-			}
-        }
-    }
-}
-
-
 void ProgTomoDetectLandmarks::filterFourierDirections(MultidimArray<double> &image, size_t k) 
 {
 	MultidimArray<double> imageTmp;
@@ -1559,7 +1511,7 @@ void ProgTomoDetectLandmarks::filterFourierDirections(MultidimArray<double> &ima
 		#ifdef DEBUG_DIRECTIONAL_FOURIER
 		std::cout << "xdir= " << cos(n*angleStep) << ", ydir=" << sin(n*angleStep) << std::endl;
 		#endif
-		
+
 		directionalFilterFourier(imageTmp, cos(n*angleStep), sin(n*angleStep));
 
 		imageOut = imageOut + imageTmp;
