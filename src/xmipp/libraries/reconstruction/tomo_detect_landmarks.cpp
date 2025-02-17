@@ -80,73 +80,6 @@ void ProgTomoDetectLandmarks::generateSideInfo()
 }
 
 
-void ProgTomoDetectLandmarks::bandpassFilter(MultidimArray<double> &tiltImage)
-{
-	MultidimArray< std::complex<double> > fftTI;
-	transformer.FourierTransform(tiltImage, fftTI, false);
-
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Applying bandpass filter to volume..." << std::endl;
-	#endif
-
-	int n=0;
-
-	double freqLow = samplingRate / (fiducialSize*1.2);
-	double freqHigh = samplingRate/(fiducialSize*0.8);
-	
-	double w= 0.05;
-	double cutoffFreqHigh = freqHigh + w;
-	double cutoffFreqLow = freqLow - w;
-	double delta = PI / w;
-
-	normDim = (xSize>ySize) ? xSize : ySize;
-
-	#ifdef DEBUG_PREPROCESS
-	std::cout << "freqLow " << freqLow << std::endl;
-	std::cout << "freqHigh " << freqHigh << std::endl;
-	std::cout << "cutoffFreqLow " << cutoffFreqLow << std::endl;
-	std::cout << "cutoffFreqHigh " << cutoffFreqHigh << std::endl;
-	#endif
-
-	for(size_t i=0; i<YSIZE(fftTI); ++i)
-	{
-		double uy;
-		double ux;
-		double uy2;
-
-		FFT_IDX2DIGFREQ(i,ySize,uy);
-		uy2=uy*uy;
-
-		for(size_t j=0; j<XSIZE(fftTI); ++j)
-		{
-			FFT_IDX2DIGFREQ(j,xSize,ux);
-			double u=sqrt(uy2+ux*ux);
-
-			if(u > cutoffFreqHigh || u < cutoffFreqLow)
-			{
-				DIRECT_MULTIDIM_ELEM(fftTI, n) = 0;
-			} 
-			else
-			{
-				if(u >= freqHigh && u < cutoffFreqHigh)
-				{
-					DIRECT_MULTIDIM_ELEM(fftTI, n) *= 0.5*(1+cos((u-freqHigh)*delta));
-				}
-			
-				if (u <= freqLow && u > cutoffFreqLow)
-				{
-					DIRECT_MULTIDIM_ELEM(fftTI, n) *= 0.5*(1+cos((u-freqLow)*delta));
-				}
-			}
-			
-			++n;
-		}
-	}
-
-	transformer.inverseFourierTransform();
-}
-
-
 // --------------------------- HEAD functions ----------------------------
 void ProgTomoDetectLandmarks::downsample(MultidimArray<double> &tiltImage, MultidimArray<double> &tiltImage_ds)
 {
@@ -1081,7 +1014,6 @@ void ProgTomoDetectLandmarks::run()
 		#endif
 
 		detectInterpolationEdges(ptrImg);
-		// bandpassFilter(ptrImg);
 
 		#ifdef DEBUG_INTERPOLATION_EDGES
 		std::cout << "Interpolation edges for image " << counter << std::endl;

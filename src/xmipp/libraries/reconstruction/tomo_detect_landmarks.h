@@ -221,10 +221,7 @@ public:
     void filterFourierDirections(MultidimArray<double> &imag, size_t k);
     void directionalFilterFourier(MultidimArray<double> &image, double xdir, double ydir);
 
-    void bandpassFilter(MultidimArray<double> &tiltImage);
-
     void computeAvgAndStdevFromMiltidimArray(MultidimArray<double> &tiltImage, double &avg, double &stddev, std::vector<Point2D<int>> interLim, int xMin, int xMax, bool onlyPositive);
-
 };
 
 #endif
