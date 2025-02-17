@@ -1889,33 +1889,3 @@ void ProgTomoDetectLandmarks::directionalFilterFourier(MultidimArray<double> &im
 
 // 	image = imageDirX * imageDirY;
 // 
-
-
-
-// OTSU THRESHOLDING ----------------------------------------------
-// std::vector<double> otsuVector;
-
-// for(size_t i = 0; i < ySize_d; i++)
-// {
-//     for(size_t j = 0; j < xSize_d; ++j)
-//     {
-//         double value = DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j);
-
-//         if (value > thresholdU)
-//         {
-// 			otsuVector.push_back(DIRECT_A2D_ELEM(tiltImage, i, j));
-//         }
-//     }
-// }
-
-// MultidimArray<double> otsuMultidim;
-// otsuMultidim.initZeros(otsuVector.size());
-
-// for (size_t i =0; i<otsuVector.size(); i++)
-// {
-// 	DIRECT_MULTIDIM_ELEM(otsuMultidim, i) = otsuVector[i];
-// }
-
-// double otsuThr = OtsuSegmentation(otsuMultidim);
-
-// std::cout << "otsu thr ---------------------------------------------------------------> " << otsuThr << std::endl;
