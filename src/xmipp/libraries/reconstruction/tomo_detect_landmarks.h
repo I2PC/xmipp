@@ -160,6 +160,9 @@ public:
     */
     void downsample(MultidimArray<double> &tiltImage, MultidimArray<double> &tiltImage_ds);
 
+    /**
+     * Detect interpolation edges before preprocessing.
+    */
     void detectInterpolationEdges(MultidimArray<double> &tiltImage);
 
     /**
@@ -216,11 +219,21 @@ public:
     */
     void createLandmarkTemplate();
     void createLandmarkTemplate_Gaussian();
+
+    /**
+     * Maximum pooling operation.
+    */
     void maxPooling(MultidimArray<double> &image, size_t windowSize, std::vector<Point2D<int>> interLim);
 
+    /**
+     * Fourier directional bandpass filter for landmark enhancement.
+    */
     void filterFourierDirections(MultidimArray<double> &imag, size_t k);
     void directionalFilterFourier(MultidimArray<double> &image, double xdir, double ydir);
 
+    /**
+     * Compute average and stardard deviation in tilt-image band.
+    */
     void computeAvgAndStdevFromMiltidimArray(MultidimArray<double> &tiltImage, double &avg, double &stddev, std::vector<Point2D<int>> interLim, int xMin, int xMax, bool onlyPositive);
 };
 
