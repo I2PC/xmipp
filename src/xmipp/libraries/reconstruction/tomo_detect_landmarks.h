@@ -129,7 +129,6 @@ public:
     // Landmark reference for enhancement
     MultidimArray<double> landmarkReference;
     MultidimArray<double> landmarkReference_Gaussian;
-    MultidimArray<double> landmarkReference_FTdir;
 
     // Centralized Fourier transofrmer
     FourierTransformer transformer;
@@ -217,7 +216,6 @@ public:
     */
     void createLandmarkTemplate();
     void createLandmarkTemplate_Gaussian();
-    void createLandmarkTemplate_FTdir();
     void maxPooling(MultidimArray<double> &image, size_t windowSize, std::vector<Point2D<int>> interLim);
 
     void filterFourierDirections(MultidimArray<double> &imag, size_t k);

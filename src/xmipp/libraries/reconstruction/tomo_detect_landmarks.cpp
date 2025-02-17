@@ -79,6 +79,7 @@ void ProgTomoDetectLandmarks::generateSideInfo()
 	#endif
 }
 
+
 void ProgTomoDetectLandmarks::bandpassFilter(MultidimArray<double> &tiltImage)
 {
 	MultidimArray< std::complex<double> > fftTI;
@@ -144,6 +145,7 @@ void ProgTomoDetectLandmarks::bandpassFilter(MultidimArray<double> &tiltImage)
 
 	transformer.inverseFourierTransform();
 }
+
 
 // --------------------------- HEAD functions ----------------------------
 void ProgTomoDetectLandmarks::downsample(MultidimArray<double> &tiltImage, MultidimArray<double> &tiltImage_ds)
@@ -962,7 +964,6 @@ void ProgTomoDetectLandmarks::centerCoordinates(MultidimArray<double> tiltSeries
 }
 
 
-
 // --------------------------- I/O functions ----------------------------
 void ProgTomoDetectLandmarks::writeOutputCoordinates()
 {
@@ -984,7 +985,6 @@ void ProgTomoDetectLandmarks::writeOutputCoordinates()
 	#endif
 
 }
-
 
 
 // --------------------------- MAIN ----------------------------------
@@ -1065,7 +1065,6 @@ void ProgTomoDetectLandmarks::run()
 	// Create phantom for landmark reference
     createLandmarkTemplate();
 	createLandmarkTemplate_Gaussian();
-	createLandmarkTemplate_FTdir();
 
 	for(size_t objId : tiltseriesmd.ids())
 	{
@@ -1181,7 +1180,6 @@ void ProgTomoDetectLandmarks::run()
 }
 
 
-
 // --------------------------- UTILS functions ----------------------------
 void ProgTomoDetectLandmarks::computeAvgAndStdevFromMiltidimArray(MultidimArray<double> &tiltImage, double& avg, double& stddev, std::vector<Point2D<int>> interLim, int xMin, int xMax, bool onlyPositive)
 {
@@ -1227,7 +1225,6 @@ void ProgTomoDetectLandmarks::computeAvgAndStdevFromMiltidimArray(MultidimArray<
 		stddev = sqrt(sum2/Nelems - avg*avg);
 	}
 }
-
 
 
 bool ProgTomoDetectLandmarks::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
@@ -1306,6 +1303,7 @@ bool ProgTomoDetectLandmarks::filterLabeledRegions(std::vector<int> coordinatesP
 	return true;
 }
 
+
 void ProgTomoDetectLandmarks::createLandmarkTemplate()
 {
 	// Generate first reference
@@ -1338,6 +1336,7 @@ void ProgTomoDetectLandmarks::createLandmarkTemplate()
 	si.write(outFN);
     #endif
 }
+
 
 void ProgTomoDetectLandmarks::createLandmarkTemplate_Gaussian()
 {
@@ -1377,47 +1376,6 @@ void ProgTomoDetectLandmarks::createLandmarkTemplate_Gaussian()
 
 	Image<double> si;
 	si() = landmarkReference_Gaussian;
-	si.write(outFN);
-    #endif
-}
-
-
-void ProgTomoDetectLandmarks::createLandmarkTemplate_FTdir()
-{
-	// Generate first reference
-    landmarkReference_FTdir.initZeros(ySize_d, xSize_d);
-
-    // Create tilt-image with a single landamrk
-    for (int k = 0; k < ySize_d; ++k)
-    {
-        for (int l = 0; l < xSize_d; ++l)
-        {
-			int k_p = k-ySize_d/2;
-			int l_p = l-xSize_d/2;
-
-			double mod = sqrt(k_p*k_p+l_p*l_p);
-
-            if (mod < targetFS)
-            {
-                A2D_ELEM(landmarkReference_FTdir, k, l) = 1;
-            }
-			else if (mod < targetFS + 10)
-			{
-				A2D_ELEM(landmarkReference_FTdir, k, l) = -1 + (mod - targetFS) * 0.1;
-			}
-        }
-    }
-
-	
-    // Save reference
-    #ifdef DEBUG_REFERENCE
-    size_t li = fnOut.find_last_of("\\/");
-	std::string rn = fnOut.substr(0, li);
-	std::string outFN;
-    outFN = rn + "/landmarkReference_FTdir.mrc";
-
-	Image<double> si;
-	si() = landmarkReference_FTdir;
 	si.write(outFN);
     #endif
 }
@@ -1477,6 +1435,7 @@ void ProgTomoDetectLandmarks::maxPooling(MultidimArray<double> &image, size_t wi
 
 void ProgTomoDetectLandmarks::filterFourierDirections(MultidimArray<double> &image, size_t k) 
 {
+	// This can be optimized usign a single FT (instead of one per direction)
 	MultidimArray<double> imageTmp;
 	MultidimArray<double> imageOut;
 	imageOut.initZeros(ySize_d, xSize_d);
@@ -1624,61 +1583,3 @@ void ProgTomoDetectLandmarks::directionalFilterFourier(MultidimArray<double> &im
 	img.write("dirMap.mrc");
 	#endif
 }
-
-// FILTER FOURIER DIRECTIONS: inteto con una sola FT
-// -----------------------------------------------------------------------------------------------------
-// void ProgTomoDetectLandmarks::filterFourierDirections(MultidimArray<double> &image) 
-// {
-// 	MultidimArray<std::complex<double>> fftImg;
-// 	MultidimArray<std::complex<double>> fftImgTmp;
-// 	// MultidimArray<std::complex<double>> fftImgOut;
-
-// 	MultidimArray<double> imageTmp;
-// 	imageTmp.resizeNoCopy(image);
-
-// 	MultidimArray<double> imageOut;
-// 	imageOut.resizeNoCopy(image);
-// 	imageOut.initConstant(1);
-
-// 	FourierTransformer transformer1;
-//     transformer1.FourierTransform(image, fftImg, false);
-// 	// fftImgOut.resizeNoCopy(fftImg);
-// 	// fftImgOut.initConstant(0);
-	
-// 	// size_t numberFTdirOfDirections = 2;
-// 	// double angleStep = PI / numberFTdirOfDirections;
-
-// 	// for (size_t i = 0; i < numberFTdirOfDirections; i++)
-// 	// {
-// 	// 	 fftImgTmp= fftImg;
-// 	// 	directionalFilterFourier(fftImgTmp, cos(i*angleStep), sin(i*angleStep));
-		
-// 	// 	transformer1.inverseFourierTransform(fftImgTmp, imageTmp);
-
-// 	// 	imageOut = imageOut * imageTmp;
-// 	// }
-
-// 	// image = imageOut;
-	
-// 	std::cout << "Discrete sumation mode" << std::endl;
-// 	MultidimArray<double> imageDirX;
-// 	imageDirX.resizeNoCopy(image);
-// 	MultidimArray<double> imageDirY;
-// 	imageDirY.resizeNoCopy(image);
-// 	// MultidimArray<double> imageDirYX;
-// 	// imageDirYX.resizeNoCopy(image);
-
-// 	fftImgTmp=fftImg;
-// 	directionalFilterFourier(fftImgTmp, 1, 0);
-// 	transformer1.inverseFourierTransform(fftImgTmp, imageDirX);
-
-// 	fftImgTmp=fftImg;
-// 	directionalFilterFourier(fftImgTmp, 0, 1);
-// 	transformer1.inverseFourierTransform(fftImgTmp, imageDirY);
-
-// 	// fftImgTmp=fftImg;
-// 	// directionalFilterFourier(fftImgTmp, 1.0/sqrt(2), 1.0/sqrt(2));
-// 	// transformer1.inverseFourierTransform(fftImgTmp, imageDirYX);
-
-// 	image = imageDirX * imageDirY;
-// 
