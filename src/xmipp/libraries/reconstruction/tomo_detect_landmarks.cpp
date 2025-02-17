@@ -1503,11 +1503,6 @@ void ProgTomoDetectLandmarks::filterFourierDirections(MultidimArray<double> &ima
 void ProgTomoDetectLandmarks::directionalFilterFourier(MultidimArray<double> &image, double xdir, double ydir) 
 {
     MultidimArray<std::complex<double>> fftImg;
-	auto xvoldim = XSIZE(image);
-	auto yvoldim = YSIZE(image);
-	// auto xvoldim = xSize_d;
-	// auto yvoldim = ySize_d;
-
 	FourierTransformer transformer1;
 
     transformer1.FourierTransform(image, fftImg, false);
@@ -1523,19 +1518,18 @@ void ProgTomoDetectLandmarks::directionalFilterFourier(MultidimArray<double> &im
 	freq_fourier_x.initZeros(XSIZE(fftImg));
 	freq_fourier_y.initZeros(YSIZE(fftImg));
 
-	// u is the frequency
-	double u;
+	double u;  // frequency
 
 	// Defining frequency components. First element should be 0, it is set as the smallest number to avoid singularities
 	VEC_ELEM(freq_fourier_y,0) = std::numeric_limits<double>::min();
 	for(size_t k=1; k<YdimFT; ++k){
-		FFT_IDX2DIGFREQ(k,yvoldim, u);
+		FFT_IDX2DIGFREQ(k,ySize_d, u);
 		VEC_ELEM(freq_fourier_y, k) = u;
 	}
 
 	VEC_ELEM(freq_fourier_x,0) = std::numeric_limits<double>::min();
 	for(size_t k=1; k<XdimFT; ++k){
-		FFT_IDX2DIGFREQ(k,xvoldim, u);
+		FFT_IDX2DIGFREQ(k,xSize_d, u);
 		VEC_ELEM(freq_fourier_x, k) = u;
 	}
 
