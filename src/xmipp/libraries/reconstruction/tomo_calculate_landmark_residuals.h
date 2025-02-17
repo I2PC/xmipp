@@ -126,7 +126,6 @@ public:
 public:
 
     // --------------------------- INFO functions ----------------------------
-
     /**
      * Read input program parameters.
     */
@@ -137,9 +136,7 @@ public:
     */
     void defineParams();
 
-
     // --------------------------- HEAD functions ----------------------------
-
     /**
      * Generate side info usefull for the rest of protocols
     */
@@ -157,7 +154,6 @@ public:
 
 
     // --------------------------- I/O functions ----------------------------
-
     /**
      * Write obtained coordinates in output file.
     */
@@ -165,7 +161,6 @@ public:
 
 
     // --------------------------- UTILS functions ----------------------------
-
     /**
      * Filter labeled regions.
     */
@@ -197,7 +192,6 @@ public:
     bool checkProjectedCoordinateInInterpolationEdges(Matrix1D<double> projectedCoordinate, size_t slice);
 
     // --------------------------- MAIN ----------------------------------
-
     /**
      * Run main program.
     */

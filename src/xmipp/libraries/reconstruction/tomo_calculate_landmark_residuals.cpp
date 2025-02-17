@@ -29,7 +29,6 @@
 
 
 // --------------------------- INFO functions ----------------------------
-
 void ProgTomoCalculateLandmarkResiduals::readParams()
 {
 	fnVol = getParam("-i");
@@ -42,7 +41,6 @@ void ProgTomoCalculateLandmarkResiduals::readParams()
     numberFTdirOfDirections = getIntParam("--numberFTdirOfDirections");  // *** this parametr can be removed
 	targetFS = getDoubleParam("--targetLMsize");
 }
-
 
 
 void ProgTomoCalculateLandmarkResiduals::defineParams()
@@ -58,7 +56,6 @@ void ProgTomoCalculateLandmarkResiduals::defineParams()
 	addParamsLine("  [--numberFTdirOfDirections <numberFTdirOfDirections=8>]	: Number of directions to analyze in the Fourier directional filter.");
 	addParamsLine("  [--targetLMsize <targetLMsize=8>]		    				: Target size of landmark when downsampling (px).");
 }
-
 
 
 void ProgTomoCalculateLandmarkResiduals::generateSideInfo()
@@ -499,9 +496,7 @@ void ProgTomoCalculateLandmarkResiduals::pruneResidualVectors()
 }
 
 
-
 // --------------------------- I/O functions ----------------------------
-
 void ProgTomoCalculateLandmarkResiduals::writeOutputVCM()
 {
 	MetaDataVec md;
@@ -528,7 +523,6 @@ void ProgTomoCalculateLandmarkResiduals::writeOutputVCM()
 	std::cout << "Vector coordinates model metadata saved at: " << fnOut << std::endl;
 	#endif
 }
-
 
 
 // --------------------------- MAIN ----------------------------------
@@ -618,7 +612,6 @@ void ProgTomoCalculateLandmarkResiduals::run()
 
 
 // --------------------------- UTILS functions ----------------------------
-
 void ProgTomoCalculateLandmarkResiduals::fillImageLandmark(MultidimArray<int> &proyectedImage, int x, int y, int value)
 {
 	int distance = fiducialSizePx/6;
