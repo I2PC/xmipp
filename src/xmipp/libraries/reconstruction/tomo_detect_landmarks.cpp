@@ -33,10 +33,8 @@ void ProgTomoDetectLandmarks::readParams()
 {
 	fnVol = getParam("-i");
 	fnOut = getParam("-o");
-
 	samplingRate = getDoubleParam("--samplingRate");
 	fiducialSize = getDoubleParam("--fiducialSize");
-
     targetFS = getDoubleParam("--targetLMsize");
     thrSD = getDoubleParam("--thrSD");
     numberFTdirOfDirections = getIntParam("--numberFTdirOfDirections");
@@ -48,10 +46,8 @@ void ProgTomoDetectLandmarks::defineParams()
 	addUsageLine("This function determines the location of high contrast features in a volume.");
 	addParamsLine("  -i <mrcs_file=\"\">                   	    : Input tilt-series.");
 	addParamsLine("  [-o <output=\"./landmarkCoordinates.xmd\">]    : Output file containing the alignemnt report.");
-
 	addParamsLine("  [--samplingRate <samplingRate=1>]			: Sampling rate of the input tomogram (A/px).");
 	addParamsLine("  [--fiducialSize <fiducialSize=100>]		: Fiducial size in Angstroms (A).");
-
 	addParamsLine("  [--targetLMsize <targetLMsize=8>]		    : Targer size of landmark when downsampling (px).");
 	addParamsLine("  [--thrSD <thrSD=5>]		    			: Number of times over the mean has to be a pixel valur to consider it an outlier.");
 	addParamsLine("  [--numberFTdirOfDirections <numberFTdirOfDirections=8>]		: Number of directions to analyze in the Fourier directional filter.");
@@ -104,12 +100,7 @@ void ProgTomoDetectLandmarks::bandpassFilter(MultidimArray<double> &tiltImage)
 
 	normDim = (xSize>ySize) ? xSize : ySize;
 
-	// 43.2 = 1440 * 0.03. This 43.2 value makes w = 0.03 (standard value) for an image whose bigger dimension is 1440 px.
-	//w = 43.2 / normDim;
-
 	#ifdef DEBUG_PREPROCESS
-	std::cout << "samplingRate " << samplingRate << std::endl;
-	std::cout << "fiducialSize " << fiducialSize << std::endl;
 	std::cout << "freqLow " << freqLow << std::endl;
 	std::cout << "freqHigh " << freqHigh << std::endl;
 	std::cout << "cutoffFreqLow " << cutoffFreqLow << std::endl;
@@ -548,10 +539,6 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 						DIRECT_NZYX_ELEM(zScoreMap, k, 0, i, j) = (value-average)/standardDeviation;
 						#endif
 					}
-					// else
-					// {
-					// 	DIRECT_A2D_ELEM(tiltImage, i, j) = 0.0;
-					// }
 				}
 			}
 		}
@@ -598,10 +585,6 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 		#ifdef DEBUG_HCC
         std::cout << "Colour: " << colour << std::endl;
         #endif
-
-		// MultidimArray<double> labelCopy = labelCoordiantesMapSlice;
-		// #include<data/morphology.h>
-		// erode2D(labelCopy, labelCoordiantesMapSlice, 4, 2, 512); // in, out, neigh, count, size
 
  		// FILTER LABELLED REGIONS --------------------- -----------------------------------
         std::vector<std::vector<int>> coordinatesPerLabelX (colour);
@@ -994,7 +977,6 @@ void ProgTomoDetectLandmarks::writeOutputCoordinates()
 		md.setValue(MDL_ZCOOR, (int)coordinates3D[i].z, id);
 	}
 
-
 	md.write(fnOut);
 
 	#ifdef VERBOSE_OUTPUT
@@ -1344,9 +1326,6 @@ void ProgTomoDetectLandmarks::createLandmarkTemplate()
         }
     }
 
-    // Apply Sobel filer to reference
-    // sobelFiler(landmarkReference, -1);
-
     // Save reference
     #ifdef DEBUG_REFERENCE
     size_t li = fnOut.find_last_of("\\/");
@@ -1518,21 +1497,6 @@ void ProgTomoDetectLandmarks::filterFourierDirections(MultidimArray<double> &ima
 	}
 
 	image = image * imageOut;
-	
-	// std::cout << "Discrete sumation mode" << std::endl;
-	// MultidimArray<double> imageDirX;
-	// imageDirX = image;
-	// MultidimArray<double> imageDirY;
-	// imageDirY = image;
-	// // MultidimArray<double> imageDirYX;
-	// // imageDirYX = image;
-
-	// directionalFilterFourier(imageDirX, 1, 0);
-	// directionalFilterFourier(imageDirY, 0, 1);
-	// // directionalFilterFourier(imageDirYX, 1.0/sqrt(2), 1.0/sqrt(2));
-
-	// image = imageDirX * imageDirY;
-	// // image = imageDirX * imageDirY * imageDirYX;
 }
 
 
