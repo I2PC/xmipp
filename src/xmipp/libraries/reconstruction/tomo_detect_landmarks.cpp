@@ -76,6 +76,7 @@ void ProgTomoDetectLandmarks::generateSideInfo()
 	std::cout << "Fiducial size (px): " << fiducialSizePx << std::endl;
     std::cout << "Target fiducial size (px): " << targetFS << std::endl;
     std::cout << "Z-score threshold: " << thrSD << std::endl;
+    std::cout << "Number of Fourier directions for filtering: " << numberFTdirOfDirections << std::endl;
 	#endif
 }
 
@@ -916,7 +917,6 @@ void ProgTomoDetectLandmarks::writeOutputCoordinates()
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Output coordinates metadata saved at: " << fnOut << std::endl;
 	#endif
-
 }
 
 

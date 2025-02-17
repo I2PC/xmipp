@@ -44,10 +44,8 @@
 #include <data/point3D.h>
 #include <data/point2D.h>
 #include <data/filters.h>
-
 #include<data/mask.h>
 #include<core/histogram.h>
-
 #include <fstream>
    
 #define VERBOSE_OUTPUT
