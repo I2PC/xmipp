@@ -38,7 +38,7 @@ void ProgTomoDetectMisalignmentResiduals::readParams()
 	nSize = getIntParam("--numberTiltImages");
 	removeOutliers = checkParam("--removeOutliers");
 	voteCriteria = checkParam("--voteCriteria");
-	thrFiducialDistance = getDoubleParam("--thrFiducialDistance");  // *** this parameter can be removed (only in unused methods)
+	thrFiducialDistance = getDoubleParam("--thrFiducialDistance");
 }
 
 
@@ -107,20 +107,17 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 	double sigma = fiducialSizePx / 3;	// Sigma for 99% of the points inside the fiducial radius
 	double sigma2 = sigma * sigma;
 
-	// Matrix2D<double> covariance_inv;
-	// MAT_ELEM(covariance_inv, 0, 0) = 1/sigma2;
-	// MAT_ELEM(covariance_inv, 0, 1) = 0;
-	// MAT_ELEM(covariance_inv, 1, 0) = 0;
-	// MAT_ELEM(covariance_inv, 1, 1) = 1/sigma2;
+	double sumMahaDist = 0;
+	double sumMahaDist2 = 0;
 
-	// iterate residuals
+	double avgMahaDist;
+	double stdMahaDist;
+
+	// Calculate Mahalanobis distance for each residual
 	for(size_t i = 0; i < vResMod.size(); i++)
 	{
 		vResMod[i].mahalanobisDistance = sqrt((vResMod[i].residuals.x*vResMod[i].residuals.x)/sigma2 + (vResMod[i].residuals.y*vResMod[i].residuals.y)/sigma2);
 	}
-
-	std::cout << "---------------- Distance parameters" << std::endl;
-	std::cout << "Sigma2 = " << sigma2 << std::endl;
 
 	// Global alignment analysis
 	std::cout << "---------------- Global misalignemnt analysis" << std::endl;
@@ -134,8 +131,8 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 
 		size_t numberResMod = resMod_fid.size();
 
-		double sumMahaDist = 0;
-		double sumMahaDist2 = 0;
+		sumMahaDist = 0;
+		sumMahaDist2 = 0;
 
 		for (size_t i = 0; i < numberResMod; i++)
 		{
@@ -143,17 +140,15 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 			sumMahaDist2 += resMod_fid[i].mahalanobisDistance * resMod_fid[i].mahalanobisDistance; 
 		}
 
-		double avgMahaDist = sumMahaDist / numberResMod;
-		double stdMahaDist = sqrt(sumMahaDist2 / numberResMod - avgMahaDist * avgMahaDist);
+		avgMahaDist = sumMahaDist / numberResMod;
+		stdMahaDist = sqrt(sumMahaDist2 / numberResMod - avgMahaDist * avgMahaDist);
 
 		if (avgMahaDist > 1)
 		{
 			rationMisalignedChains += 1;
 		}
 
-		std::cout << "Statistics of mahalanobis distances for 3D coordinate " << n << std::endl;
-		std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
-		std::cout << "STD mahalanobis distance: " << stdMahaDist << std::endl;
+		std::cout << "Average mahalanobis distance for 3D cooridinate " << n << ": " << avgMahaDist << std::endl;
 	}
 
 	// If more than thrRatioMisalignedChains of coordinates are misaligned, set global misalignment
@@ -228,7 +223,8 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 
 	size_t numberResMod = vResMod.size();
 
-	// Calculate a robust threshold so only those residuals < avg + 3*std are considered
+	// Calculate Mahalanobis distance for each residual
+	// Set robust threshold so only those residuals < avg + 3*std are considered
 	for(size_t i = 0; i < numberResMod; i++)
 	{
 		mahaDist = sqrt((vResMod[i].residuals.x*vResMod[i].residuals.x)/sigma2 + 
@@ -365,6 +361,7 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 				}
 
 				std::cout << "Statistics of mahalanobis distances for tilt-image " << n << std::endl;
+				std::cout << "Number of residual models: " << numberResMod << std::endl;
 				std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
 				std::cout << "STD mahalanobis distance: " << stdMahaDist << std::endl;
 			}
@@ -376,56 +373,6 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 			}
 		}
 	}
-	
-}
-
-
-void ProgTomoDetectMisalignmentResiduals::contructResidualMatrix()
-{
-	Matrix2D<double> xResidMat(numberOfInputCoords, nSize);
-	Matrix2D<double> yResidMat(numberOfInputCoords, nSize);
-
-	for (size_t n = 0; n < vResMod.size(); n++)
-	{
-		resMod rm = vResMod[n];
-
-		MAT_ELEM(xResidMat, (int)rm.id, rm.landmarkCoord.z) = rm.residuals.x;
-		MAT_ELEM(yResidMat, (int)rm.id, rm.landmarkCoord.z) = rm.residuals.y;
-	}
-
-	// CODE TO SAVE MATRIX TO FILES
-	// ---------------------------------------------------------------------
-	std::string matrixFileX;
-	std::string matrixFileY;
-
-	size_t li = fnOut.find_last_of("\\/");
-	std::string fileBaseName = fnOut.substr(0, li);
-	fileBaseName = fileBaseName.substr(0, li);
-
-	matrixFileX = fileBaseName + "/matrixX.txt";
-	matrixFileY = fileBaseName + "/matrixY.txt";
-
-    std::ofstream outputFileX(matrixFileX);
-    std::ofstream outputFileY(matrixFileY);
-    
-    for (size_t i = 0; i < numberOfInputCoords; ++i) {
-        for (size_t j = 0; j < nSize; ++j) {
-            outputFileX << MAT_ELEM(xResidMat, i, j);
-            outputFileY << MAT_ELEM(yResidMat, i, j);
-
-            // Add a tab separator unless it's the last element in the row
-            if (j < nSize-1) {
-                outputFileX << '\t';
-                outputFileY << '\t';
-            }
-        }
-        outputFileX << '\n'; // Start a new line for the next row
-        outputFileY << '\n'; // Start a new line for the next row
-    }
-
-    outputFileX.close();
-    outputFileY.close();
-	// ---------------------------------------------------------------------
 }
 
 
@@ -971,8 +918,6 @@ void ProgTomoDetectMisalignmentResiduals::run()
 	size_t Xdim, Ydim;
 
 	generateSideInfo();
-
-	contructResidualMatrix();
 
 	if (removeOutliers)
 	{

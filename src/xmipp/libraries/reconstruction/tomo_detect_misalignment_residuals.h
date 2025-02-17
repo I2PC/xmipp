@@ -49,7 +49,6 @@
 
 #define VERBOSE_OUTPUT
 // #define GENERATE_RESIDUAL_STATISTICS
-
 // #define DEBUG_DIM
 // #define DEBUG_RESID
 // #define DEBUG_RESIDUAL_ANALYSIS
@@ -137,8 +136,6 @@ public:
      * executing python script. 
     */
     void generateResidualStatiscticsFile();
-    void contructResidualMatrix();
-
 
     // --------------------------- I/O functions ----------------------------
 
