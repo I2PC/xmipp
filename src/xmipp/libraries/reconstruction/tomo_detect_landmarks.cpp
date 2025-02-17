@@ -506,20 +506,21 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
 		for (size_t b = 0; b < numberOfBands; b++)
 		{	
-			// std::cout << "Analyzing band " << b << " out of " << numberOfBands << std::endl;
-			// std::cout << "Band from j=" << b*bandSize << " to j=" << (b+1)*bandSize << std::endl;
+			#ifdef DEBUG_HCC
+			std::cout << "Analyzing band " << b << " out of " << numberOfBands << std::endl;
+			std::cout << "Band from j=" << b*bandSize << " to j=" << (b+1)*bandSize << std::endl;
+			#endif
 
 			average = 0;
 			standardDeviation = 0;
 
 			computeAvgAndStdevFromMiltidimArray(tiltImageTmp, average, standardDeviation, interLim, b*bandSize, (b+1)*bandSize, false);
 
-			std::cout << "average=" << average << " standardDeviation=" << standardDeviation << std::endl;
-
 			double thresholdU = average + thrSD * standardDeviation;
 
 			#ifdef DEBUG_HCC
 			std::cout << "------------------------------------------------------" << std::endl;
+			std::cout << "average=" << average << " standardDeviation=" << standardDeviation << std::endl;
 			std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << std::endl;
 			std::cout << "thresholdU: " << thresholdU << std::endl;
 			#endif

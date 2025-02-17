@@ -61,7 +61,7 @@
 // #define DEBUG_HCC
 // #define DEBUG_REFERENCE
 // #define DEBUG_CENTER_COORDINATES
-#define DEBUG_OUTPUT_FILES
+// #define DEBUG_OUTPUT_FILES
 
 class ProgTomoDetectLandmarks : public XmippProgram
 {
