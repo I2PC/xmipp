@@ -977,9 +977,10 @@ void ProgTomoDetectMisalignmentResiduals::run()
 	if (removeOutliers)
 	{
 		detectMisalignmentFromResidualsMahalanobisRobust();
-	}else
+	}
+	else
 	{
-			detectMisalignmentFromResidualsMahalanobis();
+		detectMisalignmentFromResidualsMahalanobis();
 	}
 		
 	#ifdef GENERATE_RESIDUAL_STATISTICS
