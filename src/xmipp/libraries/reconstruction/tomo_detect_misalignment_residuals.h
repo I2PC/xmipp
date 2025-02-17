@@ -106,24 +106,22 @@ public:
 public:
 
     // --------------------------- INFO functions ----------------------------
-
+    /**
+     * Read input program parameters.
+    */
     void readParams();
 
+    /**
+     * Define input program parameters.
+    */
     void defineParams();
 
-
     // --------------------------- HEAD functions ----------------------------
-
     /**
      * Generate side info usefull for the rest of protocols
-     *
-     * @param
-     * @return
-     *
     */
     void generateSideInfo();
 
-    void detectMisalignmentFromResiduals();
     void detectMisalignmentFromResidualsMahalanobis();
     void detectMisalignmentFromResidualsMahalanobisRobust();
     void generateResidualStatiscticsFile();
@@ -134,10 +132,6 @@ public:
 
     /**
      * Write obtained coordinates in output file.
-     *
-     * @param
-     * @return
-     *
     */
    void readInputResiduals();
 
