@@ -55,7 +55,7 @@
 // #define DEBUG_COORDS_CS
 // #define DEBUG_PRUNE_RESIDUALS
 // #define DEBUG_RESIDUAL_STATISTICS_FILE
-#define DEBUG_OUTPUT_FILES
+// #define DEBUG_OUTPUT_FILES
 
 class ProgTomoCalculateLandmarkResiduals : public XmippProgram
 {
