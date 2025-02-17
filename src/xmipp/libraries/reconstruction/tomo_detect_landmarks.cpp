@@ -1556,7 +1556,10 @@ void ProgTomoDetectLandmarks::filterFourierDirections(MultidimArray<double> &ima
 	{
 	 	imageTmp = image;
 
-		// std::cout << "xdir= " << cos(n*angleStep) << ", ydir=" << sin(n*angleStep) << std::endl;
+		#ifdef DEBUG_DIRECTIONAL_FOURIER
+		std::cout << "xdir= " << cos(n*angleStep) << ", ydir=" << sin(n*angleStep) << std::endl;
+		#endif
+		
 		directionalFilterFourier(imageTmp, cos(n*angleStep), sin(n*angleStep));
 
 		imageOut = imageOut + imageTmp;
