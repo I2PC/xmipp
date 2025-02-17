@@ -29,19 +29,15 @@
 
 
 // --------------------------- INFO functions ----------------------------
-
 void ProgTomoDetectMisalignmentResiduals::readParams()
 {
 	fnResidualInfo = getParam("--inputResInfo");
     fnOut = getParam("-o");
-
 	samplingRate = getDoubleParam("--samplingRate");
 	fiducialSize = getDoubleParam("--fiducialSize");
 	nSize = getIntParam("--numberTiltImages");
-
 	removeOutliers = checkParam("--removeOutliers");
 	voteCriteria = checkParam("--voteCriteria");
-
 	thrFiducialDistance = getDoubleParam("--thrFiducialDistance");  // *** this parameter can be removed (only in unused methods)
 }
 
@@ -49,19 +45,13 @@ void ProgTomoDetectMisalignmentResiduals::readParams()
 void ProgTomoDetectMisalignmentResiduals::defineParams()
 {
 	addUsageLine("This program detect the misaligned images in a tilt-series based on a set of residual vectors.");
-
 	addParamsLine("  --inputResInfo <input=\"\">							: Input file containing residual information of the detected landmarks.");
-
 	addParamsLine("  [-o <output=\"./alignemntReport.xmd\">]       			: Output file containing the alignemnt report.");
-
 	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px).");
 	addParamsLine("  [--fiducialSize <fiducialSize=100>]					: Fiducial size in Angstroms (A).");
 	addParamsLine("  [--numberTiltImages <numberTiltImages=60>]				: Number of tilt-images. Needed in case some image is missing form residual information.");
-
 	addParamsLine("  [--removeOutliers]										: Remove outliers before calculate mahalanobis distance.");
 	addParamsLine("  [--voteCriteria]										: Use a votting system (instead of the average) to detect local misalignment.");
-
-
 	addParamsLine("  [--thrFiducialDistance <thrFiducialDistance=0.5>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate projection and the detected fiducial.");
 }
 
@@ -111,9 +101,7 @@ void ProgTomoDetectMisalignmentResiduals::generateSideInfo()
 }
 
 
-
 // --------------------------- HEAD functions ----------------------------
-
 void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalanobis()
 {
 	double sigma = fiducialSizePx / 3;	// Sigma for 99% of the points inside the fiducial radius
@@ -819,9 +807,7 @@ void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 }
 
 
-
 // --------------------------- I/O functions ----------------------------
-
 void ProgTomoDetectMisalignmentResiduals::readInputResiduals()
 {
 	#ifdef VERBOSE_OUTPUT
@@ -970,7 +956,6 @@ void ProgTomoDetectMisalignmentResiduals::writeOutputAlignmentReport()
 }
 
 
-
 // --------------------------- MAIN ----------------------------------
 void ProgTomoDetectMisalignmentResiduals::run()
 {
@@ -1010,9 +995,7 @@ void ProgTomoDetectMisalignmentResiduals::run()
 }
 
 
-
 // --------------------------- UTILS functions ----------------------------
-
 void ProgTomoDetectMisalignmentResiduals::getResModByFiducial(size_t fiducialNumber, std::vector<resMod> &vResMod_fiducial)
 {
 	for (size_t i = 0; i < vResMod.size(); i++)
@@ -1038,7 +1021,6 @@ void ProgTomoDetectMisalignmentResiduals::getResModByImage(size_t tiltImageNumbe
 
 
 // --------------------------- UNUSED functions ----------------------------
-
 void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResiduals()
 {
 	double mod2Thr = (fiducialSizePx * thrFiducialDistance) * (fiducialSizePx * thrFiducialDistance);
