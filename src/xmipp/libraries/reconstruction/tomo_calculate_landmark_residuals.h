@@ -127,8 +127,14 @@ public:
 
     // --------------------------- INFO functions ----------------------------
 
+    /**
+     * Read input program parameters.
+    */
     void readParams();
 
+    /**
+     * Define input program parameters.
+    */
     void defineParams();
 
 
@@ -144,6 +150,9 @@ public:
     */
     void calculateResidualVectors();
 
+    /**
+     * Remove unreliable residual vector from posterior analysis.
+    */
     void pruneResidualVectors();
 
 
@@ -173,21 +182,35 @@ public:
     Matrix2D<double> getProjectionMatrix(double tiltAngle);
 
     /**
-     * Retrieve all coordinates peaked from the same slice.
+     * Return all coordinates peaked from the same slice.
     */
     std::vector<Point2D<double>> getCoordinatesInSlice(size_t slice);
 
+    /**
+     * Return all coodinate models belongign to the same coordinate.
+    */
     void getCMFromCoordinate(int x, int y, int z, std::vector<CM> &vCM);
 
-    bool checkProjectedCoordinateInInterpolationEdges(Matrix1D<double> projectedCoordinate, size_t slice);
-
+    /**
+     * Return all coodinate models belongign to the same fiducial.
+    */
     void getCMbyFiducial(size_t fiducialNumber, std::vector<CM> &vCM_fiducial);
 
+    /**
+     * Return all coodinate models belongign to the same tilt image.
+    */
     void getCMbyImage(size_t tiltImageNumber, std::vector<CM> &vCM_image);
 
+    /**
+     * Check in projected coordinate falls into interpolation edges.
+    */
+    bool checkProjectedCoordinateInInterpolationEdges(Matrix1D<double> projectedCoordinate, size_t slice);
 
     // --------------------------- MAIN ----------------------------------
 
+    /**
+     * Run main program.
+    */
     void run();
 
 };
