@@ -35,17 +35,11 @@ void ProgTomoCalculateLandmarkResiduals::readParams()
 	fnVol = getParam("-i");
 	fnTiltAngles = getParam("--tlt");
 	fnOut = getParam("-o");
-
 	samplingRate = getDoubleParam("--samplingRate");
 	fiducialSize = getDoubleParam("--fiducialSize");
-
 	thrSDHCC = getDoubleParam("--thrSDHCC");
-
  	fnInputCoord = getParam("--inputCoord");
-
-	thrFiducialDistance = getDoubleParam("--thrFiducialDistance");
     numberFTdirOfDirections = getIntParam("--numberFTdirOfDirections");  // *** this parametr can be removed
-
 	targetFS = getDoubleParam("--targetLMsize");
 }
 
@@ -54,21 +48,15 @@ void ProgTomoCalculateLandmarkResiduals::readParams()
 void ProgTomoCalculateLandmarkResiduals::defineParams()
 {
 	addUsageLine("This function determines the location of high contrast features in a volume.");
-	addParamsLine("  -i <mrcs_file=\"\">                   					: Input tilt-series.");
-	addParamsLine("  --tlt <xmd_file=\"\">      							: Input file containning the tilt angles of the tilt-series in .xmd format.");
-	addParamsLine("  --inputCoord <output=\"\">								: Input coordinates of the 3D landmarks. Origin at top left coordinate (X and Y always positive) and centered at the middle of the volume (Z positive and negative).");
-
-	addParamsLine("  [-o <output=\"./alignemntReport.xmd\">]       			: Output file containing the alignemnt report.");
-
-	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px).");
-	addParamsLine("  [--fiducialSize <fiducialSize=100>]					: Fiducial size in Angstroms (A).");
-
-
-	addParamsLine("  [--thrSDHCC <thrSDHCC=5>]      						: Threshold number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.");
-	addParamsLine("  [--thrFiducialDistance <thrFiducialDistance=0.5>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate projection and the detected fiducial.");
-	addParamsLine("  [--numberFTdirOfDirections <numberFTdirOfDirections=8>]		: Number of directions to analyze in the Fourier directional filter.");
-
-	addParamsLine("  [--targetLMsize <targetLMsize=8>]		    : Targer size of landmark when downsampling (px).");
+	addParamsLine("  -i <mrcs_file=\"\">                   						: Input tilt-series.");
+	addParamsLine("  --tlt <xmd_file=\"\">      								: Input file containning the tilt angles of the tilt-series in .xmd format.");
+	addParamsLine("  --inputCoord <output=\"\">									: Input coordinates of the 3D landmarks. Origin at top left coordinate (X and Y always positive) and centered at the middle of the volume (Z positive and negative).");
+	addParamsLine("  [-o <output=\"./alignemntReport.xmd\">]       				: Output file containing the alignemnt report.");
+	addParamsLine("  [--samplingRate <samplingRate=1>]							: Sampling rate of the input tomogram (A/px).");
+	addParamsLine("  [--fiducialSize <fiducialSize=100>]						: Fiducial size in Angstroms (A).");
+	addParamsLine("  [--thrSDHCC <thrSDHCC=5>]      							: Threshold number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.");
+	addParamsLine("  [--numberFTdirOfDirections <numberFTdirOfDirections=8>]	: Number of directions to analyze in the Fourier directional filter.");
+	addParamsLine("  [--targetLMsize <targetLMsize=8>]		    				: Target size of landmark when downsampling (px).");
 }
 
 

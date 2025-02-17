@@ -84,8 +84,6 @@ public:
 
     /** Thresholds */
     float thrSDHCC;              // Threshold number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.
-    float thrFiducialDistance;   // Maximum distance of a detected landmark to consider it belongs to a chain
-
 
     // Coordinate model structure
     struct CM {
@@ -138,19 +136,11 @@ public:
 
     /**
      * Generate side info usefull for the rest of protocols
-     *
-     * @param
-     * @return
-     *
     */
     void generateSideInfo();
 
     /**
      * Calculate residual vectors from the 3D landmark and the obtained coordinates.
-     *
-     * @param
-     * @return
-     *
     */
     void calculateResidualVectors();
 
@@ -161,10 +151,6 @@ public:
 
     /**
      * Write obtained coordinates in output file.
-     *
-     * @param
-     * @return
-     *
     */
    void writeOutputVCM();
 
@@ -173,37 +159,21 @@ public:
 
     /**
      * Filter labeled regions.
-     *
-     * @param
-     * @return
-     *
     */
     void fillImageLandmark(MultidimArray<int> &proyectedImage, int x, int y, int value);
 
     /**
      * Bandpass filtering the input tilt-series.
-     *
-     * @param
-     * @return
-     *
     */
     void adjustCoordinatesCosineStreching();
 
     /**
      * Calculation of the projection matrix given the projection angle.
-     *
-     * @param
-     * @return
-     *
     */
     Matrix2D<double> getProjectionMatrix(double tiltAngle);
 
     /**
      * Retrieve all coordinates peaked from the same slice.
-     *
-     * @param
-     * @return
-     *
     */
     std::vector<Point2D<double>> getCoordinatesInSlice(size_t slice);
 
