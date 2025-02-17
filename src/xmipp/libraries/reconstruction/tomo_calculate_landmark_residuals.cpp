@@ -813,15 +813,3 @@ bool ProgTomoCalculateLandmarkResiduals::checkProjectedCoordinateInInterpolation
 		return false;
 	}
 }
-
-
-void ProgTomoCalculateLandmarkResiduals::getCMbyFiducial(size_t fiducialNumber, std::vector<CM> &vCM_fiducial)
-{
-	for (size_t i = 0; i < vCM.size(); i++)
-	{
-		if (vCM[i].id == fiducialNumber)
-		{
-			vCM_fiducial.push_back(vCM[i]);
-		}
-	}
-}

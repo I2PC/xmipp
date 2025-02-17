@@ -192,11 +192,6 @@ public:
     void getCMFromCoordinate(int x, int y, int z, std::vector<CM> &vCM);
 
     /**
-     * Return all coodinate models belongign to the same fiducial.
-    */
-    void getCMbyFiducial(size_t fiducialNumber, std::vector<CM> &vCM_fiducial);
-
-    /**
      * Check in projected coordinate falls into interpolation edges.
     */
     bool checkProjectedCoordinateInInterpolationEdges(Matrix1D<double> projectedCoordinate, size_t slice);
