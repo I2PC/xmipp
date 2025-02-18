@@ -568,14 +568,6 @@ void ProgTomoCalculateLandmarkResiduals::run()
 
 	tiltSeriesImages.getDimensions(xSize, ySize, zSize, nSize);
 
-	#ifdef DEBUG_DIM
-	std::cout << "Input tilt-series dimensions:" << std::endl;
-	std::cout << "x " << xSize << std::endl;
-	std::cout << "y " << ySize << std::endl;
-	std::cout << "z " << zSize << std::endl;
-	std::cout << "n " << nSize << std::endl;
-	#endif
-
 	generateSideInfo();
 	coordinates3D = lmDetector.coordinates3D;
 
