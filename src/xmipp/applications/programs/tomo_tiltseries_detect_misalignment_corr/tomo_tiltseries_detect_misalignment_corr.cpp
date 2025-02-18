@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors: Sjors Scheres (scheres@cnb.csic.es)
+ * Authors:    Federico P. de Isidro Gomez			  fp.deisidro@cnb.csic.es
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
