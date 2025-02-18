@@ -317,6 +317,26 @@ class ScriptTomoResidualStatistics(XmippScript):
    
     return adfStatistic, pValue, criticalValues
 
+
+  def computeVarianceMatrix(self, rx, ry):
+    """
+      Calculate variance matrix fiven two residual vectors
+    """
+    rx2 = rx * rx
+    ry2 = ry * ry
+    rxy = rx * ry
+
+    sumRadius = sqrt(rx2+ry2)
+
+    if(sumRadius == 0):
+      varianceMatrix = np.matrix([[rx2, rxy], [rxy, ry2]])
+    else:
+      varianceMatrix = np.matrix([[rx2/sumRadius, rxy/sumRadius], [rxy/sumRadius, ry2/sumRadius]])
+
+    return varianceMatrix
+
+
+
   def run(self):
     print("Running statistical analysis of misalingment residuals...")
 
@@ -348,16 +368,7 @@ class ScriptTomoResidualStatistics(XmippScript):
         rx = self.residX[key][i]
         ry = self.residY[key][i]
 
-        rx2 = rx * rx
-        ry2 = ry * ry
-        rxy = rx * ry
-
-        sumRadius = sqrt(rx2+ry2)
-
-        if(sumRadius==0):
-          varianceMatrix += np.matrix([[rx2, rxy], [rxy, ry2]])
-        else:
-          varianceMatrix += np.matrix([[rx2/sumRadius, rxy/sumRadius], [rxy/sumRadius, ry2/sumRadius]])
+        varianceMatrix += self.computeVarianceMatrix(rx, ry)
 
       [lambda1, lambda2], _ = np.linalg.eig(varianceMatrix)
 
@@ -457,16 +468,7 @@ class ScriptTomoResidualStatistics(XmippScript):
         rx = self.imageX[key][i]
         ry = self.imageY[key][i]
 
-        rx2 = rx * rx
-        ry2 = ry * ry
-        rxy = rx * ry
-
-        sumRadius = sqrt(rx2+ry2)
-
-        if(sumRadius == 0):
-          varianceMatrix += np.matrix([[rx2, rxy], [rxy, ry2]])
-        else:
-          varianceMatrix += np.matrix([[rx2/sumRadius, rxy/sumRadius], [rxy/sumRadius, ry2/sumRadius]])
+        varianceMatrix += self.computeVarianceMatrix(rx, ry)
 
       [lambda1, lambda2], _ = np.linalg.eig(varianceMatrix)
 
