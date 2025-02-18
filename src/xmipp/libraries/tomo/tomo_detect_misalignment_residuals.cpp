@@ -473,15 +473,6 @@ void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 		residualNumber = statistic.substr(0, statistic.find("_"));
 		residualNumber_int = std::stoi(residualNumber);
 
-		#ifdef DEBUG_RESIDUAL_STATISTICS_FILE	
-		std::cout << "Reading object " << objId << " from metadata" << std::endl;
-		std::cout << "statistic " << statistic << std::endl;
-		std::cout << "value " << value << std::endl;
-		std::cout << "statisticName " << statisticName << std::endl;
-		std::cout << "residualNumber " << residualNumber << std::endl;
-		std::cout << "residualNumber_int " << residualNumber_int << std::endl;
-		#endif
-
 		if (strcmp(statisticName.c_str(), "chArea") == 0)
 		{
 			imageStatsTable[residualNumber_int][2] = value;
