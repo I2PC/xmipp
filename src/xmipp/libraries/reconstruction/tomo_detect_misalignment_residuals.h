@@ -59,7 +59,6 @@ class ProgTomoDetectMisalignmentResiduals : public XmippProgram
 
 public:
     /** Filenames */
-    // FileName fnInputTS;
     FileName fnResidualInfo;
     FileName fnOut;
 
@@ -138,28 +137,38 @@ public:
     void generateResidualStatiscticsFile();
 
     // --------------------------- I/O functions ----------------------------
-
     /**
      * Write obtained coordinates in output file.
     */
    void readInputResiduals();
 
-   void writeOutputAlignmentReport(); 
+    /**
+     * Write alignment report.
+    */
+   void writeOutputAlignmentReport();
+
+    /**
+     * Write residuals weighted by Mahalanobis distance.
+    */
    void writeWeightedResiduals();
 
-
-
     // --------------------------- UTILS functions ----------------------------
-
+    /**
+     * Get all coordinate models associated to the same fiducial.
+    */
     void getResModByFiducial(size_t fiducialNumber, std::vector<resMod> &vResMod_fiducial);
 
+    /**
+     * Get all coordinate models associated to the same image.
+    */
     void getResModByImage(size_t tiltImageNumber, std::vector<resMod> &vResMod_image);
 
 
     // --------------------------- MAIN ----------------------------------
-
+    /**
+     * Main.
+    */
     void run();
-
 };
 
 #endif
