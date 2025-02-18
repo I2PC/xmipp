@@ -23,6 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction/tomo_tiltseries_detect_misalignment_corr.h>
+#include <legacy/tomo_tiltseries_detect_misalignment_corr.h>
 
 RUN_XMIPP_PROGRAM(ProgTomoTSDetectMisalignmentCorr);
