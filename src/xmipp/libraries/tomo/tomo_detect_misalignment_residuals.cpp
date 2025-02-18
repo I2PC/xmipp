@@ -107,155 +107,6 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 	double sigma = fiducialSizePx / 3;	// Sigma for 99% of the points inside the fiducial radius
 	double sigma2 = sigma * sigma;
 
-	double sumMahaDist = 0;
-	double sumMahaDist2 = 0;
-
-	double avgMahaDist;
-	double stdMahaDist;
-
-	// Calculate Mahalanobis distance for each residual
-	for(size_t i = 0; i < vResMod.size(); i++)
-	{
-		vResMod[i].mahalanobisDistance = sqrt((vResMod[i].residuals.x*vResMod[i].residuals.x)/sigma2 + (vResMod[i].residuals.y*vResMod[i].residuals.y)/sigma2);
-	}
-
-	// Global alignment analysis
-	std::cout << "---------------- Global misalignemnt analysis" << std::endl;
-
-	double rationMisalignedChains = 0;	// 0 -> aligned -- 1 -> misaligned 
-
-	for (size_t n = 0; n < numberOfInputCoords; n++)
-	{
-		std::vector<resMod> resMod_fid;
-		getResModByFiducial(n, resMod_fid);
-
-		size_t numberResMod = resMod_fid.size();
-
-		sumMahaDist = 0;
-		sumMahaDist2 = 0;
-
-		for (size_t i = 0; i < numberResMod; i++)
-		{
-			sumMahaDist += resMod_fid[i].mahalanobisDistance;
-			sumMahaDist2 += resMod_fid[i].mahalanobisDistance * resMod_fid[i].mahalanobisDistance; 
-		}
-
-		avgMahaDist = sumMahaDist / numberResMod;
-		stdMahaDist = sqrt(sumMahaDist2 / numberResMod - avgMahaDist * avgMahaDist);
-
-		if (avgMahaDist > 1)
-		{
-			rationMisalignedChains += 1;
-		}
-
-		#ifdef DEBUG_RESIDUAL_ANALYSIS
-		std::cout << "Average mahalanobis distance for 3D cooridinate " << n << ": " << avgMahaDist << std::endl;
-		#endif
-	}
-
-	if (rationMisalignedChains / numberOfInputCoords > thrRatioMahalanobis)
-	{
-		globalAlignment = false;
-	}
-
-	std::cout << "------> Global alignment score: " << rationMisalignedChains / numberOfInputCoords << std::endl;
-	
-	// Local alignment analysis
-	std::cout << "---------------- Local misaligment analysis" << std::endl;
-	
-	// Use votting as criteria for local misalignment detection
-	if (voteCriteria)
-	{
-		for (size_t n = 0; n < nSize; n++)
-		{
-			std::vector<resMod> resMod_image;
-			getResModByImage(n, resMod_image);
-
-			size_t numberResMod = resMod_image.size();
-
-			if (numberResMod > 1)
-			{
-				double rationMisalignedResid = 0.0;
-
-				for (size_t i = 0; i < numberResMod; i++)
-				{
-					if (resMod_image[i].mahalanobisDistance > 1)
-					{
-						rationMisalignedResid += 1;
-					}
-				}
-
-				rationMisalignedResid /= numberResMod;
-
-				if (rationMisalignedResid > thrRatioMahalanobis)
-				{
-					localAlignment[n] = false;
-					std::cout << "------> Local misalignment detected at image: " << n << " with ratio " << rationMisalignedResid << std::endl;
-				}
-			}
-
-			else
-			{
-				std::cout << "ERROR: impossible to study misalignment in tilt-image " << n << ". Number of residuals for this image: " << numberResMod << std::endl;
-				localAlignment[n] = false;
-			}
-		}
-	}
-	else // Use average as criteria for local misalignment detection
-	{
-		for (size_t n = 0; n < nSize; n++)
-		{
-			std::vector<resMod> resMod_image;
-			getResModByImage(n, resMod_image);
-
-			size_t numberResMod = resMod_image.size();
-
-			if (numberResMod > 1)
-			{
-				sumMahaDist = 0;
-				sumMahaDist2 = 0;
-
-				for (size_t i = 0; i < numberResMod; i++)
-				{
-					sumMahaDist += resMod_image[i].mahalanobisDistance;
-					sumMahaDist2 += resMod_image[i].mahalanobisDistance * resMod_image[i].mahalanobisDistance;
-				}
-
-				avgMahaDist = sumMahaDist / numberResMod;
-				double stdMahaDist = sqrt(sumMahaDist2 / numberResMod - avgMahaDist * avgMahaDist);
-
-				avgMahalanobisDistanceV[n] = avgMahaDist;
-				stdMahalanobisDistanceV[n] = stdMahaDist;
-
-				if (avgMahaDist > 1)
-				{
-					localAlignment[n] = false;
-					std::cout << "------> Local misalignment detected at image: " << n << std::endl;
-				}
-
-				#ifdef DEBUG_RESIDUAL_ANALYSIS
-				std::cout << "Statistics of mahalanobis distances for tilt-image " << n << std::endl;
-				std::cout << "Number of residual models: " << numberResMod << std::endl;
-				std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
-				std::cout << "STD mahalanobis distance: " << stdMahaDist << std::endl;
-				#endif
-			}
-
-			else
-			{
-				std::cout << "ERROR: impossible to study misalignment in tilt-image " << n << ". Number of residuals for this image: " << numberResMod << std::endl;
-				localAlignment[n] = false;
-			}
-		}
-	}
-}
-
-
-void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalanobisRobust()
-{
-	double sigma = fiducialSizePx / 3;	// Sigma for 99% of the points inside the fiducial radius
-	double sigma2 = sigma * sigma;
-
 	double mahaDist;
 	double sumMahaDist = 0;
 	double sumMahaDist2 = 0;
@@ -298,7 +149,7 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 
 		for (size_t i = 0; i < numberResMod; i++)
 		{
-			if (resMod_fid[i].mahalanobisDistance < mahaThr)
+			if (removeOutliers && resMod_fid[i].mahalanobisDistance < mahaThr)
 			{		
 				sumMahaDist += resMod_fid[i].mahalanobisDistance;
 				sumMahaDist2 += resMod_fid[i].mahalanobisDistance * resMod_fid[i].mahalanobisDistance;
@@ -381,7 +232,7 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 
 				for (size_t i = 0; i < numberResMod; i++)
 				{
-					if (resMod_image[i].mahalanobisDistance < mahaThr)
+					if (removeOutliers && resMod_image[i].mahalanobisDistance < mahaThr)
 					{
 						sumMahaDist += resMod_image[i].mahalanobisDistance;
 						sumMahaDist2 += resMod_image[i].mahalanobisDistance * resMod_image[i].mahalanobisDistance;
@@ -961,14 +812,7 @@ void ProgTomoDetectMisalignmentResiduals::run()
 
 	generateSideInfo();
 
-	if (removeOutliers)
-	{
-		detectMisalignmentFromResidualsMahalanobisRobust();
-	}
-	else
-	{
-		detectMisalignmentFromResidualsMahalanobis();
-	}
+	detectMisalignmentFromResidualsMahalanobis();
 		
 	#ifdef GENERATE_RESIDUAL_STATISTICS
 	generateResidualStatiscticsFile();

@@ -126,11 +126,6 @@ public:
     void detectMisalignmentFromResidualsMahalanobis();
 
     /**
-     * Detect msialignment from a set of residual vectors removing outliers
-    */
-    void detectMisalignmentFromResidualsMahalanobisRobust();
-
-    /**
      * Method to exexcute and digest statistical info from a set of residuals
      * executing python script. 
     */
