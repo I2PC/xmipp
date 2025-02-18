@@ -39,7 +39,7 @@
 #include <data/fourier_filter.h>
 #include <data/filters.h>
 #include <string>
-#include "symmetrize.h"
+#include "reconstruction/symmetrize.h"
 #include <data/morphology.h>
 #include "core/xmipp_image_generic.h"
 #include <data/point3D.h>
