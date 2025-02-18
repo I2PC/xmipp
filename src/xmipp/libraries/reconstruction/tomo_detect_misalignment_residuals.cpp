@@ -420,31 +420,34 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 
 void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 {
-	// CODE FOR GENERATING RESIDUAL STATISTICS FILE FOR DECISION TREE TRAINING
-	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	
 	// Run XmippScript for statistical residual analysis
-	std::cout << "\nRunning residual statistical analysis..." << std::endl;
+	std::cout << "Running residual statistical analysis..." << std::endl;
+
+	// Compose commnad with realtive path to script
+    char path[PATH_MAX], scriptPath[2048];
+    ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
+    path[len] = '\0';  // Null-terminate
+
+    char *pos = strstr(path, "/dist/");
+    if (pos) *pos = '\0';  // Cut at "/dist/"
+
+    snprintf(scriptPath, sizeof(scriptPath), "%s/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py", path);
 
 	size_t lastindex = fnOut.find_last_of("\\/");
 	std::string rawname = fnOut.substr(0, lastindex);
 
 	std::string fnStats;
 	fnStats = rawname + "/residualStatistics.xmd";
-
+ 
 	std::string cmd;
 
 	#ifdef DEBUG_RESIDUAL_STATISTICS_FILE
-	// Debug command
-	cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnResidualInfo + " -o " + fnStats + " --debug ";
-	// cmd = "python3 /home/fdeisidro/data/xmipp/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnResidualInfo + " -o " + fnStats + " --debug";
+		cmd = "python3 " + std::string(scriptPath) + " -i " + fnResidualInfo + " -o " + fnStats + " --debug";
 	#else
-	// No debug command
-	cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnResidualInfo + " -o " + fnStats;
-	// cmd = "python3 /home/fdeisidro/data/xmipp/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnResidualInfo + " -o " + fnStats;
+		cmd = "python3 " + std::string(scriptPath) + " -i " + fnResidualInfo + " -o " + fnStats;
 	#endif
-	
-	std::cout << cmd << std::endl;
+
+    std::cout << "Running command: " << cmd << std::endl;
 	int systemOut = system(cmd.c_str());
 	
 	std::string fnStats_lm;
@@ -564,6 +567,8 @@ void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 
 		imagesOutOfRangePercentage = double(imagesOutOfRange) / nSize;
 		longestMisaliChainPercentage = double(longestMisaliChain) / nSize;
+		avg = sumResid / numberResMod;
+		std = sqrt(sumResid2 / numberResMod - avg * avg);
 
 		#ifdef DEBUG_RESIDUAL_STATISTICS_FILE	
 		std::cout << "n " << n << std::endl;
@@ -573,14 +578,7 @@ void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 		std::cout << "imagesOutOfRange " << imagesOutOfRange << std::endl;
 		std::cout << "longestMisaliChain " << longestMisaliChain << std::endl;
 		std::cout << "imagesOutOfRangePercentage " << imagesOutOfRangePercentage << std::endl;
-		std::cout << "longestMisaliChainPercentage " << longestMisaliChainPercentage << std::endl;
-		#endif
-
-		avg = sumResid / numberResMod;
-		std = sqrt(sumResid2 / numberResMod - avg * avg);
-
-		#ifdef DEBUG_RESIDUAL_STATISTICS_FILE	
-		std::cout << "avg " << avg << std::endl;
+		std::cout << "longestMisaliChainPercentage " << longestMisaliChainPercentage << std::endl;		std::cout << "avg " << avg << std::endl;
 		std::cout << "std " << std << std::endl;
 		#endif
 
@@ -590,6 +588,7 @@ void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 		residualStatsTable[n][9] = longestMisaliChainPercentage;
 	}
 
+	#ifdef DEBUG_RESIDUAL_STATISTICS_FILE	
 	std::cout << " ----------------------------------------------- residualStatsTable" << std::endl;
 	for (size_t n = 0; n < numberOfInputCoords; n++)
 	{
@@ -599,9 +598,9 @@ void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 		}
 		std::cout << "\n" ;
 	}
-	std::cout << " ----------------------------------------------- " << std::endl;
+	#endif
 
-	// -- Save image information --
+	// Save image information
 	residualStatsMd.read(fnStats_image);
 
 	// Vector containing stats: avg, std, chArea, chPerim, pvBinX, pvBinY, pvF, ResidOutOfRange
@@ -713,6 +712,7 @@ void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 		}
 	}
 
+	#ifdef DEBUG_RESIDUAL_STATISTICS_FILE	
 	std::cout << " ----------------------------------------------- imageStatsTable" << std::endl;
 	for (size_t n = 0; n < nSize; n++)
 	{
@@ -722,30 +722,31 @@ void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 		}
 		std::cout << "\n" ;
 	}
-	std::cout << " -----------------------------------------------" << std::endl;
+	#endif	
 
-	// -- Write output file for decision tree training --
-	std::string decisionTreeStatsFileName_chain;
-	std::string decisionTreeStatsFileName_image;
+	// Write residual statistics file both by chain and image
+	std::string statsFileName_chain;
+	std::string statsFileName_image;
 
 	size_t li = fnOut.find_last_of("\\/");
 	std::string fileBaseName = fnOut.substr(0, li);
 	li = fileBaseName.find_last_of("\\/");
 	fileBaseName = fileBaseName.substr(0, li);
 
-	decisionTreeStatsFileName_chain = fileBaseName + "/decisionTreeStats_chain.txt";
-	decisionTreeStatsFileName_image = fileBaseName + "/decisionTreeStats_image.txt";
+	statsFileName_chain = fileBaseName + "/residStats_chain.txt";
+	statsFileName_image = fileBaseName + "/residStats_image.txt";
 
 	#ifdef DEBUG_RESIDUAL_STATISTICS_FILE	
 	std::cout << "fileBaseName " << fileBaseName << std::endl;
-	std::cout << "decisionTreeStatsFileName_chain " << decisionTreeStatsFileName_chain << std::endl;
-	std::cout << "decisionTreeStatsFileName_image " << decisionTreeStatsFileName_image << std::endl;
+	std::cout << "statsFileName_chain " << statsFileName_chain << std::endl;
+	std::cout << "statsFileName_image " << statsFileName_image << std::endl;
 	#endif
 	
 	std::ofstream myfile;
 
-	myfile.open (decisionTreeStatsFileName_chain, std::ios_base::app);
-	for (size_t n = 0; n < residualStatsTable.size(); n++)  // Landmark decision tree stats
+	// Write residual statistics by chain
+	myfile.open (statsFileName_chain, std::ios_base::app);
+	for (size_t n = 0; n < residualStatsTable.size(); n++)
 	{
 		myfile << residualStatsTable[n][0];
 		myfile << ", ";
@@ -770,8 +771,9 @@ void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 	}
 	myfile.close();
 
-	myfile.open (decisionTreeStatsFileName_image, std::ios_base::app);
-	for (size_t n = 0; n < imageStatsTable.size(); n++)  // Image decision tree stats
+	// Write residual statistics by image
+	myfile.open (statsFileName_image, std::ios_base::app);
+	for (size_t n = 0; n < imageStatsTable.size(); n++)
 	{
 		myfile << imageStatsTable[n][0];
 		myfile << ", ";
@@ -791,8 +793,6 @@ void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 		myfile << "\n";
 	}
 	myfile.close();
-	
-	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 }
 
 
