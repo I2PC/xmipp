@@ -28,16 +28,12 @@
 
 
 
-// TODO: 
-
 // --------------------------- INFO functions ----------------------------
-
 void ProgTomoTSDetectMisalignmentCorr::readParams()
 {
 	fnIn = getParam("-i");
 	fnTiltAngles = getParam("--tlt");
 	fnOut = getParam("-o");
-
 	shiftTol = getDoubleParam("--shiftTol");
 	samplingRate = getDoubleParam("--samplingRate");
 }
@@ -46,12 +42,11 @@ void ProgTomoTSDetectMisalignmentCorr::readParams()
 void ProgTomoTSDetectMisalignmentCorr::defineParams()
 {
 	addUsageLine("This function determines the location of high contrast features in a volume.");
-	addParamsLine("  -i <mrcs_file=\"\">                   			: Input tilt-series.");
-	addParamsLine("  --tlt <xmd_file=\"\">      					: Input file containning the tilt angles of the tilt-series in .xmd format.");
-	addParamsLine("  -o <o=\"./alignemntReport.xmd\">      			: Output file containing the alignemnt report.");
-
-	addParamsLine("  [--shiftTol <shiftTol=1>]						: Sampling rate of the input tomogram (A/px).");
-	addParamsLine("  [--samplingRate <samplingRate=1>]				: Sampling rate of the input tomogram (A/px).");
+	addParamsLine("  -i <mrcs_file=\"\">                   	: Input tilt-series.");
+	addParamsLine("  --tlt <xmd_file=\"\">      			: Input file containning the tilt angles of the tilt-series in .xmd format.");
+	addParamsLine("  -o <o=\"./alignemntReport.xmd\">      	: Output file containing the alignemnt report.");
+	addParamsLine("  [--shiftTol <shiftTol=1>]				: Sampling rate of the input tomogram (A/px).");
+	addParamsLine("  [--samplingRate <samplingRate=1>]		: Sampling rate of the input tomogram (A/px).");
 }
 
 
@@ -91,9 +86,7 @@ void ProgTomoTSDetectMisalignmentCorr::generateSideInfo()
 }
 
 
-
 // --------------------------- HEAD functions ----------------------------
-
 void ProgTomoTSDetectMisalignmentCorr::lowpassFilter(MultidimArray<double> &tiltImage)
 {
 	MultidimArray< std::complex<double> > fftTI;
@@ -229,7 +222,6 @@ void ProgTomoTSDetectMisalignmentCorr::detectSubtleMisalingment(MultidimArray<do
 						 << MAT_ELEM(relativeShifts[i], 0, 1) << " ]"
 														<< std::endl;
 	}
-	
 }
 
 
@@ -291,9 +283,7 @@ void ProgTomoTSDetectMisalignmentCorr::refineAlignment(MultidimArray<double> &ts
 }
 
 
-
 // --------------------------- I/O functions ----------------------------
-
 void ProgTomoTSDetectMisalignmentCorr::writeOutputShifts()
 {
 	#ifdef VERBOSE_OUTPUT
@@ -363,9 +353,7 @@ void ProgTomoTSDetectMisalignmentCorr::writeOutputAlignmentReport()
 }
 
 
-
 // --------------------------- MAIN ----------------------------------
-
 void ProgTomoTSDetectMisalignmentCorr::run()
 {
 	using std::chrono::high_resolution_clock;
@@ -434,9 +422,7 @@ void ProgTomoTSDetectMisalignmentCorr::run()
 }
 
 
-
 // --------------------------- UTILS functions ----------------------------
-
 void ProgTomoTSDetectMisalignmentCorr::cosineStretching(MultidimArray<double> &ti, double ti_angle_high, double ti_angle_low)
 {
 	Matrix2D<double> sm = getCosineStretchingMatrix(ti_angle_high, ti_angle_low);

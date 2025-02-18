@@ -46,10 +46,9 @@
 
 #define VERBOSE_OUTPUT
 
-#define DEBUG_DIM
+// #define DEBUG_DIM
 // #define DEBUG_TI_CORR
-
-#define DEBUG_OUTPUT_FILES
+// #define DEBUG_OUTPUT_FILES
 
 class ProgTomoTSDetectMisalignmentCorr : public XmippProgram
 {
@@ -92,50 +91,74 @@ public:
 public:
 
     // --------------------------- INFO functions ----------------------------
-
+    /**
+     * Read input program parameters.
+    */
     void readParams();
 
+    /**
+     * Define input program parameters.
+    */
     void defineParams();
 
-
     // --------------------------- HEAD functions ----------------------------
-
     /**
      * Generate side info usefull for the rest of protocols
-     *
-     * @param
-     * @return
-     *
     */
     void generateSideInfo();
 
     // --------------------------- I/O functions ----------------------------
-
-
-
-    // --------------------------- UTILS functions ----------------------------
-
-    void cosineStretching(MultidimArray<double> &ti, double ti_angle_high, double ti_angle_low);
-
-    Matrix2D<double> getCosineStretchingMatrix(double ti_angle_high, double ti_angle_low);
-
-    Matrix2D<double> maxCorrelationShift(MultidimArray<double> &ti1, MultidimArray<double> &ti2);
-
-    void detectSubtleMisalingment(MultidimArray<double> &ts);
-
-    void refineAlignment(MultidimArray<double> &ts);
-    
-    void lowpassFilter(MultidimArray<double> &tiltImage);
-
-    // void removeOutliers(MultidimArray<double> &ti);
-
+    /**
+     * Write output metadata with shifts
+    */
     void writeOutputShifts();
+
+    /**
+     * Write output alignent report
+    */
     void writeOutputAlignmentReport();
 
+    // --------------------------- UTILS functions ----------------------------
+    /**
+     * Apply cosine stretching to tilt image
+    */
+    void cosineStretching(MultidimArray<double> &ti, double ti_angle_high, double ti_angle_low);
+
+    /**
+     * Compose matrix for cosine stretching
+    */
+    Matrix2D<double> getCosineStretchingMatrix(double ti_angle_high, double ti_angle_low);
+
+    /**
+     * Calculate shift for maximum correlation between images
+    */
+    Matrix2D<double> maxCorrelationShift(MultidimArray<double> &ti1, MultidimArray<double> &ti2);
+
+    /**
+     * Assess local alginemnt quality
+    */
+    void detectSubtleMisalingment(MultidimArray<double> &ts);
+
+    /**
+     * Correct alignment with calculated shifts
+    */
+    void refineAlignment(MultidimArray<double> &ts);
+    
+    /**
+     * LPF tilt image
+    */
+    void lowpassFilter(MultidimArray<double> &tiltImage);
+
+    /**
+     * Remove outlier values in tilt image
+    */
+    // void removeOutliers(MultidimArray<double> &ti);
+
     // --------------------------- MAIN ----------------------------------
-
+    /**
+     * Main
+    */
     void run();
-
 };
 
 #endif
