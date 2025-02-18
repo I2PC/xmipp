@@ -23,6 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction/tomo_calculate_landmark_residuals.h>
+#include <tomo/tomo_calculate_landmark_residuals.h>
 
 RUN_XMIPP_PROGRAM(ProgTomoCalculateLandmarkResiduals)
