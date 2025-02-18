@@ -256,7 +256,7 @@ void ProgTomoDetectLandmarks::detectInterpolationEdges(MultidimArray<double> &ti
 }
 
 
-void ProgTomoDetectLandmarks::sobelFiler(MultidimArray<double> &tiltImage, int ti)
+void ProgTomoDetectLandmarks::sobelFiler(MultidimArray<double> &tiltImage)
 {  
     // Create the gradient images for x and y directions
     MultidimArray<double>  gradX;
@@ -265,110 +265,55 @@ void ProgTomoDetectLandmarks::sobelFiler(MultidimArray<double> &tiltImage, int t
     gradX.initZeros(ySize_d, xSize_d);
     gradY.initZeros(ySize_d, xSize_d);
 
-	if (ti == -1) // Do not consider interpolation edges (only for reference)
+
+	// Apply the Sobel filter in the x-direction
+	for (int i = 1; i < ySize_d - 1; ++i)
 	{
-		// Apply the Sobel filter in the x-direction
-		for (int i = 1; i < ySize_d - 1; ++i)
+		for (int j = 1; j < xSize_d - 1; ++j)
 		{
-			for (int j = 1; j < xSize_d - 1; ++j)
-			{
-				double pixelValue = 0;
+			double pixelValue = 0;
 
-				for (int k = -1; k <= 1; ++k)
+			for (int k = -1; k <= 1; ++k)
+			{
+				for (int l = -1; l <= 1; ++l)
 				{
-					for (int l = -1; l <= 1; ++l)
-					{
-						pixelValue += A2D_ELEM(tiltImage, i + k, j + l) * sobelX[k + 1][l + 1];
-					}
+					pixelValue += A2D_ELEM(tiltImage, i + k, j + l) * sobelX[k + 1][l + 1];
 				}
-
-				A2D_ELEM(gradX, i, j) = pixelValue;
 			}
-		}
 
-		// Apply the Sobel filter in the y-direction
-		for (int i = 1; i < ySize_d - 1; ++i)
-		{
-			for (int j = 1; j < xSize_d - 1; ++j)
-			{
-				double pixelValue = 0;
-
-				for (int k = -1; k <= 1; ++k)
-				{
-					for (int l = -1; l <= 1; ++l)
-					{
-						pixelValue += A2D_ELEM(tiltImage, i + k, j + l) * sobelY[k + 1][l + 1];
-					}
-				}
-
-				A2D_ELEM(gradY, i, j) = pixelValue;
-			}
-		}
-
-		// Compute the gradient magnitude   
-		tiltImage.initZeros(ySize_d, xSize_d);
-
-		for (int i = 0; i < ySize_d; ++i)
-		{
-			for (int j = 0; j < xSize_d; ++j)
-			{
-
-				A2D_ELEM(tiltImage, i, j) = sqrt(A2D_ELEM(gradX, i, j) * A2D_ELEM(gradX, i, j) + 
-												A2D_ELEM(gradY, i, j) * A2D_ELEM(gradY, i, j));
-			}
+			A2D_ELEM(gradX, i, j) = pixelValue;
 		}
 	}
-	else // Consider interpolation edges
+
+	// Apply the Sobel filter in the y-direction
+	for (int i = 1; i < ySize_d - 1; ++i)
 	{
-		// Apply the Sobel filter in the x-direction
-		for (int i = 1; i < ySize_d - 1; ++i)
+		for (int j = 1; j < xSize_d - 1; ++j)
 		{
-			for (int j = 1; j < xSize_d - 1; ++j)
-			{
-				double pixelValue = 0;
+			double pixelValue = 0;
 
-				for (int k = -1; k <= 1; ++k)
+			for (int k = -1; k <= 1; ++k)
+			{
+				for (int l = -1; l <= 1; ++l)
 				{
-					for (int l = -1; l <= 1; ++l)
-					{
-						pixelValue += A2D_ELEM(tiltImage, i + k, j + l) * sobelX[k + 1][l + 1];
-					}
+					pixelValue += A2D_ELEM(tiltImage, i + k, j + l) * sobelY[k + 1][l + 1];
 				}
-
-				A2D_ELEM(gradX, i, j) = pixelValue;
 			}
+
+			A2D_ELEM(gradY, i, j) = pixelValue;
 		}
+	}
 
-		// Apply the Sobel filter in the y-direction
-		for (int i = 1; i < ySize_d - 1; ++i)
+	// Compute the gradient magnitude   
+	tiltImage.initZeros(ySize_d, xSize_d);
+
+	for (int i = 0; i < ySize_d; ++i)
+	{
+		for (int j = 0; j < xSize_d; ++j)
 		{
-			for (int j = 1; j < xSize_d - 1; ++j)
-			{
-				double pixelValue = 0;
 
-				for (int k = -1; k <= 1; ++k)
-				{
-					for (int l = -1; l <= 1; ++l)
-					{
-						pixelValue += A2D_ELEM(tiltImage, i + k, j + l) * sobelY[k + 1][l + 1];
-					}
-				}
-
-				A2D_ELEM(gradY, i, j) = pixelValue;
-			}
-		}
-
-		// Compute the gradient magnitude   
-		tiltImage.initZeros(ySize_d, xSize_d);
-
-		for (int i = 0; i < ySize_d; ++i)
-		{
-			for (int j = 0; j < xSize_d; ++j)
-			{
-
-				A2D_ELEM(tiltImage, i, j) = sqrt(A2D_ELEM(gradX, i, j) * A2D_ELEM(gradX, i, j) + 
-												A2D_ELEM(gradY, i, j) * A2D_ELEM(gradY, i, j));
-			}
+			A2D_ELEM(tiltImage, i, j) = sqrt(A2D_ELEM(gradX, i, j) * A2D_ELEM(gradX, i, j) + 
+											A2D_ELEM(gradY, i, j) * A2D_ELEM(gradY, i, j));
 		}
 	}
 }
@@ -1295,9 +1240,6 @@ void ProgTomoDetectLandmarks::createLandmarkTemplate_Gaussian()
 			A2D_ELEM(landmarkReference_Gaussian, k, l) = 1 - exp(-mod2 /(2*sigma*sigma))/(sigma*sqrt(2*PI));
         }
     }
-
-    // Apply Sobel filer to reference
-    // sobelFiler(landmarkReference_Gaussian, -1);
 
     // Save reference
     #ifdef DEBUG_REFERENCE

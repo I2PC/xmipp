@@ -166,7 +166,7 @@ public:
     /**
      * Apply Sobel filter to input tilt image.
     */
-    void sobelFiler(MultidimArray<double> &tiltImage, int ti);
+    void sobelFiler(MultidimArray<double> &tiltImage);
 
     /**
      * Convolve tilt-image with filtered reference landmark (correlation in Fourier
