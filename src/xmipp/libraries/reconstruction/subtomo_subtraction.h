@@ -46,7 +46,6 @@ public:
   FileName fnVolMd; // Input metadata of volume(s)
   FileName fnVolRef; // Input reference volume (V1)
   FileName fnVol2; // Volume filename 
-  FileName fnOut; // Output metadata
   FileName fnMask1;
   FileName fnMask2;
   FileName fnMaskSub;
