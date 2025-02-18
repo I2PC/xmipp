@@ -23,6 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction/tomo_detect_misalignment_residuals.h>
+#include <tomo/tomo_detect_misalignment_residuals.h>
 
 RUN_XMIPP_PROGRAM(ProgTomoDetectMisalignmentResiduals)
