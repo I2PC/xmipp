@@ -52,7 +52,7 @@ void ProgTomoDetectMisalignmentResiduals::defineParams()
 	addParamsLine("  [--numberTiltImages <numberTiltImages=60>]				: Number of tilt-images. Needed in case some image is missing form residual information.");
 	addParamsLine("  [--removeOutliers]										: Remove outliers before calculate mahalanobis distance.");
 	addParamsLine("  [--voteCriteria]										: Use a votting system (instead of the average) to detect local misalignment.");
-	addParamsLine("  [--thrRatioMahalanobis <thrRatioMahalanobis=0.8>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate projection and the detected fiducial.");
+	addParamsLine("  [--thrRatioMahalanobis <thrRatioMahalanobis=0.8>]		: Maximum ratio of residuals with Mahalanobis distance over 1 to consider chain/image as misaligned.");
 }
 
 
