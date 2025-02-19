@@ -1,0 +1,12 @@
+{
+  "xmipp": {
+    "version_number": "3.24.12",
+    "version_name": "v3.24.12-Poseidon",
+    "release_date": "23/12/2024"
+  },
+  "sources": {
+    "xmippCore": {
+      "min_version": "3.24.0"
+    }
+  }
+}
