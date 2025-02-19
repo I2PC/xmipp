@@ -69,7 +69,7 @@ ProgClassifyPartialOccupancy::~ProgClassifyPartialOccupancy()
 	XmippMetadataProgram::readParams();
  	fnVolR = getParam("--ref");
 	fnMaskRoi=getParam("--mask_roi");
-	fnMaskProtein=getParam("--mask_roi");
+	fnMaskProtein=getParam("--mask_protein");
 	padFourier = getDoubleParam("--padding");
 	fnProj = getParam("--save"); 
 	realSpaceProjector = checkParam("--realSpaceProjection");
@@ -101,15 +101,15 @@ ProgClassifyPartialOccupancy::~ProgClassifyPartialOccupancy()
     //Parameters
 	XmippMetadataProgram::defineParams();
     addParamsLine("--ref <volume>\t: Reference volume to subtract");
-    addParamsLine("--mask_protein <mask_roi=\"\">     : 3D mask for region of the specimen");
-    addParamsLine("--mask_roi <mask_roi=\"\">     : 3D mask for region of interest to keep or subtract, no mask implies subtraction of whole images");
-	addParamsLine("--save <structure=\"\">		: Path for saving intermediate files");
+    addParamsLine("--mask_protein <mask_roi=\"\">	: 3D mask for region of the specimen");
+    addParamsLine("--mask_roi <mask_roi=\"\">     	: 3D mask for region of interest to keep or subtract, no mask implies subtraction of whole images");
+	addParamsLine("--save <structure=\"\">			: Path for saving intermediate files");
 	addParamsLine("[--realSpaceProjection]			: Project volume in real space to avoid Fourier artifacts");
 	addParamsLine("[--padding <p=2>]				: Padding factor for Fourier projector");
 
 	// Example
     addExampleLine("A typical use is:",false);
-    addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask_roi mask_vol.mrc -o output_particles");
+    addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask_roi mask_roi_vol.mrc --mask_protein mask_protein_vol.mrc -o output_particles");
  }
 
  // I/O methods ===================================================================
