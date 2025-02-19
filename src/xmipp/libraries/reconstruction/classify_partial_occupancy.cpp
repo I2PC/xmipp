@@ -239,6 +239,37 @@ void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<
 	#endif
 }
 
+void ProgClassifyPartialOccupancy::logLikelyhood(Image<double> &I, Image<double> &P, Image<double> &M_P, Image<double> &M_Roi)
+{	
+	MultidimArray<double> &mI=I();
+	MultidimArray<double> &mP=P();
+
+	double sigma2 = 0;
+	double ll = 0;
+	size_t nPixelsLL = 0;
+	size_t nPixelsSigma = 0;
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
+	{
+		// Only region of protien
+		if(DIRECT_MULTIDIM_ELEM(M_P, n) >0)
+		{
+			ll = (DIRECT_MULTIDIM_ELEM(mI, n) - DIRECT_MULTIDIM_ELEM(mP, n)) * (DIRECT_MULTIDIM_ELEM(mI, n) - DIRECT_MULTIDIM_ELEM(mP, n));
+			nPixelsLL++;
+
+			// Exclude ROI from noise analysis
+			if (DIRECT_MULTIDIM_ELEM(M_P, n) == 0)
+			{
+				sigma2 += DIRECT_MULTIDIM_ELEM(mI, n) * DIRECT_MULTIDIM_ELEM(mI, n);
+				nPixelsSigma++;
+			}
+		}
+	}
+
+	sigma2 /= nPixelsSigma;
+	ll = (-1 / (2*sigma2)) * ll - nPixelsLL* log(2*PI*sigma2)/2;
+}
+
  // Main methods ===================================================================
 void ProgClassifyPartialOccupancy::preProcess() 
 {
@@ -343,3 +374,4 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 
 	writeParticle(rowOut, fnImgOut, Iw, avg, std, zScore); 
 }
+git    
