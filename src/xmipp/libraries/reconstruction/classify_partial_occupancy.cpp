@@ -70,6 +70,7 @@ ProgClassifyPartialOccupancy::~ProgClassifyPartialOccupancy()
 	XmippMetadataProgram::readParams();
  	fnVolR = getParam("--ref");
 	fnMaskRoi=getParam("--mask_roi");
+	fnMaskProtein=getParam("--mask_roi");
 	padFourier = getDoubleParam("--padding");
 	fnProj = getParam("--save"); 
 	realSpaceProjector = checkParam("--realSpaceProjection");
@@ -83,6 +84,7 @@ ProgClassifyPartialOccupancy::~ProgClassifyPartialOccupancy()
 	std::cout
 	<< "Input particles:\t" << fnParticles << std::endl
 	<< "Reference volume:\t" << fnVolR << std::endl
+	<< "Mask of the protein region:\t" << fnMaskProtein << std::endl
 	<< "Mask of the region of interest to keep or subtract:\t" << fnMaskRoi << std::endl
 	<< "Padding factor:\t" << padFourier << std::endl
 	<< "Output particles:\t" << fnOut << std::endl;
@@ -100,6 +102,7 @@ ProgClassifyPartialOccupancy::~ProgClassifyPartialOccupancy()
     //Parameters
 	XmippMetadataProgram::defineParams();
     addParamsLine("--ref <volume>\t: Reference volume to subtract");
+    addParamsLine("--mask_protein <mask_roi=\"\">     : 3D mask for region of the specimen");
     addParamsLine("--mask_roi <mask_roi=\"\">     : 3D mask for region of interest to keep or subtract, no mask implies subtraction of whole images");
 	addParamsLine("--save <structure=\"\">		: Path for saving intermediate files");
 	addParamsLine("[--realSpaceProjection]			: Project volume in real space to avoid Fourier artifacts");
@@ -254,10 +257,6 @@ void ProgClassifyPartialOccupancy::preProcess()
 	}
 
 	// Create 2D circular mask to avoid edge artifacts after wrapping
-	size_t Xdim;
-	size_t Ydim;
-	size_t Zdim;
-	size_t Ndim;
 	V.getDimensions(Xdim, Ydim, Zdim, Ndim);
 
 	I().initZeros((int)Ydim, (int)Xdim);
@@ -297,21 +296,29 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 
 	processParticle(rowIn, sizeI);
 
+	// Read Protein mask
+	vMaskP.read(fnMaskProtein);
+	vMaskP().setXmippOrigin();
+
 	// Read ROI mask
-	vM.read(fnMaskRoi);
-	vM().setXmippOrigin();
+	vMaskRoi.read(fnMaskRoi);
+	vMaskRoi().setXmippOrigin();
 
 	// Build projected and final masks. Mask projection is always calculated in real space
-	projectVolume(vM(), PmaskRoi, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
+	projectVolume(vMaskP(), PmaskProtein, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
+	projectVolume(vMaskRoi(), PmaskRoi, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
 
 	// Apply binarization, shift and gaussian filter to the projected mask
+	M_P = binarizeMask(PmaskProtein);
 	M = binarizeMask(PmaskRoi);
 
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t dotPos = fnImgOut.find_last_of('.');
 	P.write(fnImgOut.substr(0, dotPos) + "_P" + fnImgOut.substr(dotPos));
-	PmaskRoi.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi" + fnImgOut.substr(dotPos));
-	M.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi" + fnImgOut.substr(dotPos));
+	// PmaskProtein.write(fnImgOut.substr(0, dotPos) + "_PmaskProtein" + fnImgOut.substr(dotPos));
+	// PmaskRoi.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi" + fnImgOut.substr(dotPos));
+	M_P.write(fnImgOut.substr(0, dotPos) + "_PmaskProtein_Norm" + fnImgOut.substr(dotPos));
+	M.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi_Norm" + fnImgOut.substr(dotPos));
 	#endif
 
 	// Create empty new image for output particle
@@ -335,9 +342,4 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 	computeParticleStats(Iw, M, fnImgOut, avg, std, zScore);
 
 	writeParticle(rowOut, fnImgOut, Iw, avg, std, zScore); 
-}
-
-void ProgClassifyPartialOccupancy::postProcess()
-{
-	getOutputMd().write(fn_out);
 }

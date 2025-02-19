@@ -50,7 +50,14 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
 	FileName fnImgI; // Particle filename
     FileName fnOut; // Output metadata
     FileName fnMaskRoi; // Input 3D mask for region of interest to keep or subtract
+    FileName fnMaskProtein; // Input 3D mask for the specimen
     FileName fnProj; // Path to save intermediate files
+
+    // Particle dimensions
+    size_t Xdim;
+	size_t Ydim;
+	size_t Zdim;
+	size_t Ndim;
 
 	double padFourier; 
     int maxwiIdx;
@@ -59,14 +66,16 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
 
     // Data variables
  	Image<double> V; // volume
- 	Image<double> vM; // mask 3D
+ 	Image<double> vMaskRoi; // ROI mask 3D
+ 	Image<double> vMaskP; // Protein mask 3D
 
  	Image<double> M; // mask projected and smooth
+ 	Image<double> M_P; // mask protein projected and smooth
  	Image<double> I; // particle
     Image<double> Iw; // weighter image
 
  	Projection P; // projection
- 	Projection Pmask; // mask projection for the protein
+ 	Projection PmaskProtein; // mask projection for the protein
  	Projection PmaskRoi; // mask projection for region to keep
 
     const MultidimArray<double> *ctfImage = nullptr; // needed for FourierProjector
@@ -133,7 +142,8 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
     void defineParams() override;
     void preProcess() override;
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
-    void postProcess() override;
+    void logLikelyhood(Image<double> &I, Image<double> &P, Image<double> &M_P, Image<double> &M_Roi);
+
  };
  //@}
 #endif
