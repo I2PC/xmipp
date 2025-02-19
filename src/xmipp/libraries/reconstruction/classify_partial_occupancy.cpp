@@ -277,19 +277,11 @@ void ProgClassifyPartialOccupancy::preProcess()
 	V.read(fnVolR);
 	V().setXmippOrigin();
 
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
-	{
-		if (DIRECT_MULTIDIM_ELEM(V(), n) < 0)
-		{
-			DIRECT_MULTIDIM_ELEM(V(), n) = 0;
-		}
-		
-	}
-
 	// Create 2D circular mask to avoid edge artifacts after wrapping
 	V.getDimensions(Xdim, Ydim, Zdim, Ndim);
 
-	I().initZeros((int)Ydim, (int)Xdim);
+	I().initZeros((int)Ydim, (int)Xdim);  //*** dimensions should be read from particles
+	noiseAverage.initZeros();
 
 	// Initialize projectors
 	double cutFreq = 0.5;
@@ -305,6 +297,10 @@ void ProgClassifyPartialOccupancy::preProcess()
 			std::cout << "Volume ---> FourierProjector(V(),"<<padFourier<<","<<cutFreq<<","<<xmipp_transformation::BSPLINE3<<");"<< std::endl;
 
 			std::cout << "-------Projectors initialized-------" << std::endl;
+
+			std::cout << "-------Estimating noise -------" << std::endl;
+			noiseEstimation();
+			std::cout << "-------Noise estimated -------" << std::endl;
 		}
 	}
 	else
@@ -372,3 +368,86 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 }
 
 
+void ProgClassifyPartialOccupancy::noiseEstimation()
+{
+	MetaData &mdIn = *getInputMd();
+
+    srand(time(0)); // Seed for random number generation
+    int maxX = Xdim - cropSize;
+    int maxY = Ydim - cropSize;
+
+    bool hasZero;
+	size_t processedParticles = 0;
+
+	Image<double> combinedMasks =  vMaskRoi() + vMaskP();
+    MultidimArray< double > noiseCrop;
+	noiseAverage.initZeros((int)Ydim, (int)Xdim);
+
+	// Iterate particles
+	for (const auto& r : mdIn)
+	{
+		std::cout << "Processing particle " << processedParticles << " for noise estimation." << std::endl;
+
+		r.getValueOrDefault(MDL_IMAGE, fnImgI, "no_filename");
+		I.read(fnImgI);
+		I().setXmippOrigin();
+
+		r.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
+		r.getValueOrDefault(MDL_ANGLE_TILT, part_angles.tilt, 0);
+		r.getValueOrDefault(MDL_ANGLE_PSI, part_angles.psi, 0);
+		roffset.initZeros(2);
+		r.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
+		r.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
+		roffset *= -1;
+
+		projectVolume(combinedMasks(), PmaskProtein, Xdim, Ydim, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
+
+		do {
+			bool hasZero = false;
+			noiseCrop.initZeros((int)Ydim, (int)Xdim);
+
+			int x = rand() % maxX;
+			int y = rand() % maxY;
+
+			for (size_t i = y; i < y + cropSize; i++)
+			{
+				for (size_t j = x; j < x + cropSize; j++)
+				{
+					if (DIRECT_A2D_ELEM(PmaskProtein(), i, j) == 0)
+					{
+						hasZero = true;
+					}
+
+					DIRECT_A2D_ELEM(noiseCrop, i, j) == DIRECT_A2D_ELEM(I(), i, j);
+				}
+			}
+
+		} while (hasZero);
+
+		processedParticles++;
+
+		if (processedParticles > numberParticlesForNoiseEstimation)
+		{
+			break;
+		}
+
+		noiseAverage += noiseCrop * noiseCrop;
+	}
+
+	noiseAverage /= numberParticlesForNoiseEstimation;
+	transformerNoise.FourierTransform(noiseAverage, noiseAverageSpectrum, false);
+
+	size_t lastindex = fnOut.find_last_of(".");
+	std::string rawname = fnOut.substr(0, lastindex);
+	
+	std::string debugFileFn = rawname + "_noiseAvg.mrc";
+	Image<double> saveImage;
+	saveImage() = noiseAverage;
+	saveImage.write(debugFileFn);
+
+	MultidimArray< double > realNoiseAverageSpectrum;
+	noiseAverageSpectrum.getReal(realNoiseAverageSpectrum);
+	saveImage() = realNoiseAverageSpectrum;
+	debugFileFn = rawname + "_noiseAvgFT.mrc";
+	saveImage.write(debugFileFn);
+}

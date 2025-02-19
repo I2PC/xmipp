@@ -53,11 +53,11 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
     FileName fnMaskProtein; // Input 3D mask for the specimen
     FileName fnProj; // Path to save intermediate files
 
-    // Particle dimensions
+    // Volume dimensions
     size_t Xdim;
-	size_t Ydim;
-	size_t Zdim;
-	size_t Ndim;
+    size_t Ydim;
+    size_t Zdim;
+    size_t Ndim;
 
 	double padFourier; 
     int maxwiIdx;
@@ -114,7 +114,14 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
     int rank; // for MPI version
     FourierProjector *projector;
 
-    
+    // Params for noise estimation
+    size_t numberParticlesForNoiseEstimation = 1000;
+    size_t cropSize = 11;
+    MultidimArray< double > noiseAverage;
+    MultidimArray< std::complex<double> > noiseAverageSpectrum;
+    FourierTransformer transformerNoise;
+
+
 
 public:
 
@@ -133,6 +140,8 @@ public:
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
     void logLikelyhood(Image<double> &I, Image<double> &P, Image<double> &M_P, Image<double> &M_Roi);
     void preProcess() override;
+    void noiseEstimation();
+
 
     // ---------------------- UTILS functions ------------------------------
     /// Processing methods
