@@ -54,7 +54,6 @@ ProgClassifyPartialOccupancy::ProgClassifyPartialOccupancy()
     each_image_produces_an_output = true;
     keep_input_columns = true;
 	save_metadata_stack = true;
-    remove_disabled = false;
 	projector = nullptr;
 	rank = 0;
 }
@@ -319,9 +318,6 @@ void ProgClassifyPartialOccupancy::preProcess()
 
 void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
  { 
-	// Initialize aux variable
-	disable = false;
-
 	// Project volume and process projections 
 	const auto sizeI = (int)XSIZE(I());
 
@@ -374,4 +370,5 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 
 	writeParticle(rowOut, fnImgOut, Iw, avg, std, zScore); 
 }
-git    
+
+

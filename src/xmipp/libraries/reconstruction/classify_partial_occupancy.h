@@ -89,7 +89,6 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
     MultidimArray< std::complex<double> > IiMFourier;
 	MultidimArray< std::complex<double> > PiMFourier;
 
-
     FourierTransformer transformerIiM;
 	FourierTransformer transformerPiM;
 
@@ -112,38 +111,42 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
     };
     struct Angles part_angles; 
 
-    bool disable;
+    int rank; // for MPI version
+    FourierProjector *projector;
+
+    
+
+public:
+
+    // ---------------------- IN/OUT FUNCTIONS -----------------------------
+    // Define parameters
+    void defineParams() override;
+    // Read argument from command line
+    void readParams() override;
+    // Show
+    void show() const override;
     /// Read and write methods
     void readParticle(const MDRow &rowIn);
     void writeParticle(MDRow &rowOut, FileName, Image<double> &, double, double, double);
+
+    // ----------------------- MAIN FUNCTIONS ------------------------------
+    void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
+    void logLikelyhood(Image<double> &I, Image<double> &P, Image<double> &M_P, Image<double> &M_Roi);
+    void preProcess() override;
+
+    // ---------------------- UTILS functions ------------------------------
     /// Processing methods
     Image<double> binarizeMask(Projection &) const;
     Image<double> invertMask(const Image<double> &);
     void processParticle(const MDRow &rowIn, int sizeImg);
     void computeParticleStats(Image<double> &I, Image<double> &M, FileName fnImgOut, double &avg, double &std, double &zScore);
-
-
-    int rank; // for MPI version
-    FourierProjector *projector;
+    // --------------------------- MAIN ------------------------------------
 
     // Empty constructor
     ProgClassifyPartialOccupancy();
 
     // Destructor
     ~ProgClassifyPartialOccupancy();
-
-    // Read argument from command line
-    void readParams() override;
-
-    // Show
-    void show() const override;
-
-    // Define parameters
-    void defineParams() override;
-    void preProcess() override;
-    void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
-    void logLikelyhood(Image<double> &I, Image<double> &P, Image<double> &M_P, Image<double> &M_Roi);
-
  };
  //@}
 #endif
