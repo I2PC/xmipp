@@ -23,18 +23,19 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
- #ifndef _PROG_CLASSIFY_PARTIAL_OCCUPANCY
- #define _PROG_CLASSIFY_PARTIAL_OCCUPANCY
+#ifndef _PROG_CLASSIFY_PARTIAL_OCCUPANCY
+#define _PROG_CLASSIFY_PARTIAL_OCCUPANCY
 
- #include "core/metadata_vec.h"
- #include "core/xmipp_program.h"
- #include "core/xmipp_image.h"
- #include "data/fourier_filter.h"
- #include "data/fourier_projection.h"
- #include "core/xmipp_metadata_program.h"
+#include "core/metadata_vec.h"
+#include "core/xmipp_program.h"
+#include "core/xmipp_image.h"
+#include "data/fourier_filter.h"
+#include "data/fourier_projection.h"
+#include "core/xmipp_metadata_program.h"
 
- #define DEBUG
- #define DEBUG_OUTPUT_FILES
+#define DEBUG
+#define DEBUG_NOISE_CALCULATION
+#define DEBUG_OUTPUT_FILES
 
 /**@defgroup ProgClassifyPartialOccupancy Subtract projections
    @ingroup ReconsLibrary */
@@ -46,9 +47,7 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
  public:
     // Input params
     FileName fnVolR; // Input reference volume
-    FileName fnParticles; // Input metadata
 	FileName fnImgI; // Particle filename
-    FileName fnOut; // Output metadata
     FileName fnMaskRoi; // Input 3D mask for region of interest to keep or subtract
     FileName fnMaskProtein; // Input 3D mask for the specimen
     FileName fnProj; // Path to save intermediate files
@@ -115,7 +114,7 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
     FourierProjector *projector;
 
     // Params for noise estimation
-    size_t numberParticlesForNoiseEstimation = 1000;
+    size_t numberParticlesForNoiseEstimation = 5000;
     size_t cropSize = 11;
     MultidimArray< double > noiseAverage;
     MultidimArray< std::complex<double> > noiseAverageSpectrum;

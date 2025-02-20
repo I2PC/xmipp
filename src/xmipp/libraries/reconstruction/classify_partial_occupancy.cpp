@@ -81,12 +81,12 @@ ProgClassifyPartialOccupancy::~ProgClassifyPartialOccupancy()
     if (!verbose)
         return;
 	std::cout
-	<< "Input particles:\t" << fnParticles << std::endl
+	<< "Input particles:\t" << fn_in << std::endl
 	<< "Reference volume:\t" << fnVolR << std::endl
 	<< "Mask of the protein region:\t" << fnMaskProtein << std::endl
 	<< "Mask of the region of interest to keep or subtract:\t" << fnMaskRoi << std::endl
 	<< "Padding factor:\t" << padFourier << std::endl
-	<< "Output particles:\t" << fnOut << std::endl;
+	<< "Output particles:\t" << fn_out << std::endl;
  }
 
  // Usage ===================================================================
@@ -277,6 +277,14 @@ void ProgClassifyPartialOccupancy::preProcess()
 	V.read(fnVolR);
 	V().setXmippOrigin();
 
+	// Read Protein mask
+	vMaskP.read(fnMaskProtein);
+	vMaskP().setXmippOrigin();
+
+	// Read ROI mask
+	vMaskRoi.read(fnMaskRoi);
+	vMaskRoi().setXmippOrigin();
+
 	// Create 2D circular mask to avoid edge artifacts after wrapping
 	V.getDimensions(Xdim, Ydim, Zdim, Ndim);
 
@@ -292,14 +300,16 @@ void ProgClassifyPartialOccupancy::preProcess()
 		{
 			// Initialize Fourier projectors
 			std::cout << "-------Initializing projectors-------" << std::endl;
-			
+
 			projector = new FourierProjector(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 			std::cout << "Volume ---> FourierProjector(V(),"<<padFourier<<","<<cutFreq<<","<<xmipp_transformation::BSPLINE3<<");"<< std::endl;
 
 			std::cout << "-------Projectors initialized-------" << std::endl;
 
 			std::cout << "-------Estimating noise -------" << std::endl;
+
 			noiseEstimation();
+
 			std::cout << "-------Noise estimated -------" << std::endl;
 		}
 	}
@@ -318,14 +328,6 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 	const auto sizeI = (int)XSIZE(I());
 
 	processParticle(rowIn, sizeI);
-
-	// Read Protein mask
-	vMaskP.read(fnMaskProtein);
-	vMaskP().setXmippOrigin();
-
-	// Read ROI mask
-	vMaskRoi.read(fnMaskRoi);
-	vMaskRoi().setXmippOrigin();
 
 	// Build projected and final masks. Mask projection is always calculated in real space
 	projectVolume(vMaskP(), PmaskProtein, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
@@ -376,16 +378,20 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
     int maxX = Xdim - cropSize;
     int maxY = Ydim - cropSize;
 
-    bool hasZero;
+    bool invalidRegion;
 	size_t processedParticles = 0;
 
-	Image<double> combinedMasks =  vMaskRoi() + vMaskP();
     MultidimArray< double > noiseCrop;
 	noiseAverage.initZeros((int)Ydim, (int)Xdim);
+
+	std::cout << "Number of particles to be processed for noise estimation: " << numberParticlesForNoiseEstimation << std::endl;
 
 	// Iterate particles
 	for (const auto& r : mdIn)
 	{
+		#ifdef DEBUG_NOISE_CALCULATION
+		std::cout << "Processing particle " << processedParticles << " for noise estimation." << std::endl;
+		#endif
 		std::cout << "Processing particle " << processedParticles << " for noise estimation." << std::endl;
 
 		r.getValueOrDefault(MDL_IMAGE, fnImgI, "no_filename");
@@ -400,48 +406,52 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 		r.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 		roffset *= -1;
 
-		projectVolume(combinedMasks(), PmaskProtein, Xdim, Ydim, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
+		projectVolume(vMaskP(), PmaskProtein, Xdim, Ydim, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
+		projectVolume(vMaskRoi(), PmaskRoi, Xdim, Ydim, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
 
 		do {
-			bool hasZero = false;
+			invalidRegion = false;
 			noiseCrop.initZeros((int)Ydim, (int)Xdim);
 
 			int x = rand() % maxX;
 			int y = rand() % maxY;
 
+			#ifdef DEBUG_NOISE_CALCULATION
+			std::cout << "x  " << x << " y " << y << std::endl;
+			#endif
+
 			for (size_t i = y; i < y + cropSize; i++)
 			{
 				for (size_t j = x; j < x + cropSize; j++)
 				{
-					if (DIRECT_A2D_ELEM(PmaskProtein(), i, j) == 0)
+					if (DIRECT_A2D_ELEM(PmaskProtein(), i, j) == 0 || DIRECT_A2D_ELEM(PmaskRoi(), i, j) > 0 )
 					{
-						hasZero = true;
+						invalidRegion = true;
 					}
 
-					DIRECT_A2D_ELEM(noiseCrop, i, j) == DIRECT_A2D_ELEM(I(), i, j);
+					DIRECT_A2D_ELEM(noiseCrop, i, j) = DIRECT_A2D_ELEM(I(), i, j);
 				}
 			}
+		} while (invalidRegion);
 
-		} while (hasZero);
-
+		noiseAverage += (noiseCrop * noiseCrop);
 		processedParticles++;
 
 		if (processedParticles > numberParticlesForNoiseEstimation)
 		{
 			break;
 		}
-
-		noiseAverage += noiseCrop * noiseCrop;
 	}
 
 	noiseAverage /= numberParticlesForNoiseEstimation;
 	transformerNoise.FourierTransform(noiseAverage, noiseAverageSpectrum, false);
 
-	size_t lastindex = fnOut.find_last_of(".");
-	std::string rawname = fnOut.substr(0, lastindex);
-	
-	std::string debugFileFn = rawname + "_noiseAvg.mrc";
+
+	#ifdef DEBUG_OUTPUT_FILES
+	size_t lastindex = fn_out.find_last_of(".");
+	std::string rawname = fn_out.substr(0, lastindex);
 	Image<double> saveImage;
+	std::string debugFileFn = rawname + "_noiseAvg.mrc";
 	saveImage() = noiseAverage;
 	saveImage.write(debugFileFn);
 
@@ -450,4 +460,5 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 	saveImage() = realNoiseAverageSpectrum;
 	debugFileFn = rawname + "_noiseAvgFT.mrc";
 	saveImage.write(debugFileFn);
+	#endif
 }
