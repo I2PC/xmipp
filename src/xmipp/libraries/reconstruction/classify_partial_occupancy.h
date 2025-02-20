@@ -79,6 +79,7 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
     const MultidimArray<double> *ctfImage = nullptr; // needed for FourierProjector
 	FourierTransformer transformerP; // Fourier transformer for projection
     FourierTransformer transformerI; // Fourier transformer for particle
+    FourierTransformer transformerIsubP; // Fourier transformer for particle with subtracted projection
     
     MultidimArray< std::complex<double> > IFourier; // FT(particle)
 	MultidimArray< std::complex<double> > PFourier; // FT(projection)

@@ -238,17 +238,24 @@ void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<
 
 void ProgClassifyPartialOccupancy::logLikelyhood(Image<double> &I)
 {	
+	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
+	selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
+
 	MultidimArray< std::complex<double> > fftI;
 	transformerI.FourierTransform(I(), fftI, false);
 
-	std::complex<double> ll(0.0, 0.0);
+	Image< double > IsubP = I() - P();
+	MultidimArray< std::complex<double> > fftIsubP;
+	transformerIsubP(IsubP(), fftIsubP, false)
+
+	std::complex<double> ll_I(0.0, 0.0);
+	std::complex<double> ll_IsubP(0.0, 0.0);
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI)
 	{
-		ll += DIRECT_MULTIDIM_ELEM(fftI, n) * DIRECT_MULTIDIM_ELEM(fftI, n) / DIRECT_MULTIDIM_ELEM(noiseAverageSpectrum, n);
+		ll_I += DIRECT_MULTIDIM_ELEM(fftI, n) * DIRECT_MULTIDIM_ELEM(fftI, n) / DIRECT_MULTIDIM_ELEM(noiseAverageSpectrum, n);
+		ll_IsubP += DIRECT_MULTIDIM_ELEM(fftI, n) * DIRECT_MULTIDIM_ELEM(fftI, n) / DIRECT_MULTIDIM_ELEM(noiseAverageSpectrum, n);
 	}
-
-	transformerI.inverseFourierTransform();
 }
 
  // Main methods ===================================================================
