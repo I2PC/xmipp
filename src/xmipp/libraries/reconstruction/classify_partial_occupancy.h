@@ -34,7 +34,7 @@
 #include "core/xmipp_metadata_program.h"
 
 #define DEBUG
-#define DEBUG_NOISE_CALCULATION
+// #define DEBUG_NOISE_CALCULATION
 #define DEBUG_OUTPUT_FILES
 
 /**@defgroup ProgClassifyPartialOccupancy Subtract projections
@@ -137,7 +137,7 @@ public:
 
     // ----------------------- MAIN FUNCTIONS ------------------------------
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
-    void logLikelyhood(Image<double> &I, Image<double> &P, Image<double> &M_P, Image<double> &M_Roi);
+    void logLikelyhood(Image<double> &I);
     void preProcess() override;
     void noiseEstimation();
 

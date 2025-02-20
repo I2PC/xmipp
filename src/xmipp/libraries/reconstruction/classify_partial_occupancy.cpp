@@ -238,35 +238,19 @@ void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<
 	#endif
 }
 
-void ProgClassifyPartialOccupancy::logLikelyhood(Image<double> &I, Image<double> &P, Image<double> &M_P, Image<double> &M_Roi)
+void ProgClassifyPartialOccupancy::logLikelyhood(Image<double> &I)
 {	
-	MultidimArray<double> &mI=I();
-	MultidimArray<double> &mP=P();
+	MultidimArray< std::complex<double> > fftI;
+	transformerI.FourierTransform(I(), fftI, false);
 
-	double sigma2 = 0;
-	double ll = 0;
-	size_t nPixelsLL = 0;
-	size_t nPixelsSigma = 0;
+	std::complex<double> ll(0.0, 0.0);
 
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI)
 	{
-		// Only region of protien
-		if(DIRECT_MULTIDIM_ELEM(M_P, n) >0)
-		{
-			ll = (DIRECT_MULTIDIM_ELEM(mI, n) - DIRECT_MULTIDIM_ELEM(mP, n)) * (DIRECT_MULTIDIM_ELEM(mI, n) - DIRECT_MULTIDIM_ELEM(mP, n));
-			nPixelsLL++;
-
-			// Exclude ROI from noise analysis
-			if (DIRECT_MULTIDIM_ELEM(M_P, n) == 0)
-			{
-				sigma2 += DIRECT_MULTIDIM_ELEM(mI, n) * DIRECT_MULTIDIM_ELEM(mI, n);
-				nPixelsSigma++;
-			}
-		}
+		ll += DIRECT_MULTIDIM_ELEM(fftI, n) * DIRECT_MULTIDIM_ELEM(fftI, n) / DIRECT_MULTIDIM_ELEM(noiseAverageSpectrum, n);
 	}
 
-	sigma2 /= nPixelsSigma;
-	ll = (-1 / (2*sigma2)) * ll - nPixelsLL* log(2*PI*sigma2)/2;
+	transformerI.inverseFourierTransform();
 }
 
  // Main methods ===================================================================
@@ -340,8 +324,6 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t dotPos = fnImgOut.find_last_of('.');
 	P.write(fnImgOut.substr(0, dotPos) + "_P" + fnImgOut.substr(dotPos));
-	// PmaskProtein.write(fnImgOut.substr(0, dotPos) + "_PmaskProtein" + fnImgOut.substr(dotPos));
-	// PmaskRoi.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi" + fnImgOut.substr(dotPos));
 	M_P.write(fnImgOut.substr(0, dotPos) + "_PmaskProtein_Norm" + fnImgOut.substr(dotPos));
 	M.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi_Norm" + fnImgOut.substr(dotPos));
 	#endif
