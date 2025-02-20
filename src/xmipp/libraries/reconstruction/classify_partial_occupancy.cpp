@@ -71,7 +71,6 @@ ProgClassifyPartialOccupancy::~ProgClassifyPartialOccupancy()
 	fnMaskRoi=getParam("--mask_roi");
 	fnMaskProtein=getParam("--mask_protein");
 	padFourier = getDoubleParam("--padding");
-	fnProj = getParam("--save"); 
 	realSpaceProjector = checkParam("--realSpaceProjection");
  }
 
@@ -103,7 +102,6 @@ ProgClassifyPartialOccupancy::~ProgClassifyPartialOccupancy()
     addParamsLine("--ref <volume>\t: Reference volume to subtract");
     addParamsLine("--mask_protein <mask_roi=\"\">	: 3D mask for region of the specimen");
     addParamsLine("--mask_roi <mask_roi=\"\">     	: 3D mask for region of interest to keep or subtract, no mask implies subtraction of whole images");
-	addParamsLine("--save <structure=\"\">			: Path for saving intermediate files");
 	addParamsLine("[--realSpaceProjection]			: Project volume in real space to avoid Fourier artifacts");
 	addParamsLine("[--padding <p=2>]				: Padding factor for Fourier projector");
 
