@@ -238,24 +238,24 @@ void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<
 
 void ProgClassifyPartialOccupancy::logLikelyhood(Image<double> &I)
 {	
-	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
-	selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
+	// projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
+	// selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
 
-	MultidimArray< std::complex<double> > fftI;
-	transformerI.FourierTransform(I(), fftI, false);
+	// MultidimArray< std::complex<double> > fftI;
+	// transformerI.FourierTransform(I(), fftI, false);
 
-	Image< double > IsubP = I() - P();
-	MultidimArray< std::complex<double> > fftIsubP;
-	transformerIsubP(IsubP(), fftIsubP, false)
+	// Image< double > IsubP = I() - P();
+	// MultidimArray< std::complex<double> > fftIsubP;
+	// transformerIsubP(IsubP(), fftIsubP, false)
 
-	std::complex<double> ll_I(0.0, 0.0);
-	std::complex<double> ll_IsubP(0.0, 0.0);
+	// std::complex<double> ll_I(0.0, 0.0);
+	// std::complex<double> ll_IsubP(0.0, 0.0);
 
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI)
-	{
-		ll_I += DIRECT_MULTIDIM_ELEM(fftI, n) * DIRECT_MULTIDIM_ELEM(fftI, n) / DIRECT_MULTIDIM_ELEM(noiseAverageSpectrum, n);
-		ll_IsubP += DIRECT_MULTIDIM_ELEM(fftI, n) * DIRECT_MULTIDIM_ELEM(fftI, n) / DIRECT_MULTIDIM_ELEM(noiseAverageSpectrum, n);
-	}
+	// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI)
+	// {
+	// 	ll_I += DIRECT_MULTIDIM_ELEM(fftI, n) * DIRECT_MULTIDIM_ELEM(fftI, n) / DIRECT_MULTIDIM_ELEM(noiseAverageSpectrum, n);
+	// 	ll_IsubP += DIRECT_MULTIDIM_ELEM(fftI, n) * DIRECT_MULTIDIM_ELEM(fftI, n) / DIRECT_MULTIDIM_ELEM(noiseAverageSpectrum, n);
+	// }
 }
 
  // Main methods ===================================================================
@@ -278,7 +278,6 @@ void ProgClassifyPartialOccupancy::preProcess()
 	V.getDimensions(Xdim, Ydim, Zdim, Ndim);
 
 	I().initZeros((int)Ydim, (int)Xdim);  //*** dimensions should be read from particles
-	noiseAverage.initZeros();
 
 	// Initialize projectors
 	double cutFreq = 0.5;
@@ -369,7 +368,7 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 	size_t processedParticles = 0;
 
     MultidimArray< double > noiseCrop;
-	noiseAverage.initZeros((int)Ydim, (int)Xdim);
+	powerNoise.initZeros((int)Ydim, (int)Xdim);
 
 	std::cout << "Number of particles to be processed for noise estimation: " << numberParticlesForNoiseEstimation << std::endl;
 
@@ -407,45 +406,38 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 			std::cout << "x  " << x << " y " << y << std::endl;
 			#endif
 
-			for (size_t i = y; i < y + cropSize; i++)
+			for (size_t i = 0; i < y + cropSize; i++)
 			{
-				for (size_t j = x; j < x + cropSize; j++)
+				for (size_t j = 0; j < x + cropSize; j++)
 				{
-					if (DIRECT_A2D_ELEM(PmaskProtein(), i, j) == 0 || DIRECT_A2D_ELEM(PmaskRoi(), i, j) > 0 )
+					if (DIRECT_A2D_ELEM(PmaskProtein(), y + i, x + j) == 0 || DIRECT_A2D_ELEM(PmaskRoi(), y + i, x + j) > 0)
 					{
 						invalidRegion = true;
 					}
 
-					DIRECT_A2D_ELEM(noiseCrop, i, j) = DIRECT_A2D_ELEM(I(), i, j);
+					DIRECT_A2D_ELEM(noiseCrop,  (Ydim/2) - (cropSize/2) + i, (Xdim/2) - (cropSize/2) + j) = DIRECT_A2D_ELEM(I(), y + i, x + j);
 				}
 			}
 		} while (invalidRegion);
 
-		noiseAverage += (noiseCrop * noiseCrop);
-		processedParticles++;
-
+		transformerNoise.FourierTransform(noiseCrop, noiseSpectrum, false);
+ 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(noiseSpectrum)
+			DIRECT_MULTIDIM_ELEM(powerNoise,n) += (DIRECT_MULTIDIM_ELEM(noiseSpectrum,n) * std::conj(DIRECT_MULTIDIM_ELEM(noiseSpectrum,n))).real();
+			
 		if (processedParticles > numberParticlesForNoiseEstimation)
 		{
 			break;
 		}
 	}
 
-	noiseAverage /= numberParticlesForNoiseEstimation;
-	transformerNoise.FourierTransform(noiseAverage, noiseAverageSpectrum, false);
-
-
+	powerNoise /= numberParticlesForNoiseEstimation;
+	
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t lastindex = fn_out.find_last_of(".");
 	std::string rawname = fn_out.substr(0, lastindex);
 	Image<double> saveImage;
-	std::string debugFileFn = rawname + "_noiseAvg.mrc";
-	saveImage() = noiseAverage;
-	saveImage.write(debugFileFn);
-
-	MultidimArray< double > realNoiseAverageSpectrum;
-	noiseAverageSpectrum.getReal(realNoiseAverageSpectrum);
-	saveImage() = realNoiseAverageSpectrum;
-	debugFileFn = rawname + "_noiseAvgFT.mrc";
+	std::string debugFileFn = rawname + "_noisePower.mrc";
+	saveImage() = powerNoise;
 	saveImage.write(debugFileFn);
 	#endif
 }

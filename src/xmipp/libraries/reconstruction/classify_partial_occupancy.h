@@ -116,8 +116,8 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
     // Params for noise estimation
     size_t numberParticlesForNoiseEstimation = 5000;
     size_t cropSize = 11;
-    MultidimArray< double > noiseAverage;
-    MultidimArray< std::complex<double> > noiseAverageSpectrum;
+    MultidimArray< std::complex<double> > noiseSpectrum;
+    MultidimArray< double > powerNoise;
     FourierTransformer transformerNoise;
 
 
