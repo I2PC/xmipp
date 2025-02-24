@@ -360,6 +360,15 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 {
 	MetaData &mdIn = *getInputMd();
 
+	numberParticlesForNoiseEstimation = 5000;
+	
+	if (mdIn.size() < numberParticlesForNoiseEstimation)
+	{
+		numberParticlesForNoiseEstimation = mdIn.size();
+	}
+	
+	numberParticlesForNoiseEstimation = 5000;
+
     srand(time(0)); // Seed for random number generation
     int maxX = Xdim - cropSize;
     int maxY = Ydim - cropSize;
@@ -402,22 +411,32 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 			int x = rand() % maxX;
 			int y = rand() % maxY;
 
-			#ifdef DEBUG_NOISE_CALCULATION
-			std::cout << "x  " << x << " y " << y << std::endl;
-			#endif
-
-			for (size_t i = 0; i < y + cropSize; i++)
+			for (size_t i = 0; i < cropSize; i++)
 			{
-				for (size_t j = 0; j < x + cropSize; j++)
+				for (size_t j = 0; j < cropSize; j++)
 				{
+					#ifdef DEBUG_NOISE_CALCULATION
+					std::cout << "--------------------------------------------------" << std::endl;
+					std::cout << "x  " << x << " y " << y  << std::endl;
+					std::cout << "i " << i << " j  " << j  << std::endl;
+					std::cout << "y + i  " << y + i << " x + j " << x + j << std::endl;
+					std::cout << "(Ydim/2) " << (Ydim/2) << " (Xdim/2) " << (Xdim/2) << std::endl;
+					std::cout << "(Ydim/2) - (cropSize/2) + i  " << (Ydim/2) - (cropSize/2) + i << " (Xdim/2) - (cropSize/2) + j " << (Xdim/2) - (cropSize/2) + j << std::endl;
+					#endif
+
 					if (DIRECT_A2D_ELEM(PmaskProtein(), y + i, x + j) == 0 || DIRECT_A2D_ELEM(PmaskRoi(), y + i, x + j) > 0)
 					{
 						invalidRegion = true;
+						break;
 					}
 
 					DIRECT_A2D_ELEM(noiseCrop,  (Ydim/2) - (cropSize/2) + i, (Xdim/2) - (cropSize/2) + j) = DIRECT_A2D_ELEM(I(), y + i, x + j);
 				}
-			}
+
+				if (invalidRegion) {
+					break;
+				}
+		}
 		} while (invalidRegion);
 
 		transformerNoise.FourierTransform(noiseCrop, noiseSpectrum, false);
@@ -428,9 +447,11 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 		{
 			break;
 		}
+
+		processedParticles++;
 	}
 
-	powerNoise /= numberParticlesForNoiseEstimation;
+	powerNoise /= processedParticles;
 	
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t lastindex = fn_out.find_last_of(".");
