@@ -36,7 +36,7 @@ Refer to `./xmipp --help` for additional info on the compilation process and pos
 
 Install the Scipion plugin.
 
-`scipion3 installp -p src/scipion-em-xmipp/ --devel`
+`scipion3 installp -p src/scipion-em-xmipp --devel`
 
 ## That's all
 

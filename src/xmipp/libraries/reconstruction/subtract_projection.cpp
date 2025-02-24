@@ -51,11 +51,6 @@
  // Empty constructor =======================================================
 ProgSubtractProjection::ProgSubtractProjection()
 {
-	produces_a_metadata = true;
-    each_image_produces_an_output = true;
-    keep_input_columns = true;
-	save_metadata_stack = true;
-    remove_disabled = false;
 	projector = nullptr;
 	rank = 0;
 }
@@ -107,13 +102,15 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	<< "Sigma of low pass filter:\t" << sigma << std::endl
 	<< "Sampling rate:\t" << sampling << std::endl
 	<< "Padding factor:\t" << padFourier << std::endl
-    << "Max. Resolution:\t" << maxResol << std::endl
-	<< "Output particles:\t" << fnOut << std::endl;
+    << "Max. Resolution:\t" << maxResol << std::endl;
  }
 
  // Usage ===================================================================
  void ProgSubtractProjection::defineParams()
  {
+	// Labels
+	each_image_produces_an_output = true;
+
 	//Usage
     addUsageLine("This program computes the subtraction between particles and a reference"); 
 	addUsageLine(" volume, by computing its projections with the same angles that input particles have."); 
@@ -538,8 +535,9 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 
 	double b = (meanI - meanP) / Nelems;
 
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
-		DIRECT_MULTIDIM_ELEM(I(), n) -= b;
+	I() -= b;
+	// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
+	// 	DIRECT_MULTIDIM_ELEM(I(), n) -= b;
 
 		// if(DIRECT_MULTIDIM_ELEM(PmaskImg(), n) > 0)
 		// {
@@ -670,9 +668,4 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	double zScore;
 
 	writeParticle(rowOut, fnImgOut, Idiff, R2adj(0), beta0save, beta1save, b, avg, std, zScore); 
-}
-
-void ProgSubtractProjection::postProcess()
-{
-	getOutputMd().write(fn_out);
 }
