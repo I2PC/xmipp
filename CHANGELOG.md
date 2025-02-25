@@ -1,7 +1,7 @@
 ## Release 3.24.X - 
    ### Xmipp Programs 
    - New programs
-        - 
+      - continuous_create_residuals: Make better residuals by continuous assignment updates to projections
 
    - Programs updated
       - 
@@ -21,7 +21,6 @@
         - denoising_tv: The program will make denoising using total variation
         - tomo_ctf_wiener2d_correction: This method performs a CTF correction of a tilt series
         - angular_continuous_assign2_gpu: Make a continuous angular assignment with GPU
-        - continuous_create_residuals: Make better residuals by continuous assignment updates to projections
         - cuda_fourier_projection
         - predict_deep_center
         - cl2d_clustering.py
