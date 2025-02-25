@@ -1,3 +1,19 @@
+## Release 3.24.X - 
+   ### Xmipp Programs 
+   - New programs
+        - 
+
+   - Programs updated
+      - 
+
+   - Programs fixed
+      - 
+
+   ### Installation and user guide
+   - 
+     
+   ### More Xmipp  
+
 ## Release 3.24.12.0 - Poseidon
    ### Xmipp Programs 
    - New programs
