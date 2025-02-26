@@ -59,11 +59,19 @@ if __name__ == "__main__":
 	# Running always under this own directory.
 	os.chdir(__getProjectRootDir())
 
-	# Install or update installer package
-	print("Installing/updating installer package...")
-	ret_code, output = __run_command("pip install --update xmipp3_installer")
+	# Install installer package if it's not there already
+	ret_code, output = __run_command("pip show xmipp3_installer")
 	if ret_code:
-		print(output)
-		print("Installation failed! See full error above.")
-		sys.exit(ret_code)
-	print("Completed. Launching installer")
+		print("Installing xmipp installer package. You should only see this message the first time you install Xmipp.")
+		ret_code, output = __run_command("pip install xmipp3_installer")
+		if ret_code:
+			print(output)
+			print("Installation failed! See full error above.")
+			sys.exit(ret_code)
+		print("Completed. Launching installer")
+
+	# Call xmipp installer
+	process = subprocess.run(["xmipp3_installer", *sys.argv[1:]])
+
+	# Exit with recieved code
+	sys.exit(process.ret_code)
