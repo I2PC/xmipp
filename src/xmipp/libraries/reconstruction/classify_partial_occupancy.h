@@ -34,6 +34,7 @@
 #include "core/xmipp_metadata_program.h"
 
 #define DEBUG
+#define VERBOSE_OUTPUT
 // #define DEBUG_NOISE_CALCULATION
 #define DEBUG_OUTPUT_FILES
 
@@ -114,12 +115,10 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
     FourierProjector *projector;
 
     // Params for noise estimation
-    size_t numberParticlesForNoiseEstimation;
+    size_t 	numberParticlesForNoiseEstimation = 5000;
     size_t cropSize = 11;
     MultidimArray< std::complex<double> > noiseSpectrum;
     MultidimArray< double > powerNoise;
-    FourierTransformer transformerNoise;
-
 
 
 public:

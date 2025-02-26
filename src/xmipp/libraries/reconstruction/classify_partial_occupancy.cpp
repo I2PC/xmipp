@@ -360,15 +360,6 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 {
 	MetaData &mdIn = *getInputMd();
 
-	numberParticlesForNoiseEstimation = 5000;
-	
-	if (mdIn.size() < numberParticlesForNoiseEstimation)
-	{
-		numberParticlesForNoiseEstimation = mdIn.size();
-	}
-	
-	numberParticlesForNoiseEstimation = 5000;
-
     srand(time(0)); // Seed for random number generation
     int maxX = Xdim - cropSize;
     int maxY = Ydim - cropSize;
@@ -377,17 +368,18 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 	size_t processedParticles = 0;
 
     MultidimArray< double > noiseCrop;
-	powerNoise.initZeros((int)Ydim, (int)Xdim);
+	powerNoise.initZeros((int)Ydim, (int)Xdim/2 +1);
 
+	#ifdef VERBOSE_OUTPUT
 	std::cout << "Number of particles to be processed for noise estimation: " << numberParticlesForNoiseEstimation << std::endl;
+	#endif
 
 	// Iterate particles
 	for (const auto& r : mdIn)
 	{
 		#ifdef DEBUG_NOISE_CALCULATION
-		std::cout << "Processing particle " << processedParticles << " for noise estimation." << std::endl;
+		std::cout << "Estimating noise from particle " << processedParticles + 1 << std::endl;
 		#endif
-		std::cout << "Processing particle " << processedParticles << " for noise estimation." << std::endl;
 
 		r.getValueOrDefault(MDL_IMAGE, fnImgI, "no_filename");
 		I.read(fnImgI);
@@ -427,6 +419,11 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 					if (DIRECT_A2D_ELEM(PmaskProtein(), y + i, x + j) == 0 || DIRECT_A2D_ELEM(PmaskRoi(), y + i, x + j) > 0)
 					{
 						invalidRegion = true;
+
+						#ifdef DEBUG_NOISE_CALCULATION
+					 	std::cout << "Invalid region. Trying again..." << std::endl;
+						#endif
+					
 						break;
 					}
 
@@ -439,16 +436,47 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 		}
 		} while (invalidRegion);
 
+		#ifdef DEBUG_OUTPUT_FILES
+		size_t lastindex = fn_out.find_last_of(".");
+		std::string rawname = fn_out.substr(0, lastindex);
+
+		Image<double> saveImage;
+		std::string debugFileFn = rawname + "_noiseCrop.mrc";
+
+		saveImage() = noiseCrop;
+		saveImage.write(debugFileFn);
+		#endif
+
+	    FourierTransformer transformerNoise;
 		transformerNoise.FourierTransform(noiseCrop, noiseSpectrum, false);
+
+		#ifdef DEBUG_OUTPUT_FILES
+		MultidimArray< double > noiseSpectrumReal;
+		noiseSpectrumReal.initZeros(YSIZE(noiseSpectrum), XSIZE(noiseSpectrum)); 
+
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(noiseSpectrum)
+			DIRECT_MULTIDIM_ELEM(noiseSpectrumReal,n) = DIRECT_MULTIDIM_ELEM(noiseSpectrum,n).real();
+
+		Image<double> saveImageHalf;
+		debugFileFn = rawname + "_noiseSpectrumReal.mrc";
+
+		saveImageHalf() = noiseSpectrumReal;
+		saveImageHalf.write(debugFileFn);
+		#endif
+
  		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(noiseSpectrum)
 			DIRECT_MULTIDIM_ELEM(powerNoise,n) += (DIRECT_MULTIDIM_ELEM(noiseSpectrum,n) * std::conj(DIRECT_MULTIDIM_ELEM(noiseSpectrum,n))).real();
 			
-		if (processedParticles > numberParticlesForNoiseEstimation)
+		#ifdef DEBUG_NOISE_CALCULATION
+		std::cout << "Noise estimated from particle " << processedParticles + 1 << " sucessfully." << std::endl;
+		#endif
+
+		processedParticles++;
+
+		if (processedParticles == numberParticlesForNoiseEstimation)
 		{
 			break;
 		}
-
-		processedParticles++;
 	}
 
 	powerNoise /= processedParticles;
