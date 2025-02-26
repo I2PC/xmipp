@@ -24,6 +24,7 @@
 # ***************************************************************************/
 
 import os, subprocess, sys
+from typing import Tuple
 
 def __getProjectRootDir() -> str:
 	"""
