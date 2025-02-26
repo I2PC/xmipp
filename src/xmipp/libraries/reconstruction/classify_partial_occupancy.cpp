@@ -321,7 +321,7 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 	projectVolume(vMaskP(), PmaskProtein, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
 	projectVolume(vMaskRoi(), PmaskRoi, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
 
-	// Apply binarization, shift and gaussian filter to the projected mask
+	// Apply binarization to projected mask
 	M_P = binarizeMask(PmaskProtein);
 	M = binarizeMask(PmaskRoi);
 
@@ -436,7 +436,7 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 		}
 		} while (invalidRegion);
 
-		#ifdef DEBUG_OUTPUT_FILES
+		#ifdef DEBUG_NOISE_CALCULATION
 		size_t lastindex = fn_out.find_last_of(".");
 		std::string rawname = fn_out.substr(0, lastindex);
 
@@ -450,7 +450,7 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 	    FourierTransformer transformerNoise;
 		transformerNoise.FourierTransform(noiseCrop, noiseSpectrum, false);
 
-		#ifdef DEBUG_OUTPUT_FILES
+		#ifdef DEBUG_NOISE_CALCULATION
 		MultidimArray< double > noiseSpectrumReal;
 		noiseSpectrumReal.initZeros(YSIZE(noiseSpectrum), XSIZE(noiseSpectrum)); 
 
@@ -484,8 +484,10 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t lastindex = fn_out.find_last_of(".");
 	std::string rawname = fn_out.substr(0, lastindex);
+
 	Image<double> saveImage;
 	std::string debugFileFn = rawname + "_noisePower.mrc";
+	
 	saveImage() = powerNoise;
 	saveImage.write(debugFileFn);
 	#endif
