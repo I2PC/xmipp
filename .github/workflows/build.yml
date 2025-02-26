@@ -29,11 +29,16 @@ jobs:
     
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
       - uses: actions/checkout@main
         with:
           fetch-depth: 0
           ref: ${{ github.head_ref }}
-      - run: echo ${{ github.head_ref }} && false
+      - run: echo ${{ steps.extract_branch.outputs.branch }} && false
       
       - name: Install dependencies
         run: |
