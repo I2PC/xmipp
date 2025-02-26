@@ -238,24 +238,24 @@ void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<
 
 void ProgClassifyPartialOccupancy::logLikelyhood(Image<double> &I)
 {	
-	// projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
-	// selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
+	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
+	selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
 
-	// MultidimArray< std::complex<double> > fftI;
-	// transformerI.FourierTransform(I(), fftI, false);
+	MultidimArray< std::complex<double> > fftI;
+	transformerI.FourierTransform(I(), fftI, false);
 
-	// Image< double > IsubP = I() - P();
-	// MultidimArray< std::complex<double> > fftIsubP;
-	// transformerIsubP(IsubP(), fftIsubP, false)
+	Image< double > IsubP = I() - P();
+	MultidimArray< std::complex<double> > fftIsubP;
+	transformerIsubP(IsubP(), fftIsubP, false)
 
-	// std::complex<double> ll_I(0.0, 0.0);
-	// std::complex<double> ll_IsubP(0.0, 0.0);
+	std::complex<double> ll_I(0.0, 0.0);
+	std::complex<double> ll_IsubP(0.0, 0.0);
 
-	// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI)
-	// {
-	// 	ll_I += DIRECT_MULTIDIM_ELEM(fftI, n) * DIRECT_MULTIDIM_ELEM(fftI, n) / DIRECT_MULTIDIM_ELEM(noiseAverageSpectrum, n);
-	// 	ll_IsubP += DIRECT_MULTIDIM_ELEM(fftI, n) * DIRECT_MULTIDIM_ELEM(fftI, n) / DIRECT_MULTIDIM_ELEM(noiseAverageSpectrum, n);
-	// }
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI)
+	{
+		ll_I += DIRECT_MULTIDIM_ELEM(fftI, n) * DIRECT_MULTIDIM_ELEM(fftI, n) / DIRECT_MULTIDIM_ELEM(noiseAverageSpectrum, n);
+		ll_IsubP += DIRECT_MULTIDIM_ELEM(fftI, n) * DIRECT_MULTIDIM_ELEM(fftI, n) / DIRECT_MULTIDIM_ELEM(noiseAverageSpectrum, n);
+	}
 }
 
  // Main methods ===================================================================
@@ -321,15 +321,17 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 	projectVolume(vMaskP(), PmaskProtein, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
 	projectVolume(vMaskRoi(), PmaskRoi, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
 
-	// Apply binarization to projected mask
-	M_P = binarizeMask(PmaskProtein);
-	M = binarizeMask(PmaskRoi);
+	// Apply binarization to projected mask, DO NOT NEEDED BECAUSE PROJECTING IN REAL SPACE
+	// M_P = binarizeMask(PmaskProtein);
+	// M = binarizeMask(PmaskRoi);
 
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t dotPos = fnImgOut.find_last_of('.');
 	P.write(fnImgOut.substr(0, dotPos) + "_P" + fnImgOut.substr(dotPos));
-	M_P.write(fnImgOut.substr(0, dotPos) + "_PmaskProtein_Norm" + fnImgOut.substr(dotPos));
-	M.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi_Norm" + fnImgOut.substr(dotPos));
+	PmaskProtein.write(fnImgOut.substr(0, dotPos) + "_PmaskProtein" + fnImgOut.substr(dotPos));
+	PmaskRoi.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi" + fnImgOut.substr(dotPos));
+	// M_P.write(fnImgOut.substr(0, dotPos) + "_PmaskProtein_Norm" + fnImgOut.substr(dotPos));
+	// M.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi_Norm" + fnImgOut.substr(dotPos));
 	#endif
 
 	// Create empty new image for output particle
@@ -369,10 +371,6 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 
     MultidimArray< double > noiseCrop;
 	powerNoise.initZeros((int)Ydim, (int)Xdim/2 +1);
-
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Number of particles to be processed for noise estimation: " << numberParticlesForNoiseEstimation << std::endl;
-	#endif
 
 	// Iterate particles
 	for (const auto& r : mdIn)
@@ -480,6 +478,10 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 	}
 
 	powerNoise /= processedParticles;
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Number of particles processed for noise estimation: " << processedParticles << std::endl;
+	#endif
 	
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t lastindex = fn_out.find_last_of(".");
@@ -487,7 +489,7 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 
 	Image<double> saveImage;
 	std::string debugFileFn = rawname + "_noisePower.mrc";
-	
+
 	saveImage() = powerNoise;
 	saveImage.write(debugFileFn);
 	#endif
