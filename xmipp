@@ -75,4 +75,4 @@ if __name__ == "__main__":
 	process = subprocess.run(["xmipp3_installer", *sys.argv[1:]])
 
 	# Exit with recieved code
-	sys.exit(process.ret_code)
+	sys.exit(process.returncode)
