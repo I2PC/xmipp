@@ -74,9 +74,9 @@ jobs:
           ./xmipp config
           cat xmipp.conf
           echo "CLEAN BIN"
-          ./xmipp cleanBin << "y"
+          echo "y" | ./xmipp cleanBin
           echo "CLEAN ALL"
-          ./xmipp cleanAll << "YeS"
+          echo "YeS" | ./xmipp cleanAll
 
       - name: Compile Xmipp with all dependencies in branch ${{ steps.extract_branch.outputs.branch }} (if such branch exists, default is devel)
         env:
