@@ -64,7 +64,7 @@ if __name__ == "__main__":
 	ret_code, output = __run_command("pip show xmipp3_installer")
 	if ret_code:
 		print("Installing xmipp installer package. You should only see this message the first time you install Xmipp.")
-		ret_code, output = __run_command("pip install xmipp3_installer")
+		ret_code, output = __run_command("cd .. && git clone https://github.com/I2PC/xmipp3-installer.git && cd xmipp3-installer && pip install .")
 		if ret_code:
 			print(output)
 			print("Installation failed! See full error above.")
