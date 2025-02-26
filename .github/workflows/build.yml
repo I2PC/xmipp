@@ -64,6 +64,21 @@ jobs:
           fetch-depth: 0
           ref: ${{ steps.extract_branch.outputs.branch }}
 
+      - name: Test modes
+        env:
+        run: |
+          echo "SHORT VERSION:"
+          ./xmipp version --short
+          echo "LONG VERSION"
+          ./xmipp version
+          echo "GET CONFIG"
+          ./xmipp config
+          cat xmipp.conf
+          echo "CLEAN BIN"
+          ./xmipp cleanBin << "y"
+          echo "CLEAN ALL"
+          ./xmipp cleanAll << "YeS"
+
       - name: Compile Xmipp with all dependencies in branch ${{ steps.extract_branch.outputs.branch }} (if such branch exists, default is devel)
         env:
           BRANCH_NAME: ${{ steps.extract_branch.outputs.branch }}
