@@ -4,12 +4,8 @@
         "version_name": "v3.25.0-TBD",
         "release_date": "01/01/2000"
     },
-    "sources": {
-        "xmippCore": {
-            "target_tag": "v3"
-        },
-        "xmippViz": {
-            "target_tag": "v3"
-        }
+    "sources_target_tag": {
+        "xmippCore": "v3",
+        "xmippViz": "v3"
     }
 }
