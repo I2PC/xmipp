@@ -149,15 +149,15 @@ std::complex<T>* CudaFFT<T>::fft(const T *h_in,
         // how many signals to process
         size_t toProcess = std::min(m_settings->batch(), m_settings->sDim().n() - offset);
 
+    	// Wipe out memory before calling transformation
+    	gpuErrchk(cudaMemset(m_d_FD, 0., m_settings->fBytesBatch()));
+
         // copy memory
         gpuErrchk(cudaMemcpyAsync(
                 m_d_SD,
                 h_in + offset * m_settings->sDim().xyzPadded(),
                 toProcess * m_settings->sBytesSingle(),
                 cudaMemcpyHostToDevice, *(cudaStream_t*)m_gpu->stream()));
-
-    	// Wipe out memory before calling transformation
-    	gpuErrchk(cudaMemset(m_d_FD, 0., m_settings->fBytesBatch()));
 
         fft(*m_plan, m_d_SD, m_d_FD);
 
@@ -185,15 +185,15 @@ T* CudaFFT<T>::ifft(const std::complex<T> *h_in,
         // how many signals to process
         size_t toProcess = std::min(m_settings->batch(), m_settings->fDim().n() - offset);
 
+    	// Wipe out memory before calling transformation
+    	gpuErrchk(cudaMemset(m_d_SD, 0., m_settings->sBytesBatch()));
+
         // copy memoryvim
         gpuErrchk(cudaMemcpyAsync(
                 m_d_FD,
                 h_in + offset * m_settings->fDim().xyzPadded(),
                 toProcess * m_settings->fBytesSingle(),
                 cudaMemcpyHostToDevice, *(cudaStream_t*)m_gpu->stream()));
-
-    	// Wipe out memory before calling transformation
-    	gpuErrchk(cudaMemset(m_d_SD, 0., m_settings->sBytesBatch()));
 
         ifft(*m_plan, m_d_FD, m_d_SD);
 
