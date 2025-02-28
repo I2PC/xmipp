@@ -103,6 +103,7 @@ private:
     std::vector<std::string> labels;
     double                   stdevFilter = -1;
     Image<unsigned char>       IUChar = {};
+    Image<char>                ISChar = {};
     Image<short int>           IShort = {};
     Image<unsigned short int>  IUShort = {};
     Image<int>                 IInt = {};
