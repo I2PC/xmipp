@@ -77,6 +77,7 @@ jobs:
           echo "y" | ./xmipp cleanBin
           echo "CLEAN ALL"
           echo "YeS" | ./xmipp cleanAll
+          ./xmipp getSources
 
       - name: Compile Xmipp with all dependencies in branch ${{ steps.extract_branch.outputs.branch }} (if such branch exists, default is devel)
         env:
