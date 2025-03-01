@@ -29,7 +29,6 @@
 #include <core/xmipp_fftw.h>
 #include <data/fourier_filter.h>
 #include <core/transformations.h>
-#include <complex>
 
 
 
