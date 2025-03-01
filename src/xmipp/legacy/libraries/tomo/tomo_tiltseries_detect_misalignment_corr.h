@@ -31,18 +31,11 @@
 #include <core/xmipp_image.h>
 #include <core/metadata_vec.h>
 #include "core/xmipp_image_generic.h"
-#include <core/xmipp_fft.h>
-#include <core/xmipp_fftw.h>
 #include <math.h>
 #include <limits>
-#include <complex>
-#include <data/fourier_filter.h>
 #include <string>
-#include <data/point3D.h>
-#include <data/point2D.h>
 #include <stdio.h>
 #include <fstream>
-#include <core/transformations.h>
 
 #define VERBOSE_OUTPUT
 

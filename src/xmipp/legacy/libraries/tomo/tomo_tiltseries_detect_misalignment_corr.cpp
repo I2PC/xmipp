@@ -25,6 +25,11 @@
 
 #include "tomo_tiltseries_detect_misalignment_corr.h"
 #include <chrono>
+#include <core/xmipp_fft.h>
+#include <core/xmipp_fftw.h>
+#include <data/fourier_filter.h>
+#include <core/transformations.h>
+#include <complex>
 
 
 
