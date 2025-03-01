@@ -77,7 +77,7 @@ jobs:
           echo "y" | ./xmipp cleanBin
           echo "CLEAN ALL"
           echo "YeS" | ./xmipp cleanAll
-          ./xmipp getSources
+          ./xmipp getSources --keep-output
           ./xmipp git branch
           ./xmipp configBuild --keep-output
 
