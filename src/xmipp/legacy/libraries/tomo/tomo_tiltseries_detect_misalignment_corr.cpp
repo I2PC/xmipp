@@ -45,7 +45,7 @@ void ProgTomoTSDetectMisalignmentCorr::readParams()
 
 void ProgTomoTSDetectMisalignmentCorr::defineParams()
 {
-	addUsageLine("This function determines the location of high contrast features in a volume.");
+	addUsageLine("This program detect the misaligned images in a tilt-series calcualting the relatve shift between contiguous images.");
 	addParamsLine("  -i <mrcs_file=\"\">                   	: Input tilt-series.");
 	addParamsLine("  --tlt <xmd_file=\"\">      			: Input file containning the tilt angles of the tilt-series in .xmd format.");
 	addParamsLine("  -o <o=\"./alignemntReport.xmd\">      	: Output file containing the alignemnt report.");
