@@ -46,7 +46,7 @@ void ProgTomoCalculateLandmarkResiduals::readParams()
 void ProgTomoCalculateLandmarkResiduals::defineParams()
 {
 	addUsageLine("This program calculate a set of residual vectors from a detected landmark and its proected 3D coordinate.");
-	addParamsLine("  -i <mrcs_file=\"\">                   						: Input tilt-series.");
+	addParamsLine("  -i <mrcs_file=\"\">                   						: Input tilt-series as metadata or image file.");
 	addParamsLine("  --tlt <xmd_file=\"\">      								: Input file containning the tilt angles of the tilt-series in .xmd format.");
 	addParamsLine("  --inputCoord <output=\"\">									: Input coordinates of the 3D landmarks. Origin at top left coordinate (X and Y always positive) and centered at the middle of the volume (Z positive and negative).");
 	addParamsLine("  [-o <output=\"./alignemntReport.xmd\">]       				: Output file containing the alignemnt report.");
