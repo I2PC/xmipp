@@ -1416,7 +1416,7 @@ class ProjSubtraction(XmippProgramTest):
                      "--save input/projectionSubtraction --oroot %o/subtracted_part",
                      outputs=["output_particles.xmd"], errorthreshold=1)
 
-class ContinuousProjections(XmippProgramTest):
+class ContinuousCreateResiduals(XmippProgramTest):
     _owner = JMK
     @classmethod
     def getProgram(cls):
