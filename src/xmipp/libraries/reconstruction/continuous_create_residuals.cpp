@@ -166,7 +166,6 @@ void ProgContinuousCreateResiduals::preProcess()
 		getImageSize(fnVol, Xdim, ydim, zdim, ndim);
 	}
 
-    Ip().initZeros(Xdim,Xdim);
     E().initZeros(Xdim,Xdim);
     Pp().initZeros(Xdim,Xdim);
     Pp().setXmippOrigin();
@@ -557,11 +556,6 @@ void ProgContinuousCreateResiduals::processImage(const FileName &fnImg, const Fi
 				std::cout << "I'=" << p(0) << "*I" << "+" << p(1) << " Dshift=(" << p(2) << "," << p(3) << ") "
 				          << "scale=(" << 1+p(4) << "," << 1+p(5) << ", angle=" << p(6) << ") Drot=" << p(7) << " Dtilt=" << p(8)
 				          << " Dpsi=" << p(9) << " DU=" << p(10) << " DV=" << p(11) << " Dalpha=" << p(12) << std::endl;
-			if (XSIZE(Ip())!=XSIZE(I()))
-			{
-				scaleToSize(xmipp_transformation::BSPLINE3,Ip(),I(),XSIZE(Ip()),YSIZE(Ip()));
-				I()=Ip();
-			}
 			A(0,2)=p(2)+old_shiftX;
 			A(1,2)=p(3)+old_shiftY;
 			double scalex=p(4);
@@ -582,21 +576,6 @@ void ProgContinuousCreateResiduals::processImage(const FileName &fnImg, const Fi
 				MAT_ELEM(A,0,1)*=-1;
 				MAT_ELEM(A,0,2)*=-1;
 			}
-			applyGeometry(xmipp_transformation::BSPLINE3,Ip(),I(),A,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
-			if (optimizeGrayValues)
-			{
-				MultidimArray<double> &mIp=Ip();
-				double ia=1.0/p(0);
-				double b=p(1);
-				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIp)
-				{
-					if (DIRECT_MULTIDIM_ELEM(mask2D,n))
-						DIRECT_MULTIDIM_ELEM(mIp,n)=ia*(DIRECT_MULTIDIM_ELEM(mIp,n)-b);
-					else
-						DIRECT_MULTIDIM_ELEM(mIp,n)=0.0;
-				}
-			}
-			Ip.write(fnImgOut);
 		}
 		catch (XmippError &XE)
 		{
@@ -606,7 +585,6 @@ void ProgContinuousCreateResiduals::processImage(const FileName &fnImg, const Fi
 		}
 	}
     rowOut.setValue(MDL_IMAGE_ORIGINAL, fnImg);
-    rowOut.setValue(MDL_IMAGE, fnImgOut);
     rowOut.setValue(MDL_ANGLE_ROT,  old_rot+p(7));
     rowOut.setValue(MDL_ANGLE_TILT, old_tilt+p(8));
     rowOut.setValue(MDL_ANGLE_PSI,  old_psi+p(9));
@@ -659,7 +637,6 @@ void ProgContinuousCreateResiduals::processImage(const FileName &fnImg, const Fi
     save.write("PPPexperimental.xmp");
     //save()=C;
     //save.write("PPPC.xmp");
-    Ip.write("PPPexperimentalp.xmp");
     Pp.write("PPPprojectionp.xmp");
     E.write("PPPresidual.xmp");
     std::cout << A << std::endl;
