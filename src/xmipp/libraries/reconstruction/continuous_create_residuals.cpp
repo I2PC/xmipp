@@ -263,7 +263,7 @@ double tranformImage(ProgContinuousCreateResiduals *prm, double rot, double tilt
 		MAT_ELEM(A,0,2)*=-1;
 	}
 
-	applyGeometry(degree,prm->Pp(),prm->P(),A,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.);
+	applyGeometry(degree,prm->Pp(),prm->P(),A,xmipp_transformation::IS_INV,xmipp_transformation::DONT_WRAP,0.);
 	const MultidimArray<double> &mP=prm->P();
 	const MultidimArray<double> &mI=prm->I();
 	const MultidimArray<int> &mMask2D=prm->mask2D;
