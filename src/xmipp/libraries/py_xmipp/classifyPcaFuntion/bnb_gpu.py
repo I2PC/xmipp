@@ -298,8 +298,11 @@ class BnBgpu:
                         
             transforIm, matrixIm = self.center_particles_inverse_save_matrix(mmap.data[initBatch:endBatch], tMatrix[initBatch:endBatch], 
                                                                              rotBatch[initBatch:endBatch], translations[initBatch:endBatch], centerxy)
-            if mask:
-                transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+            if mask: 
+                if iter < 13:
+                    transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+                else:
+                    transforIm = transforIm * self.create_circular_mask(transforIm)
             
             tMatrix[initBatch:endBatch] = matrixIm
             
@@ -324,7 +327,11 @@ class BnBgpu:
             else:  
       
                 for n in range(classes):
-                    class_images = transforIm[matches[initBatch:endBatch, 1] == n]
+                    # class_images = transforIm[matches[initBatch:endBatch, 1] == n]
+                    # newCL[n].append(class_images)
+                    maskSel = matches[initBatch:endBatch, 1] == n  
+                    sorted_indices = torch.argsort(matches[initBatch:endBatch, 2][maskSel])  
+                    class_images = transforIm[maskSel][sorted_indices[:max(1, len(sorted_indices) // 2)]]  
                     newCL[n].append(class_images)
                          
                     
@@ -336,7 +343,11 @@ class BnBgpu:
         clk = self.averages_createClasses(mmap, iter, newCL)
         
         if mask:
-            clk = clk * self.create_gaussian_mask(clk, sigma)
+            if iter < 13:
+                clk = clk * self.create_gaussian_mask(clk, sigma)
+            else:
+                clk = clk * self.create_circular_mask(clk)
+                
         
         return(clk, tMatrix, batch_projExp_cpu)
     
@@ -410,7 +421,10 @@ class BnBgpu:
         transforIm, matrixIm = self.center_particles_inverse_save_matrix(data, tMatrix, 
                                                                          rotBatch, translations, centerxy)
         if mask:
-            transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+            if iter < 3:
+                transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+            else:
+                transforIm = transforIm * self.create_circular_mask(transforIm)
         
         tMatrix = matrixIm
         
@@ -420,7 +434,11 @@ class BnBgpu:
             newCL = [[] for i in range(classes)]              
                     
             for n in range(classes):
-                class_images = transforIm[matches[:, 1] == n]
+                # class_images = transforIm[matches[:, 1] == n]
+                # newCL[n].append(class_images)
+                maskSel = matches[:, 1] == n  
+                sorted_indices = torch.argsort(matches[:, 2][maskSel])  
+                class_images = transforIm[maskSel][sorted_indices[:max(1, len(sorted_indices) // 2)]] 
                 newCL[n].append(class_images)
                          
             del(transforIm)
@@ -432,6 +450,7 @@ class BnBgpu:
             if not hasattr(self, 'grad_squared'):
                 self.grad_squared = torch.zeros_like(cl)
             clk, self.grad_squared = self.update_classes_rmsprop(cl, clk, 0.001, 0.9, 1e-8, self.grad_squared) 
+            clk = clk * self.create_circular_mask(clk)
       
         else: 
             del(transforIm)
@@ -547,7 +566,7 @@ class BnBgpu:
             if len(newCL[n]) > 0:
                 clk.append(torch.mean(newCL[n], dim=0))
             else:
-                clk.append(torch.zeros((mmap.shape[1], mmap.shape[2]), device=newCL[0].device))
+                clk.append(torch.zeros((mmap.data.shape[1], mmap.data.shape[2]), device=newCL[0].device))
         clk = torch.stack(clk)
         return clk
     
@@ -595,7 +614,7 @@ class BnBgpu:
         return circular_mask
     
 
-    def apply_lowpass_filter(self, images, cutoff_frequency, sampling):
+    def apply_lowpass_filter_no(self, images, cutoff_frequency, sampling):
         batch_size, height, width = images.size()
         dim = max(height, width)
     
@@ -614,6 +633,38 @@ class BnBgpu:
         freq_band_expanded = freq_band_expanded.repeat(batch_size, 1, 1)
         images_filtered_fft = images_fft * freq_band_expanded
         images_filtered = torch.fft.ifftn(images_filtered_fft, dim=(1, 2)).real
+    
+        return images_filtered
+    
+    
+    def apply_lowpass_filter(self, images, cutoff_frequency, sampling):
+        batch_size, height, width = images.shape
+        device = images.device
+    
+        # Compute frequency coordinates
+        freq_y = torch.fft.fftfreq(height, d=1/sampling, device=device)
+        freq_x = torch.fft.fftfreq(width, d=1/sampling, device=device)
+        
+        # Create meshgrid for frequency components
+        wx, wy = torch.meshgrid(freq_x, freq_y, indexing='ij')
+        w = torch.sqrt(wx**2 + wy**2)
+    
+        # Define low-pass filter mask
+        maxFreq = 1/cutoff_frequency  # Corrected cutoff condition
+        freq_band = (w < maxFreq).float()
+    
+        # Apply FFT to the image batch
+        images_fft = torch.fft.fft2(images, dim=(1, 2))  # 2D FFT per image
+        
+        # Expand mask to batch size
+        freq_band = freq_band.unsqueeze(0)  # Shape: (1, H, W)
+        freq_band = freq_band.expand(batch_size, -1, -1)  # Shape: (B, H, W)
+    
+        # Apply the filter
+        images_filtered_fft = images_fft * freq_band
+    
+        # Inverse FFT to obtain filtered images
+        images_filtered = torch.fft.ifft2(images_filtered_fft, dim=(1, 2)).real  # Extract real part
     
         return images_filtered
     
