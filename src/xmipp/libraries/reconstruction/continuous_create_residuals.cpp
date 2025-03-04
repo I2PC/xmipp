@@ -238,7 +238,7 @@ void ProgContinuousCreateResiduals::updateCTFImage(double defocusU, double defoc
 
 //#define DEBUG
 //#define DEBUG2
-double tranformImage(ProgContinuousCreateResiduals *prm, double rot, double tilt, double psi,
+double transformImage(ProgContinuousCreateResiduals *prm, double rot, double tilt, double psi,
 		double a, double b, const Matrix2D<double> &A, 
 		double deltaDefocusU, double deltaDefocusV, double deltaDefocusAngle, int degree)
 {
@@ -255,7 +255,8 @@ double tranformImage(ProgContinuousCreateResiduals *prm, double rot, double tilt
     	if (defocusU!=prm->currentDefocusU || defocusV!=prm->currentDefocusV || angle!=prm->currentAngle)
     		prm->updateCTFImage(defocusU,defocusV,angle);
     }
-	projectVolume(*(prm->projector), prm->P, (int)XSIZE(prm->I()), (int)XSIZE(prm->I()),  rot, tilt, psi, (const MultidimArray<double> *)prm->ctfImage);
+	projectVolume(*(prm->projector), prm->P, (int)XSIZE(prm->I()), (int)XSIZE(prm->I()),
+	              rot, tilt, psi, (const MultidimArray<double> *)prm->ctfImage);
 	if (prm->old_flip)
 	{
 		MAT_ELEM(A,0,0)*=-1;
@@ -381,7 +382,7 @@ double continuousCost(double *x, void *_prm)
 	MAT_ELEM(prm->A,1,1)=1+scaley-(scaley-scalex)*sin2_t;
 	MAT_ELEM(prm->A,0,2)=prm->old_shiftX+deltax;
 	MAT_ELEM(prm->A,1,2)=prm->old_shiftY+deltay;
-	return tranformImage(prm,prm->old_rot+deltaRot, prm->old_tilt+deltaTilt, 
+	return transformImage(prm,prm->old_rot+deltaRot, prm->old_tilt+deltaTilt,
 		prm->old_psi+deltaPsi, a, b, prm->A, deltaDefocusU, deltaDefocusV, 
 		deltaDefocusAngle, xmipp_transformation::LINEAR);
 }
