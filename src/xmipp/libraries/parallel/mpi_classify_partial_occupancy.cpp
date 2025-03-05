@@ -44,7 +44,9 @@ void MpiProgClassifyPartialOccupancy::preProcess()
     rank = (int)node->rank;
     ProgClassifyPartialOccupancy::preProcess();
     // Get the volume padded size from rank 0
-    int realSize;
+    int realSizeX;
+    int realSizeY;
+    int realSizeZ;
     int origin;
     int realSizeMask;
     int originMask;
@@ -53,11 +55,15 @@ void MpiProgClassifyPartialOccupancy::preProcess()
     {
         if (node->rank == 0)
         {
-            realSize = (int)XSIZE(projector->VfourierRealCoefs);
+            realSizeX = (int)XSIZE(projector->VfourierRealCoefs);
+            realSizeY = (int)YSIZE(projector->VfourierRealCoefs);
+            realSizeZ = (int)ZSIZE(projector->VfourierRealCoefs);
             origin = STARTINGX(projector->VfourierRealCoefs);
         }
 
-        MPI_Bcast(&realSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&realSizeX, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&realSizeY, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&realSizeZ, 1, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(&origin, 1, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(&(projector->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD); 
         MPI_Bcast(&projector->volumeSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -67,8 +73,8 @@ void MpiProgClassifyPartialOccupancy::preProcess()
 
         if (rank != 0)
         {
-            projector->VfourierRealCoefs.resizeNoCopy(realSize,realSize,realSize);
-            projector->VfourierImagCoefs.resizeNoCopy(realSize,realSize,realSize);
+            projector->VfourierRealCoefs.resizeNoCopy(realSizeZ,realSizeY,realSizeX);
+            projector->VfourierImagCoefs.resizeNoCopy(realSizeZ,realSizeY,realSizeX);
             STARTINGX(projector->VfourierRealCoefs)=STARTINGY(projector->VfourierRealCoefs)=STARTINGZ(projector->VfourierRealCoefs)=origin;
             STARTINGX(projector->VfourierImagCoefs)=STARTINGY(projector->VfourierImagCoefs)=STARTINGZ(projector->VfourierImagCoefs)=origin;
         }
