@@ -412,6 +412,8 @@ class BnBgpu:
                 clk = clk * self.create_gaussian_mask(clk, sigma)
             else:
                 clk = clk * self.create_circular_mask(clk)
+                
+        clk = self.apply_leaky_relu(clk)
         
         return(clk, tMatrix, batch_projExp_cpu)
     
@@ -462,6 +464,7 @@ class BnBgpu:
                 self.grad_squared = torch.zeros_like(cl)
             clk, self.grad_squared = self.update_classes_rmsprop(cl, clk, 0.001, 0.9, 1e-8, self.grad_squared) 
             clk = clk * self.create_circular_mask(clk)
+            clk = self.apply_leaky_relu(clk)
       
         else: 
             del(transforIm)
@@ -623,6 +626,10 @@ class BnBgpu:
         circular_mask[dist <= center] = 1.0
         
         return circular_mask
+    
+    def apply_leaky_relu(self, images):
+        images = torch.where(images > 0, images, 1 * images)
+        return images
     
 
     def apply_lowpass_filter_no(self, images, cutoff_frequency, sampling):

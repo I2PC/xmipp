@@ -146,8 +146,8 @@ if __name__=="__main__":
         
         expImages = mmap.data[initBatch:endBatch].astype(np.float32)
         Texp = torch.from_numpy(expImages).float().to(cuda)
-        if mask:
-            Texp = Texp * bnb.create_circular_mask(Texp)
+        # if mask:
+        #     Texp = Texp * bnb.create_circular_mask(Texp)
               
         if i < initStep:          
             batch_projExp_cpu.append( bnb.batchExpToCpu(Texp, freqBn, coef, cvecs) )           
