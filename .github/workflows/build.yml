@@ -29,11 +29,11 @@ jobs:
     
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Extract branch name
+      - name: Extract branch name and set as environment variable
         shell: bash
-        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
-        id: extract_branch
-      
+        run: |
+          echo "BRANCH_NAME=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_ENV
+
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -62,7 +62,7 @@ jobs:
       - uses: actions/checkout@main
         with:
           fetch-depth: 0
-          ref: ${{ steps.extract_branch.outputs.branch }}
+          ref: $BRANCH_NAME
 
       - name: Test modes
         run: |
@@ -85,12 +85,10 @@ jobs:
           ./xmipp getSources --keep-output -b noexiste
           echo "YeS" | ./xmipp cleanAll
 
-      - name: Compile Xmipp with all dependencies in branch {{ steps.extract_branch.outputs.branch }} (if such branch exists, default is devel)
+      - name: Compile Xmipp with all dependencies in branch $BRANCH_NAME (if such branch exists, default is devel)
         env:
-          BRANCH_NAME: ${{ steps.extract_branch.outputs.branch }}
           SEND_INSTALLATION_STATISTICS: 'OFF'
-        run: |
-          ./xmipp all -b $BRANCH_NAME --keep-output || (cat compilation.log && false)
+        run: ./xmipp all -b $BRANCH_NAME --keep-output || (cat compilation.log && false)
 
       - name: Cat
         run: cat xmipp.conf
