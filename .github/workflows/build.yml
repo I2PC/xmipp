@@ -85,7 +85,7 @@ jobs:
           ./xmipp getSources --keep-output -b noexiste
           echo "YeS" | ./xmipp cleanAll
 
-      - name: Compile Xmipp with all dependencies in branch (in branch ${{ github.head_ref }} if exists, then tries ${{ github.base_ref }}, finally, default branch)
+      - name: Compile Xmipp with all dependencies in branch ${{ steps.extract_branch.outputs.branch }} (if such branch exists, default is devel)
         env:
           BRANCH_NAME: ${{ steps.extract_branch.outputs.branch }}
           SEND_INSTALLATION_STATISTICS: 'OFF'
