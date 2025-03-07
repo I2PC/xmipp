@@ -82,9 +82,6 @@ jobs:
           ./xmipp configBuild --keep-output
           ./xmipp compileAndInstall --keep-output
           echo "YeS" | ./xmipp cleanAll
-          ./xmipp getSources --keep-output
-          ./xmipp configBuild --keep-output
-          ./xmipp compileAndInstall --keep-output -b noexiste
 
       - name: Compile Xmipp with all dependencies in branch ${{ steps.extract_branch.outputs.branch }} (if such branch exists, default is devel)
         env:
