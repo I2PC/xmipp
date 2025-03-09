@@ -131,8 +131,8 @@ if __name__=="__main__":
         cl = torch.from_numpy(clIm).float().to(cuda)
     else:
         initStep = int(min(numFirstBatch, np.ceil(nExp/expBatchSize)))
-        cl = bnb.init_ramdon_classes(final_classes, mmap, initSubset) 
-        # cl = bnb.init_ramdon_classes(final_classes//2, mmap, initSubset)
+        # cl = bnb.init_ramdon_classes(final_classes, mmap, initSubset) 
+        cl = bnb.init_ramdon_classes(final_classes//2, mmap, initSubset)
         
     
     if refImages:
@@ -217,10 +217,15 @@ if __name__=="__main__":
                 classes = len(cl)
         
                 if mode == "create_classes":
-                    cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version0(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
-                    # cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, mask, sigma)
+                    # cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version0(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
+                    cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, mask, sigma)
                 else:
                     cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(expImages, cl, tMatrix, iter, subset, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
+
+                #save classes
+                file = output+"_%s_%s.mrcs"%(initBatch,iter+1)
+                save_images(cl.cpu().detach().numpy(), sampling, file)
+
 
                 if mode == "create_classes" and iter == 13:
                     
