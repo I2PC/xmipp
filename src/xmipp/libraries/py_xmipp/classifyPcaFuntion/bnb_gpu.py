@@ -299,7 +299,7 @@ class BnBgpu:
             transforIm, matrixIm = self.center_particles_inverse_save_matrix(mmap.data[initBatch:endBatch], tMatrix[initBatch:endBatch], 
                                                                              rotBatch[initBatch:endBatch], translations[initBatch:endBatch], centerxy)
             if mask: 
-                if iter < 13:
+                if iter < 27:
                     transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
                 else:
                     transforIm = transforIm * self.create_circular_mask(transforIm)
@@ -343,9 +343,9 @@ class BnBgpu:
         clk = self.averages_createClasses(mmap, iter, newCL)
         
         # clk = self.apply_filter_freq(clk)
-        
+         
         if mask:
-            if iter < 13:
+            if iter < 27:
                 clk = clk * self.create_gaussian_mask(clk, sigma)
             else:
                 clk = clk * self.create_circular_mask(clk)
@@ -436,7 +436,7 @@ class BnBgpu:
         transforIm, matrixIm = self.center_particles_inverse_save_matrix(data, tMatrix, 
                                                                          rotBatch, translations, centerxy)
         if mask:
-            if iter < 3:
+            if iter < 11:
                 transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
             else:
                 transforIm = transforIm * self.create_circular_mask(transforIm)
@@ -445,7 +445,7 @@ class BnBgpu:
         
         batch_projExp_cpu = self.create_batchExp(transforIm, freqBn, coef, cvecs)
         
-        if iter == 3:
+        if iter == 11:
             newCL = [[] for i in range(classes)]              
                     
             for n in range(classes):
@@ -765,7 +765,7 @@ class BnBgpu:
             elif dim <= 128:
                 expBatchSize = 15000 
                 expBatchSize2 = 20000
-                numFirstBatch = 4#aqui 2 normalmente
+                numFirstBatch = 2
             elif dim <= 256:
                 expBatchSize = 4000 
                 expBatchSize2 = 5000
@@ -796,24 +796,24 @@ class BnBgpu:
         
         if mode == "create_classes":
             #print("---Iter %s for creating classes---"%(iter+1))
-            if iter < 5:
+            if iter < 10:
                 ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            elif iter < 8: 
+            elif iter < 16:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            elif iter < 11: 
+            elif iter < 22:
                 ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
-            elif iter < 14: 
+            elif iter < 28:
                 ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
                 
         else:
             #print("---Iter %s for align to classes---"%(iter+1))
-            if iter < 1:
+            if iter < 3:
                 ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            elif iter < 2: 
+            elif iter < 6:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            elif iter < 3: 
+            elif iter < 9:
                 ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
-            elif iter < 4: 
+            elif iter < 12:
                 ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
            
         vectorRot, vectorshift = self.setRotAndShift(ang, shiftMove)

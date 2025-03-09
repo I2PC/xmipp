@@ -76,7 +76,7 @@ if __name__=="__main__":
     classes = int(args.classes)
     final_classes = classes  
     refImages = args.ref
-    niter = 14
+    niter = 28
     bands = args.bands
     vecs = args.vecs
     mask = args.mask
@@ -227,7 +227,7 @@ if __name__=="__main__":
                 save_images(cl.cpu().detach().numpy(), sampling, file)
 
 
-                if mode == "create_classes" and iter == 13:
+                if mode == "create_classes" and iter == 27:
                     
                     refClas[:endBatch] = matches[:, 1]
                                                           
@@ -249,7 +249,7 @@ if __name__=="__main__":
                     angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
                     angles_deg[:endBatch] = np.degrees(angles_rad.cpu().numpy())
                     
-                elif mode == "align_classes" and iter == 3:
+                elif mode == "align_classes" and iter == 11:
                     
                     refClas[initBatch:endBatch] = matches[:, 1]
                     
