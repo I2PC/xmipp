@@ -22,10 +22,15 @@ def read_images(mrcfilename):
     return emImages
 
 
-def save_images(data, outfilename):
+def save_images(data, voxel, outfilename):
     data = data.astype('float32')
+    
+    if data.ndim == 2:
+        data = np.expand_dims(data, axis=0)
+        
     with mrcfile.new(outfilename, overwrite=True) as mrc:
         mrc.set_data(data)
+        mrc.voxel_size = (voxel, voxel, 1)
         mrc.update_header_stats()
         
 
@@ -52,6 +57,7 @@ if __name__=="__main__":
       
     parser = argparse.ArgumentParser(description="align images")
     parser.add_argument("-i", "--exp", help="input mrc file for experimental images)", required=True)
+    parser.add_argument("-s", "--sampling", help="pixel size of the images", required=True)
     parser.add_argument("-c", "--classes", help="number of 2D classes", required=True)
     parser.add_argument("-r", "--ref", help="2D classes of external method")   
     parser.add_argument("-b", "--bands", help="file with frequency bands", required=True)
@@ -60,12 +66,13 @@ if __name__=="__main__":
     parser.add_argument("--sigma", type=float, help="value of sigma for the Gaussian mask. "
                                                     "It is only used if the --mask option is applied.")
     parser.add_argument("-o", "--output", help="Root directory for the output files", required=True)
-    parser.add_argument("-stExp", "--sartExp", help="star file for images")
+    parser.add_argument("-stExp", "--starExp", help="star file for images")
 
     
     args = parser.parse_args()
     
     expFile = args.exp
+    sampling = float(args.sampling)
     classes = int(args.classes)
     final_classes = classes  
     refImages = args.ref
@@ -75,7 +82,7 @@ if __name__=="__main__":
     mask = args.mask
     sigma = args.sigma
     output = args.output
-    expStar = args.sartExp
+    expStar = args.starExp
            
     torch.cuda.is_available()
     torch.cuda.current_device()
@@ -93,7 +100,7 @@ if __name__=="__main__":
     nExp = mmap.data.shape[0]
     dim = mmap.data.shape[1]
     
-    if mask and sigma is None:
+    if mask and (sigma is None):
         sigma = dim/3
     
     initSubset = min(100000, nExp)
@@ -256,17 +263,18 @@ if __name__=="__main__":
                     angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
                     angles_deg[initBatch:endBatch] = np.degrees(angles_rad.cpu().numpy())
         del(expImages)
-    counts = torch.bincount(refClas.int(), minlength=classes) 
+    # counts = torch.bincount(refClas.int(), minlength=classes) 
+    counts = torch.bincount(refClas.to(torch.int64), minlength=classes)
     
         #save classes
         
     file = output+".mrcs"
-    save_images(cl.cpu().detach().numpy(), file)
+    save_images(cl.cpu().detach().numpy(), sampling, file)
     
     print("Adjust contrast")
     cl = bnb.increase_contrast_sigmoid(cl, 8, 0.6)
     file_contrast = output+"_contrast.mrcs"
-    save_images(cl.cpu().detach().numpy(), file_contrast)           
+    save_images(cl.cpu().detach().numpy(), sampling, file_contrast)           
 
     # print(counts.int())
     
