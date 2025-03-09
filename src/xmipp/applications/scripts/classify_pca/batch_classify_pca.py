@@ -181,7 +181,7 @@ if __name__=="__main__":
             tMatrix = torch.eye(2, 3, device = cuda).repeat(subset, 1, 1)
             
             if mode == "align_classes":
-                niter = 4
+                niter = 12
                 
             for iter in range(niter):
                 # print("-----Iteration %s for updating classes-------"%(iter+1))
