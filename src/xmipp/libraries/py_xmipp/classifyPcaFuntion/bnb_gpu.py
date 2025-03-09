@@ -342,6 +342,8 @@ class BnBgpu:
                      
         clk = self.averages_createClasses(mmap, iter, newCL)
         
+        # clk = self.apply_filter_freq(clk)
+        
         if mask:
             if iter < 13:
                 clk = clk * self.create_gaussian_mask(clk, sigma)
@@ -403,7 +405,7 @@ class BnBgpu:
         newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL]    
         clk = self.averages_increaseClas(mmap, iter, newCL, classes)
         
-
+        # clk = self.apply_filter_freq(clk) 
         # if mask:
         #     clk = clk * self.create_gaussian_mask(clk, sigma)
             
@@ -413,7 +415,7 @@ class BnBgpu:
             else:
                 clk = clk * self.create_circular_mask(clk)
                 
-        clk = self.apply_leaky_relu(clk)
+        # clk = self.apply_leaky_relu(clk)
         
         return(clk, tMatrix, batch_projExp_cpu)
     
@@ -462,9 +464,11 @@ class BnBgpu:
             
             if not hasattr(self, 'grad_squared'):
                 self.grad_squared = torch.zeros_like(cl)
-            clk, self.grad_squared = self.update_classes_rmsprop(cl, clk, 0.001, 0.9, 1e-8, self.grad_squared) 
+            clk, self.grad_squared = self.update_classes_rmsprop(cl, clk, 0.001, 0.9, 1e-8, self.grad_squared)
+            
+            # clk = self.apply_filter_freq(clk) 
             clk = clk * self.create_circular_mask(clk)
-            clk = self.apply_leaky_relu(clk)
+            # clk = self.apply_leaky_relu(clk)
       
         else: 
             del(transforIm)
@@ -631,6 +635,16 @@ class BnBgpu:
         images = torch.where(images > 0, images, 1 * images)
         return images
     
+    def apply_filter_freq(self, images, noise_factor=0.1, eps=1e-8):
+        images_fft = torch.fft.fft2(images)
+        signal_power = torch.abs(images_fft) ** 2
+        noise_power = noise_factor * signal_power.mean(dim=(-2, -1), keepdim=True)
+        wiener_filter = signal_power / (signal_power + noise_power + eps)
+        filtered_fft = images_fft * wiener_filter
+        filtered_images = torch.fft.ifft2(filtered_fft).real
+        return filtered_images
+        
+        
 
     def apply_lowpass_filter_no(self, images, cutoff_frequency, sampling):
         batch_size, height, width = images.size()
