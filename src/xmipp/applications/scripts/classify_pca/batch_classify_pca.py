@@ -272,7 +272,7 @@ if __name__=="__main__":
     save_images(cl.cpu().detach().numpy(), sampling, file)
     
     print("Adjust contrast")
-    cl = bnb.increase_contrast_sigmoid(cl, 8, 0.6)
+    # cl = bnb.increase_contrast_sigmoid(cl, 8, 0.6)
     file_contrast = output+"_contrast.mrcs"
     save_images(cl.cpu().detach().numpy(), sampling, file_contrast)           
 
