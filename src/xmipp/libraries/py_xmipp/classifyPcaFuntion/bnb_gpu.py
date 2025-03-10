@@ -582,7 +582,9 @@ class BnBgpu:
         clk = []
         for n in range(classes):
             if len(newCL[n]) > 0:
-                clk.append(torch.mean(newCL[n], dim=0))
+                tensor_stack = torch.stack(newCL[n])#Nuevo
+                clk.append(torch.mean(tensor_stack, dim=0))
+                # clk.append(torch.mean(newCL[n], dim=0))
             else:
                 clk.append(torch.zeros((mmap.data.shape[1], mmap.data.shape[2]), device=newCL[0].device))
         clk = torch.stack(clk)
@@ -597,7 +599,9 @@ class BnBgpu:
         clk = []
         for n in range(classes):
             if len(newCL[n]) > 0:
-                clk.append(torch.mean(newCL[n], dim=0))
+                tensor_stack = torch.stack(newCL[n])#Nuevo
+                clk.append(torch.mean(tensor_stack, dim=0))
+                # clk.append(torch.mean(newCL[n], dim=0))
             else:
                 clk.append(torch.zeros((data.shape[1], data.shape[2]), device=newCL[0].device))
         clk = torch.stack(clk)
