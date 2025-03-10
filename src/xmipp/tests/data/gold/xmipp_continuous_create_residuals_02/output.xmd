@@ -1,0 +1,39 @@
+# XMIPP_STAR_1 * 
+# 
+data_noname
+loop_
+ _anglePsi
+ _anglePsi2
+ _angleRot
+ _angleRot2
+ _angleTilt
+ _angleTilt2
+ _cost
+ _continuousX
+ _continuousY
+ _continuousFlip
+ _continuousScaleAngle
+ _continuousScaleX
+ _continuousScaleY
+ _corrIdx
+ _corrMask
+ _corrWeight
+ _enabled
+ _flip
+ _image
+ _imageOriginal
+ _imageResidual
+ _imedValue
+ _shiftX
+ _shiftY
+ _weightContinuous2
+    0.000000     0.000000     0.000000     0.000000     0.000000     0.000000     0.999688     0.000000     0.000000 0     0.000000     0.000000     0.000000     1.000000     1.000000     1.000000                    1 0 000001@gold/xmipp_continuous_create_residuals_02/output.xmd 000001@input/aFewProjections.stk 000001@gold/xmipp_continuous_create_residuals_02/residuals.stk     0.011565     0.000000     0.000000     1.000000 
+    0.000000     0.000000     0.000000     0.000000    22.500000    22.500000     0.999601     0.000000     0.000000 0     0.000000     0.000000     0.000000     0.999921     0.999515     0.999569                    1 0 000002@gold/xmipp_continuous_create_residuals_02/output.xmd 000002@input/aFewProjections.stk 000002@gold/xmipp_continuous_create_residuals_02/residuals.stk     2.611780     0.000000     0.000000     0.999913 
+    0.000000     0.000000     0.000000     0.000000    45.000000    45.000000     0.999631     0.000000     0.000000 0     0.000000     0.000000     0.000000     0.999948     0.999743     0.999733                    1 0 000003@gold/xmipp_continuous_create_residuals_02/output.xmd 000003@input/aFewProjections.stk 000003@gold/xmipp_continuous_create_residuals_02/residuals.stk     1.942992     0.000000     0.000000     0.999942 
+    0.000000     0.000000     0.000000     0.000000    67.500000    67.500000     0.999611     0.000000     0.000000 0     0.000000     0.000000     0.000000     0.999930     0.999647     0.999629                    1 0 000004@gold/xmipp_continuous_create_residuals_02/output.xmd 000004@input/aFewProjections.stk 000004@gold/xmipp_continuous_create_residuals_02/residuals.stk     2.163760     0.000000     0.000000     0.999923 
+    0.000000     0.000000     0.000000     0.000000    90.000000    90.000000     0.999688     0.000000     0.000000 0     0.000000     0.000000     0.000000     1.000000     0.999999     0.999999                    1 0 000005@gold/xmipp_continuous_create_residuals_02/output.xmd 000005@input/aFewProjections.stk 000005@gold/xmipp_continuous_create_residuals_02/residuals.stk     0.033128     0.000000     0.000000     1.000000 
+    0.000000     0.000000    90.000000    90.000000     0.000000     0.000000     0.999688     0.000000     0.000000 0     0.000000     0.000000     0.000000     1.000000     1.000000     1.000000                    1 0 000006@gold/xmipp_continuous_create_residuals_02/output.xmd 000006@input/aFewProjections.stk 000006@gold/xmipp_continuous_create_residuals_02/residuals.stk     0.007035     0.000000     0.000000     1.000000 
+    0.000000     0.000000    90.000000    90.000000    22.500000    22.500000     0.999597     0.000000     0.000000 0     0.000000     0.000000     0.000000     0.999917     0.999489     0.999534                    1 0 000007@gold/xmipp_continuous_create_residuals_02/output.xmd 000007@input/aFewProjections.stk 000007@gold/xmipp_continuous_create_residuals_02/residuals.stk     2.661958     0.000000     0.000000     0.999908 
+    0.000000     0.000000    90.000000    90.000000    45.000000    45.000000     0.999623     0.000000     0.000000 0     0.000000     0.000000     0.000000     0.999941     0.999697     0.999672                    1 0 000008@gold/xmipp_continuous_create_residuals_02/output.xmd 000008@input/aFewProjections.stk 000008@gold/xmipp_continuous_create_residuals_02/residuals.stk     1.980481     0.000000     0.000000     0.999934 
+    0.000000     0.000000    90.000000    90.000000    67.500000    67.500000     0.999599     0.000000     0.000000 0     0.000000     0.000000     0.000000     0.999919     0.999566     0.999575                    1 0 000009@gold/xmipp_continuous_create_residuals_02/output.xmd 000009@input/aFewProjections.stk 000009@gold/xmipp_continuous_create_residuals_02/residuals.stk     2.261929     0.000000     0.000000     0.999911 
+    0.000000     0.000000    90.000000    90.000000    90.000000    90.000000     0.999688     0.000000     0.000000 0     0.000000     0.000000     0.000000     1.000000     0.999999     0.999999                    1 0 000010@gold/xmipp_continuous_create_residuals_02/output.xmd 000010@input/aFewProjections.stk 000010@gold/xmipp_continuous_create_residuals_02/residuals.stk     0.032193     0.000000     0.000000     1.000000 
