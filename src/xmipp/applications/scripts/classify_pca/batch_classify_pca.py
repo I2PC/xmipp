@@ -76,7 +76,7 @@ if __name__=="__main__":
     classes = int(args.classes)
     final_classes = classes  
     refImages = args.ref
-    niter = 28
+    niter = 14
     bands = args.bands
     vecs = args.vecs
     mask = args.mask
@@ -181,7 +181,7 @@ if __name__=="__main__":
             tMatrix = torch.eye(2, 3, device = cuda).repeat(subset, 1, 1)
             
             if mode == "align_classes":
-                niter = 12
+                niter = 4
                 
             for iter in range(niter):
                 # print("-----Iteration %s for updating classes-------"%(iter+1))
@@ -227,7 +227,7 @@ if __name__=="__main__":
                 save_images(cl.cpu().detach().numpy(), sampling, file)
 
 
-                if mode == "create_classes" and iter == 27:
+                if mode == "create_classes" and iter == 13:
                     
                     refClas[:endBatch] = matches[:, 1]
                                                           
@@ -249,7 +249,7 @@ if __name__=="__main__":
                     angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
                     angles_deg[:endBatch] = np.degrees(angles_rad.cpu().numpy())
                     
-                elif mode == "align_classes" and iter == 11:
+                elif mode == "align_classes" and iter == 3:
                     
                     refClas[initBatch:endBatch] = matches[:, 1]
                     
@@ -272,6 +272,9 @@ if __name__=="__main__":
     counts = torch.bincount(refClas.to(torch.int64), minlength=classes)
     
         #save classes
+    
+    # cl = bnb.process_images_iteratively(cl, 10)
+    cl = bnb.normalize_particles_global(cl)
         
     file = output+".mrcs"
     save_images(cl.cpu().detach().numpy(), sampling, file)

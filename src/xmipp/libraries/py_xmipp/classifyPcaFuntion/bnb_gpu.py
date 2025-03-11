@@ -298,15 +298,15 @@ class BnBgpu:
                         
             transforIm, matrixIm = self.center_particles_inverse_save_matrix(mmap.data[initBatch:endBatch], tMatrix[initBatch:endBatch], 
                                                                              rotBatch[initBatch:endBatch], translations[initBatch:endBatch], centerxy)
-            
-            transforIm = self.normalize_particles_batch(transforIm)
+                        
+            # transforIm = self.normalize_particles_global(transforIm)
             
             if mask: 
-                if iter < 27:
+                if iter < 13:
                     transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
                 else:
                     transforIm = transforIm * self.create_circular_mask(transforIm)
-            
+                                
             tMatrix[initBatch:endBatch] = matrixIm
             
             batch_projExp_cpu[count] = self.batchExpToCpu(transforIm, freqBn, coef, cvecs)
@@ -330,12 +330,12 @@ class BnBgpu:
             else:  
       
                 for n in range(classes):
-                    # class_images = transforIm[matches[initBatch:endBatch, 1] == n]
-                    # newCL[n].append(class_images)
-                    maskSel = matches[initBatch:endBatch, 1] == n  
-                    sorted_indices = torch.argsort(matches[initBatch:endBatch, 2][maskSel])  
-                    class_images = transforIm[maskSel][sorted_indices[:max(1, len(sorted_indices) // 2)]]  
+                    class_images = transforIm[matches[initBatch:endBatch, 1] == n]
                     newCL[n].append(class_images)
+                    # maskSel = matches[initBatch:endBatch, 1] == n  
+                    # sorted_indices = torch.argsort(matches[initBatch:endBatch, 2][maskSel])  
+                    # class_images = transforIm[maskSel][sorted_indices[:max(1, len(sorted_indices) // 2)]]  
+                    # newCL[n].append(class_images)
                          
                     
             del(transforIm)    
@@ -348,7 +348,7 @@ class BnBgpu:
         # clk = self.apply_filter_freq(clk)
          
         if mask:
-            if iter < 27:
+            if iter < 13:
                 clk = clk * self.create_gaussian_mask(clk, sigma)
             else:
                 clk = clk * self.create_circular_mask(clk)
@@ -438,29 +438,30 @@ class BnBgpu:
                             
         transforIm, matrixIm = self.center_particles_inverse_save_matrix(data, tMatrix, 
                                                                          rotBatch, translations, centerxy)
-        
-        transforIm = self.normalize_particles_batch(transforIm)
-        
+
+        # transforIm = self.normalize_particles_global(transforIm)
+       
         if mask:
-            if iter < 11:
+            if iter < 3:
                 transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
             else:
                 transforIm = transforIm * self.create_circular_mask(transforIm)
+                
         
         tMatrix = matrixIm
         
         batch_projExp_cpu = self.create_batchExp(transforIm, freqBn, coef, cvecs)
         
-        if iter == 11:
+        if iter == 3:
             newCL = [[] for i in range(classes)]              
                     
             for n in range(classes):
-                # class_images = transforIm[matches[:, 1] == n]
-                # newCL[n].append(class_images)
-                maskSel = matches[:, 1] == n  
-                sorted_indices = torch.argsort(matches[:, 2][maskSel])  
-                class_images = transforIm[maskSel][sorted_indices[:max(1, len(sorted_indices) // 2)]] 
+                class_images = transforIm[matches[:, 1] == n]
                 newCL[n].append(class_images)
+                # maskSel = matches[:, 1] == n  
+                # sorted_indices = torch.argsort(matches[:, 2][maskSel])  
+                # class_images = transforIm[maskSel][sorted_indices[:max(1, len(sorted_indices) // 2)]] 
+                # newCL[n].append(class_images)
                          
             del(transforIm)
             
@@ -755,6 +756,26 @@ class BnBgpu:
         normalized_batch = (images - mean) / std
         
         return normalized_batch
+    
+    
+    def normalize_particles_global(self, images, eps=1e-8):
+        
+        mean = images.mean()  
+        std = images.std()  
+        normalized_batch = (images - mean) / (std + eps)  
+        return normalized_batch
+    
+    
+    def process_images_iteratively(self, batch, num_iterations):
+        batch = batch.float()
+        for _ in range(num_iterations):
+            img_means = batch.mean(dim=(1, 2), keepdim=True)
+            lower_values_mask = batch < img_means
+            lower_values_sum = (batch * lower_values_mask.float()).sum(dim=(1, 2), keepdim=True)
+            lower_values_count = lower_values_mask.sum(dim=(1, 2), keepdim=True)
+            lower_values_mean = lower_values_sum / (lower_values_count + 1e-8)
+            batch = batch + torch.abs(lower_values_mean)
+        return batch
 
 
     def determine_batches(self, free_memory, dim):
@@ -812,24 +833,24 @@ class BnBgpu:
         
         if mode == "create_classes":
             #print("---Iter %s for creating classes---"%(iter+1))
-            if iter < 10:
+            if iter < 5:
                 ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            elif iter < 16:
+            elif iter < 8:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            elif iter < 22:
+            elif iter < 11:
                 ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
-            elif iter < 28:
+            elif iter < 14:
                 ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
                 
         else:
             #print("---Iter %s for align to classes---"%(iter+1))
-            if iter < 3:
+            if iter < 1:
                 ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            elif iter < 6:
+            elif iter < 2:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            elif iter < 9:
+            elif iter < 3:
                 ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
-            elif iter < 12:
+            elif iter < 4:
                 ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
            
         vectorRot, vectorshift = self.setRotAndShift(ang, shiftMove)
