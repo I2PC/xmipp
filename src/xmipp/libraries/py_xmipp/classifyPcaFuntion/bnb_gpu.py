@@ -384,6 +384,7 @@ class BnBgpu:
             transforIm, matrixIm = self.center_particles_inverse_save_matrix(mmap.data[initBatch:endBatch], tMatrix[initBatch:endBatch], 
                                                                              rotBatch[initBatch:endBatch], translations[initBatch:endBatch], centerxy)
 
+            transforIm = self.normalize_particles_global(transforIm)
             # if mask:
             #     transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
             if mask: 
@@ -411,7 +412,9 @@ class BnBgpu:
         # clk = self.apply_filter_freq(clk) 
         # if mask:
         #     clk = clk * self.create_gaussian_mask(clk, sigma)
-            
+        
+        # clk = self.normalize_particles_global(clk) 
+          
         if mask:
             if iter < 13:
                 clk = clk * self.create_gaussian_mask(clk, sigma)
@@ -439,7 +442,7 @@ class BnBgpu:
         transforIm, matrixIm = self.center_particles_inverse_save_matrix(data, tMatrix, 
                                                                          rotBatch, translations, centerxy)
 
-        # transforIm = self.normalize_particles_global(transforIm)
+        transforIm = self.normalize_particles_global(transforIm)
        
         if mask:
             if iter < 3:
@@ -467,6 +470,8 @@ class BnBgpu:
             
             newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
             clk = self.averages(data, newCL, classes)
+            
+            # clk = self.normalize_particles_global(clk)
             
             
             if not hasattr(self, 'grad_squared'):
@@ -762,8 +767,8 @@ class BnBgpu:
         
         mean = images.mean()  
         std = images.std()  
-        normalized_batch = (images - mean) / (std + eps)  
-        return normalized_batch
+        images = (images - mean) / (std + eps)  
+        return images
     
     
     def process_images_iteratively(self, batch, num_iterations):

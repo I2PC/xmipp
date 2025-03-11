@@ -131,8 +131,8 @@ if __name__=="__main__":
         cl = torch.from_numpy(clIm).float().to(cuda)
     else:
         initStep = int(min(numFirstBatch, np.ceil(nExp/expBatchSize)))
-        # cl = bnb.init_ramdon_classes(final_classes, mmap, initSubset) 
-        cl = bnb.init_ramdon_classes(final_classes//2, mmap, initSubset)
+        cl = bnb.init_ramdon_classes(final_classes, mmap, initSubset) 
+        # cl = bnb.init_ramdon_classes(final_classes//2, mmap, initSubset)
         
     
     if refImages:
@@ -217,8 +217,8 @@ if __name__=="__main__":
                 classes = len(cl)
         
                 if mode == "create_classes":
-                    # cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version0(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
-                    cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, mask, sigma)
+                    cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version0(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
+                    # cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, mask, sigma)
                 else:
                     cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(expImages, cl, tMatrix, iter, subset, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
 
@@ -274,13 +274,14 @@ if __name__=="__main__":
         #save classes
     
     # cl = bnb.process_images_iteratively(cl, 10)
-    cl = bnb.normalize_particles_global(cl)
         
     file = output+".mrcs"
     save_images(cl.cpu().detach().numpy(), sampling, file)
     
     print("Adjust contrast")
     # cl = bnb.increase_contrast_sigmoid(cl, 8, 0.6)
+    cl = bnb.normalize_particles_global(cl)
+
     file_contrast = output+"_contrast.mrcs"
     save_images(cl.cpu().detach().numpy(), sampling, file_contrast)           
 
