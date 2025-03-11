@@ -1436,7 +1436,7 @@ class ContinuousCreateResiduals(XmippProgramTest):
 
     def test_case3(self):
         "Test output xmd and projections only"
-        self.runCase("-i input/aFewProjections.sel -o %o/output.xmd --ref input/phantomBacteriorhodopsin.vol--oprojections %o/projections.stk",
+        self.runCase("-i input/aFewProjections.sel -o %o/output.xmd --ref input/phantomBacteriorhodopsin.vol --oprojections %o/projections.stk",
                 preruns=["xmipp_angular_project_library -i input/phantomBacteriorhodopsin.vol -o %o/reference.stk --sampling_rate 10" ],
                 outputs=["output.xmd", "projections.stk"])
 
