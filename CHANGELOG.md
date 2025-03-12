@@ -1,7 +1,7 @@
 ## Release 3.24.X - 
    ### Xmipp Programs 
    - New programs
-        - 
+      - continuous_create_residuals: Make better residuals by continuous assignment updates to projections
 
    - Programs updated
       - 
