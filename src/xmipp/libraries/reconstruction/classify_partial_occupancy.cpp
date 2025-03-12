@@ -45,6 +45,7 @@
  #include <cstdlib>
  #include <vector>
  #include <utility>
+ #include <chrono>
 
 
  // Empty constructor =======================================================
@@ -236,26 +237,25 @@ void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<
 	#endif
 }
 
-void ProgClassifyPartialOccupancy::logLikelyhood(Image<double> &I)
+void ProgClassifyPartialOccupancy::logLikelyhood(double ll_I, double ll_IsubP)
 {	
-	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
-	selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
-
 	MultidimArray< std::complex<double> > fftI;
 	transformerI.FourierTransform(I(), fftI, false);
 
-	Image< double > IsubP = I() - P();
+	IsubP() = I() - P();
 	MultidimArray< std::complex<double> > fftIsubP;
-	transformerIsubP(IsubP(), fftIsubP, false)
+	transformerIsubP.FourierTransform(IsubP(), fftIsubP, false);
 
-	std::complex<double> ll_I(0.0, 0.0);
-	std::complex<double> ll_IsubP(0.0, 0.0);
+	std::cout << "DIRECT_MULTIDIM_ELEM(powerNoise, 0): " << DIRECT_MULTIDIM_ELEM(powerNoise, 0) << std::endl;
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI)
 	{
-		ll_I += DIRECT_MULTIDIM_ELEM(fftI, n) * DIRECT_MULTIDIM_ELEM(fftI, n) / DIRECT_MULTIDIM_ELEM(noiseAverageSpectrum, n);
-		ll_IsubP += DIRECT_MULTIDIM_ELEM(fftI, n) * DIRECT_MULTIDIM_ELEM(fftI, n) / DIRECT_MULTIDIM_ELEM(noiseAverageSpectrum, n);
+		ll_I     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / (1 + DIRECT_MULTIDIM_ELEM(powerNoise, n));
+		ll_IsubP += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / (1 + DIRECT_MULTIDIM_ELEM(powerNoise, n));
+
 	}
+
+	std::cout << "ll_I: " << ll_I << "		ll_IsubP: " << ll_IsubP << std::endl;
 }
 
  // Main methods ===================================================================
@@ -327,6 +327,7 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t dotPos = fnImgOut.find_last_of('.');
+	I.write(fnImgOut.substr(0, dotPos) + "_I" + fnImgOut.substr(dotPos));
 	P.write(fnImgOut.substr(0, dotPos) + "_P" + fnImgOut.substr(dotPos));
 	PmaskProtein.write(fnImgOut.substr(0, dotPos) + "_PmaskProtein" + fnImgOut.substr(dotPos));
 	PmaskRoi.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi" + fnImgOut.substr(dotPos));
@@ -334,32 +335,19 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 	// M.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi_Norm" + fnImgOut.substr(dotPos));
 	#endif
 
-	// Create empty new image for output particle
-	MultidimArray<double> &mIw=Iw();
-	mIw.initZeros(I());
-	mIw.setXmippOrigin();
+	double ll_I = 0;
+	double ll_IsubP = 0;
 
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIw)
-		DIRECT_MULTIDIM_ELEM(mIw,n) = (DIRECT_MULTIDIM_ELEM(I(),n) * DIRECT_MULTIDIM_ELEM(P(),n));
-	
-	#ifdef DEBUG_OUTPUT_FILES
-	P.write(fnImgOut.substr(0, dotPos) + "_P" + fnImgOut.substr(dotPos));
-	I.write(fnImgOut.substr(0, dotPos) + "_I" + fnImgOut.substr(dotPos));
-	#endif
+	logLikelyhood(ll_I, ll_IsubP);
 
-	// Compute particle stats after subtraction
-	double avg;
-	double std;
-	double zScore;
-
-	computeParticleStats(Iw, M, fnImgOut, avg, std, zScore);
-
-	writeParticle(rowOut, fnImgOut, Iw, avg, std, zScore); 
+	writeParticle(rowOut, fnImgOut, I, ll_I, ll_IsubP, 0); 
 }
 
 
 void ProgClassifyPartialOccupancy::noiseEstimation()
 {
+	auto t1 = std::chrono::high_resolution_clock::now();
+
 	MetaData &mdIn = *getInputMd();
 
     srand(time(0)); // Seed for random number generation
@@ -477,12 +465,9 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 		}
 	}
 
-	powerNoise /= processedParticles;
+	// powerNoise /= processedParticles;
 
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Number of particles processed for noise estimation: " << processedParticles << std::endl;
-	#endif
-	
+
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t lastindex = fn_out.find_last_of(".");
 	std::string rawname = fn_out.substr(0, lastindex);
@@ -493,4 +478,13 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 	saveImage() = powerNoise;
 	saveImage.write(debugFileFn);
 	#endif
+
+	#ifdef VERBOSE_OUTPUT
+	auto t2 = std::chrono::high_resolution_clock::now();
+    auto ms_int = std::chrono::duration_cast<std::chrono::seconds>(t2 - t1);	// Getting number of seconds as an integer
+	std::cout << "Execution time for noise estimation: " << ms_int.count() << " seconds." << std::endl;
+
+	std::cout << "Number of particles processed for noise estimation: " << processedParticles << std::endl;
+	#endif
+
 }

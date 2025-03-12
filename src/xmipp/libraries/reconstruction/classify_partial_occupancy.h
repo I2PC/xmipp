@@ -71,7 +71,7 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
  	Image<double> M; // mask projected and smooth
  	Image<double> M_P; // mask protein projected and smooth
  	Image<double> I; // particle
-    Image<double> Iw; // weighter image
+    Image<double> IsubP; // projection-subtracted particle
 
  	Projection P; // projection
  	Projection PmaskProtein; // mask projection for the protein
@@ -136,7 +136,7 @@ public:
 
     // ----------------------- MAIN FUNCTIONS ------------------------------
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
-    void logLikelyhood(Image<double> &I);
+    void logLikelyhood(double ll_I, double ll_IsubP);
     void preProcess() override;
     void noiseEstimation();
 
