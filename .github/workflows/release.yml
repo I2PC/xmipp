@@ -12,6 +12,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@main
 
+    - name: Setup Python
+      uses: actions/setup-python@v5
+
+    - name: Install installer package
+      run: pip install xmipp3_installer
+
     - name: Retrieve tag name, release name & changelog
       run: |
         echo "TAG_NAME=$(./xmipp version --short)" >> $GITHUB_OUTPUT
