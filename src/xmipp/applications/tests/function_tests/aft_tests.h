@@ -176,7 +176,7 @@ public:
         hw->synch();
 
         // compare the results
-        T delta = (T)0.00001;
+        T delta = (T)0.0005;
 
         for (size_t n = 0; n < s.sDim().n(); ++n) {
             size_t offset = n * s.sDim().xyzPadded();

@@ -20,6 +20,8 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
+from . import ctf
+from . import fourier
 from . import alignment
 from . import classification
 from . import image

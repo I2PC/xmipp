@@ -27,7 +27,8 @@ from typing import Optional
 from .main import INSTALL_PATH
 
 # Variable names
-__SEND_INSTALLATION_STATISTICS = 'SEND_INSTALLATION_STATISTICS'
+SEND_INSTALLATION_STATISTICS = 'SEND_INSTALLATION_STATISTICS'
+__SEND_INSTALLATION_STATISTICS_ENV = 'SEND_INSTALLATION_STATISTICS'
 CMAKE = 'CMAKE'
 CC = 'CMAKE_C_COMPILER'
 CXX = 'CMAKE_CXX_COMPILER'
@@ -54,6 +55,8 @@ __SKIP_RPATH='CMAKE_SKIP_RPATH'
 # This is not used in cmake
 __CONDA_PREFIX = 'CONDA_PREFIX'
 __XMIPP_CUDA_BIN = 'XMIPP_CUDA_BIN'
+__DEFAULT_CUDA_BIN = '/usr/local/cuda/bin'
+__NVCC_EXE = 'nvcc'
 __TUNE_FLAG='-mtune=native'
 
 # Config file variable structure
@@ -62,7 +65,7 @@ LOCATIONS = 'locations'
 COMPILATION_FLAGS = 'flags'
 CONFIG_VARIABLES = {
 	TOGGLES: [
-		__SEND_INSTALLATION_STATISTICS, CUDA, MPI, MATLAB, LINK_SCIPION, __BUILD_TESTING, __SKIP_RPATH
+		__SEND_INSTALLATION_STATISTICS_ENV, CUDA, MPI, MATLAB, LINK_SCIPION, __BUILD_TESTING, __SKIP_RPATH
 	],
 	LOCATIONS: [
 		CMAKE, CC, CXX, CMAKE_INSTALL_PREFIX, __PREFIX_PATH, __MPI_HOME,
@@ -81,10 +84,31 @@ def __getPrefixPath() -> Optional[str]:
 	"""
 	return os.environ.get(__CONDA_PREFIX)
 
+def __getCudaCompiler() -> Optional[str]:
+	"""
+	### This function returns the path for the CUDA compiller
+
+	#### Returns:
+	- (str | None): Path for the NVCC executable
+	"""
+	nvcc = os.environ.get(__XMIPP_CUDA_BIN)
+	
+	if nvcc is None and os.path.exists(__DEFAULT_CUDA_BIN):
+		nvcc = __DEFAULT_CUDA_BIN
+ 
+	if nvcc is not None:
+		nvcc = os.path.join(nvcc, __NVCC_EXE)
+
+	return nvcc
+
+def __getSendStatistics():
+	return os.environ.get(__SEND_INSTALLATION_STATISTICS_ENV, ON)
+ 
+
 ON = 'ON'
 OFF = 'OFF'
 CONFIG_DEFAULT_VALUES = {
-	__SEND_INSTALLATION_STATISTICS: ON,
+	__SEND_INSTALLATION_STATISTICS_ENV: __getSendStatistics(),
 	CMAKE: None,
 	CUDA: ON,
 	MPI: ON,
@@ -93,7 +117,7 @@ CONFIG_DEFAULT_VALUES = {
 	CMAKE_INSTALL_PREFIX: INSTALL_PATH,
 	__CC_FLAGS: __TUNE_FLAG,
 	__CXX_FLAGS: __TUNE_FLAG,
-	CUDA_COMPILER: None,
+	CUDA_COMPILER: __getCudaCompiler(),
 	__PREFIX_PATH: __getPrefixPath(),
 	__MPI_HOME: None,
 	__PYTHON_HOME: None,
@@ -110,4 +134,4 @@ CONFIG_DEFAULT_VALUES = {
 }
 
 # Do not pass this variables to CMake, only for installer logic
-INTERNAL_LOGIC_VARS = [__SEND_INSTALLATION_STATISTICS, CMAKE]
+INTERNAL_LOGIC_VARS = [__SEND_INSTALLATION_STATISTICS_ENV, CMAKE]

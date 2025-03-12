@@ -25,11 +25,12 @@
 """
 Submodule containing all constants needed for the argument parsing part of Xmipp's installation.
 """
+from .main import INSTALL_PATH
 
 # Other variables
 COMMON_USAGE_HELP_MESSAGE = 'Run \"./xmipp -h\" for usage help.'
 DEFAULT_BUILD_DIR = 'build'
-DEFAULT_MODELS_DIR = DEFAULT_BUILD_DIR
+DEFAULT_MODELS_DIR = INSTALL_PATH
 
 # Mode list (alphabetical order)
 MODE_ADD_MODEL = 'addModel'
@@ -98,15 +99,19 @@ DESCRIPTION = 'description'
 PARAM_SHORT = 'short'
 PARAM_JOBS = 'jobs'
 PARAM_BRANCH = 'branch'
+PARAM_PRODUCTION = 'production'
 PARAM_MODELS_DIRECTORY = 'models-directory'
 PARAM_TEST_NAME = 'test-name'
 PARAM_SHOW_TESTS = 'show-tests'
+PARAM_TEST_PRO = 'allPrograms'
+PARAM_TEST_FUNC = 'allFuncs'
 PARAM_GIT_COMMAND = 'git-command'
 PARAM_LOGIN = 'login'
 PARAM_MODEL_PATH = 'model-path'
 PARAM_UPDATE = 'update'
 PARAM_OVERWRITE = 'overwrite'
 PARAM_KEEP_OUTPUT = "keep-output"
+
 PARAMS = {
 	PARAM_SHORT: {
 		LONG_VERSION: "--short",
@@ -122,14 +127,26 @@ PARAMS = {
 		LONG_VERSION: "--branch",
 		DESCRIPTION: "Branch for the source repositories."
 	},
+	PARAM_PRODUCTION: {
+		LONG_VERSION: "--production",
+		DESCRIPTION: "Flag to identify a production compilation (avoid the download of the plugin)."
+	},
 	PARAM_MODELS_DIRECTORY: {
 		SHORT_VERSION: "-d",
 		LONG_VERSION: "--directory",
-		DESCRIPTION: f"Directory where models will be saved. Default is \"{DEFAULT_BUILD_DIR}\"."
+		DESCRIPTION: f"Directory where models will be saved. Default is \"{DEFAULT_MODELS_DIR}\"."
 	},
 	PARAM_TEST_NAME: {
 		SHORT_VERSION: "testName",
 		DESCRIPTION: "Run certain test. If combined with --show, greps the test name from the test list."
+	},
+	PARAM_TEST_PRO: {
+		LONG_VERSION: "--allPrograms",
+		DESCRIPTION: "If set, all test available will be run."
+	},
+	PARAM_TEST_FUNC: {
+		LONG_VERSION: "--allFuncs",
+		DESCRIPTION: "If set, all function test available will be run."
 	},
 	PARAM_SHOW_TESTS: {
 		LONG_VERSION: "--show",
@@ -166,14 +183,14 @@ PARAMS = {
 MODE_ARGS = {
 	MODE_VERSION: [PARAM_SHORT],
 	MODE_COMPILE_AND_INSTALL: [PARAM_JOBS, PARAM_BRANCH, PARAM_KEEP_OUTPUT],
-	MODE_ALL: [PARAM_JOBS, PARAM_BRANCH, PARAM_KEEP_OUTPUT],
+	MODE_ALL: [PARAM_JOBS, PARAM_BRANCH, PARAM_KEEP_OUTPUT, PARAM_PRODUCTION],
 	MODE_CONFIG_BUILD: [PARAM_KEEP_OUTPUT],
 	MODE_CONFIG: [PARAM_OVERWRITE],
 	MODE_GET_MODELS: [PARAM_MODELS_DIRECTORY],
 	MODE_GET_SOURCES: [PARAM_BRANCH, PARAM_KEEP_OUTPUT],
 	MODE_CLEAN_BIN: [],
 	MODE_CLEAN_ALL: [],
-	MODE_TEST: [PARAM_TEST_NAME, PARAM_SHOW_TESTS],
+	MODE_TEST: [PARAM_TEST_NAME, PARAM_SHOW_TESTS, PARAM_TEST_FUNC, PARAM_TEST_PRO],
 	MODE_GIT: [PARAM_GIT_COMMAND],
 	MODE_ADD_MODEL: [PARAM_LOGIN, PARAM_MODEL_PATH, PARAM_UPDATE]
 }
@@ -195,6 +212,7 @@ MODE_EXAMPLES = {
 		'./xmipp',
 		f'./xmipp {MODE_ALL}',
 		f'./xmipp {PARAMS[PARAM_JOBS][SHORT_VERSION]} 20',
+		f'./xmipp {PARAMS[PARAM_PRODUCTION][LONG_VERSION]}',
 		f'./xmipp {PARAMS[PARAM_BRANCH][SHORT_VERSION]} devel',
 		f'./xmipp {MODE_ALL} {PARAMS[PARAM_JOBS][SHORT_VERSION]} 20 '
 		f'{PARAMS[PARAM_BRANCH][SHORT_VERSION]} devel'
@@ -205,7 +223,9 @@ MODE_EXAMPLES = {
 	],
 	MODE_GET_MODELS: [
 		f'./xmipp {MODE_GET_MODELS}',
-		f'./xmipp {MODE_GET_MODELS} {PARAMS[PARAM_MODELS_DIRECTORY][SHORT_VERSION]} /path/to/my/model/directory'
+		f'./xmipp {MODE_GET_MODELS} -directory {PARAMS[PARAM_MODELS_DIRECTORY][SHORT_VERSION]} /path/to/my/model/directory',
+		f'./xmipp {MODE_GET_MODELS} -d {PARAMS[PARAM_MODELS_DIRECTORY][SHORT_VERSION]} /path/to/my/model/directory'
+	
 	],
 	MODE_GET_SOURCES: [
 		f'./xmipp {MODE_GET_SOURCES}'
@@ -215,13 +235,18 @@ MODE_EXAMPLES = {
 	MODE_CLEAN_ALL: [],
 	MODE_TEST: [
 		f'./xmipp {MODE_TEST} xmipp_sample_test',
-		f'./xmipp {MODE_TEST} {PARAMS[PARAM_SHORT][LONG_VERSION]}',
+		f'./xmipp {MODE_TEST} {PARAMS[PARAM_SHOW_TESTS][LONG_VERSION]}',
+		f'./xmipp {MODE_TEST} {PARAMS[PARAM_TEST_FUNC][LONG_VERSION]}',
+		f'./xmipp {MODE_TEST} {PARAMS[PARAM_TEST_PRO][LONG_VERSION]}',
+	
 	],
 	MODE_GIT: [
 		f'./xmipp {MODE_GIT} pull',
 		f'./xmipp {MODE_GIT} checkout devel'
 	],
 	MODE_ADD_MODEL: [
-		f'./xmipp {MODE_ADD_MODEL} myuser@127.0.0.1 /home/myuser/mymodel'
+		f'./xmipp {MODE_ADD_MODEL} myuser@127.0.0.1 /home/myuser/mymodel',
+		f'./xmipp {MODE_ADD_MODEL} myuser@127.0.0.1 /home/myuser/mymodel --update'
+
 	]
 }
