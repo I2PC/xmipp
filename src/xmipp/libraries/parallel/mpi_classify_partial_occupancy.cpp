@@ -51,6 +51,11 @@ void MpiProgClassifyPartialOccupancy::preProcess()
     int realSizeMask;
     int originMask;
 
+    int noiseSizeX;
+    int noiseSizeY;
+    int noiseSizeOrigin;
+    
+
     if (!realSpaceProjector)
     {
         if (node->rank == 0)
@@ -59,6 +64,10 @@ void MpiProgClassifyPartialOccupancy::preProcess()
             realSizeY = (int)YSIZE(projector->VfourierRealCoefs);
             realSizeZ = (int)ZSIZE(projector->VfourierRealCoefs);
             origin = STARTINGX(projector->VfourierRealCoefs);
+
+            noiseSizeX = (int)XSIZE(powerNoise);
+            noiseSizeY = (int)YSIZE(powerNoise);
+            noiseSizeOrigin = STARTINGX(powerNoise);
         }
 
         MPI_Bcast(&realSizeX, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -71,16 +80,25 @@ void MpiProgClassifyPartialOccupancy::preProcess()
         MPI_Bcast(&realSizeMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(&originMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
+        MPI_Bcast(&noiseSizeX, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&noiseSizeY, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&noiseSizeOrigin, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
         if (rank != 0)
         {
             projector->VfourierRealCoefs.resizeNoCopy(realSizeZ,realSizeY,realSizeX);
             projector->VfourierImagCoefs.resizeNoCopy(realSizeZ,realSizeY,realSizeX);
             STARTINGX(projector->VfourierRealCoefs)=STARTINGY(projector->VfourierRealCoefs)=STARTINGZ(projector->VfourierRealCoefs)=origin;
             STARTINGX(projector->VfourierImagCoefs)=STARTINGY(projector->VfourierImagCoefs)=STARTINGZ(projector->VfourierImagCoefs)=origin;
+
+            powerNoise.resizeNoCopy(noiseSizeY,noiseSizeX);
+            STARTINGX(powerNoise)=STARTINGY(powerNoise)=noiseSizeOrigin;
         }
 
         MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierRealCoefs), (int)MULTIDIM_SIZE(projector->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
         MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierImagCoefs), (int)MULTIDIM_SIZE(projector->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+        MPI_Bcast(MULTIDIM_ARRAY(powerNoise), (int)MULTIDIM_SIZE(powerNoise), MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
         if (rank != 0)
         {
