@@ -13,6 +13,7 @@ import torchvision.transforms.functional as T
 import torch.nn.functional as F
 import kornia
 import mrcfile
+import math
 
 
 class BnBgpu:
@@ -384,7 +385,7 @@ class BnBgpu:
             transforIm, matrixIm = self.center_particles_inverse_save_matrix(mmap.data[initBatch:endBatch], tMatrix[initBatch:endBatch], 
                                                                              rotBatch[initBatch:endBatch], translations[initBatch:endBatch], centerxy)
 
-            transforIm = self.normalize_particles_global(transforIm)
+            # transforIm = self.normalize_particles_global(transforIm)
             # if mask:
             #     transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
             if mask: 
@@ -442,7 +443,7 @@ class BnBgpu:
         transforIm, matrixIm = self.center_particles_inverse_save_matrix(data, tMatrix, 
                                                                          rotBatch, translations, centerxy)
 
-        transforIm = self.normalize_particles_global(transforIm)
+        # transforIm = self.normalize_particles_global(transforIm)
        
         if mask:
             if iter < 3:
@@ -489,7 +490,55 @@ class BnBgpu:
         return (clk, tMatrix, batch_projExp_cpu)
        
 
+
     def center_particles_inverse_save_matrix(self, data, tMatrix, update_rot, update_shifts, centerxy):
+        
+        rotBatch = update_rot.view(-1)
+        batchsize = rotBatch.size(0)
+    
+        scale = torch.tensor([[1.0, 1.0]], device=self.cuda).expand(batchsize, -1)  
+        
+        translations = update_shifts.view(batchsize, 2, 1)
+    
+        translation_matrix = torch.eye(3, device=self.cuda).unsqueeze(0).repeat(batchsize, 1, 1)
+        translation_matrix[:, :2, 2] = translations.squeeze(-1)
+    
+        rotation_matrix = kornia.geometry.get_rotation_matrix2d(centerxy.expand(batchsize, -1), rotBatch, scale)
+        
+        M = torch.matmul(rotation_matrix, translation_matrix)
+                         
+        tMatrixLocal = torch.cat((tMatrix, torch.zeros((batchsize, 1, 3), device=self.cuda)), dim=1)
+        tMatrixLocal[:, 2, 2] = 1.0
+    
+        M = torch.matmul(M, tMatrixLocal)
+        M = M[:, :2, :]    
+    
+        Texp = torch.from_numpy(data.astype(np.float32)).to(self.cuda).unsqueeze(1)
+    
+        # Asegurar que la imagen no se corte aumentando dsize
+        new_size = (
+            math.ceil(data.shape[1] * 1.5), 
+            math.ceil(data.shape[2] * 1.5)
+        )
+    
+        transforIm = kornia.geometry.warp_affine(
+            Texp, M, dsize=new_size, mode='bilinear', padding_mode='border'
+        )
+    
+        transforIm = transforIm[:, :, :data.shape[1], :data.shape[2]]  # Recortar si es necesario
+    
+        del Texp
+        
+        return transforIm.view(batchsize, data.shape[1], data.shape[2]), M    
+    
+    
+    
+    
+    
+    
+    
+    
+    def center_particles_inverse_save_matrix2(self, data, tMatrix, update_rot, update_shifts, centerxy):
         
         rotBatch = update_rot.view(-1)
         batchsize = rotBatch.size(dim=0)
