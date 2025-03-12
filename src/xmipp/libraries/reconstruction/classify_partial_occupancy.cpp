@@ -248,10 +248,10 @@ void ProgClassifyPartialOccupancy::logLikelyhood(double ll_I, double ll_IsubP)
 
 	std::cout << "DIRECT_MULTIDIM_ELEM(powerNoise, 0): " << DIRECT_MULTIDIM_ELEM(powerNoise, 0) << std::endl;
 
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI)
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI)  // *** cuidado l coger indices en fourier que esta desordenado
 	{
-		ll_I     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / (1 + DIRECT_MULTIDIM_ELEM(powerNoise, n));
-		ll_IsubP += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / (1 + DIRECT_MULTIDIM_ELEM(powerNoise, n));
+		ll_I     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / DIRECT_MULTIDIM_ELEM(powerNoise, n);
+		ll_IsubP += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / DIRECT_MULTIDIM_ELEM(powerNoise, n);
 
 	}
 
