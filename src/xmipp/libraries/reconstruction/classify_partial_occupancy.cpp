@@ -349,6 +349,8 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
     srand(time(0)); // Seed for random number generation
     int maxX = Xdim - cropSize;
     int maxY = Ydim - cropSize;
+    int minX = cropSize;
+    int minY = cropSize;
 
 	double scallignFactor = (Xdim * Ydim) / (cropSize * cropSize);
 
@@ -380,12 +382,31 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 		projectVolume(vMaskP(), PmaskProtein, Xdim, Ydim, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
 		projectVolume(vMaskRoi(), PmaskRoi, Xdim, Ydim, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
 
+		// Optimize noise calulation: search for random regions that fall in the square that circunscribe the 
+		// region that contain protein. We avoid generating random numbers in invalid regions.
+		if(processedParticles < numberParticlesForBoundaryDetermination)
+		{
+			for (int i = 0; i < (int)Ydim; ++i) 
+			{
+				for (int j = 0; j < (int)Xdim; ++j) 
+				{
+					if (DIRECT_A2D_ELEM(PmaskProtein(), i, j) > 0) 
+					{
+						if (j < minX) minX = j;
+						if (j > maxX) maxX = j;
+						if (i < minY) minY = i;
+						if (i > maxY) maxY = i;
+					}
+				}
+			}
+		}
+
 		do {
 			invalidRegion = false;
 			noiseCrop.initZeros((int)Ydim, (int)Xdim);
 
-			int x = rand() % maxX;
-			int y = rand() % maxY;
+			int x = minX + rand() % (maxX - minX + 1);
+			int y = minY + rand() % (maxY - minY + 1);
 
 			for (size_t i = 0; i < cropSize; i++)
 			{
