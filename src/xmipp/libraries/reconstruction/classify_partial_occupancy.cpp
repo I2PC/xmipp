@@ -237,7 +237,7 @@ void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<
 	#endif
 }
 
-void ProgClassifyPartialOccupancy::logLikelyhood(double ll_I, double ll_IsubP)
+void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 {	
 	MultidimArray< std::complex<double> > fftI;
 	transformerI.FourierTransform(I(), fftI, false);
@@ -246,16 +246,12 @@ void ProgClassifyPartialOccupancy::logLikelyhood(double ll_I, double ll_IsubP)
 	MultidimArray< std::complex<double> > fftIsubP;
 	transformerIsubP.FourierTransform(IsubP(), fftIsubP, false);
 
-	std::cout << "DIRECT_MULTIDIM_ELEM(powerNoise, 0): " << DIRECT_MULTIDIM_ELEM(powerNoise, 0) << std::endl;
-
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI)  // *** cuidado l coger indices en fourier que esta desordenado
 	{
 		ll_I     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / DIRECT_MULTIDIM_ELEM(powerNoise, n);
 		ll_IsubP += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / DIRECT_MULTIDIM_ELEM(powerNoise, n);
 
 	}
-
-	std::cout << "ll_I: " << ll_I << "		ll_IsubP: " << ll_IsubP << std::endl;
 }
 
  // Main methods ===================================================================
@@ -338,7 +334,7 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 	double ll_I = 0;
 	double ll_IsubP = 0;
 
-	logLikelyhood(ll_I, ll_IsubP);
+	logLikelihood(ll_I, ll_IsubP);
 
 	writeParticle(rowOut, fnImgOut, I, ll_I, ll_IsubP, 0); 
 }
@@ -353,6 +349,8 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
     srand(time(0)); // Seed for random number generation
     int maxX = Xdim - cropSize;
     int maxY = Ydim - cropSize;
+
+	double scallignFactor = (Xdim * Ydim) / (cropSize * cropSize);
 
     bool invalidRegion;
 	size_t processedParticles = 0;
@@ -413,7 +411,7 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 						break;
 					}
 
-					DIRECT_A2D_ELEM(noiseCrop,  (Ydim/2) - (cropSize/2) + i, (Xdim/2) - (cropSize/2) + j) = DIRECT_A2D_ELEM(I(), y + i, x + j);
+					DIRECT_A2D_ELEM(noiseCrop,  (Ydim/2) - (cropSize/2) + i, (Xdim/2) - (cropSize/2) + j) = scallignFactor * DIRECT_A2D_ELEM(I(), y + i, x + j);
 				}
 
 				if (invalidRegion) {
