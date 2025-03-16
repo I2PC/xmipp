@@ -405,7 +405,7 @@ void ProgCTFEstimateFromPSD::saveIntermediateResults(const FileName &fn_root, bo
             "save_intermediate_results::Cannot open plot file for writing\n");
     plotX << "# freq_dig freq_angstrom model psd enhanced logModel logPsd\n";
     plotY << "# freq_dig freq_angstrom model psd enhanced logModel logPsd\n";
-    //plot_radial << "# freq_dig freq_angstrom model psd enhanced logModel logPsd\n";
+    plot_radial << "# freq_dig freq_angstrom model psd enhanced logModel logPsd\n";
 
     // Generate cut along X
     for (int i = STARTINGY(save()); i <= FINISHINGY(save()) / 2; i++)
@@ -2357,6 +2357,8 @@ double ROUT_Adjust_CTF(ProgCTFEstimateFromPSD &prm, CTFDescription &output_ctfmo
         steps(10) = steps(11) = 0;
     if (std::floor(prm.initial_ctfmodel.VPP_radius) == 0)
     	steps(36) = 0; //VPP phase shift
+    if (prm.noDefocusEstimate)
+    	steps(0)=steps(1)=0;
 
     powellOptimizer(*prm.adjust_params, 0 + 1, ALL_CTF_PARAMETERS, CTF_fitness,
                     global_prm, 0.01, fitness, iter, steps, prm.show_optimization);

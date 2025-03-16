@@ -1,0 +1,14 @@
+#Protocols ussing the enviroment: protocol_tigre_reconstruction
+
+name: xtomo_tigre
+channels:
+  - anaconda
+  - defaults
+  - conda-forge
+  - ccpi
+dependencies:
+  - python=3.6
+  - mrcfile
+  - numpy
+  - tigre
+

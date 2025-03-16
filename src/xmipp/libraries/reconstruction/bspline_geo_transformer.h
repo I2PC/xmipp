@@ -27,7 +27,7 @@
 #define LIBRARIES_RECONSTRUCTION_BSPLINE_GEO_TRANSFORMER_H_
 
 #include "reconstruction/ageo_transformer.h"
-#include "CTPL/ctpl_stl.h"
+#include "ctpl_stl.h"
 #include "data/cpu.h"
 
 /**@defgroup BSplineTransformSettings BSpline Transform Settings

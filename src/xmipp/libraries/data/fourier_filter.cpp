@@ -766,6 +766,10 @@ void FourierFilter::applyMaskFourierSpace(const MultidimArray<double> &v, Multid
             }
         }
     }
+	else if (FilterShape==WEDGE || FilterShape==CONE) {
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V)
+		DIRECT_MULTIDIM_ELEM(V,n)*=DIRECT_MULTIDIM_ELEM(maskFourier,n);
+	}
     else
     {
         w.resizeNoCopy(3);

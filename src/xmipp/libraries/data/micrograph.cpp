@@ -92,10 +92,14 @@ void Micrograph::open_micrograph(const FileName &_fn_micrograph)
     int result;
     switch (datatype)
     {
-        case DT_UHalfByte:
+    case DT_UHalfByte:
     case DT_UChar:
         result = IUChar.readMapped(fn_micrograph, FIRST_IMAGE);
         pixelDesvFilter(IUChar.data, stdevFilter);
+        break;
+    case DT_SChar:
+        result = ISChar.readMapped(fn_micrograph, FIRST_IMAGE);
+        pixelDesvFilter(ISChar.data, stdevFilter);
         break;
     case DT_UShort:
         result = IUShort.readMapped(fn_micrograph, FIRST_IMAGE);
@@ -115,6 +119,11 @@ void Micrograph::open_micrograph(const FileName &_fn_micrograph)
         break;
     case DT_Float:
         result = IFloat.readMapped(fn_micrograph, FIRST_IMAGE);
+        pixelDesvFilter(IFloat.data, stdevFilter);
+        break;
+    case DT_HalfFloat:
+        datatype = DT_Float; // Converting
+        result = IFloat.read(fn_micrograph, DATA, FIRST_IMAGE);
         pixelDesvFilter(IFloat.data, stdevFilter);
         break;
     default:
@@ -445,6 +454,11 @@ void Micrograph::produce_all_images(int label, double minCost,
             else
                 SF.setValue(MDL_ENABLED, 1, id);
             //  if (ang!=0) I().rotate(-ang);
+            double mean=I().computeAvg();
+            if (compute_inverse)
+            	SF.setValue(MDL_LOCAL_AVERAGE, Dmax-(Dmax-Dmin)*mean, id);
+            else
+            	SF.setValue(MDL_LOCAL_AVERAGE, mean, id);
             I.write(fn_out, ii, true, WRITE_APPEND);
         }
     }
