@@ -401,7 +401,7 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 
 	logLikelihood(ll_I, ll_IsubP);
 
-	writeParticle(rowOut, fnImgOut, I, ll_I, ll_IsubP, 0); 
+	writeParticle(rowOut, fnImgOut, I, ll_I, ll_IsubP, (ll_I-ll_IsubP)); 
 }
 
 
