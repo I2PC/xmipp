@@ -13,7 +13,6 @@ import torchvision.transforms.functional as T
 import torch.nn.functional as F
 import kornia
 import mrcfile
-import math
 
 
 class BnBgpu:
@@ -488,57 +487,71 @@ class BnBgpu:
             clk = cl  
             
         return (clk, tMatrix, batch_projExp_cpu)
-       
+    
+    
+    
+    
+    def center_particles_inverse_save_matrix2(self, data, tMatrix, rot, shifts, centerxy):
+        
+        N, H, W = data.shape 
+ 
+        device = torch.device("cuda") if self.cuda else torch.device("cpu")
+        
+        centerxy = centerxy.expand(N, 2)
+        rot_rad = rot.reshape(-1) * (torch.pi / 180)  
+    
+        cos_theta = torch.cos(rot_rad)
+        sin_theta = torch.sin(rot_rad)
+    
+        rotation_matrix = torch.eye(3, device=device).repeat(N, 1, 1)
+        rotation_matrix[:, 0, 0] = cos_theta
+        rotation_matrix[:, 0, 1] = -sin_theta
+        rotation_matrix[:, 1, 0] = sin_theta
+        rotation_matrix[:, 1, 1] = cos_theta
+        
+        
+        shifts[:, 0] = (2.0 * shifts[:, 0]) / (W)  # Normalizar en X
+        shifts[:, 1] = (2.0 * -shifts[:, 1]) / (H)  # Normalizar en Y
+    
+        shifts = shifts.view(N, 2, 1)   
+        translation_matrix = torch.eye(3, device=device).unsqueeze(0).repeat(N, 1, 1)
+        translation_matrix[:, :2, 2] = shifts.squeeze(-1)
+        
+        M = torch.matmul(rotation_matrix, translation_matrix)  
+        # print(M[1])
+        
+    
+        if tMatrix.shape[-2:] == (2, 3):
+            tMatrix_hom = torch.cat((tMatrix, torch.zeros((N, 1, 3), device=device)), dim=1)
+            tMatrix_hom[:, 2, 2] = 1.0  
+        else:
+            raise ValueError(f"tMatrix debe tener forma (N, 2, 3), pero tiene {tMatrix.shape}")
+    
+        M = torch.matmul(M, tMatrix_hom)
+        M = M[:, :2, :]  
 
-
+        M_grid = M.clone()
+        
+    
+        grid = F.affine_grid(M_grid, (N, 1, H, W), align_corners=False)
+    
+        Texp = torch.from_numpy(data.astype(np.float32)).to(device).unsqueeze(1)
+        transforIm = F.grid_sample(Texp, grid, mode='bilinear', padding_mode='zeros', align_corners=False)
+        del(Texp)
+        
+        # print(M)
+        # exit()
+        
+        return transforIm.squeeze(1), M
+    
+    
+    
+    
+    
+           
+    
     def center_particles_inverse_save_matrix(self, data, tMatrix, update_rot, update_shifts, centerxy):
-        
-        rotBatch = update_rot.view(-1)
-        batchsize = rotBatch.size(0)
-    
-        scale = torch.tensor([[1.0, 1.0]], device=self.cuda).expand(batchsize, -1)  
-        
-        translations = update_shifts.view(batchsize, 2, 1)
-    
-        translation_matrix = torch.eye(3, device=self.cuda).unsqueeze(0).repeat(batchsize, 1, 1)
-        translation_matrix[:, :2, 2] = translations.squeeze(-1)
-    
-        rotation_matrix = kornia.geometry.get_rotation_matrix2d(centerxy.expand(batchsize, -1), rotBatch, scale)
-        
-        M = torch.matmul(rotation_matrix, translation_matrix)
-                         
-        tMatrixLocal = torch.cat((tMatrix, torch.zeros((batchsize, 1, 3), device=self.cuda)), dim=1)
-        tMatrixLocal[:, 2, 2] = 1.0
-    
-        M = torch.matmul(M, tMatrixLocal)
-        M = M[:, :2, :]    
-    
-        Texp = torch.from_numpy(data.astype(np.float32)).to(self.cuda).unsqueeze(1)
-    
-        # Asegurar que la imagen no se corte aumentando dsize
-        new_size = (
-            math.ceil(data.shape[1] * 1.5), 
-            math.ceil(data.shape[2] * 1.5)
-        )
-    
-        transforIm = kornia.geometry.warp_affine(
-            Texp, M, dsize=new_size, mode='bilinear', padding_mode='border'
-        )
-    
-        transforIm = transforIm[:, :, :data.shape[1], :data.shape[2]]  # Recortar si es necesario
-    
-        del Texp
-        
-        return transforIm.view(batchsize, data.shape[1], data.shape[2]), M    
-    
-    
-    
-    
-    
-    
-    
-    
-    def center_particles_inverse_save_matrix2(self, data, tMatrix, update_rot, update_shifts, centerxy):
+          
         
         rotBatch = update_rot.view(-1)
         batchsize = rotBatch.size(dim=0)
@@ -552,14 +565,18 @@ class BnBgpu:
 
         rotation_matrix = kornia.geometry.get_rotation_matrix2d(centerxy.expand(batchsize, -1), rotBatch, scale)
         
-        M = torch.matmul(rotation_matrix, translation_matrix)
+        M = torch.matmul(rotation_matrix, translation_matrix)       
+        
+        M = torch.cat((M, torch.zeros((batchsize, 1, 3), device=self.cuda)), dim=1)
+        M[:, 2, 2] = 1.0      
+
                          
         #combined matrix
         tMatrixLocal = torch.cat((tMatrix, torch.zeros((batchsize, 1, 3), device=self.cuda)), dim=1)
         tMatrixLocal[:, 2, 2] = 1.0
         
         M = torch.matmul(M, tMatrixLocal)
-        M = M[:, :2, :]    
+        M = M[:, :2, :]   
     
         Texp = torch.from_numpy(data.astype(np.float32)).to(self.cuda).unsqueeze(1)
 
@@ -887,14 +904,18 @@ class BnBgpu:
         
         if mode == "create_classes":
             #print("---Iter %s for creating classes---"%(iter+1))
-            if iter < 5:
+            if iter < 3:
                 ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
+            if iter < 5:
+                ang, shiftMove = (-180, 180, 5), (12, 15, 3)
             elif iter < 8:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
             elif iter < 11:
-                ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
+                ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
+                # ang, shiftMove = (-180, 180, 2), (-6, 8, 2)
             elif iter < 14:
                 ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
+                # ang, shiftMove = (-180, 180, 1), (-3, 4, 1)
                 
         else:
             #print("---Iter %s for align to classes---"%(iter+1))
@@ -904,8 +925,10 @@ class BnBgpu:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
             elif iter < 3:
                 ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
+                # ang, shiftMove = (-180, 180, 2), (-6, 8, 2)
             elif iter < 4:
                 ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
+                # ang, shiftMove = (-180, 180, 1), (-3, 4, 1)
            
         vectorRot, vectorshift = self.setRotAndShift(ang, shiftMove)
         return (vectorRot, vectorshift)
