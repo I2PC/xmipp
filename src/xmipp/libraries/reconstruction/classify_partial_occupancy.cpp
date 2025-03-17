@@ -239,18 +239,83 @@ void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<
 
 void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 {	
-	MultidimArray< std::complex<double> > fftI;
-	transformerI.FourierTransform(I(), fftI, false);
-
+	// Subtract ligand from particle *** TODO: adjust the subtration
 	IsubP() = I() - P();
+
+	// Detect ligand regions
+	binarizeMask(PmaskRoi);
+	MultidimArray<double> PmaskRoiLabel;
+	PmaskRoiLabel.resizeNoCopy(PmaskRoi());
+	int numLig = labelImage2D(PmaskRoi(), PmaskRoiLabel, 8);
+
+	// Calculate bounding box for each ligand region
+	std::vector<int> minX(numLig, std::numeric_limits<int>::max());
+	std::vector<int> minY(numLig, std::numeric_limits<int>::max());
+	std::vector<int> maxX(numLig, std::numeric_limits<int>::min());
+	std::vector<int> maxY(numLig, std::numeric_limits<int>::min());
+
+	calculateBoundingBox(PmaskRoiLabel, minX, minY, maxX, maxY, numLig);
+
+	// Calculate likelihood ofor each region
+	MultidimArray<double> centeredLigand;
+	MultidimArray<double> centeredLigandSubP;
+	MultidimArray< std::complex<double> > fftI;
 	MultidimArray< std::complex<double> > fftIsubP;
-	transformerIsubP.FourierTransform(IsubP(), fftIsubP, false);
 
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI)  // *** cuidado l coger indices en fourier que esta desordenado
-	{
-		ll_I     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / DIRECT_MULTIDIM_ELEM(powerNoise, n);
-		ll_IsubP += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / DIRECT_MULTIDIM_ELEM(powerNoise, n);
+	for (size_t value = 0; value < numLig; ++value) {
+		// Cropping regions
+		int width = maxX[value] - minX[value] + 1;
+		int height = maxY[value] - minY[value] + 1;
+		int centerX = Xdim / 2;
+		int centerY = Ydim / 2;
 
+		// Initialize new images for cropping
+		centeredLigand.initZeros(Ydim, Xdim);
+		centeredLigandSubP.initZeros(Ydim, Xdim);
+
+		// Copy the region to the center of the new image
+		for (int i = minY[value]; i <= maxY[value]; ++i) 
+		{
+			for (int j = minX[value]; j <= maxX[value]; ++j) 
+			{
+				int newI = centerY - height / 2 + (i - minY[value]);
+				int newJ = centerX - width / 2 + (j - minX[value]);
+				DIRECT_A2D_ELEM(centeredLigand, newI, newJ) = DIRECT_A2D_ELEM(I(), i, j);
+				DIRECT_A2D_ELEM(centeredLigandSubP, newI, newJ) = DIRECT_A2D_ELEM(IsubP(), i, j);
+			}
+		}
+
+		// Calculate FT for each cropping
+		transformerI.FourierTransform(I(), fftI, false);
+		transformerIsubP.FourierTransform(IsubP(), fftIsubP, false);
+
+		// Calculate likelyhood for each region
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI)  // *** cuidado l coger indices en fourier que esta desordenado
+		{
+			ll_I     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / DIRECT_MULTIDIM_ELEM(powerNoise, n);
+			ll_IsubP += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / DIRECT_MULTIDIM_ELEM(powerNoise, n);
+
+		}
+	}
+}
+
+void ProgClassifyPartialOccupancy::calculateBoundingBox(MultidimArray<double> PmaskRoiLabel, 
+														std::vector<int> minX, 
+														std::vector<int> minY, 
+														std::vector<int> maxX, 
+														std::vector<int> maxY, 
+														int numLig)
+{	
+	for (size_t i = 0; i < Ydim; ++i) {
+		for (size_t j = 0; j < Xdim; ++j) {
+			int value = DIRECT_A2D_ELEM(PmaskRoiLabel, i, j);
+			if (value != 0) {
+				if (j < minX[value - 1]) minX[value - 1] = j;
+				if (j > maxX[value - 1]) maxX[value - 1] = j;
+				if (i < minY[value - 1]) minY[value - 1] = i;
+				if (i > maxY[value - 1]) maxY[value - 1] = i;
+			}
+		}
 	}
 }
 

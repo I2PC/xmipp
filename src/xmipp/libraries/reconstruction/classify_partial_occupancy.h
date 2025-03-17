@@ -148,6 +148,15 @@ public:
     Image<double> invertMask(const Image<double> &);
     void processParticle(const MDRow &rowIn, int sizeImg);
     void computeParticleStats(Image<double> &I, Image<double> &M, FileName fnImgOut, double &avg, double &std, double &zScore);
+    void calculateBoundingBox(MultidimArray<double> PmaskRoiLabel, 
+                              std::vector<int> minX, 
+                              std::vector<int> minY, 
+                              std::vector<int> maxX, 
+                              std::vector<int> maxY, 
+                              int numLig);
+
+
+
     // --------------------------- MAIN ------------------------------------
 
     // Empty constructor
