@@ -904,12 +904,11 @@ class BnBgpu:
         
         if mode == "create_classes":
             #print("---Iter %s for creating classes---"%(iter+1))
-            # if iter < 2:
-            #     ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
             if iter < 5:
-                ang, shiftMove = (-180, 180, 6), (9, 12, 3)
+                # ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
+                ang, shiftMove = (-180, 180, 6), (-12, 15, 3)
             elif iter < 8:
-                ang, shiftMove = (-180, 180, 4), (-6, 8, 2)
+                ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
             elif iter < 11:
                 ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
                 # ang, shiftMove = (-180, 180, 2), (-6, 8, 2)
@@ -920,7 +919,8 @@ class BnBgpu:
         else:
             #print("---Iter %s for align to classes---"%(iter+1))
             if iter < 1:
-                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
+                # ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
+                ang, shiftMove = (-180, 180, 6), (-12, 15, 4)
             elif iter < 2:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
             elif iter < 3:
