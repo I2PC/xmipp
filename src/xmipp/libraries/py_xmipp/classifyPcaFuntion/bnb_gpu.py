@@ -384,7 +384,7 @@ class BnBgpu:
             transforIm, matrixIm = self.center_particles_inverse_save_matrix(mmap.data[initBatch:endBatch], tMatrix[initBatch:endBatch], 
                                                                              rotBatch[initBatch:endBatch], translations[initBatch:endBatch], centerxy)
 
-            # transforIm = self.normalize_particles_global(transforIm)
+
             # if mask:
             #     transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
             if mask: 
@@ -392,6 +392,8 @@ class BnBgpu:
                     transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
                 else:
                     transforIm = transforIm * self.create_circular_mask(transforIm)
+                    
+            transforIm = self.normalize_particles_global(transforIm)
             
             tMatrix[initBatch:endBatch] = matrixIm
             
@@ -441,14 +443,14 @@ class BnBgpu:
                             
         transforIm, matrixIm = self.center_particles_inverse_save_matrix(data, tMatrix, 
                                                                          rotBatch, translations, centerxy)
-
-        # transforIm = self.normalize_particles_global(transforIm)
        
         if mask:
             if iter < 3:
                 transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
             else:
                 transforIm = transforIm * self.create_circular_mask(transforIm)
+                
+        transforIm = self.normalize_particles_global(transforIm)
                 
         
         tMatrix = matrixIm
@@ -905,8 +907,7 @@ class BnBgpu:
         if mode == "create_classes":
             #print("---Iter %s for creating classes---"%(iter+1))
             if iter < 5:
-                # ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-                ang, shiftMove = (-180, 180, 6), (-12, 15, 3)
+                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
             elif iter < 8:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
             elif iter < 11:
@@ -919,8 +920,7 @@ class BnBgpu:
         else:
             #print("---Iter %s for align to classes---"%(iter+1))
             if iter < 1:
-                # ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-                ang, shiftMove = (-180, 180, 6), (-12, 15, 4)
+                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
             elif iter < 2:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
             elif iter < 3:
