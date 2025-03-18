@@ -393,7 +393,7 @@ class BnBgpu:
                 else:
                     transforIm = transforIm * self.create_circular_mask(transforIm)
                     
-            transforIm = self.normalize_particles_global(transforIm)
+            # transforIm = self.normalize_particles_global(transforIm)
             
             tMatrix[initBatch:endBatch] = matrixIm
             
@@ -450,7 +450,7 @@ class BnBgpu:
             else:
                 transforIm = transforIm * self.create_circular_mask(transforIm)
                 
-        transforIm = self.normalize_particles_global(transforIm)
+        # transforIm = self.normalize_particles_global(transforIm)
                 
         
         tMatrix = matrixIm
@@ -907,7 +907,8 @@ class BnBgpu:
         if mode == "create_classes":
             #print("---Iter %s for creating classes---"%(iter+1))
             if iter < 5:
-                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
+                # ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
+                ang, shiftMove = (-180, 180, 6), (-12, 15, 3)
             elif iter < 8:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
             elif iter < 11:
@@ -920,7 +921,8 @@ class BnBgpu:
         else:
             #print("---Iter %s for align to classes---"%(iter+1))
             if iter < 1:
-                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
+                # ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
+                 ang, shiftMove = (-180, 180, 6), (-12, 15, 3)
             elif iter < 2:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
             elif iter < 3:
