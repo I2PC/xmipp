@@ -393,7 +393,7 @@ class BnBgpu:
                 else:
                     transforIm = transforIm * self.create_circular_mask(transforIm)
                     
-            # transforIm = self.normalize_particles_global(transforIm)
+            transforIm = self.normalize_particles_global(transforIm)
             
             tMatrix[initBatch:endBatch] = matrixIm
             
@@ -450,7 +450,7 @@ class BnBgpu:
             else:
                 transforIm = transforIm * self.create_circular_mask(transforIm)
                 
-        # transforIm = self.normalize_particles_global(transforIm)
+        transforIm = self.normalize_particles_global(transforIm)
                 
         
         tMatrix = matrixIm
