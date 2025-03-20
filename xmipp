@@ -23,7 +23,10 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
-import os, subprocess, sys
+import os
+import shutil
+import subprocess
+import sys
 from typing import Tuple
 
 def __getProjectRootDir() -> str:
@@ -60,16 +63,17 @@ if __name__ == "__main__":
 	# Running always under this own directory.
 	os.chdir(__getProjectRootDir())
 
-	# Install installer package if it's not there already
-	ret_code = __run_command("pip show xmipp3_installer")[0]
-	if ret_code:
-		print("Installing xmipp installer package. You should only see this message the first time you install Xmipp.", flush=True)
-		ret_code, output = __run_command("pip install xmipp3-installer")
-		if ret_code:
-			print(output)
-			print("Installation failed! See full error above.", flush=True)
-			sys.exit(ret_code)
-		print("Completed. Launching installer", flush=True)
+	# Check if installer package is present
+	if not shutil.which("xmipp3_installer"):
+		print(
+			(
+				"Xmipp's installer package \'xmipp3-installer\' is not installed.\n",
+				"It is requied to continue.\n",
+				"You can install it by running \'pip install xmipp3-installer\'."
+			),
+			flush=True
+		)
+		sys.exit(1)
 
 	# Call xmipp installer
 	process = subprocess.run(["xmipp3_installer", *sys.argv[1:]])
