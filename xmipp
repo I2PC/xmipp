@@ -66,11 +66,9 @@ if __name__ == "__main__":
 	# Check if installer package is present
 	if not shutil.which("xmipp3_installer"):
 		print(
-			(
-				"Xmipp's installer package \'xmipp3-installer\' is not installed.\n",
-				"It is requied to continue.\n",
-				"You can install it by running \'pip install xmipp3-installer\'."
-			),
+			"Xmipp's installer package \'xmipp3-installer\' is not installed.\n"
+			"It is requied to continue.\n"
+			"You can install it by running \'pip install xmipp3-installer\'.",
 			flush=True
 		)
 		sys.exit(1)
