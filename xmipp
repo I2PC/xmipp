@@ -38,25 +38,6 @@ def __getProjectRootDir() -> str:
 	"""
 	return os.path.dirname(os.path.abspath(__file__))
 
-def __run_command(cmd: str) -> Tuple[int, str]:
-	"""
-	### Runs the given shell command.
-
-	#### Params:
-	- cmd (str): Command to run.
-
-	#### Returns:
-	- (int): Return code of the operation.
-	- (str): Return message of the operation.
-	"""
-	process = subprocess.Popen(cmd, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-	process.wait()
-	ret_code = process.returncode
-	output, err = process.communicate()
-	output_str = output.decode() if not ret_code and output else err.decode()
-	output_str = output_str[:-1] if output_str.endswith('\n') else output_str
-	return ret_code, output_str
-
 ####################### MAIN EXECUTION THREAD #######################
 if __name__ == "__main__":
 	""" Calls main function when executed. """
