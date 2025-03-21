@@ -33,7 +33,7 @@
 #include "core/transformations.h"
 #include "data/filters.h"
 #include <core/utils/memory_utils.h>
-#include "CTPL/ctpl_stl.h"
+#include "ctpl_stl.h"
 #include "reconstruction/bspline_geo_transformer.h"
 #include "amerit_computer.h"
 
