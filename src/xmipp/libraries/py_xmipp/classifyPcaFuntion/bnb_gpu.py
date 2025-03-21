@@ -582,7 +582,7 @@ class BnBgpu:
     
         Texp = torch.from_numpy(data.astype(np.float32)).to(self.cuda).unsqueeze(1)
 
-        transforIm = kornia.geometry.warp_affine(Texp, M, dsize=(data.shape[1], data.shape[2]), mode='bicubic', padding_mode='zeros')
+        transforIm = kornia.geometry.warp_affine(Texp, M, dsize=(data.shape[1], data.shape[2]), mode='bilinear', padding_mode='zeros')
         transforIm = transforIm.view(batchsize, data.shape[1], data.shape[2])
         del(Texp)
         
@@ -712,7 +712,7 @@ class BnBgpu:
         return circular_mask
     
     def apply_leaky_relu(self, images):
-        images = torch.where(images > 0, images, 1 * images)
+        images = torch.where(images > 0, images, 0.1 * images)
         return images
     
     def apply_filter_freq(self, images, noise_factor=0.1, eps=1e-8):

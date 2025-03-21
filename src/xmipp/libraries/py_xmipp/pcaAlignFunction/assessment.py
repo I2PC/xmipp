@@ -170,11 +170,24 @@ class evaluation:
             self.getShifts(expStar, nExp)
             expShifts = self.expShifts.cpu().numpy()
         star = starfile.read(expStar)
-        new = output  
+        new = output 
+        
+        #Detewrmine shifts
+        indices = torch.tensor(matchPair[:, 4], dtype=torch.long) 
+        shiftVec = torch.tensor(shiftVec, dtype=torch.float64)
+        angle = torch.tensor(matchPair[:, 3], dtype=torch.float64)
+        
+        
+        shift_x = shiftVec[indices, 0]
+        shift_y = shiftVec[indices, 1]
+        center = torch.tensor([0, 0])
+        newShiftX, newShiftY = self.inverse_transform_shift(angle, shift_x, shift_y, center) 
     
         # Adjustment of Psi angles
         psi_adjusted = -matchPair[:, 3]
+     
         psi_adjusted = np.where(psi_adjusted > 180, psi_adjusted - 360, psi_adjusted)
+              
     
         columns = ["anglePsi", "angleRot", "angleTilt", "shiftX", "shiftY", "shiftZ", "sel"]
         for column in columns:
@@ -192,12 +205,38 @@ class evaluation:
             star.loc[:, "shiftX"] = -shiftVec[matchPair[:, 4].astype(int), 0] + expShifts[:, 0]
             star.loc[:, "shiftY"] = -shiftVec[matchPair[:, 4].astype(int), 1] + expShifts[:, 1]
         else:
-            star.loc[:, "shiftX"] = -shiftVec[matchPair[:, 4].astype(int), 0]
-            star.loc[:, "shiftY"] = -shiftVec[matchPair[:, 4].astype(int), 1]
+            # star.loc[:, "shiftX"] = -shiftVec[matchPair[:, 4].astype(int), 0]
+            # star.loc[:, "shiftY"] = -shiftVec[matchPair[:, 4].astype(int), 1]
+            star.loc[:, "shiftX"] = newShiftX.cpu().numpy()
+            star.loc[:, "shiftY"] = newShiftY.cpu().numpy()
+
     
         star.loc[:, "sel"] = matchPair[:, 5]#.astype(np.int32)
         star["sel"] = star["sel"].astype(int)
         starfile.write(star, new)
+        
+        
+    def inverse_transform_shift(self, angle, shift_x, shift_y, center):
+        
+        angle = angle.to(dtype=torch.float64)
+        shift_x = shift_x.to(dtype=torch.float64)
+        shift_y = shift_y.to(dtype=torch.float64)
+        center = center.to(dtype=torch.float64)
+
+        theta = torch.deg2rad(angle)  
+        cos_a, sin_a = torch.cos(theta), torch.sin(theta)
+        
+        # center = center.unsqueeze(0).expand(angle.shape[0], -1)       
+        # cx, cy = center[:, 0], center[:, 1]
+        neg_shift_x, neg_shift_y = -shift_x, -shift_y
+    
+        # new_shift_x = cos_a * neg_shift_x - sin_a * neg_shift_y + cx * (1 - cos_a) + cy * sin_a
+        # new_shift_y = sin_a * neg_shift_x + cos_a * neg_shift_y + cy * (1 - cos_a) - cx * sin_a
+        
+        new_shift_x = cos_a * neg_shift_x - sin_a * neg_shift_y
+        new_shift_y = sin_a * neg_shift_x + cos_a * neg_shift_y
+        
+        return new_shift_x, new_shift_y
     
         
     def writeExpStarRelion(self, prjStar, expStar, matchPair, shiftVec, sampling, nExp, apply_shifts, output):

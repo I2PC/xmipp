@@ -157,14 +157,15 @@ if __name__=="__main__":
     
             # print("rotation angle  %s"%rot) 
             # print("---Computing the projections of the experimental images---")      
-            batch_projExp = bnb.precalculate_projection(texp, freqBn, grid_flat, coef, cvecs, rot, vectorshift)
+            batch_projExp = bnb.precalculate_projection(texp, freqBn, grid_flat, coef, cvecs, -rot, vectorshift)
             # print("matches")
 
-            matches[i] = bnb.match_batch_initVol(batch_projExp, batch_projRef, 0, matches[i], rot, nShift)
-            del(batch_projExp)    
+            matches[i] = bnb.match_batch_initVol(batch_projExp, batch_projRef, 0, matches[i], -rot, nShift)
+            del(batch_projExp) 
             # del(batch_projRef)
         
         # print(matches[i])
+        # exit()
         matches[i] = bnb.match_batch_label_minScore(matches[i])
         
         
