@@ -385,15 +385,14 @@ class BnBgpu:
                                                                              rotBatch[initBatch:endBatch], translations[initBatch:endBatch], centerxy)
 
 
-            # if mask:
-            #     transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
-            if mask: 
-                if iter < 13:
-                    transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
-                else:
-                    transforIm = transforIm * self.create_circular_mask(transforIm)
+            if mask:
+                transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+            # if mask: 
+            #     if iter < 13:
+            #         transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+            #     else:
+            #         transforIm = transforIm * self.create_circular_mask(transforIm)
                     
-            # transforIm = self.normalize_particles_global(transforIm)
             
             tMatrix[initBatch:endBatch] = matrixIm
             
@@ -412,16 +411,15 @@ class BnBgpu:
         clk = self.averages_increaseClas(mmap, iter, newCL, classes)
         
         # clk = self.apply_filter_freq(clk) 
-        # if mask:
-        #     clk = clk * self.create_gaussian_mask(clk, sigma)
-        
-        # clk = self.normalize_particles_global(clk) 
-          
+
         if mask:
-            if iter < 13:
-                clk = clk * self.create_gaussian_mask(clk, sigma)
-            else:
-                clk = clk * self.create_circular_mask(clk)
+            clk = clk * self.create_circular_mask(clk) 
+          
+        # if mask:
+        #     if iter < 13:
+        #         clk = clk * self.create_gaussian_mask(clk, sigma)
+        #     else:
+        #         clk = clk * self.create_circular_mask(clk)
                 
         # clk = self.apply_leaky_relu(clk)
         
@@ -443,15 +441,15 @@ class BnBgpu:
                             
         transforIm, matrixIm = self.center_particles_inverse_save_matrix(data, tMatrix, 
                                                                          rotBatch, translations, centerxy)
-       
+        
         if mask:
-            if iter < 3:
-                transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
-            else:
-                transforIm = transforIm * self.create_circular_mask(transforIm)
-                
-        # transforIm = self.normalize_particles_global(transforIm)
-                
+            transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+        # if mask:
+        #     if iter < 3:
+        #         transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+        #     else:
+        #         transforIm = transforIm * self.create_circular_mask(transforIm)
+                               
         
         tMatrix = matrixIm
         
@@ -472,9 +470,7 @@ class BnBgpu:
             
             newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
             clk = self.averages(data, newCL, classes)
-            
-            # clk = self.normalize_particles_global(clk)
-            
+                        
             
             if not hasattr(self, 'grad_squared'):
                 self.grad_squared = torch.zeros_like(cl)
