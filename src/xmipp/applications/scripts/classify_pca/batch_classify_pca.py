@@ -271,10 +271,7 @@ if __name__=="__main__":
     # counts = torch.bincount(refClas.int(), minlength=classes) 
     counts = torch.bincount(refClas.to(torch.int64), minlength=classes)
     
-        #save classes
-    
-    # cl = bnb.process_images_iteratively(cl, 10)
-        
+        #save classes        
     file = output+".mrcs"
     save_images(cl.cpu().detach().numpy(), sampling, file)
     

@@ -835,6 +835,37 @@ class BnBgpu:
         return images
     
     
+    def center_batch_mass(self, img_batch):
+
+        B, H, W = img_batch.shape
+        device = img_batch.device  
+    
+        y_coords, x_coords = torch.meshgrid(torch.arange(H, device=device), 
+                                            torch.arange(W, device=device), 
+                                            indexing="ij")
+    
+        total_mass = img_batch.sum(dim=(1, 2), keepdim=True)
+        total_mass[total_mass == 0] = 1  # Para evitar NaN en imágenes negras
+    
+        center_y = (y_coords * img_batch).sum(dim=(1, 2)) / total_mass.squeeze()
+        center_x = (x_coords * img_batch).sum(dim=(1, 2)) / total_mass.squeeze()
+    
+        shift_y = (H // 2 - center_y) * (2 / H)  # Normalizado a rango [-1,1]
+        shift_x = (W // 2 - center_x) * (2 / W)
+    
+        grid_y, grid_x = torch.meshgrid(torch.linspace(-1, 1, H, device=device), 
+                                        torch.linspace(-1, 1, W, device=device), 
+                                        indexing="ij")
+    
+        grid = torch.stack((grid_x.expand(B, -1, -1) + shift_x.view(B, 1, 1), 
+                            grid_y.expand(B, -1, -1) + shift_y.view(B, 1, 1)), 
+                           dim=-1)
+    
+        centered_batch = F.grid_sample(img_batch.unsqueeze(1), grid, align_corners=True, mode="bilinear").squeeze(1)
+    
+        return centered_batch
+    
+    
     def process_images_iteratively(self, batch, num_iterations):
         batch = batch.float()
         for _ in range(num_iterations):
