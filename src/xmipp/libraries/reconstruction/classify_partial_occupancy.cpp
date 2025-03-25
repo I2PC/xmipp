@@ -155,10 +155,15 @@ void ProgClassifyPartialOccupancy::processParticle(const MDRow &rowprocess, int 
 	rowprocess.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
 	rowprocess.getValueOrDefault(MDL_ANGLE_TILT, part_angles.tilt, 0);
 	rowprocess.getValueOrDefault(MDL_ANGLE_PSI, part_angles.psi, 0);
+	
 	roffset.initZeros(2);
 	rowprocess.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
 	rowprocess.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 	roffset *= -1;
+
+	rowprocess.getValueOrDefault(MDL_SUBTRACTION_B, adjustParams.b, 0); 
+	rowprocess.getValueOrDefault(MDL_SUBTRACTION_BETA0, adjustParams.b0); 
+	rowprocess.getValueOrDefault(MDL_SUBTRACTION_BETA1, adjustParams.b1); 
 	
 	// Project volume + apply translation
 	if (realSpaceProjector)
@@ -239,14 +244,28 @@ void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<
 
 void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 {	
-	// Subtract ligand from particle *** TODO: adjust the subtration
-	IsubP() = I() - P();
+	// Subtract ligand from particle
+	IsubP() = (I() - adjustParams.b) - (P() * adjustParams.b0);
+
+	// Por ahora solo consideramos ajuste de orden 0. 
+	// Si queremos considerar el del orden 1 hay que que comprobar que b1 > 0
+	// y ajustar por frecuencia
+	
+	// Apply adjustment order 0: PFourier0 = T(w) * PFourier = beta00 * PFourier
+	// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier0)
+	// {
+	// 	int win = DIRECT_MULTIDIM_ELEM(wi, n);
+	// 	if (win < maxwiIdx) 
+	// 	{
+	// 		DIRECT_MULTIDIM_ELEM(PFourier0,n) *= beta00;
+	// 	}
+	// }
 
 	// Detect ligand regions
 	binarizeMask(PmaskRoi);
 	MultidimArray<double> PmaskRoiLabel;
 	PmaskRoiLabel.resizeNoCopy(PmaskRoi());
-	int numLig = x(PmaskRoi(), PmaskRoiLabel, 8);
+	int numLig = labelImage2D(PmaskRoi(), PmaskRoiLabel, 8);
 
 	// Calculate bounding box for each ligand region
 	std::vector<int> minX(numLig, std::numeric_limits<int>::max());
@@ -289,7 +308,6 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 				}
 			}
 		}
-
 
 		#ifdef DEBUG_OUTPUT_FILES
 		size_t lastindex = fn_out.find_last_of(".");
@@ -358,9 +376,9 @@ void ProgClassifyPartialOccupancy::calculateBoundingBox(MultidimArray<double> Pm
 
         // Ensure the bounding box stays within the image boundaries
         minX[k] = std::max(0, minX[k]);
-        maxX[k] = std::min(Xdim - 1, maxX[k]);
+        maxX[k] = std::min(static_cast<int>(Xdim - 1), maxX[k]);
         minY[k] = std::max(0, minY[k]);
-        maxY[k] = std::min(Ydim - 1, maxY[k]);
+        maxY[k] = std::min(static_cast<int>(Ydim - 1), maxY[k]);
     }
 }
 

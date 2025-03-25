@@ -109,7 +109,16 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
     	double tilt;
     	double psi;
     };
-    struct Angles part_angles; 
+    struct Angles part_angles;
+
+    struct AdjustParams // particle adjustment parameters
+    {
+    	double b;
+    	double b0;
+    	double b1;
+    };
+    struct AdjustParams adjustParams; 
+
 
     int rank; // for MPI version
     FourierProjector *projector;
