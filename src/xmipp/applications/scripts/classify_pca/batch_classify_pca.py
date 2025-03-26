@@ -131,8 +131,8 @@ if __name__=="__main__":
         cl = torch.from_numpy(clIm).float().to(cuda)
     else:
         initStep = int(min(numFirstBatch, np.ceil(nExp/expBatchSize)))
-        cl = bnb.init_ramdon_classes(final_classes, mmap, initSubset) 
-        # cl = bnb.init_ramdon_classes(final_classes//2, mmap, initSubset)
+        # cl = bnb.init_ramdon_classes(final_classes, mmap, initSubset) 
+        cl = bnb.init_ramdon_classes(final_classes//2, mmap, initSubset)
         
     
     if refImages:
@@ -155,8 +155,7 @@ if __name__=="__main__":
         
         expImages = mmap.data[initBatch:endBatch].astype(np.float32)
         Texp = torch.from_numpy(expImages).float().to(cuda)
-        if mask:
-            Texp = Texp * bnb.create_circular_mask(Texp)
+        Texp = Texp * bnb.create_circular_mask(Texp)
               
         if i < initStep:          
             batch_projExp_cpu.append( bnb.batchExpToCpu(Texp, freqBn, coef, cvecs) )           
@@ -217,8 +216,8 @@ if __name__=="__main__":
                 classes = len(cl)
         
                 if mode == "create_classes":
-                    cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version0(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
-                    # cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, mask, sigma)
+                    # cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version0(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
+                    cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, mask, sigma)
                 else:
                     cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(expImages, cl, tMatrix, iter, subset, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
 
@@ -268,7 +267,7 @@ if __name__=="__main__":
                     angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
                     angles_deg[initBatch:endBatch] = np.degrees(angles_rad.cpu().numpy())
         del(expImages)
-    # counts = torch.bincount(refClas.int(), minlength=classes) 
+        
     counts = torch.bincount(refClas.to(torch.int64), minlength=classes)
     
         #save classes        
@@ -277,7 +276,7 @@ if __name__=="__main__":
     
     print("Adjust contrast")
     # cl = bnb.increase_contrast_sigmoid(cl, 8, 0.6)
-    cl = bnb.normalize_particles_global(cl)
+    # cl = bnb.normalize_particles_global(cl)
 
     file_contrast = output+"_contrast.mrcs"
     save_images(cl.cpu().detach().numpy(), sampling, file_contrast)           

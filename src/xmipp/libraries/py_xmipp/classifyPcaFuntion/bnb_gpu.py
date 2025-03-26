@@ -299,14 +299,16 @@ class BnBgpu:
                         
             transforIm, matrixIm = self.center_particles_inverse_save_matrix(mmap.data[initBatch:endBatch], tMatrix[initBatch:endBatch], 
                                                                              rotBatch[initBatch:endBatch], translations[initBatch:endBatch], centerxy)
-                        
-            # transforIm = self.normalize_particles_global(transforIm)
-            
+                                    
             if mask: 
-                if iter < 13:
-                    transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
-                else:
-                    transforIm = transforIm * self.create_circular_mask(transforIm)
+                transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+            else:   
+                transforIm = transforIm * self.create_circular_mask(transforIm)
+            # if mask: 
+            #     if iter < 13:
+            #         transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+            #     else:
+            #         transforIm = transforIm * self.create_circular_mask(transforIm)
                                 
             tMatrix[initBatch:endBatch] = matrixIm
             
@@ -345,14 +347,14 @@ class BnBgpu:
         newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL]    
                      
         clk = self.averages_createClasses(mmap, iter, newCL)
-        
-        # clk = self.apply_filter_freq(clk)
+
+        clk = clk * self.create_circular_mask(clk)    
          
-        if mask:
-            if iter < 13:
-                clk = clk * self.create_gaussian_mask(clk, sigma)
-            else:
-                clk = clk * self.create_circular_mask(clk)
+        # if mask:
+        #     if iter < 13:
+        #         clk = clk * self.create_gaussian_mask(clk, sigma)
+        #     else:
+        #         clk = clk * self.create_circular_mask(clk)
                 
         
         return(clk, tMatrix, batch_projExp_cpu)
@@ -386,13 +388,16 @@ class BnBgpu:
                                                                              rotBatch[initBatch:endBatch], translations[initBatch:endBatch], centerxy)
 
 
-            # if mask:
-            #     transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
-            if mask: 
-                if iter < 13:
-                    transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
-                else:
-                    transforIm = transforIm * self.create_circular_mask(transforIm)
+            if mask:
+                transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+            else:
+                transforIm = transforIm * self.create_circular_mask(transforIm)
+                
+            # if mask: 
+            #     if iter < 13:
+            #         transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+            #     else:
+            #         transforIm = transforIm * self.create_circular_mask(transforIm)
                     
             
             tMatrix[initBatch:endBatch] = matrixIm
@@ -411,14 +416,12 @@ class BnBgpu:
         newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL]    
         clk = self.averages_increaseClas(mmap, iter, newCL, classes)
         
+        clk = clk * self.create_circular_mask(clk) 
         # if mask:
-        #     clk = clk * self.create_circular_mask(clk) 
-          
-        if mask:
-            if iter < 13:
-                clk = clk * self.create_gaussian_mask(clk, sigma)
-            else:
-                clk = clk * self.create_circular_mask(clk)
+        #     if iter < 13:
+        #         clk = clk * self.create_gaussian_mask(clk, sigma)
+        #     else:
+        #         clk = clk * self.create_circular_mask(clk)
                 
         
         return(clk, tMatrix, batch_projExp_cpu)
@@ -440,13 +443,15 @@ class BnBgpu:
         transforIm, matrixIm = self.center_particles_inverse_save_matrix(data, tMatrix, 
                                                                          rotBatch, translations, centerxy)
         
-        # if mask:
-        #     transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
         if mask:
-            if iter < 3:
-                transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
-            else:
-                transforIm = transforIm * self.create_circular_mask(transforIm)
+            transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+        else: 
+            transforIm = transforIm * self.create_circular_mask(transforIm)
+        # if mask:
+        #     if iter < 3:
+        #         transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+        #     else:
+        #         transforIm = transforIm * self.create_circular_mask(transforIm)
                                
         
         tMatrix = matrixIm
@@ -703,9 +708,11 @@ class BnBgpu:
         
         return circular_mask
     
+    
     def apply_leaky_relu(self, images):
         images = torch.where(images > 0, images, 0.1 * images)
         return images
+    
     
     def apply_filter_freq(self, images, noise_factor=0.1, eps=1e-8):
         images_fft = torch.fft.fft2(images)
@@ -829,37 +836,6 @@ class BnBgpu:
         std = images.std()  
         images = (images - mean) / (std + eps)  
         return images
-    
-    
-    def center_batch_mass(self, img_batch):
-
-        B, H, W = img_batch.shape
-        device = img_batch.device  
-    
-        y_coords, x_coords = torch.meshgrid(torch.arange(H, device=device), 
-                                            torch.arange(W, device=device), 
-                                            indexing="ij")
-    
-        total_mass = img_batch.sum(dim=(1, 2), keepdim=True)
-        total_mass[total_mass == 0] = 1  # Para evitar NaN en imágenes negras
-    
-        center_y = (y_coords * img_batch).sum(dim=(1, 2)) / total_mass.squeeze()
-        center_x = (x_coords * img_batch).sum(dim=(1, 2)) / total_mass.squeeze()
-    
-        shift_y = (H // 2 - center_y) * (2 / H)  # Normalizado a rango [-1,1]
-        shift_x = (W // 2 - center_x) * (2 / W)
-    
-        grid_y, grid_x = torch.meshgrid(torch.linspace(-1, 1, H, device=device), 
-                                        torch.linspace(-1, 1, W, device=device), 
-                                        indexing="ij")
-    
-        grid = torch.stack((grid_x.expand(B, -1, -1) + shift_x.view(B, 1, 1), 
-                            grid_y.expand(B, -1, -1) + shift_y.view(B, 1, 1)), 
-                           dim=-1)
-    
-        centered_batch = F.grid_sample(img_batch.unsqueeze(1), grid, align_corners=True, mode="bilinear").squeeze(1)
-    
-        return centered_batch
     
     
     def process_images_iteratively(self, batch, num_iterations):
