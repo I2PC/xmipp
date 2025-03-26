@@ -222,8 +222,8 @@ if __name__=="__main__":
                     cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(expImages, cl, tMatrix, iter, subset, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
 
                 #save classes
-                file = output+"_%s_%s.mrcs"%(initBatch,iter+1)
-                save_images(cl.cpu().detach().numpy(), sampling, file)
+                # file = output+"_%s_%s.mrcs"%(initBatch,iter+1)
+                # save_images(cl.cpu().detach().numpy(), sampling, file)
 
 
                 if mode == "create_classes" and iter == 13:
