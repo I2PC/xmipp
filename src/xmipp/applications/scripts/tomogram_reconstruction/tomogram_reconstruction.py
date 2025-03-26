@@ -122,7 +122,7 @@ class TomogramReconstruction(XmippScript):
         
         # Params
         self.addParamsLine(' --tiltseries <fnTs>                  : Tilt series file. It must be a .mrc, .mrcs, .ali, or .st file')
-        self.addParamsLine(' --angles <fnAngles>                  : Metadata file .xmd with the list of angles of the tilt series. ')
+        self.addParamsLine(' --angles <fnAngles>                  : Tlt file with the list of angles of the tilt series. ')
         self.addParamsLine(' --thickness <thickness>              : Thickness in pixels of the reconstructed tomogram')
         self.addParamsLine(' [--iter <iterations>]                : Number of iterations for the reconstructoin algorithm. Only used by SIRT (default 20), SART (20), OSSART(20), MLEM (500)')
         self.addParamsLine(' [--lambda <lmbda>]                   : Hyperparameter. The update will be multiplied by this number every iteration, to make the steps bigger or smaller. Default: lmbda=1.0 for all algorithms except for irn-tv-cgls for which lmbda=5.0')
@@ -137,8 +137,6 @@ class TomogramReconstruction(XmippScript):
         self.addParamsLine(' [--backprojector <backprojector>]    : This is the used algorithm for backprojecting at each iteration. ')
         
         self.addParamsLine(' [--blocksize <blocksize>]            : (Used by ossart) Sets the projection block size used simultaneously. If BlockSize = 1 OS-SART becomes SART and if  BlockSize = size(angles,2) then OS-SART becomes SIRT. Default is 20.')
-        
-        self.addParamsLine(' [--astra]                            : Use the astra library')
         self.addParamsLine(' [--method <method>]                  : List of reconstruction algorithms. See the full list in the description.')
 
         self.addParamsLine(' [--filter <filterToApply> ]          : List of filters for FDK or FBP: *ram_lak  (default). * shepp_logan. * cosine. * hamming. *hann. The choice of filter will modify the noise and some discreatization errors, depending on which is chosen.')
@@ -172,11 +170,11 @@ class TomogramReconstruction(XmippScript):
         self.fnTs          = self.getParam('--tiltseries')
         self.fnAngles      = self.getParam('--angles')
         self.thickness     = self.getIntParam('--thickness')
-        self.useAstra      = self.checkParam('--astra')
         self.method        = self.fixMethod(self.getParam('--method').lower())
         self.fnOut         = self.getParam('-o')
         self.normalizeTi   = self.getParam('--normalize').lower()
         self.gpuId         = self.getIntParam('--gpu') if self.checkParam('--gpu') else 0
+        self.useTigreInterpolation = False
         
         if self.method == 'wbp':
             self.method = 'fbp'
@@ -248,25 +246,60 @@ class TomogramReconstruction(XmippScript):
 
     def run(self):
         print('Starting ...')
+        from scipy.spatial.transform import Rotation as R
         
         self.readInputParams()
         
         ts = self.readTiltSeries()
         print(os.path.splitext(self.fnAngles)[1])
+
+        rotAngles = None
+        offSets = None
+
         if os.path.splitext(self.fnAngles)[1] == '.tlt':
             tiltAngles = self.readTltFile(self.fnAngles)
+            self.useTigreInterpolation= False
         else:
+            self.useTigreInterpolation=True
             mdTs = xmippLib.MetaData(os.path.expanduser(self.fnAngles))
             tiltAngles = []
+            rotAngles = []
+            offSets = []
             for objId in mdTs:
-                tiltAngles.append(mdTs.getValue(xmippLib.MDL_ANGLE_TILT, objId))
-            
-        tiltAngles  = np.array(tiltAngles) * np.pi/180.0
+                tilt = mdTs.getValue(xmippLib.MDL_ANGLE_TILT, objId)
 
-        if self.useAstra:
-            self.astraReconstruction(ts, tiltAngles, 'FP3D_CUDA')
-        else:
-            self.tigreReconstruction(ts, tiltAngles)
+                if mdTs.containsLabel(xmippLib.MDL_ANGLE_ROT):
+                    rot = mdTs.getValue(xmippLib.MDL_ANGLE_ROT, objId)
+                else:
+                    rot = 0.0
+
+                if mdTs.containsLabel(xmippLib.MDL_SHIFT_X):
+                    sx = mdTs.getValue(xmippLib.MDL_SHIFT_X, objId)
+                else:
+                    sx = 0.0
+
+                if mdTs.containsLabel(xmippLib.MDL_SHIFT_Y):
+                    sy = mdTs.getValue(xmippLib.MDL_SHIFT_Y, objId)
+                else:
+                    sy = 0.0
+                offSets.append([-sy,-sx])
+                rotAngles.append([-rot, 0.0, 0.0])
+                
+                # Given ZYZ Euler angles
+                zyz_angles = [tilt, rot, 0.0]  # replace with actual values
+
+                # Create a rotation object from ZYZ Euler angles
+                r_zyz = R.from_euler('ZYZ', zyz_angles, degrees=True)
+
+                # Convert the rotation to ZXZ Euler angles
+                zxz_angles = r_zyz.as_euler('ZXZ', degrees=True)
+                tiltAngles.append(zxz_angles)
+
+            tiltAngles = np.vstack(tiltAngles)
+            offSets    = np.vstack(offSets)
+
+        tiltAngles  = np.array(tiltAngles) * np.pi/180.0
+        self.tigreReconstruction(ts, tiltAngles, rotAngles=None, offSets=offSets)
 
     def fixMethod(self, method):
         
@@ -296,43 +329,6 @@ class TomogramReconstruction(XmippScript):
         except IOError:
             raise FileNotFoundError("Error parsing the tlt file")
     
-
-
-    def astraReconstruction(self, ts_orig, tiltAngles, recAlgorithm):
-        
-        nangles = len(tiltAngles)
-        ts = np.zeros((self.xdim, nangles, self.ydim))
-
-        for i in range(0, nangles):
-            ts[:,i,:] = ts_orig[i,:,:]
-        
-        proj_geom = astra.create_proj_geom('parallel3d', 1.0, 1.0, self.xdim, self.ydim, tiltAngles)
-        projections_id = astra.data3d.create('-sino', proj_geom, ts)
-  
-        vol_geo = astra.create_vol_geom(self.thickness, self.xdim, self.ydim)
-                           
-        reconstruction_id = astra.data3d.create('-vol', vol_geo, data=0)
-
-        alg_cfg = astra.astra_dict(recAlgorithm)
-        alg_cfg['ProjectionDataId'] = projections_id
-        alg_cfg['ReconstructionDataId'] = reconstruction_id
-        
-        '''
-        cfg['option'] = { 'FilterType': 'Ram-Lak' }
-
-        # possible values for FilterType:
-        # none, ram-lak, shepp-logan, cosine, hamming, hann, tukey, lanczos,
-        # triangular, gaussian, barlett-hann, blackman, nuttall, blackman-harris,
-        # blackman-nuttall, flat-top, kaiser, parzen
-        '''
-        
-        algorithm_id = astra.algorithm.create(alg_cfg)
-        astra.algorithm.run(algorithm_id)
-        reconstruction = astra.data3d.get(reconstruction_id)
-
-        
-        with mrcfile.new(self.fnOut, overwrite=True) as mrc:
-            mrc.set_data(np.swapaxes(reconstruction, 0, 1))
     
     def fixFilter(self, candidate, method):
         if method == 'fdk':
@@ -362,15 +358,22 @@ class TomogramReconstruction(XmippScript):
         return str(self.gpuId)
 
     
-    def tigreReconstruction(self, ts, tiltAngles):
+    def tigreReconstruction(self, ts, tiltAngles, rotAngles=None, offSets=None):
         import tigre.algorithms as algs
         from tigre.utilities import gpu
 
         gpuids = gpu.GpuIds()
         gpuids.devices = [int(self.getGPUs())]
 
-
         geo = tigre.geometry(mode="parallel", nVoxel=np.array([self.xdim, self.ydim, self.thickness]))
+        if self.useTigreInterpolation:
+            if rotAngles is not None:
+                geo.rotDetector = rotAngles
+
+            if offSets is not None:
+                geo.offDetector = offSets  # Offset of image from origin
+
+
         
         # EXACT ALGORITHMS
         if self.method == 'fbp': 

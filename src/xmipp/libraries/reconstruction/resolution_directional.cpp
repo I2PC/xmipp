@@ -25,6 +25,7 @@
  ***************************************************************************/
 
 #include "resolution_directional.h"
+#include <data/monogenic_signal.h>
 //#define DEBUG
 //#define DEBUG_MASK
 //#define DEBUG_DIR
@@ -150,38 +151,35 @@ void ProgResDir::produceSideInfo()
 		exit(0);
 	}
 
+	double smoothparam = 0;
+	int radiuslimit, radius;
+	Monogenic mono;
+	//The mask changes!! all voxels out of the inscribed sphere are set to -1
+	mono.proteinRadiusVolumeAndShellStatistics(pMask, radius, NVoxelsOriginalMask);
+	mono.findCliffValue(inputVol, radius, radiuslimit, pMask, smoothparam);
+
 	N_smoothing = 7;
-	NVoxelsOriginalMask = 0;
-	double radius = 0;
+	if ((radiuslimit-N_smoothing)<=radius)
+	{
+		std::cout << "The map does not verify the requirements for MonoDir. " << std::endl;
+		std::cout << "Possible cause: "<< std::endl;
+		std::cout << " * The protein is masked (lack of noise). " << std::endl;
+		std::cout << " * The protein has a large radius, thus, the algorithm cannot find a shell of noise" << std::endl;
+		exit(0);
+	}
+
+	
 	FOR_ALL_ELEMENTS_IN_ARRAY3D(pMask)
 	{
-		if (A3D_ELEM(pMask, k, i, j) == 1)
-		{
-			if ((k*k + i*i + j*j)>radius)
-				radius = k*k + i*i + j*j;
-		}
-//		std::cout << "i j k " << i << " " << j << " " << k << std::endl;
-
-		if (A3D_ELEM(pMask, k, i, j) == 1)
-			++NVoxelsOriginalMask;
 		if (i*i+j*j+k*k > (R-N_smoothing)*(R-N_smoothing))
 			A3D_ELEM(pMask, k, i, j) = -1;
 	}
-	Rparticle = round(sqrt(radius));
+	Rparticle = round(radius);
 	std::cout << "particle radius = " << Rparticle << std::endl;
 	size_t xrows = angles.mdimx;
 
 	resolutionMatrix.initConstant(xrows, NVoxelsOriginalMask, maxRes);
 
-
-	#ifdef DEBUG_MASK
-	std::cout << "-------------DEBUG-----------" <<std::endl;
-	std::cout << "Next number ought to be the same than number of directions"
-			<< std::endl;
-	std::cout << "number of angles" << xrows << std::endl;
-	std::cout << "---------END-DEBUG--------" <<std::endl;
-	mask.write("mask.vol");
-	#endif
 
 	freq_fourier.initZeros(ZSIZE(inputVol));
 	int size = ZSIZE(inputVol);
@@ -364,51 +362,28 @@ void ProgResDir::amplitudeMonogenicSignal3D_fast(const MultidimArray< std::compl
 			for(size_t j=0; j<XSIZE(myfftV); ++j)
 			{
 				double iun=DIRECT_MULTIDIM_ELEM(iu,n);
-//				double iun = *ptriun;
 				double un=1.0/iun;
 				if (freqH<=un && un<=freq)
 				{
 					DIRECT_MULTIDIM_ELEM(fftVRiesz, n) = DIRECT_MULTIDIM_ELEM(myfftV, n);
-//					DIRECT_MULTIDIM_ELEM(fftVRiesz, n) *= DIRECT_MULTIDIM_ELEM(conefilter, n);
 					DIRECT_MULTIDIM_ELEM(fftVRiesz, n) *= 0.5*(1+cos((un-freq)*ideltal));//H;
 					DIRECT_MULTIDIM_ELEM(fftVRiesz_aux, n) = -J;
 					DIRECT_MULTIDIM_ELEM(fftVRiesz_aux, n) *= DIRECT_MULTIDIM_ELEM(fftVRiesz, n);
 					DIRECT_MULTIDIM_ELEM(fftVRiesz_aux, n) *= iun;
-//					DIRECT_MULTIDIM_ELEM(coneVol, n) = DIRECT_MULTIDIM_ELEM(conefilter, n);
 				} else if (un>freq)
 				{
 					DIRECT_MULTIDIM_ELEM(fftVRiesz, n) = DIRECT_MULTIDIM_ELEM(myfftV, n);
-//					DIRECT_MULTIDIM_ELEM(fftVRiesz, n) *= DIRECT_MULTIDIM_ELEM(conefilter, n);
 					DIRECT_MULTIDIM_ELEM(fftVRiesz_aux, n) = -J;
 					DIRECT_MULTIDIM_ELEM(fftVRiesz_aux, n) *= DIRECT_MULTIDIM_ELEM(fftVRiesz, n);
 					DIRECT_MULTIDIM_ELEM(fftVRiesz_aux, n) *= iun;
-//					DIRECT_MULTIDIM_ELEM(coneVol, n) =  real(DIRECT_MULTIDIM_ELEM(myfftV, n)*conj(DIRECT_MULTIDIM_ELEM(myfftV, n)));
 				}
 				++n;
 			}
 		}
 	}
 
-
-//	#ifdef DEBUG_DIR
-////	if ( (count == 0) )
-////	{
-//		Image<double> direction;
-//		direction = coneVol;
-//		direction.write(formatString("cone_%i_%i.vol", dir+1, count));
-////	}
-//	#endif
-
 	transformer_inv.inverseFourierTransform(fftVRiesz, amplitude);
 
-//	#ifdef DEBUG_DIR
-//		Image<double> filteredvolume;
-//		filteredvolume = VRiesz;
-//		filteredvolume.write(formatString("Volumen_filtrado_%i_%i.vol", dir+1,count));
-//	#endif
-
-
-//	amplitude.resizeNoCopy(VRiesz);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(amplitude)
 		DIRECT_MULTIDIM_ELEM(amplitude,n) *= DIRECT_MULTIDIM_ELEM(amplitude,n);
 
@@ -492,20 +467,6 @@ void ProgResDir::amplitudeMonogenicSignal3D_fast(const MultidimArray< std::compl
 		}
 	}
 
-	//TODO: change (k - z_size*0.5)
-
-//		#ifdef MONO_AMPLITUDE
-//		Image<double> saveImg2;
-//		saveImg2 = amplitude;
-//		if (fnDebug.c_str() != "")
-//		{
-//			FileName iternumber = formatString("smoothed_volume_%i_%i.vol", dir+1, count);
-//			saveImg2.write(fnDebug+iternumber);
-//		}
-//		saveImg2.clear();
-//		#endif
-
-
 	transformer_inv.FourierTransform(amplitude, fftVRiesz, false);
 
 	double raised_w = PI/(freqL-freq);
@@ -529,32 +490,14 @@ void ProgResDir::amplitudeMonogenicSignal3D_fast(const MultidimArray< std::compl
 
 	transformer_inv.inverseFourierTransform();
 
-//	#ifdef MONO_AMPLITUDE
-
-//	if (fnDebug.c_str() != "")
-//	{
-//	Image<double> saveImg2;
-//		saveImg2 = amplitude;
-//		FileName iternumber = formatString("_Filtered_Amplitude_%i_%i.vol", dir+1, count);
-//		saveImg2.write(fnDebug+iternumber);
-//	}
-//	#endif // DEBUG
 }
 
 
 void ProgResDir::defineCone(MultidimArray< std::complex<double> > &myfftV,
 		MultidimArray< std::complex<double> > &conefilter, double rot, double tilt)
 {
-//	conefilter.initZeros(myfftV);
 	conefilter = myfftV;
 	// Filter the input volume and add it to amplitude
-
-//	MultidimArray<double> conetest;
-//	conetest.initZeros(myfftV);
-//	#ifdef DEBUG_DIR
-//	MultidimArray<double> coneVol;
-//	coneVol.initZeros(iu);
-//	#endif
 
 	double x_dir, y_dir, z_dir;
 
@@ -562,7 +505,6 @@ void ProgResDir::defineCone(MultidimArray< std::complex<double> > &myfftV,
 	y_dir = sin(tilt*PI/180)*sin(rot*PI/180);
 	z_dir = cos(tilt*PI/180);
 
-//	double ang_con = 10*PI/180;
 	double ang_con = 15*PI/180;
 
 	double uz, uy, ux;
@@ -599,13 +541,9 @@ void ProgResDir::defineCone(MultidimArray< std::complex<double> > &myfftV,
  */
 				++n;
 			}
+
 		}
 	}
-//
-//	Image<double> saveImg2;
-//	saveImg2 = conetest;
-//	saveImg2.write("cono.vol");
-
 }
 
 void ProgResDir::diagSymMatrix3x3(Matrix2D<double> A,
@@ -745,12 +683,6 @@ void ProgResDir::removeOutliers(Matrix2D<double> &resolutionMat)
 		//Computing closest neighbours and its mean distance
 		for (int i = 0; i<numberdirections; ++i)
 		{
-//			if ((k == 201311) || (k == 201312) || (k == 283336) || (k == 324353) || (k == 324362) || (k == 324512))
-//			{
-//				std::cout << k << " " << MAT_ELEM(resolutionMat, i, k) << " " << MAT_ELEM(trigProducts, 0, i) << "  " <<
-//						MAT_ELEM(trigProducts, 1, i) << " " << MAT_ELEM(trigProducts, 2, i) << ";" << std::endl;
-//			}
-
 			double resi = MAT_ELEM(resolutionMat, i, k);
 			if (resi>0)
 			{
@@ -816,9 +748,6 @@ void ProgResDir::removeOutliers(Matrix2D<double> &resolutionMat)
 			}
 
 		}
-
-//		if ((k == 201311) || (k == 201312) || (k == 283336) || (k == 324353) || (k == 324362) || (k == 324512))
-//			std::cout << "threshold_gauss--------------=" << threshold_gauss << std::endl;
 
 	}
 }
@@ -922,12 +851,6 @@ void ProgResDir::ellipsoidFitting(Matrix2D<double> &resolutionMat,
 		for (int i = 0; i<numberdirections; ++i)
 		{
 			resolution = MAT_ELEM(resolutionMat, i, k);
-//			if ((k == 201311) || (k == 201312) || (k == 283336) || (k == 324353) || (k == 324362) || (k == 324512))
-//			{
-//				std::cout << k << " " << resolution << " " << MAT_ELEM(trigProducts, 0, i)
-//						<< " " << MAT_ELEM(trigProducts, 1, i)
-//						<< " " << MAT_ELEM(trigProducts, 2, i) << ";" << std::endl;
-//			}
 
 			if (resolution>0)
 			{
@@ -979,14 +902,6 @@ void ProgResDir::ellipsoidFitting(Matrix2D<double> &resolutionMat,
 		a = 1/sqrt(VEC_ELEM(eigenvalues, 0));
 		b = 1/sqrt(VEC_ELEM(eigenvalues, 1));
 		c = 1/sqrt(VEC_ELEM(eigenvalues, 2));
-
-//		if ((k == 201311) || (k == 201312) || (k == 283336) || (k == 324353) || (k == 324362) || (k == 324512))
-//		{
-//			std::cout << "a = " << a << std::endl;
-//			std::cout << "b = " << b << std::endl;
-//			std::cout << "c = " << c << std::endl;
-//			std::cout << "=--------------=" << std::endl;
-//		}
 
 		MAT_ELEM(axis,0, k) = a;
 		MAT_ELEM(axis,1, k) = b;
@@ -1093,19 +1008,6 @@ void ProgResDir::radialAverageInMask(MultidimArray<int> &mask,
 
 			double sigma1, sigma2, sigma3, sigma4, sigma5;
 
-
-			
-//			if ((cum_mean_1==0) || (cum_mean_2==0) || (cum_mean_3==0) || (cum_mean_4==0) || (cum_mean_5==0))
-//			{
-//				md.setValue(MDL_IDX, kk, objId);
-//				md.setValue(MDL_VOLUME_SCORE1, cum_mean_1, objId);
-//				md.setValue(MDL_VOLUME_SCORE2, cum_mean_2, objId);
-//				md.setValue(MDL_VOLUME_SCORE3, cum_mean_3, objId);
-//				md.setValue(MDL_VOLUME_SCORE4, cum_mean_4, objId);
-//				md.setValue(MDL_AVG, cum_mean_5, objId);
-//			}
-//			else
-//			{
 			if ((cum_mean_1>0) || (cum_mean_2>0) || (cum_mean_3>0) || (cum_mean_4>0) || (cum_mean_5>0))
 			{
 				objId = md.addObject();
@@ -1134,9 +1036,6 @@ void ProgResDir::radialAverageInMask(MultidimArray<int> &mask,
 				MAT_ELEM(std_mean_Radial_4,0, kk) = sqrt(cum2_mean_4/N - cum_mean_4*cum_mean_4+0.001);
 				MAT_ELEM(std_mean_Radial_5,0, kk) = sqrt(cum2_mean_5/N - cum_mean_5*cum_mean_5);
 
-//				std::cout << "cum2_mean_4/(N) = " << cum2_mean_4/(N)  << " " << "cum_mean_4*cum_mean_4) = " << cum_mean_4*cum_mean_4 << std::endl;
-// 				std::cout << "MAT_ELEM(std_mean_Radial_1,0, kk) = " << MAT_ELEM(std_mean_Radial_1,0, kk) << " " << MAT_ELEM(std_mean_Radial_2,0, kk) << " " << MAT_ELEM(std_mean_Radial_3,0, kk) << " " << MAT_ELEM(std_mean_Radial_4,0, kk) << " " << MAT_ELEM(std_mean_Radial_5,0, kk)<< std::endl;
-//				std::cout << "MAT_ELEM(std_mean_Radial_1,1, kk) = " << MAT_ELEM(std_mean_Radial_1,1, kk) << " "  << MAT_ELEM(std_mean_Radial_2,1, kk) << " " << MAT_ELEM(std_mean_Radial_3,1, kk) << " " << MAT_ELEM(std_mean_Radial_4,1, kk) << " " << MAT_ELEM(std_mean_Radial_5,1, kk)<< std::endl;
 			}
 
 
@@ -1159,9 +1058,6 @@ void ProgResDir::radialAverageInMask(MultidimArray<int> &mask,
 						aux = abs((A3D_ELEM(inputVol_3, k, i, j) - MAT_ELEM(std_mean_Radial_3,1, kk))/MAT_ELEM(std_mean_Radial_3,0, kk))  + 0.002;
 						if (aux > lastz)
 							lastz = aux;
-//						aux = abs((A3D_ELEM(inputVol_4, k, i, j) - MAT_ELEM(std_mean_Radial_4,1, kk))/MAT_ELEM(std_mean_Radial_4,0, kk));
-//						if (aux > lastz)
-//							lastz = aux;
 						aux = abs((A3D_ELEM(inputVol_5, k, i, j) - MAT_ELEM(std_mean_Radial_5,1, kk))/MAT_ELEM(std_mean_Radial_5,0, kk))  + 0.002;
 						if (aux > lastz)
 							lastz = aux;
@@ -1183,7 +1079,6 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 		MultidimArray<int> &pmask,
 		MultidimArray<double> &radial,
 		MultidimArray<double> &azimuthal,
-//		MultidimArray<double> &meanResolution,
 		MultidimArray<double> &lowestResolution,
 		MultidimArray<double> &highestResolution,
 		MultidimArray<double> &doaResolution_1,
@@ -1255,11 +1150,6 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 
 			}
 
-//			std::cout << "count_radial = " << count_radial << std::endl;
-//			std::cout << "count_azimuthal = " << count_azimuthal << std::endl;
-//			std::cout << "  " << std::endl;
-
-//			A3D_ELEM(meanResolution,k,i,j) = meanRes[(size_t) floor(0.5*meanRes.size())];
 			std::sort(ResList.begin(),ResList.end());
 
 			double Mres, mres, medianResol, res75, res25;
@@ -1320,7 +1210,6 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 		objId = mdprefDirs.addObject();
 		size_t con;
 		con = (size_t) VEC_ELEM(PrefferredDirHist,ii);
-//		std::cout << ii << " " << con << std::endl;
 		double rot = MAT_ELEM(angles, 0, ii);
 		double tilt = MAT_ELEM(angles, 1, ii);
 
@@ -1561,8 +1450,6 @@ void ProgResDir::run()
 		FFT_IDX2DIGFREQ(4, volsize, w);
 		aux_idx = 3;
 	}
-	//std::cout << "fourier idx = " << aux_idx << std::endl;
-	//std::cout << "Calling MonoRes core as a first estimation at " << sampling/w << "A." << std::endl;
 
 	MultidimArray<double> amplitudeMS;
 	double AvgNoise;
@@ -1582,7 +1469,6 @@ void ProgResDir::run()
 	for (size_t dir=0; dir<N_directions; dir++)
 	{
 		outputResolution().initZeros(VRiesz);
-//		MultidimArray<double> &pOutputResolution = outputResolution();
 		double freq, freqL, freqH, counter, resolution_2;
 		MultidimArray<int> mask_aux = mask();
 		MultidimArray<int> &pMask = mask_aux;
@@ -1616,7 +1502,7 @@ void ProgResDir::run()
 		{
 			continueIter = false;
 			breakIter = false;
-			//std::cout << "--------------Frequency--------------" << std::endl;
+			std::cout << "--------------Frequency--------------" << std::endl;
 
 			resolution2eval_(fourier_idx, step,
 							resolution, last_resolution, last_fourier_idx,
@@ -1637,6 +1523,8 @@ void ProgResDir::run()
 				resolution_2 = list[iter - 2];
 
 			fnDebug = "Signal";
+
+			std::cout << fnDebug << std::endl;
 
 			amplitudeMonogenicSignal3D_fast(conefilter, freq, freqH, freqL, amplitudeMS, iter, dir, fnDebug);
 
@@ -1708,18 +1596,6 @@ void ProgResDir::run()
 				}
 			}
 
-			#ifdef DEBUG_DIR
-				if (iter == 0)
-				{
-				Image<double> img;
-
-				FileName iternumber;
-				iternumber = formatString("cone_noise_%i_%i.vol", dir, iter);
-				img = coneVol;
-				img.write(iternumber);
-				}
-			#endif
-
 			if ( (NS/(double) NVoxelsOriginalMask)<cut_value ) //when the 2.5% is reached then the iterative process stops
 			{
 				std::cout << "Search of resolutions stopped due to mask has been completed" << std::endl;
@@ -1741,10 +1617,11 @@ void ProgResDir::run()
 				}
 
 				double meanS=sumS/NS;
-	//			double sigma2S=sumS2/NS-meanS*meanS;
+				double sigma2S=sumS2/NS-meanS*meanS;
 				double meanN=sumN/NN;
 				double sigma2N=sumN2/NN-meanN*meanN;
-
+				std::cout << "  meanS= " << meanS << " sigma2S= " << sigma2S << " NS	= " << NS << std::endl;
+				std::cout << "  meanN= " << meanN << " sigma2N= " << sigma2N << " NN    = " << NN << std::endl;
 				if (meanS>max_meanS)
 					max_meanS = meanS;
 
@@ -1760,12 +1637,10 @@ void ProgResDir::run()
 				{
 					// Check local resolution
 					double thresholdNoise;
-					//thresholdNoise = meanN+criticalZ*sqrt(sigma2N);
-
 					std::sort(noiseValues.begin(),noiseValues.end());
+					std::cout << "threshold " << noiseValues.size() << std::endl;
 					thresholdNoise = (double) noiseValues[size_t(noiseValues.size()*significance)];
 
-					//std::cout << "thr="<< thresholdNoise << " " << meanN+criticalZ*sqrt(sigma2N) << " " << NN << std::endl;
 					noiseValues.clear();
 
 					std::cout << "Iteration = " << iter << ",   Resolution= " << resolution << ",   Signal = " << meanS << ",   Noise = " << meanN << ",  Threshold = " << thresholdNoise <<std::endl;
@@ -1806,33 +1681,6 @@ void ProgResDir::run()
 			last_resolution = resolution;
 		}while(doNextIteration);
 
-//		amplitudeMS.clear();
-//		fftVRiesz.clear();
-
-//		size_t maskPos=0;
-//		Image<double> ResolutionVol;
-//		MultidimArray<double> &pResolutionVol = ResolutionVol();
-//
-//		pResolutionVol.initZeros(amplitudeMS);
-//		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(pResolutionVol)
-//		{
-//			if (DIRECT_MULTIDIM_ELEM(mask(), n) == 1)
-//			{
-//				double myres = MAT_ELEM(resolutionMatrix, dir, maskPos);
-//				DIRECT_MULTIDIM_ELEM(pResolutionVol, n) = myres;
-////				if (n == 14621798)
-////					std::cout << maskPos << std::endl;
-//				++maskPos;
-//			}
-//		}
-//		#ifdef DEBUG_DIR
-//		Image<double> saveImg;
-//		saveImg = pResolutionVol;
-//		FileName fnres = formatString("resolution_dir_%i.vol", dir+1);
-//		saveImg.write(fnres);
-//		saveImg.clear();
-//		#endif
-//		pResolutionVol.clear();
 		list.clear();
 
 		std::cout << "----------------direction-finished----------------" << std::endl;
@@ -1877,7 +1725,6 @@ void ProgResDir::run()
 
 	mdRadialAzimuthalThr.write(fnMDThr);
 
-	//std::cout << "radial = " << radialThr << "  azimuthal = " << azimuthalThr << std::endl;
 	std::cout << "Calculating the radial and azimuthal resolution " << std::endl;
 
 
