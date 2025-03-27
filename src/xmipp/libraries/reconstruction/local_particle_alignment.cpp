@@ -184,8 +184,105 @@ void ProgLocalParticleAlignment::run()
 
 	auto t1 = high_resolution_clock::now();
 
-	recenterParticles();
-	saveMetadata();
+	MetaDataVec md;
+	MetaDataVec mdOut;
+	md.read(fnIn);
+	size_t nDim = md.size();
+	getParticleSize();
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Centering " << nDim << " input particles..." << std::endl;
+	#endif
+
+	if (writeParticles)
+	{
+		shifedParticles.initZeros(nDim, zDim, yDim, xDim);
+	}
+
+	Image<double> particleImg;
+	auto &particle = particleImg();
+
+	MultidimArray<double> shiftParticle;
+
+	Matrix2D<double> eulerMat;
+	Matrix2D<double> shiftMat;
+
+	FileName fn;
+
+	size_t idx = 0;
+
+	if (writeParticles)
+	{
+		for (const auto& row : md)
+		{
+			row.getValue(MDL_IMAGE, fn);
+			particleImg.read(fn);
+			particle.setXmippOrigin();
+
+			// Calculate new shifted alignment
+			eulerMat.initIdentity(4);
+			geo2TransformationMatrix(row, eulerMat, false);
+			calculateShiftDisplacement(eulerMat, shiftMat);
+
+			shiftParticle.resizeNoCopy(particle);
+
+			applyGeometry(xmipp_transformation::BSPLINE3, 
+						  shiftParticle, 
+						  particle, 
+						  shiftMat, 
+						  xmipp_transformation::IS_NOT_INV, 
+						  true, 
+						  0.);
+
+
+			for (size_t i = 0; i < yDim; i++)
+			{
+				for (size_t j = 0; j < xDim; j++)
+				{
+					DIRECT_NZYX_ELEM(shifedParticles, idx, 0, i, j) = DIRECT_A2D_ELEM(shiftParticle, i, j);
+				}
+			}
+
+			fn.compose(idx + 1, fnOutParticles);
+			row.setValue(MDL_IMAGE, fn, false);
+			size_t id = mdOut.addRow(row);
+
+			idx++;
+		}
+
+		Image<double> shifedParticlesImg;
+		shifedParticlesImg() = shifedParticles;
+		shifedParticlesImg.write(fnOutParticles);
+	}
+	else
+	{
+		for (const auto& row : md)
+		{
+			// Calculate new shifted alignment
+			eulerMat.initIdentity(4);
+			geo2TransformationMatrix(row, eulerMat, false);
+			calculateShiftDisplacement(eulerMat, shiftMat);
+
+			transformationMatrix2Parameters2D(shiftMat, flip, scale, shiftX, shiftY, psi);
+
+			row.setValue(MDL_SHIFT_X, shiftX);
+			row.setValue(MDL_SHIFT_Y, shiftY);
+			
+
+			size_t id = mdOut.addRow(row);
+
+			idx++;
+		}
+	}
+	
+	mdOut.write(fnOut);
+
+			
+
+
+
+	// recenterParticles();
+	// saveMetadata();
 
 	auto t2 = high_resolution_clock::now();
     auto ms_int = duration_cast<milliseconds>(t2 - t1);

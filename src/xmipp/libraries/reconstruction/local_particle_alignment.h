@@ -65,7 +65,15 @@ public:
     size_t zDim = 1;
 	size_t nDim;
 
-private:
+    /** Alignment params */
+    bool flip;
+    double scale;
+    double shiftX;
+    double shiftY;
+    double shiftZ;
+    double psi;
+
+private:  //*** TODO REMOVE *** */
     /** Input tomogram dimensions */
     size_t xSize;
 	size_t ySize;
