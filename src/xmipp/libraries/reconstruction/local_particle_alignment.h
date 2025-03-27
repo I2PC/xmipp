@@ -73,12 +73,6 @@ public:
     double shiftZ;
     double psi;
 
-private:  //*** TODO REMOVE *** */
-    /** Input tomogram dimensions */
-    size_t xSize;
-	size_t ySize;
-	size_t zSize;
-
 
 public:
 
