@@ -71,10 +71,10 @@ void ProgLocalParticleAlignment::readParams()
 void ProgLocalParticleAlignment::defineParams()
 {
 	addUsageLine("This program refine the alignment of particles focalized in a volume region.");
-	addParamsLine("  --inputParticles	<xmd_file=\"\">     : File path to input particle with alignments.");
-	addParamsLine("  --outputParticles	<output=\"\">       : File path to save output metadata (.stk and .xmd).");
-	addParamsLine("  --proyectionCenter	<pc=\"\">       	: Proyection center (\"x,y,z\" format) referenced from the center of the volume.");
-	addParamsLine("  --writeParticles				        : Generate recentered particles stack.");
+	addParamsLine(" --inputParticles	<xmd_file=\"\">     : File path to input particle with alignments.");
+	addParamsLine(" --outputParticles	<output=\"\">       : File path to save output metadata (.stk and .xmd).");
+	addParamsLine(" --proyectionCenter	<pc=\"\">       	: Proyection center (\"x,y,z\" format) referenced from the center of the volume.");
+	addParamsLine(" [--writeParticles]				        : Generate recentered particles stack.");
 }
 
 
@@ -119,7 +119,7 @@ void ProgLocalParticleAlignment::run()
 
 	if (writeParticles)
 	{
-		for (const auto& row : md)
+		for (auto& row : md)
 		{
 			row.getValue(MDL_IMAGE, fn);
 			particleImg.read(fn);
@@ -150,7 +150,7 @@ void ProgLocalParticleAlignment::run()
 			}
 
 			fn.compose(idx + 1, fnOutParticles);
-			row.setValue(MDL_IMAGE, fn, false);
+			row.setValue(MDL_IMAGE, fn);
 			size_t id = mdOut.addRow(row);
 
 			idx++;
@@ -162,7 +162,7 @@ void ProgLocalParticleAlignment::run()
 	}
 	else
 	{
-		for (const auto& row : md)
+		for (auto& row : md)
 		{
 			// Calculate new shifted alignment
 			eulerMat.initIdentity(4);
@@ -173,11 +173,8 @@ void ProgLocalParticleAlignment::run()
 
 			row.setValue(MDL_SHIFT_X, shiftX);
 			row.setValue(MDL_SHIFT_Y, shiftY);
-			
 
 			size_t id = mdOut.addRow(row);
-
-			idx++;
 		}
 	}
 	
