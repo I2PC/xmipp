@@ -77,100 +77,6 @@ void ProgLocalParticleAlignment::defineParams()
 	addParamsLine("  --writeParticles				        : Generate recentered particles stack.");
 }
 
-void ProgLocalParticleAlignment::saveMetadata()
-{
-	MetaDataVec mdIn;
-	MetaDataVec mdOut;
-
-	FileName fn;
-
-	mdIn.read(fnIn);
-
-	size_t idx = 1;
-
-	for (auto& row : mdIn)
-	{
-		fn.compose(idx, fnOutParticles);
-		row.setValue(MDL_IMAGE, fn, false);
-		size_t id = mdOut.addRow(row);
-
-		idx++;
-	}
-
-	mdOut.write(fnOut);
-	
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Output metada saved at: " << fnOutMetatada << std::endl;
-	#endif
-}
-
-
-// ---------------------- MAIN FUNCTIONS -----------------------------
-
-void ProgLocalParticleAlignment::recenterParticles()
-{
-	MetaDataVec md;
-	md.read(fnIn);
-
-	size_t nDim = md.size();
-
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Centering " << nDim << " input particles..." << std::endl;
-	#endif
-
-	getParticleSize();
-
-	shifedParticles.initZeros(nDim, zDim, yDim, xDim);
-
-	Image<double> particleImg;
-	auto &particle = particleImg();
-
-	MultidimArray<double> shiftParticle;
-
-	Matrix2D<double> eulerMat;
-	Matrix2D<double> shiftMat;
-
-	FileName fn;
-
-	size_t idx = 0;
-
-	for (const auto& row : md)
-	{
-		row.getValue(MDL_IMAGE, fn);
-		particleImg.read(fn);
-		particle.setXmippOrigin();
-
-		eulerMat.initIdentity(4);
-		geo2TransformationMatrix(row, eulerMat);
-
-		calculateShiftDisplacement(eulerMat, shiftMat);
-
-		shiftParticle.resizeNoCopy(particle);
-
-		applyGeometry(xmipp_transformation::BSPLINE3, 
-					  shiftParticle, 
-					  particle, 
-					  shiftMat, 
-					  xmipp_transformation::IS_NOT_INV, 
-					  true, 
-					  0.);
-
-
-		for (size_t i = 0; i < yDim; i++)
-		{
-			for (size_t j = 0; j < xDim; j++)
-			{
-				DIRECT_NZYX_ELEM(shifedParticles, idx, 0, i, j) = DIRECT_A2D_ELEM(shiftParticle, i, j);
-			}
-		}
-
-		idx++;
-	}
-
-	Image<double> shifedParticlesImg;
-	shifedParticlesImg() = shifedParticles;
-	shifedParticlesImg.write(fnOutParticles);
-}
 
 
 // --------------------------- MAIN ----------------------------------
@@ -276,13 +182,6 @@ void ProgLocalParticleAlignment::run()
 	}
 	
 	mdOut.write(fnOut);
-
-			
-
-
-
-	// recenterParticles();
-	// saveMetadata();
 
 	auto t2 = high_resolution_clock::now();
     auto ms_int = duration_cast<milliseconds>(t2 - t1);

@@ -94,30 +94,18 @@ public:
     */
     void defineParams();
 
-    /**
-     * Save metadata for output particles.
-    */
-    void saveMetadata();
-
-
-
-    // ---------------------- MAIN FUNCTIONS -----------------------------
-
-    /**
-     *  
-    */
-    void recenterParticles();
-
 
     // --------------------------- UTILS functions ----------------------------
 
     /**
-     *  
+     *  Calculate alignment matrix with recentered shift
     */
     void calculateShiftDisplacement(Matrix2D<double> particleAlignment, Matrix2D<double> &shifts);
 
+    /**
+     *  Access first particle in metadata to get size
+    */
 	void getParticleSize();
-
 
 
     // --------------------------- MAIN ----------------------------------
