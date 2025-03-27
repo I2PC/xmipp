@@ -49,6 +49,7 @@ public:
     /** Filenames */
     FileName fnIn;
 	FileName fnOut;
+    bool writeParticles;
 	FileName fnOutParticles;
 	FileName fnOutMetatada;
 

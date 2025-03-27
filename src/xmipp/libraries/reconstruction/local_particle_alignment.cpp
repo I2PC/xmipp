@@ -33,9 +33,14 @@ void ProgLocalParticleAlignment::readParams()
 {
 	fnIn = getParam("--inputParticles");
 	fnOut = getParam("--outputParticles");
-
 	fnOutMetatada = fnOut.removeAllExtensions() + ".xmd";
-	fnOutParticles = fnOut.removeAllExtensions() + ".stk";
+
+	writeParticles = checkParam("--writeParticles");
+
+	if (writeParticles)
+	{
+		fnOutParticles = fnOut.removeAllExtensions() + ".stk";
+	}
 
 	String centerProjectionStr = getParam("--proyectionCenter");
 
@@ -50,7 +55,7 @@ void ProgLocalParticleAlignment::readParams()
 	std::smatch matches;
 
     if (!std::regex_match(centerProjectionStr, matches, pattern)) {
-        REPORT_ERROR(ERR_IO_NOWRITE, "Invalid coordinate formatting, expected format is x, y, z");
+        REPORT_ERROR(ERR_IO_NOWRITE, "Invalid coordinate formatting, expected format is \"x,y,z\"");
     }
 
     double x = std::stod(matches[1].str());
@@ -67,9 +72,9 @@ void ProgLocalParticleAlignment::defineParams()
 {
 	addUsageLine("This program refine the alignment of particles focalized in a volume region.");
 	addParamsLine("  --inputParticles	<xmd_file=\"\">     : File path to input particle with alignments.");
-	addParamsLine("  --outputParticles	<output=\"\">       : File path to save output particles and metadata (.stk and .xmd).");
-
+	addParamsLine("  --outputParticles	<output=\"\">       : File path to save output metadata (.stk and .xmd).");
 	addParamsLine("  --proyectionCenter	<pc=\"\">       	: Proyection center (\"x,y,z\" format) referenced from the center of the volume.");
+	addParamsLine("  --writeParticles				        : Generate recentered particles stack.");
 }
 
 void ProgLocalParticleAlignment::saveMetadata()
