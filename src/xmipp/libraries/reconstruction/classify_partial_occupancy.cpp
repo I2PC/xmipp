@@ -328,11 +328,14 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 		double ll_I_it = 0;
 		double ll_IsubP_it = 0;
 
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI)  // *** cuidado al coger indices en fourier que esta desordenado
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI)
 		{
-			ll_I_it     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / DIRECT_MULTIDIM_ELEM(powerNoise, n);
-			ll_IsubP_it += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / DIRECT_MULTIDIM_ELEM(powerNoise, n);
-
+			// Consider only those frequencies (under Nyquist) whose radial module is over threshold
+			if (radialAvg_FT[DIRECT_MULTIDIM_ELEM(particleFreqMap,n)] > minModuleFT && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
+			{
+				ll_I_it     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / DIRECT_MULTIDIM_ELEM(powerNoise, n);
+				ll_IsubP_it += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / DIRECT_MULTIDIM_ELEM(powerNoise, n);
+			}
 		}
 
 		// Normalize likelyhood by number of pixels of the crop
