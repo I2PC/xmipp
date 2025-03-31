@@ -765,6 +765,36 @@ void ProgClassifyPartialOccupancy::frequencyCharacterization()
 	auto maxElement = std::max_element(radialAvg_FT.begin(), radialAvg_FT.end());
 	minModuleFT = 0.25*static_cast<double>(*maxElement);
 
+	//Construct particle frequency map (2D)
+	// Reuse freq_fourier_x and freq_fourier_y vectors
+	freq_fourier_x.initZeros(Xdim_ft);
+	freq_fourier_y.initZeros(Ydim_ft);
+
+	//Initializing map with frequencies
+	particleFreqMap.initZeros(Ydim_ft, Xdim_ft);
+
+	// Directional frequencies along each direction
+	double uy2;
+	n=0;
+	idx = 0;
+
+	for(size_t i=0; i<Ydim_ft; ++i)
+	{
+		uy = VEC_ELEM(freq_fourier_y, i);
+		uy2 = uy*uy;
+
+		for(size_t j=0; j<Xdim_ft; ++j)
+		{
+			ux = VEC_ELEM(freq_fourier_x, j);
+			ux = sqrt(uy2 + ux*ux);
+
+			idx = (int) round(ux * Xdim);
+			DIRECT_MULTIDIM_ELEM(particleFreqMap,n) = idx;
+
+			++n;
+		}
+	}
+
 	#ifdef DEBUG_OUTPUT_FILES
 	// Save FT maps
 	size_t lastindex = fn_out.find_last_of(".");
@@ -773,6 +803,10 @@ void ProgClassifyPartialOccupancy::frequencyCharacterization()
 	
 	std::string debugFileFn = rawname + "_freqMap.mrc";
 	saveImage() = freqMap;
+	saveImage.write(debugFileFn);
+
+	debugFileFn = rawname + "_particleFreqMap.mrc";
+	saveImage() = particleFreqMap;
 	saveImage.write(debugFileFn);
 
 	debugFileFn = rawname + "_FT_mod.mrc";
