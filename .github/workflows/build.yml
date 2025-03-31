@@ -12,7 +12,6 @@ jobs:
         - 'ubuntu-24.04'
 
         cuda:
-        - {version: '11.8.0', method: 'network'} 
         - {version: '12.6.0', method: 'network'} 
         - {version: 'None'}
 
