@@ -339,9 +339,13 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 		}
 
 		// Normalize likelyhood by number of pixels of the crop
-		ll_I		+= ll_I_it 		/ numberOfPx;
-		ll_IsubP	+= ll_IsubP_it  / numberOfPx;
+		ll_I	 += ll_I_it 	/ numberOfPx;
+		ll_IsubP += ll_IsubP_it / numberOfPx;
 	}
+
+	// Take logarithms
+	ll_I 		= log10(ll_I);
+	ll_IsubP 	= log10(ll_IsubP);
 }
 
 void ProgClassifyPartialOccupancy::calculateBoundingBox(MultidimArray<double> PmaskRoiLabel, 
