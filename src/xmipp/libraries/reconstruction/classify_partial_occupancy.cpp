@@ -408,6 +408,14 @@ void ProgClassifyPartialOccupancy::preProcess()
 
 	if (rank==0)
 	{
+			std::cout << "-------Charactizing frequencies-------" << std::endl;
+			frequencyCharacterization();
+			std::cout << "-------Frequencies characterized-------" << std::endl;
+
+			std::cout << "-------Estimating noise -------" << std::endl;
+			noiseEstimation();
+			std::cout << "-------Noise estimated -------" << std::endl;
+
 		if (!realSpaceProjector)
 		{
 			// Initialize Fourier projectors
@@ -417,12 +425,6 @@ void ProgClassifyPartialOccupancy::preProcess()
 			std::cout << "Volume ---> FourierProjector(V(),"<<padFourier<<","<<cutFreq<<","<<xmipp_transformation::BSPLINE3<<");"<< std::endl;
 
 			std::cout << "-------Projectors initialized-------" << std::endl;
-
-			std::cout << "-------Estimating noise -------" << std::endl;
-
-			noiseEstimation();
-
-			std::cout << "-------Noise estimated -------" << std::endl;
 		}
 	}
 	else
@@ -612,7 +614,7 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 		}
 	}
 
-	// powerNoise /= processedParticles;
+	powerNoise /= processedParticles;
 
 
 	#ifdef DEBUG_OUTPUT_FILES
@@ -634,4 +636,163 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 	std::cout << "Number of particles processed for noise estimation: " << processedParticles << std::endl;
 	#endif
 
+}
+
+
+void ProgClassifyPartialOccupancy::frequencyCharacterization()
+{
+	// Calculate FT
+	MultidimArray< std::complex<double> > V_ft; // Volume FT
+    MultidimArray<double> V_ft_mod; // Volume FT modulus
+
+	FourierTransformer fcTransformer;
+	fcTransformer.FourierTransform(V(), V_ft, false);
+
+	// FT dimensions
+	int Xdim_ft = XSIZE(V_ft);
+	int Ydim_ft = YSIZE(V_ft);
+	int Zdim_ft = ZSIZE(V_ft);
+	int Ndim_ft = NSIZE(V_ft);
+
+	if (Zdim_ft == 1)
+	{
+		Zdim_ft = Ndim_ft;
+	}
+
+	int maxRadius = std::min(Xdim_ft, std::min(Ydim_ft, Zdim_ft));	// Restric analysis to Nyquist
+
+	#ifdef DEBUG_NOISE_PROFILE
+	std::cout << "FFT map dimensions: " << std::endl;  
+	std::cout << "FT xSize " << Xdim_ft << std::endl;
+	std::cout << "FT ySize " << Ydim_ft << std::endl;
+	std::cout << "FT zSize " << Zdim_ft << std::endl;
+	std::cout << "FT nSize " << Ndim_ft << std::endl;
+	std::cout << "maxRadius " << maxRadius << std::endl;
+	#endif
+
+	// Construct frequency map and initialize the frequency vectors
+	MultidimArray<double> freqMap;
+	Matrix1D<double> freq_fourier_x;
+	Matrix1D<double> freq_fourier_y;
+	Matrix1D<double> freq_fourier_z;
+
+	freq_fourier_x.initZeros(Xdim_ft);
+	freq_fourier_y.initZeros(Ydim_ft);
+	freq_fourier_z.initZeros(Zdim_ft);
+
+	double u;	// u is the frequency
+
+	// Defining frequency components. First element should be 0, it is set as the smallest number to avoid singularities
+	VEC_ELEM(freq_fourier_z,0) = std::numeric_limits<double>::min();
+	for(size_t k=1; k<Zdim_ft; ++k){
+		FFT_IDX2DIGFREQ(k,Zdim, u);
+		VEC_ELEM(freq_fourier_z, k) = u;
+	}
+
+	VEC_ELEM(freq_fourier_y,0) = std::numeric_limits<double>::min();
+	for(size_t k=1; k<Ydim_ft; ++k){
+		FFT_IDX2DIGFREQ(k,Ydim, u);
+		VEC_ELEM(freq_fourier_y, k) = u;
+	}
+
+	VEC_ELEM(freq_fourier_x,0) = std::numeric_limits<double>::min();
+	for(size_t k=1; k<Xdim_ft; ++k){
+		FFT_IDX2DIGFREQ(k,Xdim, u);
+		VEC_ELEM(freq_fourier_x, k) = u;
+	}
+
+	//Initializing map with frequencies
+	freqMap.resizeNoCopy(V_ft);
+
+	// Directional frequencies along each direction
+	double uz;
+	double uy;
+	double ux;
+	double uz2;
+	double uz2y2;
+	long n=0;
+	int idx = 0;
+
+	for(size_t k=0; k<Zdim_ft; ++k)
+	{
+		uz = VEC_ELEM(freq_fourier_z, k);
+		uz2 = uz*uz;
+		
+		for(size_t i=0; i<Ydim_ft; ++i)
+		{
+			uy = VEC_ELEM(freq_fourier_y, i);
+			uz2y2 = uz2 + uy*uy;
+
+			for(size_t j=0; j<Xdim_ft; ++j)
+			{
+				ux = VEC_ELEM(freq_fourier_x, j);
+				ux = sqrt(uz2y2 + ux*ux);
+
+				idx = (int) round(ux * Xdim);
+				DIRECT_MULTIDIM_ELEM(freqMap,n) = idx;
+
+				++n;
+			}
+		}
+	}
+
+	// Calculate radial average
+	std::vector<double> radialCounter_FT;
+
+	V_ft_mod.initZeros(Zdim_ft, Ydim_ft, Xdim_ft);
+	radialAvg_FT.resize(maxRadius, 0);
+	radialCounter_FT.resize(maxRadius, 0);
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
+	{
+		double value_mod  = sqrt((DIRECT_MULTIDIM_ELEM(V_ft,n) * std::conj(DIRECT_MULTIDIM_ELEM(V_ft,n))).real());
+
+		DIRECT_MULTIDIM_ELEM(V_ft_mod,n)  = value_mod;
+		
+		if(DIRECT_MULTIDIM_ELEM(freqMap,n) < maxRadius)
+		{
+			radialAvg_FT[(int)(DIRECT_MULTIDIM_ELEM(freqMap,n))]  += value_mod;
+			radialCounter_FT[(int)(DIRECT_MULTIDIM_ELEM(freqMap,n))] += 1;
+		}
+	}
+
+	for(size_t i = 0; i < radialCounter_FT.size(); i++)
+	{
+		radialAvg_FT[i] /= radialCounter_FT[i];
+	}
+
+	// Calculate minimum modulus for frequency 
+	auto maxElement = std::max_element(radialAvg_FT.begin(), radialAvg_FT.end());
+	minModuleFT = 0.25*static_cast<double>(*maxElement);
+
+	#ifdef DEBUG_OUTPUT_FILES
+	// Save FT maps
+	size_t lastindex = fn_out.find_last_of(".");
+	std::string rawname = fn_out.substr(0, lastindex);
+	Image<double> saveImage;
+	
+	std::string debugFileFn = rawname + "_freqMap.mrc";
+	saveImage() = freqMap;
+	saveImage.write(debugFileFn);
+
+	debugFileFn = rawname + "_FT_mod.mrc";
+	saveImage() = V_ft_mod;
+	saveImage.write(debugFileFn);
+
+	// Save output metadata
+	MetaDataVec md;
+	size_t id;
+
+	for(size_t i = 0; i < radialCounter_FT.size(); i++)
+	{
+		id = md.addObject();
+		md.setValue(MDL_AVG, radialAvg_FT[i],      id);
+		md.setValue(MDL_X,   radialCounter_FT[i],  id);
+	}
+
+	std::string outputMD = rawname + "_FT_profile.xmd";
+	md.write(outputMD);
+	#endif
+
+	std::cout << "Frenquency profiling estimated. Minimum modulus value: " << minModuleFT << std::endl;
 }

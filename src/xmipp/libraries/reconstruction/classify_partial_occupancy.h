@@ -37,6 +37,7 @@
 #define VERBOSE_OUTPUT
 // #define DEBUG_NOISE_CALCULATION
 #define DEBUG_OUTPUT_FILES
+#define DEBUG_NOISE_PROFILE
 
 /**@defgroup ProgClassifyPartialOccupancy Subtract projections
    @ingroup ReconsLibrary */
@@ -123,12 +124,18 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
     int rank; // for MPI version
     FourierProjector *projector;
 
-    // Params for noise estimation
+    // Variables for noise estimation
     size_t numberParticlesForNoiseEstimation = 50;
     size_t numberParticlesForBoundaryDetermination = 50;
     size_t cropSize = 11;
     MultidimArray< std::complex<double> > noiseSpectrum;
     MultidimArray< double > powerNoise;
+    
+    // Variables for frequency profiling
+    double minModuleFT; // Defined as x% of the value of the frequency with the maximum module
+    std::vector<double> radialAvg_FT;
+    MultidimArray<double> particleFreqMap;
+
 
 
 public:
@@ -149,6 +156,7 @@ public:
     void logLikelihood(double ll_I, double ll_IsubP);
     void preProcess() override;
     void noiseEstimation();
+    void frequencyCharacterization();
 
 
     // ---------------------- UTILS functions ------------------------------
