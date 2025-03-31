@@ -767,10 +767,8 @@ void ProgClassifyPartialOccupancy::frequencyCharacterization()
 
 	//Construct particle frequency map (2D)
 	// Reuse freq_fourier_x and freq_fourier_y vectors
-	freq_fourier_x.initZeros(Xdim_ft);
-	freq_fourier_y.initZeros(Ydim_ft);
 
-	//Initializing map with frequencies
+	//Initializing particle map with frequencies
 	particleFreqMap.initZeros(Ydim_ft, Xdim_ft);
 
 	// Directional frequencies along each direction
