@@ -176,6 +176,7 @@ void ProgLocalParticleAlignment::run()
 			double psi;
 			transformationMatrix2Parameters3D(eulerMat, flip, scale, shX, shY, shZ, rot, tilt, psi);
 
+			#ifdef DEBUG
 			std::cout << "-------------------------------- euler mat " << std::endl;
 			std::cout << "shX " << shX << std::endl;
 			std::cout << "shY " << shY << std::endl;
@@ -183,6 +184,7 @@ void ProgLocalParticleAlignment::run()
 			std::cout << "rot " << rot << std::endl;
 			std::cout << "tilt " << tilt << std::endl;
 			std::cout << "psi " << psi << std::endl;
+			#endif
 
 			calculateShiftDisplacement(eulerMat, shiftMat);
 
@@ -234,12 +236,14 @@ void ProgLocalParticleAlignment::calculateShiftDisplacement(Matrix2D<double> par
 	double incShiftX = -XX(projectedCenter);
 	double incShiftY = -YY(projectedCenter);
 
+	#ifdef DEBUG
 	std::cout << "-------------------------------" << std::endl;
 	std::cout << "XX(projectedCenter) " << XX(projectedCenter) << std::endl;
 	std::cout << "YY(projectedCenter) " << YY(projectedCenter) << std::endl;
 	std::cout << "incShiftX " << incShiftX << std::endl;
 	std::cout << "incShiftY " << incShiftY << std::endl;
 	std::cout << "-------------------------------" << std::endl;
+	#endif
 
 	shifts.initIdentity(3);
 	MAT_ELEM(shifts, 0, 2) = incShiftX;
