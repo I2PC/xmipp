@@ -164,15 +164,32 @@ void ProgLocalParticleAlignment::run()
 	{
 		for (auto& row : md)
 		{
-			// Calculate new shifted alignment
-			eulerMat.initIdentity(4);
 			geo2TransformationMatrix(row, eulerMat, false);
+
+			bool flip;
+			double scale;
+			double shX; 
+			double shY;
+			double shZ;
+			double rot;
+			double tilt;
+			double psi;
+			transformationMatrix2Parameters3D(eulerMat, flip, scale, shX, shY, shZ, rot, tilt, psi);
+
+			std::cout << "-------------------------------- euler mat " << std::endl;
+			std::cout << "shX " << shX << std::endl;
+			std::cout << "shY " << shY << std::endl;
+			std::cout << "shZ " << shZ << std::endl;
+			std::cout << "rot " << rot << std::endl;
+			std::cout << "tilt " << tilt << std::endl;
+			std::cout << "psi " << psi << std::endl;
+
 			calculateShiftDisplacement(eulerMat, shiftMat);
 
 			transformationMatrix2Parameters2D(shiftMat, flip, scale, shiftX, shiftY, psi);
 
-			row.setValue(MDL_SHIFT_X, shiftX);
-			row.setValue(MDL_SHIFT_Y, shiftY);
+			row.setValue(MDL_SHIFT_X, shX + shiftX);
+			row.setValue(MDL_SHIFT_Y, shY + shiftY);
 
 			size_t id = mdOut.addRow(row);
 		}
@@ -214,8 +231,18 @@ void ProgLocalParticleAlignment::calculateShiftDisplacement(Matrix2D<double> par
 {
 	Matrix1D<double> projectedCenter = particleAlignment * alignmentCenter;
 
+	double incShiftX = -XX(projectedCenter);
+	double incShiftY = -YY(projectedCenter);
+
+	std::cout << "-------------------------------" << std::endl;
+	std::cout << "XX(projectedCenter) " << XX(projectedCenter) << std::endl;
+	std::cout << "YY(projectedCenter) " << YY(projectedCenter) << std::endl;
+	std::cout << "incShiftX " << incShiftX << std::endl;
+	std::cout << "incShiftY " << incShiftY << std::endl;
+	std::cout << "-------------------------------" << std::endl;
+
 	shifts.initIdentity(3);
-	MAT_ELEM(shifts, 0, 2) = XX(projectedCenter);
-	MAT_ELEM(shifts, 1, 2) = YY(projectedCenter);
+	MAT_ELEM(shifts, 0, 2) = incShiftX;
+	MAT_ELEM(shifts, 1, 2) = incShiftY;
 }
 
