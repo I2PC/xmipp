@@ -154,7 +154,7 @@ public:
 
     // ----------------------- MAIN FUNCTIONS ------------------------------
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
-    void logLikelihood(double ll_I, double ll_IsubP);
+    void logLikelihood(double ll_I, double ll_IsubP, const FileName &fnImgOut);
     void preProcess() override;
     void noiseEstimation();
     void frequencyCharacterization();

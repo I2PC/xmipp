@@ -242,7 +242,7 @@ void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<
 	#endif
 }
 
-void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
+void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP, const FileName &fnImgOut)
 {	
 	// Subtract ligand from particle
 	IsubP() = (I() - adjustParams.b) - (P() * adjustParams.b0);
@@ -268,14 +268,17 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 	int numLig = labelImage2D(PmaskRoi(), PmaskRoiLabel, 8);
 
 	#ifdef DEBUG_OUTPUT_FILES
-	size_t dotPos = fn_out.find_last_of('.');
+	size_t dotPos = fnImgOut.find_last_of('.');
 	Image<double> saveImage;
 
+	saveImage = IsubP;
+	saveImage.write(fnImgOut.substr(0, dotPos) + "_IsubP" + fnImgOut.substr(dotPos));
+
 	saveImage = PmaskRoi;
-	saveImage.write(fn_out.substr(0, dotPos) + "_PmaskRoiBinarize" + fn_out.substr(dotPos));
+	saveImage.write(fnImgOut.substr(0, dotPos) + "_PmaskRoiBinarize" + fnImgOut.substr(dotPos));
 
 	saveImage() = PmaskRoiLabel;
-	saveImage.write(fn_out.substr(0, dotPos) + "_PmaskRoiLabel" + fn_out.substr(dotPos));
+	saveImage.write(fnImgOut.substr(0, dotPos) + "_PmaskRoiLabel" + fnImgOut.substr(dotPos));
 	#endif
 
 	// Calculate bounding box for each ligand region
@@ -293,7 +296,8 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 	MultidimArray< std::complex<double> > fftIsubP;
 
 	// Analyze each ligand region independently
-	for (size_t value = 0; value < numLig; ++value) {
+	for (size_t value = 0; value < numLig; ++value) 
+	{
 		#ifdef DEBUG_LOG_LIKELIHOOD
 		std::cout << "Analyzign ligand region " << int(value +1) << std::endl;
 		#endif
@@ -335,10 +339,8 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 		}
 
 		#ifdef DEBUG_OUTPUT_FILES
-		size_t lastindex = fn_out.find_last_of(".");
-		std::string rawname = fn_out.substr(0, lastindex);
-
-		std::string debugFileFn = rawname + "_centeredLigand_" + std::to_string(value) + ".mrc";
+		size_t lastindex = fnImgOut.find_last_of(".");
+		std::string debugFileFn = fnImgOut.substr(0, lastindex) + "_centeredLigand_" + std::to_string(value) + ".mrc";
 
 		saveImage() = centeredLigand;
 		saveImage.write(debugFileFn);
@@ -362,19 +364,17 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 			}
 		}
 
-		// Normalize likelyhood by number of pixels of the crop
+		// Normalize likelyhood by number of pixels of the crop adn take logarithms
+		ll_I	 += std::log10(ll_I_it 	   / numberOfPx);
+		ll_IsubP += std::log10(ll_IsubP_it / numberOfPx);
+
+		#ifdef DEBUG_LOG_LIKELIHOOD
 		std::cout << "ll_I_it for interation "     << value << " : " << ll_I_it     << ". Number of pixels: " << numberOfPx << std::endl;
 		std::cout << "ll_IsubP_it for interation " << value << " : " << ll_IsubP_it << ". Number of pixels: " << numberOfPx << std::endl;
-		ll_I	 += ll_I_it 	/ numberOfPx;
-		ll_IsubP += ll_IsubP_it / numberOfPx;
+		#endif
 	}
 
-	// Take logarithms
 	std::cout << "ll_I: " << ll_I << "		ll_IsubP: " << ll_IsubP << std::endl;
-	ll_I 		= std::log10(ll_I);
-	ll_IsubP 	= std::log10(ll_IsubP);
-	std::cout << "log10(ll_I): " << ll_I << "		log10(ll_IsubP): " << ll_IsubP << std::endl;
-
 }
 
 void ProgClassifyPartialOccupancy::calculateBoundingBox(MultidimArray<double> PmaskRoiLabel, 
@@ -384,12 +384,13 @@ void ProgClassifyPartialOccupancy::calculateBoundingBox(MultidimArray<double> Pm
 														std::vector<int> &maxY, 
 														int numLig)
 {	
-	std::cout << "------------------------------------------------" << std::endl;
-
-	for (size_t i = 0; i < Ydim; ++i) {
-		for (size_t j = 0; j < Xdim; ++j) {
+	for (size_t i = 0; i < Ydim; ++i) 
+	{
+		for (size_t j = 0; j < Xdim; ++j) 
+		{
 			int value = int(DIRECT_A2D_ELEM(PmaskRoiLabel, i, j));
-			if (value != 0) {
+			if (value != 0) 
+			{
 				if (j < minX[value - 1]) minX[value - 1] = j;
 				if (j > maxX[value - 1]) maxX[value - 1] = j;
 				if (i < minY[value - 1]) minY[value - 1] = i;
@@ -399,7 +400,8 @@ void ProgClassifyPartialOccupancy::calculateBoundingBox(MultidimArray<double> Pm
 	}
 
 	// Adjust bounding boxes to be squares
-    for (int k = 0; k < numLig; ++k) {
+    for (int k = 0; k < numLig; ++k) 
+	{
         int width = maxX[k] - minX[k] + 1;
         int height = maxY[k] - minY[k] + 1;
         int maxDim = std::max(width, height);
@@ -502,7 +504,7 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 	double ll_I = 0;
 	double ll_IsubP = 0;
 
-	logLikelihood(ll_I, ll_IsubP);
+	logLikelihood(ll_I, ll_IsubP, fnImgOut);
 
 	writeParticle(rowOut, fnImgOut, I, ll_I, ll_IsubP, (ll_I-ll_IsubP)); 
 }
@@ -656,11 +658,10 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 
 
 	#ifdef DEBUG_OUTPUT_FILES
-	size_t lastindex = fn_out.find_last_of(".");
-	std::string rawname = fn_out.substr(0, lastindex);
-
 	Image<double> saveImage;
-	std::string debugFileFn = rawname + "_noisePower.mrc";
+	size_t lastindex = fn_out.find_last_of(".");
+
+	std::string debugFileFn = fn_out.substr(0, lastindex) + "_noisePower.mrc";
 
 	saveImage() = powerNoise;
 	saveImage.write(debugFileFn);
