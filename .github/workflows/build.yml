@@ -64,6 +64,6 @@ jobs:
           SEND_INSTALLATION_STATISTICS: 'OFF'
         run: |
           ./xmipp all -b $BRANCH_NAME --keep-output || (cat compilation.log && false)
-
+          ./xmipp version
       - name: Cat
         run: cat xmipp.conf
