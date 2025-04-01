@@ -267,11 +267,22 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 	PmaskRoiLabel.resizeNoCopy(PmaskRoi());
 	int numLig = labelImage2D(PmaskRoi(), PmaskRoiLabel, 8);
 
+	#ifdef DEBUG_OUTPUT_FILES
+	size_t dotPos = fn_out.find_last_of('.');
+	Image<double> saveImage;
+
+	saveImage = PmaskRoi;
+	saveImage.write(fn_out.substr(0, dotPos) + "_PmaskRoiBinarize" + fn_out.substr(dotPos));
+
+	saveImage() = PmaskRoiLabel;
+	saveImage.write(fn_out.substr(0, dotPos) + "_PmaskRoiLabel" + fn_out.substr(dotPos));
+	#endif
+
 	// Calculate bounding box for each ligand region
 	std::vector<int> minX(numLig, std::numeric_limits<int>::max());
 	std::vector<int> minY(numLig, std::numeric_limits<int>::max());
-	std::vector<int> maxX(numLig, std::numeric_limits<int>::min());
-	std::vector<int> maxY(numLig, std::numeric_limits<int>::min());
+	std::vector<int> maxX(numLig, 0);
+	std::vector<int> maxY(numLig, 0);
 
 	calculateBoundingBox(PmaskRoiLabel, minX, minY, maxX, maxY, numLig);
 
@@ -281,13 +292,27 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 	MultidimArray< std::complex<double> > fftI;
 	MultidimArray< std::complex<double> > fftIsubP;
 
+	// Analyze each ligand region independently
 	for (size_t value = 0; value < numLig; ++value) {
+		#ifdef DEBUG_LOG_LIKELIHOOD
+		std::cout << "Analyzign ligand region " << int(value +1) << std::endl;
+		#endif
 		// Cropping regions
 		int width = maxX[value] - minX[value] + 1;
 		int height = maxY[value] - minY[value] + 1;
 		int centerX = Xdim / 2;
 		int centerY = Ydim / 2;
 		int numberOfPx = width * height;
+
+		#ifdef DEBUG_LOG_LIKELIHOOD
+		std::cout << "minX[value] " << minX[value] << std::endl;
+		std::cout << "maxX[value] " << maxX[value] << std::endl;
+		std::cout << "minY[value] " << minY[value] << std::endl;
+		std::cout << "maxY[value] " << maxY[value] << std::endl;
+		std::cout << "width " 		<< width << std::endl;
+		std::cout << "height " 		<< height << std::endl;
+		std::cout << "numberOfPx " 	<< numberOfPx << std::endl;
+		#endif
 
 		// Initialize new images for cropping
 		centeredLigand.initZeros(Ydim, Xdim);
@@ -313,7 +338,6 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 		size_t lastindex = fn_out.find_last_of(".");
 		std::string rawname = fn_out.substr(0, lastindex);
 
-		Image<double> saveImage;
 		std::string debugFileFn = rawname + "_centeredLigand_" + std::to_string(value) + ".mrc";
 
 		saveImage() = centeredLigand;
@@ -329,7 +353,7 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 		double ll_IsubP_it = 0;
 
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI)
-		{
+		{		
 			// Consider only those frequencies (under Nyquist) whose radial module is over threshold
 			if (radialAvg_FT[DIRECT_MULTIDIM_ELEM(particleFreqMap,n)] > minModuleFT && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
 			{
@@ -339,25 +363,32 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 		}
 
 		// Normalize likelyhood by number of pixels of the crop
+		std::cout << "ll_I_it for interation "     << value << " : " << ll_I_it     << ". Number of pixels: " << numberOfPx << std::endl;
+		std::cout << "ll_IsubP_it for interation " << value << " : " << ll_IsubP_it << ". Number of pixels: " << numberOfPx << std::endl;
 		ll_I	 += ll_I_it 	/ numberOfPx;
 		ll_IsubP += ll_IsubP_it / numberOfPx;
 	}
 
 	// Take logarithms
-	ll_I 		= log10(ll_I);
-	ll_IsubP 	= log10(ll_IsubP);
+	std::cout << "ll_I: " << ll_I << "		ll_IsubP: " << ll_IsubP << std::endl;
+	ll_I 		= std::log10(ll_I);
+	ll_IsubP 	= std::log10(ll_IsubP);
+	std::cout << "log10(ll_I): " << ll_I << "		log10(ll_IsubP): " << ll_IsubP << std::endl;
+
 }
 
 void ProgClassifyPartialOccupancy::calculateBoundingBox(MultidimArray<double> PmaskRoiLabel, 
-														std::vector<int> minX, 
-														std::vector<int> minY, 
-														std::vector<int> maxX, 
-														std::vector<int> maxY, 
+														std::vector<int> &minX, 
+														std::vector<int> &minY, 
+														std::vector<int> &maxX, 
+														std::vector<int> &maxY, 
 														int numLig)
 {	
+	std::cout << "------------------------------------------------" << std::endl;
+
 	for (size_t i = 0; i < Ydim; ++i) {
 		for (size_t j = 0; j < Xdim; ++j) {
-			int value = DIRECT_A2D_ELEM(PmaskRoiLabel, i, j);
+			int value = int(DIRECT_A2D_ELEM(PmaskRoiLabel, i, j));
 			if (value != 0) {
 				if (j < minX[value - 1]) minX[value - 1] = j;
 				if (j > maxX[value - 1]) maxX[value - 1] = j;
@@ -668,7 +699,7 @@ void ProgClassifyPartialOccupancy::frequencyCharacterization()
 
 	int maxRadius = std::min(Xdim_ft, std::min(Ydim_ft, Zdim_ft));	// Restric analysis to Nyquist
 
-	#ifdef DEBUG_NOISE_PROFILE
+	#ifdef DEBUG_FREQUENCY_PROFILE
 	std::cout << "FFT map dimensions: " << std::endl;  
 	std::cout << "FT xSize " << Xdim_ft << std::endl;
 	std::cout << "FT ySize " << Ydim_ft << std::endl;

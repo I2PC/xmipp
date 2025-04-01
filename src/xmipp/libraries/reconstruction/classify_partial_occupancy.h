@@ -35,9 +35,10 @@
 
 #define DEBUG
 #define VERBOSE_OUTPUT
+// #define DEBUG_FREQUENCY_PROFILE
 // #define DEBUG_NOISE_CALCULATION
+// #define DEBUG_LOG_LIKELIHOOD
 #define DEBUG_OUTPUT_FILES
-#define DEBUG_NOISE_PROFILE
 
 /**@defgroup ProgClassifyPartialOccupancy Subtract projections
    @ingroup ReconsLibrary */
@@ -125,7 +126,7 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
     FourierProjector *projector;
 
     // Variables for noise estimation
-    size_t numberParticlesForNoiseEstimation = 50;
+    size_t numberParticlesForNoiseEstimation = 10;
     size_t numberParticlesForBoundaryDetermination = 50;
     size_t cropSize = 11;
     MultidimArray< std::complex<double> > noiseSpectrum;
@@ -166,10 +167,10 @@ public:
     void processParticle(const MDRow &rowIn, int sizeImg);
     void computeParticleStats(Image<double> &I, Image<double> &M, FileName fnImgOut, double &avg, double &std, double &zScore);
     void calculateBoundingBox(MultidimArray<double> PmaskRoiLabel, 
-                              std::vector<int> minX, 
-                              std::vector<int> minY, 
-                              std::vector<int> maxX, 
-                              std::vector<int> maxY, 
+                              std::vector<int> &minX, 
+                              std::vector<int> &minY, 
+                              std::vector<int> &maxX, 
+                              std::vector<int> &maxY, 
                               int numLig);
 
 
