@@ -466,16 +466,6 @@ void ProgSubtractProjection::noiseEstimation()
 	#endif
 
 	noiseAnalyzedParticles++;
-
-	#ifdef DEBUG_OUTPUT_FILES
-	Image<double> saveImage;
-	size_t lastindex = fn_out.find_last_of(".");
-
-	std::string debugFileFn = fn_out.substr(0, lastindex) + "_noisePower.mrc";
-
-	saveImage() = powerNoise;
-	saveImage.write(debugFileFn);
-	#endif
 }
 
  // Main methods ===================================================================
@@ -791,10 +781,24 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	#endif
 
 	// Estimate noise after subtraction
-	if(noiseAnalyzedParticles < numberPaticlesNoiseEst)
+	if(noiseEstimationBool && noiseAnalyzedParticles < numberPaticlesNoiseEst)
 	{
 		noiseEstimation();
 	}
 
 	writeParticle(rowOut, fnImgOut, Idiff, R2adj(0), beta0save, beta1save, b); 
+}
+
+void ProgSubtractProjection::finishProcessing(const FileName &fnImgOut)
+{
+	if(noiseEstimationBool)
+	{
+		Image<double> saveImage;
+		size_t lastindex = fnImgOut.find_last_of("/\\");
+
+		std::string noiseEstOuputFile = fnImgOut.substr(0, lastindex) + "noisePower.mrc";
+
+		saveImage() = powerNoise;
+		saveImage.write(noiseEstOuputFile);
+	}
 }
