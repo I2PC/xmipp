@@ -130,10 +130,11 @@ class ProgSubtractProjection: public XmippMetadataProgram
     Image<double> applyCTF(const MDRow &, Projection &);
     void processParticle(const MDRow &rowIn, int sizeImg);
     MultidimArray< std::complex<double> > computeEstimationImage(const MultidimArray<double> &, 
-        const MultidimArray<double> *, FourierTransformer &);
+    const MultidimArray<double> *, FourierTransformer &);
     double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
     Matrix1D<double> checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
-        const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
+    const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
+    void noiseEstimation();
 
     int rank; // for MPI version
     FourierProjector *projector;

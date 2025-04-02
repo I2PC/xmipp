@@ -360,9 +360,7 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 
 void ProgSubtractProjection::noiseEstimation()
 {
-	auto t1 = std::chrono::high_resolution_clock::now();
-
-	MetaData &mdIn = *getInputMd();
+	// PmaskRoi Idiff Pmask
 
     srand(time(0)); // Seed for random number generation
     int maxX = Xdim - cropSize;
@@ -829,6 +827,9 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	P.write(fnImgOut.substr(0, dotPos) + "_P" + fnImgOut.substr(dotPos));
 	I.write(fnImgOut.substr(0, dotPos) + "_I" + fnImgOut.substr(dotPos));
 	#endif
+
+	// Estimate noise after subtraction
+	noiseEstimation();
 
 	// Compute particle stats after subtraction
 	double avg;
