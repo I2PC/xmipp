@@ -88,6 +88,14 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	subtract = checkParam("--subtract");
 	realSpaceProjector = checkParam("--realSpaceProjection");
 	ignoreCTF = checkParam("--ignoreCTF");
+
+	noiseEstimationBool = checkParam("--num_particles_noise_est");
+	if (noiseEstimationBool)
+	{
+			numberPaticlesNoiseEst=getIntParam("--num_particles_noise_est");
+
+	}
+	
  }
 
  // Show ====================================================================
@@ -103,6 +111,11 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	<< "Sampling rate:\t" << sampling << std::endl
 	<< "Padding factor:\t" << padFourier << std::endl
     << "Max. Resolution:\t" << maxResol << std::endl;
+
+	if (noiseEstimationBool)
+	{
+		std::cout << " Estiamting noise from " << numberPaticlesNoiseEst << " particles" << std::endl
+	}
  }
 
  // Usage ===================================================================
@@ -134,6 +147,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	addParamsLine("[--subtract]						: The mask contains the region to SUBTRACT");
 	addParamsLine("[--realSpaceProjection]			: Project volume in real space to avoid Fourier artifacts");
 	addParamsLine("[--ignoreCTF]					: Do not consider CTF in the subtraction. Use if particles have been CTF corrected.");
+	addParamsLine("[--num_particles_noise_est]		: Number of particles to be used for noise estimation. If parameter not provided noise is not estimated.");
 
 	// Example
     addExampleLine("A typical use is:",false);

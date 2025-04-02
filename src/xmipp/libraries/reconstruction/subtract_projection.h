@@ -66,6 +66,8 @@ class ProgSubtractProjection: public XmippMetadataProgram
     bool maskVolProvided;
     bool ignoreCTF;
 	MultidimArray<int> wi;
+    bool noiseEstimationBool;
+    int numberPaticlesNoiseEst;
 
     // Data variables
  	Image<double> V; // volume
