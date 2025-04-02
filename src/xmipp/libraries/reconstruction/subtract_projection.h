@@ -36,6 +36,8 @@
 
  #define DEBUG
 //  #define DEBUG_OUTPUT_FILES
+//  #define DEBUG_NOISE_ESTIMATION
+
 
 /**@defgroup ProgSubtractProjection Subtract projections
    @ingroup ReconsLibrary */
@@ -66,6 +68,12 @@ class ProgSubtractProjection: public XmippMetadataProgram
     bool maskVolProvided;
     bool ignoreCTF;
 	MultidimArray<int> wi;
+
+    // Input volume dimensions
+    size_t Xdim;
+	size_t Ydim;
+	size_t Zdim;
+	size_t Ndim;
 
     // Variables for noise estimation
     bool noiseEstimationBool;
@@ -106,7 +114,6 @@ class ProgSubtractProjection: public XmippMetadataProgram
 	MultidimArray< std::complex<double> > PFourier1; // FT(projection) estimation of order 1
     MultidimArray< std::complex<double> > IiMFourier;
 	MultidimArray< std::complex<double> > PiMFourier;
-
 
     FourierTransformer transformerIiM;
 	FourierTransformer transformerPiM;

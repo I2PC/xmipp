@@ -370,111 +370,102 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 
 void ProgSubtractProjection::noiseEstimation()
 {
-	// PmaskRoi Idiff Pmask
+	#ifdef DEBUG_NOISE_ESTIMATION
+	std::cout << "Estimating noise from particle " << noiseAnalyzedParticles + 1 << std::endl;
+	#endif
 
     srand(time(0)); // Seed for random number generation
 	double scallignFactor = (Xdim * Ydim) / (cropSize * cropSize);
     bool invalidRegion;
     MultidimArray< double > noiseCrop;
 
-	// Iterate particles
-	for (const auto& r : mdIn)
-	{
-		#ifdef DEBUG_NOISE_CALCULATION
-		std::cout << "Estimating noise from particle " << noiseAnalyzedParticles + 1 << std::endl;
-		#endif
+	do {
+		invalidRegion = false;
+		noiseCrop.initZeros((int)Ydim, (int)Xdim);
 
-		do {
-			invalidRegion = false;
-			noiseCrop.initZeros((int)Ydim, (int)Xdim);
+		int x = minX + rand() % (maxX - minX + 1);
+		int y = minY + rand() % (maxY - minY + 1);
 
-			int x = minX + rand() % (maxX - minX + 1);
-			int y = minY + rand() % (maxY - minY + 1);
-
-			for (size_t i = 0; i < cropSize; i++)
+		for (size_t i = 0; i < cropSize; i++)
+		{
+			for (size_t j = 0; j < cropSize; j++)
 			{
-				for (size_t j = 0; j < cropSize; j++)
+				#ifdef DEBUG_NOISE_ESTIMATION
+				std::cout << "--------------------------------------------------" << std::endl;
+				std::cout << "x  " << x << " y " << y  << std::endl;
+				std::cout << "i " << i << " j  " << j  << std::endl;
+				std::cout << "y + i  " << y + i << " x + j " << x + j << std::endl;
+				std::cout << "(Ydim/2) " << (Ydim/2) << " (Xdim/2) " << (Xdim/2) << std::endl;
+				std::cout << "(Ydim/2) - (cropSize/2) + i  " << (Ydim/2) - (cropSize/2) + i << " (Xdim/2) - (cropSize/2) + j " << (Xdim/2) - (cropSize/2) + j << std::endl;
+				#endif
+
+				if (DIRECT_A2D_ELEM(Pmask(), y + i, x + j) == 0 || DIRECT_A2D_ELEM(PmaskRoi(), y + i, x + j) > 0)
 				{
-					#ifdef DEBUG_NOISE_CALCULATION
-					std::cout << "--------------------------------------------------" << std::endl;
-					std::cout << "x  " << x << " y " << y  << std::endl;
-					std::cout << "i " << i << " j  " << j  << std::endl;
-					std::cout << "y + i  " << y + i << " x + j " << x + j << std::endl;
-					std::cout << "(Ydim/2) " << (Ydim/2) << " (Xdim/2) " << (Xdim/2) << std::endl;
-					std::cout << "(Ydim/2) - (cropSize/2) + i  " << (Ydim/2) - (cropSize/2) + i << " (Xdim/2) - (cropSize/2) + j " << (Xdim/2) - (cropSize/2) + j << std::endl;
+					invalidRegion = true;
+
+					#ifdef DEBUG_NOISE_ESTIMATION
+					std::cout << "Invalid region. Trying again..." << std::endl;
 					#endif
-
-					if (DIRECT_A2D_ELEM(Pmask(), y + i, x + j) == 0 || DIRECT_A2D_ELEM(PmaskRoi(), y + i, x + j) > 0)
-					{
-						invalidRegion = true;
-
-						#ifdef DEBUG_NOISE_CALCULATION
-					 	std::cout << "Invalid region. Trying again..." << std::endl;
-						#endif
-					
-						break;
-					}
-
-					DIRECT_A2D_ELEM(noiseCrop,  (Ydim/2) - (cropSize/2) + i, (Xdim/2) - (cropSize/2) + j) = scallignFactor * DIRECT_A2D_ELEM(I(), y + i, x + j);
-				}
-
-				if (invalidRegion) {
+				
 					break;
 				}
 
-			// If region is valid update limits for noise estimation
-			if (!invalidRegion)
-			{
-				if (x < minX_noiseEst) minX_noiseEst = x;
-				if (x > maxX_noiseEst) maxX_noiseEst = x;
-				if (y < minY_noiseEst) minY_noiseEst = y;
-				if (y > maxY_noiseEst) maxY_noiseEst = y;
+				DIRECT_A2D_ELEM(noiseCrop,  (Ydim/2) - (cropSize/2) + i, (Xdim/2) - (cropSize/2) + j) = scallignFactor * DIRECT_A2D_ELEM(I(), y + i, x + j);
 			}
-			
+
+			if (invalidRegion) {
+				break;
+			}
+
+		// If region is valid update limits for noise estimation
+		if (!invalidRegion)
+		{
+			if (x < minX_noiseEst) minX_noiseEst = x;
+			if (x > maxX_noiseEst) maxX_noiseEst = x;
+			if (y < minY_noiseEst) minY_noiseEst = y;
+			if (y > maxY_noiseEst) maxY_noiseEst = y;
 		}
-		} while (invalidRegion);
-
-		#ifdef DEBUG_NOISE_CALCULATION
-		size_t lastindex = fn_out.find_last_of(".");
-		std::string rawname = fn_out.substr(0, lastindex);
-
-		Image<double> saveImage;
-		std::string debugFileFn = rawname + "_noiseCrop.mrc";
-
-		saveImage() = noiseCrop;
-		saveImage.write(debugFileFn);
-		#endif
-
-	    FourierTransformer transformerNoise;
-		MultidimArray<std::complex<double>> noiseSpectrum;
-		transformerNoise.FourierTransform(noiseCrop, noiseSpectrum, false);
-
-		#ifdef DEBUG_NOISE_CALCULATION
-		MultidimArray< double > noiseSpectrumReal;
-		noiseSpectrumReal.initZeros(YSIZE(noiseSpectrum), XSIZE(noiseSpectrum)); 
-
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(noiseSpectrum)
-			DIRECT_MULTIDIM_ELEM(noiseSpectrumReal,n) = DIRECT_MULTIDIM_ELEM(noiseSpectrum,n).real();
-
-		Image<double> saveImageHalf;
-		debugFileFn = rawname + "_noiseSpectrumReal.mrc";
-
-		saveImageHalf() = noiseSpectrumReal;
-		saveImageHalf.write(debugFileFn);
-		#endif
-
- 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(noiseSpectrum)
-			DIRECT_MULTIDIM_ELEM(powerNoise,n) += (DIRECT_MULTIDIM_ELEM(noiseSpectrum,n) * std::conj(DIRECT_MULTIDIM_ELEM(noiseSpectrum,n))).real() / numberPaticlesNoiseEst;
-			
-		#ifdef DEBUG_NOISE_CALCULATION
-		std::cout << "Noise estimated from particle " << noiseAnalyzedParticles + 1 << " sucessfully." << std::endl;
-		#endif
-
-		noiseAnalyzedParticles++;
+		
 	}
+	} while (invalidRegion);
 
-	powerNoise /= noiseAnalyzedParticles;
+	#ifdef DEBUG_NOISE_ESTIMATION
+	size_t lastindex = fn_out.find_last_of(".");
+	std::string rawname = fn_out.substr(0, lastindex);
 
+	Image<double> saveImage;
+	std::string debugFileFn = rawname + "_noiseCrop.mrc";
+
+	saveImage() = noiseCrop;
+	saveImage.write(debugFileFn);
+	#endif
+
+	FourierTransformer transformerNoise;
+	MultidimArray<std::complex<double>> noiseSpectrum;
+	transformerNoise.FourierTransform(noiseCrop, noiseSpectrum, false);
+
+	#ifdef DEBUG_NOISE_ESTIMATION
+	MultidimArray< double > noiseSpectrumReal;
+	noiseSpectrumReal.initZeros(YSIZE(noiseSpectrum), XSIZE(noiseSpectrum)); 
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(noiseSpectrum)
+		DIRECT_MULTIDIM_ELEM(noiseSpectrumReal,n) = DIRECT_MULTIDIM_ELEM(noiseSpectrum,n).real();
+
+	Image<double> saveImageHalf;
+	debugFileFn = rawname + "_noiseSpectrumReal.mrc";
+
+	saveImageHalf() = noiseSpectrumReal;
+	saveImageHalf.write(debugFileFn);
+	#endif
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(noiseSpectrum)
+		DIRECT_MULTIDIM_ELEM(powerNoise,n) += (DIRECT_MULTIDIM_ELEM(noiseSpectrum,n) * std::conj(DIRECT_MULTIDIM_ELEM(noiseSpectrum,n))).real() / numberPaticlesNoiseEst;
+		
+	#ifdef DEBUG_NOISE_ESTIMATION
+	std::cout << "Noise estimated from particle " << noiseAnalyzedParticles + 1 << " sucessfully." << std::endl;
+	#endif
+
+	noiseAnalyzedParticles++;
 
 	#ifdef DEBUG_OUTPUT_FILES
 	Image<double> saveImage;
@@ -485,15 +476,6 @@ void ProgSubtractProjection::noiseEstimation()
 	saveImage() = powerNoise;
 	saveImage.write(debugFileFn);
 	#endif
-
-	#ifdef VERBOSE_OUTPUT
-	auto t2 = std::chrono::high_resolution_clock::now();
-    auto ms_int = std::chrono::duration_cast<std::chrono::seconds>(t2 - t1);	// Getting number of seconds as an integer
-	std::cout << "Execution time for noise estimation: " << ms_int.count() << " seconds." << std::endl;
-
-	std::cout << "Number of particles processed for noise estimation: " << noiseAnalyzedParticles << std::endl;
-	#endif
-
 }
 
  // Main methods ===================================================================
@@ -504,13 +486,13 @@ void ProgSubtractProjection::preProcess()
 	V.read(fnVolR);
 	V().setXmippOrigin();
 
-	// Create 2D circular mask to avoid edge artifacts after wrapping
-	size_t Xdim;
-	size_t Ydim;
-	size_t Zdim;
-	size_t Ndim;
-	V.getDimensions(Xdim, Ydim, Zdim, Ndim);
-
+	// Read input vol dimensions
+	if (rank==0)
+	{
+		V.getDimensions(Xdim, Ydim, Zdim, Ndim);
+	}
+	
+	// Read input mask or create 2D circular if not provided
 	if (maskVolProvided)
 	{
 		maskVol.read(fnMaskVol);
