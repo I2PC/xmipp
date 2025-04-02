@@ -92,8 +92,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	noiseEstimationBool = checkParam("--num_particles_noise_est");
 	if (noiseEstimationBool)
 	{
-			numberPaticlesNoiseEst=getIntParam("--num_particles_noise_est");
-
+		numberPaticlesNoiseEst=getIntParam("--num_particles_noise_est");
 	}
 	
  }
@@ -843,7 +842,10 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	#endif
 
 	// Estimate noise after subtraction
-	noiseEstimation();
+	if(noiseAnalyzedParticles < numberPaticlesNoiseEst)
+	{
+		noiseEstimation();
+	}
 
 	// Compute particle stats after subtraction
 	double avg;
