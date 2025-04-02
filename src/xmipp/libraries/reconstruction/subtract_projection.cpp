@@ -376,59 +376,16 @@ void ProgSubtractProjection::noiseEstimation()
 	// PmaskRoi Idiff Pmask
 
     srand(time(0)); // Seed for random number generation
-    int maxX = Xdim - cropSize;
-    int maxY = Ydim - cropSize;
-    int minX = cropSize;
-    int minY = cropSize;
-
 	double scallignFactor = (Xdim * Ydim) / (cropSize * cropSize);
-
     bool invalidRegion;
-	size_t processedParticles = 0;
-
     MultidimArray< double > noiseCrop;
-	powerNoise.initZeros((int)Ydim, (int)Xdim/2 +1);
 
 	// Iterate particles
 	for (const auto& r : mdIn)
 	{
 		#ifdef DEBUG_NOISE_CALCULATION
-		std::cout << "Estimating noise from particle " << processedParticles + 1 << std::endl;
+		std::cout << "Estimating noise from particle " << noiseAnalyzedParticles + 1 << std::endl;
 		#endif
-
-		r.getValueOrDefault(MDL_IMAGE, fnImgI, "no_filename");
-		I.read(fnImgI);
-		I().setXmippOrigin();
-
-		r.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
-		r.getValueOrDefault(MDL_ANGLE_TILT, part_angles.tilt, 0);
-		r.getValueOrDefault(MDL_ANGLE_PSI, part_angles.psi, 0);
-		roffset.initZeros(2);
-		r.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
-		r.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
-		roffset *= -1;
-
-		projectVolume(vMaskP(), PmaskProtein, Xdim, Ydim, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
-		projectVolume(vMaskRoi(), PmaskRoi, Xdim, Ydim, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
-
-		// Optimize noise calulation: search for random regions that fall in the square that circunscribe the 
-		// region that contain protein. We avoid generating random numbers in invalid regions.
-		if(processedParticles < numberParticlesForBoundaryDetermination)
-		{
-			for (int i = 0; i < (int)Ydim; ++i) 
-			{
-				for (int j = 0; j < (int)Xdim; ++j) 
-				{
-					if (DIRECT_A2D_ELEM(PmaskProtein(), i, j) > 0) 
-					{
-						if (j < minX) minX = j;
-						if (j > maxX) maxX = j;
-						if (i < minY) minY = i;
-						if (i > maxY) maxY = i;
-					}
-				}
-			}
-		}
 
 		do {
 			invalidRegion = false;
@@ -450,7 +407,7 @@ void ProgSubtractProjection::noiseEstimation()
 					std::cout << "(Ydim/2) - (cropSize/2) + i  " << (Ydim/2) - (cropSize/2) + i << " (Xdim/2) - (cropSize/2) + j " << (Xdim/2) - (cropSize/2) + j << std::endl;
 					#endif
 
-					if (DIRECT_A2D_ELEM(PmaskProtein(), y + i, x + j) == 0 || DIRECT_A2D_ELEM(PmaskRoi(), y + i, x + j) > 0)
+					if (DIRECT_A2D_ELEM(Pmask(), y + i, x + j) == 0 || DIRECT_A2D_ELEM(PmaskRoi(), y + i, x + j) > 0)
 					{
 						invalidRegion = true;
 
@@ -467,6 +424,16 @@ void ProgSubtractProjection::noiseEstimation()
 				if (invalidRegion) {
 					break;
 				}
+
+			// If region is valid update limits for noise estimation
+			if (!invalidRegion)
+			{
+				if (x < minX_noiseEst) minX_noiseEst = x;
+				if (x > maxX_noiseEst) maxX_noiseEst = x;
+				if (y < minY_noiseEst) minY_noiseEst = y;
+				if (y > maxY_noiseEst) maxY_noiseEst = y;
+			}
+			
 		}
 		} while (invalidRegion);
 
@@ -482,6 +449,7 @@ void ProgSubtractProjection::noiseEstimation()
 		#endif
 
 	    FourierTransformer transformerNoise;
+		MultidimArray<std::complex<double>> noiseSpectrum;
 		transformerNoise.FourierTransform(noiseCrop, noiseSpectrum, false);
 
 		#ifdef DEBUG_NOISE_CALCULATION
@@ -499,21 +467,16 @@ void ProgSubtractProjection::noiseEstimation()
 		#endif
 
  		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(noiseSpectrum)
-			DIRECT_MULTIDIM_ELEM(powerNoise,n) += (DIRECT_MULTIDIM_ELEM(noiseSpectrum,n) * std::conj(DIRECT_MULTIDIM_ELEM(noiseSpectrum,n))).real();
+			DIRECT_MULTIDIM_ELEM(powerNoise,n) += (DIRECT_MULTIDIM_ELEM(noiseSpectrum,n) * std::conj(DIRECT_MULTIDIM_ELEM(noiseSpectrum,n))).real() / numberPaticlesNoiseEst;
 			
 		#ifdef DEBUG_NOISE_CALCULATION
-		std::cout << "Noise estimated from particle " << processedParticles + 1 << " sucessfully." << std::endl;
+		std::cout << "Noise estimated from particle " << noiseAnalyzedParticles + 1 << " sucessfully." << std::endl;
 		#endif
 
-		processedParticles++;
-
-		if (processedParticles == numberParticlesForNoiseEstimation)
-		{
-			break;
-		}
+		noiseAnalyzedParticles++;
 	}
 
-	powerNoise /= processedParticles;
+	powerNoise /= noiseAnalyzedParticles;
 
 
 	#ifdef DEBUG_OUTPUT_FILES
@@ -531,7 +494,7 @@ void ProgSubtractProjection::noiseEstimation()
     auto ms_int = std::chrono::duration_cast<std::chrono::seconds>(t2 - t1);	// Getting number of seconds as an integer
 	std::cout << "Execution time for noise estimation: " << ms_int.count() << " seconds." << std::endl;
 
-	std::cout << "Number of particles processed for noise estimation: " << processedParticles << std::endl;
+	std::cout << "Number of particles processed for noise estimation: " << noiseAnalyzedParticles << std::endl;
 	#endif
 
 }
@@ -631,6 +594,13 @@ void ProgSubtractProjection::preProcess()
 
 	if (rank==0)
 	{
+		// Initialize noise power variables
+		powerNoise.initZeros((int)Ydim, (int)Xdim/2 +1);
+		int maxX_noiseEst = Xdim - cropSize;
+		int maxY_noiseEst = Ydim - cropSize;
+		int minX_noiseEst = cropSize;
+		int minY_noiseEst = cropSize;
+
 		if (!realSpaceProjector)
 		{
 			// If  Fourier projector one volume is shared by all execution and this operation is done only once

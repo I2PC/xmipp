@@ -72,6 +72,11 @@ class ProgSubtractProjection: public XmippMetadataProgram
     int numberPaticlesNoiseEst;
     int noiseAnalyzedParticles = 0;
     MultidimArray< double > powerNoise;
+    size_t cropSize = 11; // Crop size to properly estimate noise
+    int maxX_noiseEst;
+    int maxY_noiseEst;
+    int minX_noiseEst;
+    int minY_noiseEst;
 
     // Data variables
  	Image<double> V; // volume
