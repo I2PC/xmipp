@@ -126,7 +126,7 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
     FourierProjector *projector;
 
     // Variables for noise estimation
-    size_t numberParticlesForNoiseEstimation = 10;
+    size_t numberParticlesForNoiseEstimation = 500;
     size_t numberParticlesForBoundaryDetermination = 50;
     size_t cropSize = 11;
     MultidimArray< std::complex<double> > noiseSpectrum;

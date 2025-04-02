@@ -250,16 +250,6 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP, c
 	// Por ahora solo consideramos ajuste de orden 0. 
 	// Si queremos considerar el del orden 1 hay que que comprobar que b1 > 0
 	// y ajustar por frecuencia
-	
-	// Apply adjustment order 0: PFourier0 = T(w) * PFourier = beta00 * PFourier
-	// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier0)
-	// {
-	// 	int win = DIRECT_MULTIDIM_ELEM(wi, n);
-	// 	if (win < maxwiIdx) 
-	// 	{
-	// 		DIRECT_MULTIDIM_ELEM(PFourier0,n) *= beta00;
-	// 	}
-	// }
 
 	// Detect ligand regions
 	binarizeMask(PmaskRoi);
