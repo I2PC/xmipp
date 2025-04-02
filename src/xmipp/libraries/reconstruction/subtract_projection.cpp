@@ -113,7 +113,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 
 	if (noiseEstimationBool)
 	{
-		std::cout << " Estiamting noise from " << numberPaticlesNoiseEst << " particles" << std::endl
+		std::cout << " Estiamting noise from " << numberPaticlesNoiseEst << " particles" << std::endl;
 	}
  }
 
@@ -383,8 +383,8 @@ void ProgSubtractProjection::noiseEstimation()
 		invalidRegion = false;
 		noiseCrop.initZeros((int)Ydim, (int)Xdim);
 
-		int x = minX + rand() % (maxX - minX + 1);
-		int y = minY + rand() % (maxY - minY + 1);
+		int x = minX_noiseEst + rand() % (maxX_noiseEst - minX_noiseEst + 1);
+		int y = minY_noiseEst + rand() % (maxY_noiseEst - minY_noiseEst + 1);
 
 		for (size_t i = 0; i < cropSize; i++)
 		{
