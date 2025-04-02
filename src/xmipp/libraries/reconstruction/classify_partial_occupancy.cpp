@@ -161,9 +161,9 @@ void ProgClassifyPartialOccupancy::processParticle(const MDRow &rowprocess, int 
 	rowprocess.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 	roffset *= -1;
 
-	rowprocess.getValueOrDefault(MDL_SUBTRACTION_B, adjustParams.b, 0); 
-	rowprocess.getValueOrDefault(MDL_SUBTRACTION_BETA0, adjustParams.b0); 
-	rowprocess.getValueOrDefault(MDL_SUBTRACTION_BETA1, adjustParams.b1); 
+	rowprocess.getValue(MDL_SUBTRACTION_B, adjustParams.b); 
+	rowprocess.getValue(MDL_SUBTRACTION_BETA0, adjustParams.b0); 
+	rowprocess.getValue(MDL_SUBTRACTION_BETA1, adjustParams.b1); 
 	
 	// Project volume + apply translation
 	if (realSpaceProjector)
