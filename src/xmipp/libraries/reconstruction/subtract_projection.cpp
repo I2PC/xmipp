@@ -162,7 +162,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	I().setXmippOrigin();
  }
 
- void ProgSubtractProjection::writeParticle(MDRow &rowOut, FileName fnImgOut, Image<double> &img, double R2a, double b0save, double b1save, double b, double avg, double std, double zScore) 
+ void ProgSubtractProjection::writeParticle(MDRow &rowOut, FileName fnImgOut, Image<double> &img, double R2a, double b0save, double b1save, double b) 
  {
 	img.write(fnImgOut);
 
@@ -171,9 +171,6 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	rowOut.setValue(MDL_SUBTRACTION_BETA0, b0save); 
 	rowOut.setValue(MDL_SUBTRACTION_BETA1, b1save); 
 	rowOut.setValue(MDL_SUBTRACTION_B, b); 
-	rowOut.setValue(MDL_AVG, avg); 
-	rowOut.setValue(MDL_STDDEV, std); 
-	rowOut.setValue(MDL_ZSCORE, zScore); 
 	if (nonNegative && (disable || R2a < 0))
 	{
 		rowOut.setValue(MDL_ENABLED, -1);
@@ -817,10 +814,5 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 		noiseEstimation();
 	}
 
-	// Compute particle stats after subtraction
-	double avg;
-	double std;
-	double zScore;
-
-	writeParticle(rowOut, fnImgOut, Idiff, R2adj(0), beta0save, beta1save, b, avg, std, zScore); 
+	writeParticle(rowOut, fnImgOut, Idiff, R2adj(0), beta0save, beta1save, b); 
 }
