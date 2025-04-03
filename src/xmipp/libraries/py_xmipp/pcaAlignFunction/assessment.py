@@ -184,9 +184,10 @@ class evaluation:
         newShiftX, newShiftY = self.inverse_transform_shift(angle, shift_x, shift_y, center) 
     
         # Adjustment of Psi angles
-        psi_adjusted = -matchPair[:, 3]
-     
+        psi_adjusted = -matchPair[:, 3]    
         psi_adjusted = np.where(psi_adjusted > 180, psi_adjusted - 360, psi_adjusted)
+        # psi_adjusted = matchPair[:, 3]    
+        # psi_adjusted = np.where(psi_adjusted > 180, psi_adjusted - 360, psi_adjusted)
               
     
         columns = ["anglePsi", "angleRot", "angleTilt", "shiftX", "shiftY", "shiftZ", "sel"]
@@ -213,7 +214,13 @@ class evaluation:
     
         star.loc[:, "sel"] = matchPair[:, 5]#.astype(np.int32)
         star["sel"] = star["sel"].astype(int)
+        
+        #score
+        star.loc[:, "score"] = matchPair[:, 2]
+        
         starfile.write(star, new)
+        
+        
         
         
     def inverse_transform_shift(self, angle, shift_x, shift_y, center):
