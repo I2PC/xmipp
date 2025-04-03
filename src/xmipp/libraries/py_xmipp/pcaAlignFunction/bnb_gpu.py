@@ -240,7 +240,9 @@ class BnBgpu:
         indicator_column[indices_col3[indices_col2[is_first_occurrence.nonzero(as_tuple=True)[0]]]] = 1
     
         tensor_with_indicator = torch.cat((tensor, indicator_column.unsqueeze(1)), dim=1)
-    
+        
+        print("tensor_with_indicator")
+        print(tensor_with_indicator)
         return tensor_with_indicator
         
        
