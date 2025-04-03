@@ -48,8 +48,8 @@ void MpiProgSubtractProjection::preProcess()
     // Get the volume padded size from rank 0
     int realSize;
     int origin;
-    int realSizeMask;
-    int originMask;
+    // int realSizeMask;
+    // int originMask;
     // int powerNoiseSizeX;
     // int powerNoiseSizeY;
     // int powerNoiseOrigin;
@@ -71,8 +71,8 @@ void MpiProgSubtractProjection::preProcess()
         MPI_Bcast(&(projector->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD); 
         MPI_Bcast(&projector->volumeSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-        MPI_Bcast(&realSizeMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(&originMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        // MPI_Bcast(&realSizeMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        // MPI_Bcast(&originMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
         // MPI_Bcast(&powerNoiseSizeX, 1, MPI_INT, 0, MPI_COMM_WORLD);
         // MPI_Bcast(&powerNoiseSizeY, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -131,8 +131,8 @@ void MpiProgSubtractProjection::finishProcessing()
     MDaux.sort(getOutputMd(), MDL_GATHER_ID);
     MDaux.removeLabel(MDL_GATHER_ID);
     getOutputMd() = MDaux;
-    // if (node->isMaster())
-    //     ProgSubtractProjection::finishProcessing();
+    if (node->isMaster())
+        ProgSubtractProjection::finishProcessing();
 }
 void MpiProgSubtractProjection::wait()
 {

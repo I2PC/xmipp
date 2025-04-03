@@ -485,10 +485,7 @@ void ProgSubtractProjection::preProcess()
     std::cout << "------------------------------------------------- Fede2" << std::endl;
 
 	// Read input vol dimensions
-	if (rank==0)
-	{
-		V.getDimensions(Xdim, Ydim, Zdim, Ndim);
-	}
+	V.getDimensions(Xdim, Ydim, Zdim, Ndim);
 	
 	// Read input mask or create 2D circular if not provided
 	if (maskVolProvided)
