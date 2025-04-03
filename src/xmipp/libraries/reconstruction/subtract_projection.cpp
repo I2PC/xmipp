@@ -384,7 +384,7 @@ void ProgSubtractProjection::generateNoiseEstimationSideInfo()
 		int maxY = 0;
 		int maxZ = 0;
 
-		for(size_t k=0; k<Zdim;; ++k)
+		for(size_t k=0; k<Zdim; ++k)
 		{
 			for(size_t i=0; i<Ydim; ++i)
 			{
@@ -441,8 +441,8 @@ void ProgSubtractProjection::noiseEstimation()
 		invalidRegion = false;
 		noiseCrop.initZeros((int)Ydim, (int)Xdim);
 
-		int x = minX_noiseEst + rand() % (maxX_noiseEst - minX_noiseEst + 1);
-		int y = minY_noiseEst + rand() % (maxY_noiseEst - minY_noiseEst + 1);
+		int x = min_noiseEst + rand() % (max_noiseEst - min_noiseEst + 1);
+		int y = min_noiseEst + rand() % (max_noiseEst - min_noiseEst + 1);
 
 		#ifdef DEBUG_NOISE_ESTIMATION
 		std::cout << "x  " << x << " y " << y  << std::endl;
