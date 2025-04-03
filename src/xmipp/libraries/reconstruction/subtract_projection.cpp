@@ -111,11 +111,9 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	<< "Padding factor:\t" << padFourier << std::endl
     << "Max. Resolution:\t" << maxResol << std::endl;
 
-std::cout << " noiseEstimationBool " << noiseEstimationBool << std::endl;
-
 	if (noiseEstimationBool)
 	{
-		std::cout << " Estimating noise from " << numberPaticlesNoiseEst << " particles" << std::endl;
+		std::cout << "Estimating noise from " << numberPaticlesNoiseEst << " particles" << std::endl;
 	}
  }
 
@@ -183,6 +181,9 @@ std::cout << " noiseEstimationBool " << noiseEstimationBool << std::endl;
  // Utils methods ===================================================================
  void ProgSubtractProjection::createMask(const FileName &fnM, Image<double> &m, Image<double> &im) 
  {
+	    std::cout << "------------------------------------------------- Fede3.2.1" << std::endl;
+
+
 	if (fnM.isEmpty()) 
 	{
 		m().initZeros((int)XSIZE(V()),(int)YSIZE(V()),(int)ZSIZE(V()));
@@ -201,6 +202,8 @@ std::cout << " noiseEstimationBool " << noiseEstimationBool << std::endl;
 				DIRECT_MULTIDIM_ELEM(im(),n) = (DIRECT_MULTIDIM_ELEM(m(),n)*(-1))+1;
 		}
 	}
+		    std::cout << "------------------------------------------------- Fede3.2.2" << std::endl;
+
  }
 
  Image<double> ProgSubtractProjection::binarizeMask(Projection &m) const 
@@ -479,6 +482,8 @@ void ProgSubtractProjection::preProcess()
 	V.read(fnVolR);
 	V().setXmippOrigin();
 
+    std::cout << "------------------------------------------------- Fede2" << std::endl;
+
 	// Read input vol dimensions
 	if (rank==0)
 	{
@@ -511,6 +516,7 @@ void ProgSubtractProjection::preProcess()
 		maskVol.write(formatString("%s/cirmask.mrc", fnProj.c_str()));
 		#endif
 	}
+    std::cout << "------------------------------------------------- Fede3" << std::endl;
 
 	// Create mock image of same size as particles (and reference volume) to construct frequencies map
 	I().initZeros((int)Ydim, (int)Xdim);
@@ -527,6 +533,7 @@ void ProgSubtractProjection::preProcess()
 			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)YSIZE(IFourier));
 		}
 	}
+    std::cout << "------------------------------------------------- Fede3.1" << std::endl;
 
 	#ifdef DEBUG_OUTPUT_FILES
 	Image<int> saveImage;
@@ -552,9 +559,11 @@ void ProgSubtractProjection::preProcess()
 	std::cout << "------------------- substractionCutFreq " << substractionCutFreq << std::endl;
 	std::cout << "------------------- maxwiIdx " << maxwiIdx << std::endl;
 	#endif
+    std::cout << "------------------------------------------------- Fede3.2" << std::endl;
 
 	// Read or create mask keep and compute inverse of mask keep (mask subtract)
 	createMask(fnMaskRoi, vM, ivM);
+    std::cout << "------------------------------------------------- Fede3.3" << std::endl;
 
 	// If real space projector every execution must mask-multiply and project the input volume
 	if (realSpaceProjector)
@@ -563,6 +572,9 @@ void ProgSubtractProjection::preProcess()
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
 			DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n);
 	}
+
+    std::cout << "------------------------------------------------- Fede4" << std::endl;
+
 
 	if (rank==0)
 	{
@@ -596,6 +608,9 @@ void ProgSubtractProjection::preProcess()
 			projector = new FourierProjector(padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 		}
 	}
+
+	    std::cout << "------------------------------------------------- Fede5" << std::endl;
+
  }
 
 void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
