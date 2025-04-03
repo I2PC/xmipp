@@ -429,6 +429,7 @@ void ProgSubtractProjection::noiseEstimation()
     MultidimArray< double > noiseCrop;
 
 	#ifdef DEBUG_NOISE_ESTIMATION
+	std::cout << "max_noiseEst  " << max_noiseEst << " min_noiseEst " << min_noiseEst  << std::endl;
 	std::cout << "(Ydim/2) " << (Ydim/2) << " (Xdim/2) " << (Xdim/2) << std::endl;
 	std::cout << "scallignFactor " << scallignFactor << std::endl;
 	#endif
