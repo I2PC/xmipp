@@ -81,10 +81,8 @@ class ProgSubtractProjection: public XmippMetadataProgram
     int noiseAnalyzedParticles = 0;
     MultidimArray< double > powerNoise;
     size_t cropSize = 11; // Crop size to properly estimate noise
-    int maxX_noiseEst;
-    int maxY_noiseEst;
-    int minX_noiseEst;
-    int minY_noiseEst;
+    int max_noiseEst;
+    int min_noiseEst;
 
     // Data variables
  	Image<double> V; // volume
@@ -152,6 +150,7 @@ class ProgSubtractProjection: public XmippMetadataProgram
     double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
     Matrix1D<double> checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
     const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
+    void generateNoiseEstimationSideInfo();
     void noiseEstimation();
 
     int rank; // for MPI version

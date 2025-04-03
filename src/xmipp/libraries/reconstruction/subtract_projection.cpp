@@ -181,9 +181,6 @@ ProgSubtractProjection::~ProgSubtractProjection()
  // Utils methods ===================================================================
  void ProgSubtractProjection::createMask(const FileName &fnM, Image<double> &m, Image<double> &im) 
  {
-	    std::cout << "------------------------------------------------- Fede3.2.1" << std::endl;
-
-
 	if (fnM.isEmpty()) 
 	{
 		m().initZeros((int)XSIZE(V()),(int)YSIZE(V()),(int)ZSIZE(V()));
@@ -202,8 +199,6 @@ ProgSubtractProjection::~ProgSubtractProjection()
 				DIRECT_MULTIDIM_ELEM(im(),n) = (DIRECT_MULTIDIM_ELEM(m(),n)*(-1))+1;
 		}
 	}
-		    std::cout << "------------------------------------------------- Fede3.2.2" << std::endl;
-
  }
 
  Image<double> ProgSubtractProjection::binarizeMask(Projection &m) const 
@@ -373,6 +368,63 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 	return R2;
 }
 
+void ProgSubtractProjection::generateNoiseEstimationSideInfo()
+{
+	// Initialize powerNoise
+	powerNoise.initZeros((int)Ydim, (int)Xdim/2 +1);
+
+	// Calculate boundaries for noise estimation 
+	// (make a more eficinet sampling of the subtracted region)
+	if(maskVolProvided)
+	{
+		int minX = Xdim;
+		int minY = Ydim;
+		int minZ = Zdim;
+		int maxX = 0;
+		int maxY = 0;
+		int maxZ = 0;
+
+		for(size_t k=0; k<Zdim;; ++k)
+		{
+			for(size_t i=0; i<Ydim; ++i)
+			{
+				for(size_t j=0; j<Xdim; ++j)
+				{
+					#ifdef DEBUG_NOISE_ESTIMATION
+					std::cout << "i: " << i << " j: " << j << " k: " << k << std::endl;
+					std::cout << "Xdim: " << Xdim << " Ydim: " << Ydim << " Zdim: " << Zdim << std::endl;
+					std::cout << "minX: " << minX << " minY: " << minY << " minZ: " << minZ << std::endl;
+					std::cout << "maxX: " << maxX << " maxY: " << maxY << " maxZ: " << maxZ << std::endl;
+					#endif
+
+					if (DIRECT_A3D_ELEM(maskVol(), k, i, j) > 0) {
+						minX = std::min(minX, (int)i);
+						minY = std::min(minY, (int)j);
+						minZ = std::min(minZ, (int)k);
+						maxX = std::max(maxX, (int)i);
+						maxY = std::max(maxY, (int)j);
+						maxZ = std::max(maxZ, (int)k);
+					}
+				}
+			}
+		}
+
+		min_noiseEst = std::min(maxX, std::max(maxY, maxZ));
+		max_noiseEst = std::max(maxX, std::max(maxY, maxZ));
+	}
+	else
+	{
+		// Assuming square particles
+		max_noiseEst = int((double)Xdim/2 + cirmaskrad/2);
+		min_noiseEst = int((double)Xdim/2 - cirmaskrad/2);
+	}
+
+	#ifdef DEBUG_NOISE_ESTIMATION
+	std::cout << "--------------------------------------------------" << std::endl;
+	std::cout << "maxX_noiseEst  " << maxX_noiseEst << " minX_noiseEst " << minX_noiseEst  << std::endl;
+	std::cout << "maxY_noiseEst  " << maxY_noiseEst << " minY_noiseEst " << minY_noiseEst  << std::endl;
+	#endif
+}
 
 void ProgSubtractProjection::noiseEstimation()
 {
@@ -393,9 +445,6 @@ void ProgSubtractProjection::noiseEstimation()
 		int y = minY_noiseEst + rand() % (maxY_noiseEst - minY_noiseEst + 1);
 
 		#ifdef DEBUG_NOISE_ESTIMATION
-		std::cout << "--------------------------------------------------" << std::endl;
-		std::cout << "maxX_noiseEst  " << maxX_noiseEst << " minX_noiseEst " << minX_noiseEst  << std::endl;
-		std::cout << "maxY_noiseEst  " << maxY_noiseEst << " minY_noiseEst " << minY_noiseEst  << std::endl;
 		std::cout << "x  " << x << " y " << y  << std::endl;
 		#endif
 
@@ -476,8 +525,6 @@ void ProgSubtractProjection::preProcess()
 	V.read(fnVolR);
 	V().setXmippOrigin();
 
-    std::cout << "------------------------------------------------- Fede2" << std::endl;
-
 	// Read input vol dimensions
 	V.getDimensions(Xdim, Ydim, Zdim, Ndim);
 	
@@ -499,15 +546,12 @@ void ProgSubtractProjection::preProcess()
 		if (cirmaskrad == -1.0)
 			cirmaskrad = (double)XSIZE(V())/2;
 
-		/// *** Check again with real data
-		// RaisedCosineMask(maskVol(), cirmaskrad*0.8, cirmaskrad*0.9);
 		RaisedCosineMask(maskVol(), cirmaskrad, cirmaskrad);
 
 		#ifdef DEBUG_OUTPUT_FILES
 		maskVol.write(formatString("%s/cirmask.mrc", fnProj.c_str()));
 		#endif
 	}
-    std::cout << "------------------------------------------------- Fede3" << std::endl;
 
 	// Create mock image of same size as particles (and reference volume) to construct frequencies map
 	I().initZeros((int)Ydim, (int)Xdim);
@@ -524,7 +568,6 @@ void ProgSubtractProjection::preProcess()
 			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)YSIZE(IFourier));
 		}
 	}
-    std::cout << "------------------------------------------------- Fede3.1" << std::endl;
 
 	#ifdef DEBUG_OUTPUT_FILES
 	Image<int> saveImage;
@@ -550,11 +593,9 @@ void ProgSubtractProjection::preProcess()
 	std::cout << "------------------- substractionCutFreq " << substractionCutFreq << std::endl;
 	std::cout << "------------------- maxwiIdx " << maxwiIdx << std::endl;
 	#endif
-    std::cout << "------------------------------------------------- Fede3.2" << std::endl;
 
 	// Read or create mask keep and compute inverse of mask keep (mask subtract)
 	createMask(fnMaskRoi, vM, ivM);
-    std::cout << "------------------------------------------------- Fede3.3" << std::endl;
 
 	// If real space projector every execution must mask-multiply and project the input volume
 	if (realSpaceProjector)
@@ -564,17 +605,13 @@ void ProgSubtractProjection::preProcess()
 			DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n);
 	}
 
-    std::cout << "------------------------------------------------- Fede4" << std::endl;
-
-
 	if (rank==0)
 	{
 		// Initialize noise power variables
-		powerNoise.initZeros((int)Ydim, (int)Xdim/2 +1);
-		maxX_noiseEst = Xdim - cropSize;
-		maxY_noiseEst = Ydim - cropSize;
-		minX_noiseEst = cropSize;
-		minY_noiseEst = cropSize;
+		if (noiseEstimationBool)
+		{
+			generateNoiseEstimationSideInfo();
+		}
 
 		if (!realSpaceProjector)
 		{
@@ -599,9 +636,6 @@ void ProgSubtractProjection::preProcess()
 			projector = new FourierProjector(padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 		}
 	}
-
-	    std::cout << "------------------------------------------------- Fede5" << std::endl;
-
 }
 
 void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
