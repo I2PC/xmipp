@@ -48,10 +48,11 @@ void MpiProgSubtractProjection::preProcess()
     // Get the volume padded size from rank 0
     int realSize;
     int origin;
-
-    int powerNoiseSizeX;
-    int powerNoiseSizeY;
-    int powerNoiseOrigin;
+    int realSizeMask;
+    int originMask;
+    // int powerNoiseSizeX;
+    // int powerNoiseSizeY;
+    // int powerNoiseOrigin;
 
     if (!realSpaceProjector)
     {
@@ -60,9 +61,9 @@ void MpiProgSubtractProjection::preProcess()
             realSize = (int)XSIZE(projector->VfourierRealCoefs);
             origin = STARTINGX(projector->VfourierRealCoefs);
 
-            powerNoiseSizeX = (int)XSIZE(powerNoise);
-            powerNoiseSizeY = (int)YSIZE(powerNoise);
-            powerNoiseOrigin = STARTINGX(powerNoise);
+            // powerNoiseSizeX = (int)XSIZE(powerNoise);
+            // powerNoiseSizeY = (int)YSIZE(powerNoise);
+            // powerNoiseOrigin = STARTINGX(powerNoise);
         }
 
         MPI_Bcast(&realSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -70,9 +71,12 @@ void MpiProgSubtractProjection::preProcess()
         MPI_Bcast(&(projector->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD); 
         MPI_Bcast(&projector->volumeSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-        MPI_Bcast(&powerNoiseSizeX, 1, MPI_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(&powerNoiseSizeY, 1, MPI_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(&powerNoiseOrigin, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&realSizeMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&originMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+        // MPI_Bcast(&powerNoiseSizeX, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        // MPI_Bcast(&powerNoiseSizeY, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        // MPI_Bcast(&powerNoiseOrigin, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
 
         if (rank != 0)
@@ -82,14 +86,14 @@ void MpiProgSubtractProjection::preProcess()
             STARTINGX(projector->VfourierRealCoefs)=STARTINGY(projector->VfourierRealCoefs)=STARTINGZ(projector->VfourierRealCoefs)=origin;
             STARTINGX(projector->VfourierImagCoefs)=STARTINGY(projector->VfourierImagCoefs)=STARTINGZ(projector->VfourierImagCoefs)=origin;
 
-            powerNoise.resizeNoCopy(powerNoiseSizeY, powerNoiseSizeX);
-            STARTINGX(powerNoise)=STARTINGY(powerNoise)=STARTINGZ(powerNoise)=origin;
+            // powerNoise.resizeNoCopy(powerNoiseSizeY, powerNoiseSizeX);
+            // STARTINGX(powerNoise)=STARTINGY(powerNoise)=STARTINGZ(powerNoise)=origin;
         }
 
         MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierRealCoefs), (int)MULTIDIM_SIZE(projector->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
         MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierImagCoefs), (int)MULTIDIM_SIZE(projector->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-        MPI_Bcast(MULTIDIM_ARRAY(powerNoise), (int)MULTIDIM_SIZE(powerNoise), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+        // MPI_Bcast(MULTIDIM_ARRAY(powerNoise), (int)MULTIDIM_SIZE(powerNoise), MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
         if (rank != 0)
         {
