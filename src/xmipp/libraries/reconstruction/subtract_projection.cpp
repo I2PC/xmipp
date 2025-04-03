@@ -390,13 +390,6 @@ void ProgSubtractProjection::generateNoiseEstimationSideInfo()
 			{
 				for(size_t j=0; j<Xdim; ++j)
 				{
-					#ifdef DEBUG_NOISE_ESTIMATION
-					std::cout << "i: " << i << " j: " << j << " k: " << k << std::endl;
-					std::cout << "Xdim: " << Xdim << " Ydim: " << Ydim << " Zdim: " << Zdim << std::endl;
-					std::cout << "minX: " << minX << " minY: " << minY << " minZ: " << minZ << std::endl;
-					std::cout << "maxX: " << maxX << " maxY: " << maxY << " maxZ: " << maxZ << std::endl;
-					#endif
-
 					if (DIRECT_A3D_ELEM(maskVol(), k, i, j) > 0) {
 						minX = std::min(minX, (int)i);
 						minY = std::min(minY, (int)j);
@@ -409,7 +402,7 @@ void ProgSubtractProjection::generateNoiseEstimationSideInfo()
 			}
 		}
 
-		min_noiseEst = std::min(maxX, std::max(maxY, maxZ));
+		min_noiseEst = std::min(minX, std::max(minY, minZ));
 		max_noiseEst = std::max(maxX, std::max(maxY, maxZ));
 	}
 	else
@@ -420,9 +413,7 @@ void ProgSubtractProjection::generateNoiseEstimationSideInfo()
 	}
 
 	#ifdef DEBUG_NOISE_ESTIMATION
-	std::cout << "--------------------------------------------------" << std::endl;
-	std::cout << "maxX_noiseEst  " << maxX_noiseEst << " minX_noiseEst " << minX_noiseEst  << std::endl;
-	std::cout << "maxY_noiseEst  " << maxY_noiseEst << " minY_noiseEst " << minY_noiseEst  << std::endl;
+	std::cout << "max_noiseEst  " << max_noiseEst << " min_noiseEst " << min_noiseEst  << std::endl;
 	#endif
 }
 
@@ -436,6 +427,11 @@ void ProgSubtractProjection::noiseEstimation()
 	double scallignFactor = (Xdim * Ydim) / (cropSize * cropSize);
     bool invalidRegion;
     MultidimArray< double > noiseCrop;
+
+	#ifdef DEBUG_NOISE_ESTIMATION
+	std::cout << "(Ydim/2) " << (Ydim/2) << " (Xdim/2) " << (Xdim/2) << std::endl;
+	std::cout << "scallignFactor " << scallignFactor << std::endl;
+	#endif
 
 	do {
 		invalidRegion = false;
@@ -453,8 +449,8 @@ void ProgSubtractProjection::noiseEstimation()
 			for (size_t j = 0; j < cropSize; j++)
 			{
 				#ifdef DEBUG_NOISE_ESTIMATION
+				std::cout << "--------------------------------------------------" << std::endl;
 				std::cout << "y + i  " << y + i << " x + j " << x + j << std::endl;
-				std::cout << "(Ydim/2) " << (Ydim/2) << " (Xdim/2) " << (Xdim/2) << std::endl;
 				std::cout << "(Ydim/2) - (cropSize/2) + i  " << (Ydim/2) - (cropSize/2) + i << " (Xdim/2) - (cropSize/2) + j " << (Xdim/2) - (cropSize/2) + j << std::endl;
 				#endif
 
@@ -469,7 +465,11 @@ void ProgSubtractProjection::noiseEstimation()
 					break;
 				}
 
-				DIRECT_A2D_ELEM(noiseCrop,  (Ydim/2) - (cropSize/2) + i, (Xdim/2) - (cropSize/2) + j) = scallignFactor * DIRECT_A2D_ELEM(I(), y + i, x + j);
+				#ifdef DEBUG_NOISE_ESTIMATION
+				std::cout << "(Ydim/2) - (cropSize/2) + i  " << (Ydim/2) - (cropSize/2) + i << " (Xdim/2) - (cropSize/2) + j " << (Xdim/2) - (cropSize/2) + j << std::endl;
+				#endif
+
+				DIRECT_A2D_ELEM(noiseCrop,  (Ydim/2) - (cropSize/2) + i, (Xdim/2) - (cropSize/2) + j) = scallignFactor * DIRECT_A2D_ELEM(Idiff(), y + i, x + j);
 			}
 
 			if (invalidRegion) {
