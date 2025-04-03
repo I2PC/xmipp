@@ -113,8 +113,8 @@ void MpiProgSubtractProjection::finishProcessing()
     MDaux.sort(getOutputMd(), MDL_GATHER_ID);
     MDaux.removeLabel(MDL_GATHER_ID);
     getOutputMd() = MDaux;
-    if (node->isMaster())
-        ProgSubtractProjection::finishProcessing(fn_out);
+    // if (node->isMaster())
+    //     ProgSubtractProjection::finishProcessing(fn_out);
 }
 void MpiProgSubtractProjection::wait()
 {

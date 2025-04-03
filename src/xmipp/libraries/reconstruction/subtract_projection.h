@@ -173,7 +173,7 @@ class ProgSubtractProjection: public XmippMetadataProgram
     void defineParams() override;
     void preProcess() override;
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
-    void finishProcessing(const FileName &fnImgOut);
+    // void finishProcessing(const FileName &fnImgOut);
  };
  //@}
 #endif
