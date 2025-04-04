@@ -227,6 +227,9 @@ class BnBgpu:
     
         _, indices_col3 = torch.sort(col3)
         tensor_sorted_col3 = tensor[indices_col3]
+        
+        print("tensor_with_indicator")
+        print(tensor_sorted_col3)
     
         _, indices_col2 = torch.sort(tensor_sorted_col3[:, 1])
         sorted_tensor = tensor_sorted_col3[indices_col2]
