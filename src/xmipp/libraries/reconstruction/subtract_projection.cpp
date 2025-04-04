@@ -90,11 +90,6 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	ignoreCTF = checkParam("--ignoreCTF");
 
 	noiseEstimationBool = checkParam("--num_particles_noise_est");
-	if (noiseEstimationBool)
-	{
-		numberPaticlesNoiseEst=getIntParam("--num_particles_noise_est");
-	}
-	
  }
 
  // Show ====================================================================
@@ -113,7 +108,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 
 	if (noiseEstimationBool)
 	{
-		std::cout << "Estimating noise from " << numberPaticlesNoiseEst << " particles" << std::endl;
+		std::cout << "Computing noise estimation " << std::endl;
 	}
  }
 
@@ -132,22 +127,22 @@ ProgSubtractProjection::~ProgSubtractProjection()
     //Parameters
 	XmippMetadataProgram::defineParams();
     addParamsLine("--ref <volume>\t: Reference volume to subtract");
-    addParamsLine("[--mask_roi <mask_roi=\"\">]     	: 3D mask for region of interest to keep or subtract, no mask implies subtraction of whole images");
- 	addParamsLine("--cirmaskrad <c=-1.0>				: Apply circular mask to proyected particles. Radius = -1 fits a sphere in the reference volume.");
-	addParamsLine("or --mask <mask=\"\">            	: Provide a mask to be applied. Any desity out of the mask is removed from further analysis.");
-	addParamsLine("[--sampling <sampling=1>]			: Sampling rate (A/pixel)");
-	addParamsLine("[--max_resolution <f=-1>]			: Maximum resolution in Angtroms up to which the substraction is calculated. \
-													  	  By default (-1) it is set to sampling/sqrt(2).");
-	addParamsLine("[--padding <p=2>]					: Padding factor for Fourier projector");
-	addParamsLine("[--sigma <s=1>]						: Decay of the filter (sigma) to smooth the mask transition");
-	addParamsLine("[--nonNegative]						: Ignore particles with negative beta0 or R2");
-	addParamsLine("[--boost]							: Perform a boosting of original particles");
-	addParamsLine("[--save <structure=\"\">]			: Path for saving intermediate files");
-	addParamsLine("[--subtract]							: The mask contains the region to SUBTRACT");
-	addParamsLine("[--realSpaceProjection]				: Project volume in real space to avoid Fourier artifacts");
-	addParamsLine("[--ignoreCTF]						: Do not consider CTF in the subtraction. Use if particles have been CTF corrected.");
-	addParamsLine("[--num_particles_noise_est <n=5000>]	: Number of particles to be used for noise estimation.  \
-														  If parameter not provided noise is not estimated.");
+    addParamsLine("[--mask_roi <mask_roi=\"\">]		: 3D mask for region of interest to keep or subtract, no mask implies subtraction of whole images");
+ 	addParamsLine("--cirmaskrad <c=-1.0>			: Apply circular mask to proyected particles. Radius = -1 fits a sphere in the reference volume.");
+	addParamsLine("or --mask <mask=\"\">            : Provide a mask to be applied. Any desity out of the mask is removed from further analysis.");
+	addParamsLine("[--sampling <sampling=1>]		: Sampling rate (A/pixel)");
+	addParamsLine("[--max_resolution <f=-1>]		: Maximum resolution in Angtroms up to which the substraction is calculated. \
+													  By default (-1) it is set to sampling/sqrt(2).");
+	addParamsLine("[--padding <p=2>]				: Padding factor for Fourier projector");
+	addParamsLine("[--sigma <s=1>]					: Decay of the filter (sigma) to smooth the mask transition");
+	addParamsLine("[--nonNegative]					: Ignore particles with negative beta0 or R2");
+	addParamsLine("[--boost]						: Perform a boosting of original particles");
+	addParamsLine("[--save <structure=\"\">]		: Path for saving intermediate files");
+	addParamsLine("[--subtract]						: The mask contains the region to SUBTRACT");
+	addParamsLine("[--realSpaceProjection]			: Project volume in real space to avoid Fourier artifacts");
+	addParamsLine("[--ignoreCTF]					: Do not consider CTF in the subtraction. Use if particles have been CTF corrected.");
+	addParamsLine("[--num_particles_noise_est]		: Compute noise estimation from the subtracted regin of the particles. \
+													  This caluclation do not modifies the subtration, just produces a noise estimation.");
 
 	// Example
     addExampleLine("A typical use is:",false);
@@ -835,7 +830,7 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	#endif
 
 	// Estimate noise after sutraction
-	if(noiseEstimationBool && noiseAnalyzedParticles < numberPaticlesNoiseEst)
+	if(noiseEstimationBool)
 	{
 		noiseEstimation();
 	}
