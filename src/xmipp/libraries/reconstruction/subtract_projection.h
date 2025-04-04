@@ -77,8 +77,6 @@ class ProgSubtractProjection: public XmippMetadataProgram
 
     // Variables for noise estimation
     bool noiseEstimationBool;
-    int numberPaticlesNoiseEst;
-    int noiseAnalyzedParticles = 0;
     MultidimArray< double > powerNoise;
     size_t cropSize = 11; // Crop size to properly estimate noise
     int max_noiseEst;

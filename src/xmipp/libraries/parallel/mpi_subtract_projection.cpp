@@ -115,7 +115,6 @@ void MpiProgSubtractProjection::preProcess()
 
         MPI_Bcast(&max_noiseEst, 1, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(&min_noiseEst, 1, MPI_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(&noiseAnalyzedParticles, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
         std::cout << " rank " << rank;
         std::cout << " powerNoiseSizeX " << powerNoiseSizeX;

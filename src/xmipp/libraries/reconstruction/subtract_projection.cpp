@@ -420,7 +420,7 @@ void ProgSubtractProjection::generateNoiseEstimationSideInfo()
 void ProgSubtractProjection::noiseEstimation()
 {
 	#ifdef DEBUG_NOISE_ESTIMATION
-	std::cout << "Estimating noise from particle " << noiseAnalyzedParticles + 1 << std::endl;
+	std::cout << "Estimating noise from particle..." << std::endl;
 	#endif
 
     srand(time(0)); // Seed for random number generation
@@ -512,10 +512,8 @@ void ProgSubtractProjection::noiseEstimation()
 		DIRECT_MULTIDIM_ELEM(powerNoise,n) += (DIRECT_MULTIDIM_ELEM(noiseSpectrum,n) * std::conj(DIRECT_MULTIDIM_ELEM(noiseSpectrum,n))).real();
 		
 	#ifdef DEBUG_NOISE_ESTIMATION
-	std::cout << "Noise estimated from particle " << noiseAnalyzedParticles + 1 << " sucessfully." << std::endl;
+	std::cout << "Noise sucessfully estimated from particle." << std::endl;
 	#endif
-
-	noiseAnalyzedParticles++;
 }
 
  // Main methods ===================================================================
