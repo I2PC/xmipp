@@ -167,8 +167,8 @@ if __name__=="__main__":
         # print(matches[i])
         # exit()
         matches[i] = bnb.match_batch_label_minScore(matches[i])
-        print("match")
-        print(matches[i])
+        # print("match")
+        # print(matches[i])
         
         score = matches[i][:, 2].mean()
         print("mean score = %s" %score.item())
