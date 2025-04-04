@@ -832,7 +832,7 @@ void ProgSubtractProjection::finishProcessing(const FileName &fnImgOut)
 	{
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(powerNoise)
 		{
-			DIRECT_MULTIDIM_ELEM(mIdiff,n) /= (int)mdInSize;
+			DIRECT_MULTIDIM_ELEM(powerNoise,n) /= (int)mdInSize;
 		}
 
 		Image<double> saveImage;
