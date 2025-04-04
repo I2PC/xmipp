@@ -230,13 +230,14 @@ class BnBgpu:
     
         _, indices_col2 = torch.sort(tensor_sorted_col3[:, 1])
         sorted_tensor = tensor_sorted_col3[indices_col2]
+        
+        print("tensor_with_indicator")
+        print(sorted_tensor)
     
         col2_sorted = sorted_tensor[:, 1]
         is_first_occurrence = torch.cat(
             [torch.tensor([True], device=tensor.device), col2_sorted[1:] != col2_sorted[:-1]]
         )
-        print("tensor_with_indicator")
-        print(is_first_occurrence)
         
         indicator_column = torch.zeros(tensor.size(0), dtype=torch.int, device=tensor.device)
         indicator_column[indices_col3[indices_col2[is_first_occurrence.nonzero(as_tuple=True)[0]]]] = 1
