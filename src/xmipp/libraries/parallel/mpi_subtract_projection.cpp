@@ -42,7 +42,6 @@ void MpiProgSubtractProjection::read(int argc, char **argv, bool reportErrors)
 }
 void MpiProgSubtractProjection::preProcess()
 {
-        std::cout << "----------------------------------------------------------MultiFede1" << std::endl;
     rank = (int)node->rank;
     ProgSubtractProjection::preProcess();
     // Get the volume padded size from rank 0
@@ -82,9 +81,6 @@ void MpiProgSubtractProjection::preProcess()
     // Power noise estimation params
     if(noiseEstimationBool)
     {
-
-                    std::cout << "----------------------------------------------------------MultiFede1.1" << std::endl;
-
         int powerNoiseSizeX;
         int powerNoiseSizeY;
         int powerNoiseOriginX;
@@ -97,13 +93,11 @@ void MpiProgSubtractProjection::preProcess()
             powerNoiseOriginX = STARTINGX(powerNoise);
             powerNoiseOriginY = STARTINGY(powerNoise);
         }
-                    std::cout << "----------------------------------------------------------MultiFede1.2" << std::endl;
 
         MPI_Bcast(&powerNoiseSizeX, 1, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(&powerNoiseSizeY, 1, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(&powerNoiseOriginX, 1, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(&powerNoiseOriginY, 1, MPI_INT, 0, MPI_COMM_WORLD);
-                    std::cout << "----------------------------------------------------------MultiFede1.3" << std::endl;
 
         if (rank != 0)
         {
@@ -111,32 +105,16 @@ void MpiProgSubtractProjection::preProcess()
             STARTINGX(powerNoise)=powerNoiseOriginX;
             STARTINGY(powerNoise)=powerNoiseOriginY;
         }
-                    std::cout << "----------------------------------------------------------MultiFede1.4" << std::endl;
 
         MPI_Bcast(&max_noiseEst, 1, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(&min_noiseEst, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-        std::cout << " rank " << rank;
-        std::cout << " powerNoiseSizeX " << powerNoiseSizeX;
-        std::cout << " powerNoiseSizeY " << powerNoiseSizeY;
-        std::cout << " MULTIDIM_ARRAY(powerNoise) " << MULTIDIM_ARRAY(powerNoise);
-        std::cout << " (int)MULTIDIM_SIZE(powerNoise) " << (int)MULTIDIM_SIZE(powerNoise) << std::endl;
         MPI_Bcast(MULTIDIM_ARRAY(powerNoise), (int)MULTIDIM_SIZE(powerNoise), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-                            std::cout << "----------------------------------------------------------MultiFede1.5" << std::endl;
-
     }
 
     MetaData &mdIn = *getInputMd();
     mdIn.addLabel(MDL_GATHER_ID);
     mdIn.fillLinear(MDL_GATHER_ID, 1, 1);
-  
-              std::cout << "----------------------------------------------------------MultiFede2" << std::endl;
-
-  createTaskDistributor(mdIn, blockSize);
-
-            std::cout << "----------------------------------------------------------MultiFede3" << std::endl;
-
+    createTaskDistributor(mdIn, blockSize);
 }
 void MpiProgSubtractProjection::startProcessing()
 {
