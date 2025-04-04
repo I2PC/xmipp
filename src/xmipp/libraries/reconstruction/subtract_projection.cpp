@@ -514,7 +514,7 @@ void ProgSubtractProjection::noiseEstimation()
 	#endif
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(noiseSpectrum)
-		DIRECT_MULTIDIM_ELEM(powerNoise,n) += (DIRECT_MULTIDIM_ELEM(noiseSpectrum,n) * std::conj(DIRECT_MULTIDIM_ELEM(noiseSpectrum,n))).real() / numberPaticlesNoiseEst;
+		DIRECT_MULTIDIM_ELEM(powerNoise,n) += (DIRECT_MULTIDIM_ELEM(noiseSpectrum,n) * std::conj(DIRECT_MULTIDIM_ELEM(noiseSpectrum,n))).real();
 		
 	#ifdef DEBUG_NOISE_ESTIMATION
 	std::cout << "Noise estimated from particle " << noiseAnalyzedParticles + 1 << " sucessfully." << std::endl;
@@ -843,16 +843,20 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	writeParticle(rowOut, fnImgOut, Idiff, R2adj(0), beta0save, beta1save, b); 
 }
 
-// void ProgSubtractProjection::finishProcessing(const FileName &fnImgOut)
-// {
-// 	if(noiseEstimationBool)
-// 	{
-// 		Image<double> saveImage;
-// 		size_t lastindex = fnImgOut.find_last_of("/\\");
+void ProgSubtractProjection::finishProcessing(const FileName &fnImgOut)
+{
+	if(noiseEstimationBool)
+	{
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(powerNoise)
+		{
+			DIRECT_MULTIDIM_ELEM(mIdiff,n) /= (int)mdInSize;
+		}
 
-// 		std::string noiseEstOuputFile = fnImgOut.substr(0, lastindex) + "noisePower.mrc";
+		Image<double> saveImage;
+		size_t lastindex = fnImgOut.find_last_of("/\\");
+		std::string noiseEstOuputFile = fnImgOut.substr(0, lastindex) + "noisePower.mrc";
 
-// 		saveImage() = powerNoise;
-// 		saveImage.write(noiseEstOuputFile);
-// 	}
-// }
+		saveImage() = powerNoise;
+		saveImage.write(noiseEstOuputFile);
+	}
+}

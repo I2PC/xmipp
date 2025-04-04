@@ -87,42 +87,56 @@ void MpiProgSubtractProjection::preProcess()
 
         int powerNoiseSizeX;
         int powerNoiseSizeY;
-        int powerNoiseOrigin;
+        int powerNoiseOriginX;
+        int powerNoiseOriginY;
 
         if (rank == 0)
         {
             powerNoiseSizeX = (int)XSIZE(powerNoise);
             powerNoiseSizeY = (int)YSIZE(powerNoise);
-            powerNoiseOrigin = STARTINGX(powerNoise);
+            powerNoiseOriginX = STARTINGX(powerNoise);
+            powerNoiseOriginY = STARTINGY(powerNoise);
         }
                     std::cout << "----------------------------------------------------------MultiFede1.2" << std::endl;
 
         MPI_Bcast(&powerNoiseSizeX, 1, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(&powerNoiseSizeY, 1, MPI_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(&powerNoiseOrigin, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&powerNoiseOriginX, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&powerNoiseOriginY, 1, MPI_INT, 0, MPI_COMM_WORLD);
                     std::cout << "----------------------------------------------------------MultiFede1.3" << std::endl;
 
         if (rank != 0)
         {
-            STARTINGX(powerNoise)=STARTINGY(powerNoise)=STARTINGZ(powerNoise)=powerNoiseOrigin;
+            powerNoise.resizeNoCopy(powerNoiseSizeY, powerNoiseSizeX);
+            STARTINGX(powerNoise)=powerNoiseOriginX;
+            STARTINGY(powerNoise)=powerNoiseOriginY;
         }
-                    std::cout << "----------------------------------------------------------MultiFede1.3" << std::endl;
+                    std::cout << "----------------------------------------------------------MultiFede1.4" << std::endl;
 
         MPI_Bcast(&max_noiseEst, 1, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(&min_noiseEst, 1, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(&noiseAnalyzedParticles, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-        MPI_Bcast(MULTIDIM_ARRAY(powerNoise), (int)MULTIDIM_SIZE(powerNoise), MPI_DOUBLE, 0, MPI_COMM_WORLD);    
-                            std::cout << "----------------------------------------------------------MultiFede1.4" << std::endl;
+        std::cout << " rank " << rank;
+        std::cout << " powerNoiseSizeX " << powerNoiseSizeX;
+        std::cout << " powerNoiseSizeY " << powerNoiseSizeY;
+        std::cout << " MULTIDIM_ARRAY(powerNoise) " << MULTIDIM_ARRAY(powerNoise);
+        std::cout << " (int)MULTIDIM_SIZE(powerNoise) " << (int)MULTIDIM_SIZE(powerNoise) << std::endl;
+        MPI_Bcast(MULTIDIM_ARRAY(powerNoise), (int)MULTIDIM_SIZE(powerNoise), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+                            std::cout << "----------------------------------------------------------MultiFede1.5" << std::endl;
 
     }
 
     MetaData &mdIn = *getInputMd();
     mdIn.addLabel(MDL_GATHER_ID);
     mdIn.fillLinear(MDL_GATHER_ID, 1, 1);
-    createTaskDistributor(mdIn, blockSize);
+  
+              std::cout << "----------------------------------------------------------MultiFede2" << std::endl;
 
-            std::cout << "----------------------------------------------------------MultiFede2" << std::endl;
+  createTaskDistributor(mdIn, blockSize);
+
+            std::cout << "----------------------------------------------------------MultiFede3" << std::endl;
 
 }
 void MpiProgSubtractProjection::startProcessing()
@@ -150,8 +164,18 @@ void MpiProgSubtractProjection::finishProcessing()
     MDaux.sort(getOutputMd(), MDL_GATHER_ID);
     MDaux.removeLabel(MDL_GATHER_ID);
     getOutputMd() = MDaux;
+
+    if (rank == 0)
+    {
+        MPI_Reduce(MPI_IN_PLACE, MULTIDIM_ARRAY(powerNoise), (int)MULTIDIM_SIZE(powerNoise), MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    }
+    else
+    {
+        MPI_Reduce(MULTIDIM_ARRAY(powerNoise), nullptr, (int)MULTIDIM_SIZE(powerNoise), MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    }
+
     if (node->isMaster())
-        ProgSubtractProjection::finishProcessing();
+        ProgSubtractProjection::finishProcessing(fn_out);
 }
 void MpiProgSubtractProjection::wait()
 {
