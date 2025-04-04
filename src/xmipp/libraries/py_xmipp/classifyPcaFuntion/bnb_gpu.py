@@ -416,6 +416,7 @@ class BnBgpu:
         newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL]    
         clk = self.averages_increaseClas(mmap, iter, newCL, classes)
         
+        clk = clk * self.center_by_com(clk) 
         clk = clk * self.create_circular_mask(clk) 
         # if mask:
         #     if iter < 13:
@@ -707,6 +708,30 @@ class BnBgpu:
         circular_mask[dist <= center] = 1.0
         
         return circular_mask
+    
+    
+    def center_by_com(self, batch: torch.Tensor, use_abs: bool = True, eps: float = 1e-8):
+        B, H, W = batch.shape
+        device = batch.device
+    
+        weights = batch.abs() if use_abs else batch
+        weights = weights.unsqueeze(1)
+    
+        y = torch.arange(H, device=device) - H // 2
+        x = torch.arange(W, device=device) - W // 2
+        yy, xx = torch.meshgrid(y, x, indexing='ij')
+        xx = xx[None, None, ...].float()
+        yy = yy[None, None, ...].float()
+    
+        mass = weights.sum(dim=(2, 3), keepdim=True) + eps
+        x_com = (weights * xx).sum(dim=(2, 3), keepdim=True) / mass
+        y_com = (weights * yy).sum(dim=(2, 3), keepdim=True) / mass
+    
+        shift = torch.cat([-x_com, -y_com], dim=1).squeeze(-1).squeeze(-1)
+        batch_input = batch.unsqueeze(1)
+        centered = kornia.geometry.transform.translate(batch_input, shift, mode='bilinear', padding_mode='zeros', align_corners=True)
+    
+        return centered.squeeze(1)
     
     
     def apply_leaky_relu(self, images):
