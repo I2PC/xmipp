@@ -222,22 +222,23 @@ class BnBgpu:
     
     
     def match_batch_label_minScore(self, tensor):
-        col2 = tensor[:, 1].float()  
-        col3 = tensor[:, 2].float()  
+        # col2 = tensor[:, 1].float()  
+        # col3 = tensor[:, 2].float()  
     
         # _, indices_col3 = torch.sort(col3)
         # tensor_sorted_col3 = tensor[indices_col3]
         #
         # print("tensor_with_indicator")
         # print(tensor_sorted_col3)
-        
-
+    
         # _, indices_col2 = torch.sort(tensor_sorted_col3[:, 1])
         # sorted_tensor = tensor_sorted_col3[indices_col2]
         
-        composite_key = col2 * 1e6 + col3
-        _, sorted_indices = torch.sort(composite_key)
-        sorted_tensor = tensor[sorted_indices]
+        _, idx_secondary = torch.sort(tensor[:, 2], stable=True)
+        tensor_sorted_secondary = tensor[idx_secondary]
+        
+        _, idx_primary = torch.sort(tensor_sorted_secondary[:, 1], stable=True)
+        sorted_tensor = tensor_sorted_secondary[idx_primary]
         
         
         print("tensor_with_indicator")
