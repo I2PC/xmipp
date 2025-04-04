@@ -370,6 +370,8 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 
 void ProgSubtractProjection::generateNoiseEstimationSideInfo()
 {
+	        std::cout << "----------------------------------------------------------generateNoiseEstimationSideInfo1" << std::endl;
+
 	// Initialize powerNoise
 	powerNoise.initZeros((int)Ydim, (int)Xdim/2 +1);
 
@@ -402,7 +404,7 @@ void ProgSubtractProjection::generateNoiseEstimationSideInfo()
 			}
 		}
 
-		min_noiseEst = std::min(minX, std::max(minY, minZ));
+		min_noiseEst = std::min(minX, std::min(minY, minZ));
 		max_noiseEst = std::max(maxX, std::max(maxY, maxZ));
 	}
 	else
@@ -415,6 +417,9 @@ void ProgSubtractProjection::generateNoiseEstimationSideInfo()
 	#ifdef DEBUG_NOISE_ESTIMATION
 	std::cout << "max_noiseEst  " << max_noiseEst << " min_noiseEst " << min_noiseEst  << std::endl;
 	#endif
+
+		        std::cout << "----------------------------------------------------------generateNoiseEstimationSideInfo2" << std::endl;
+
 }
 
 void ProgSubtractProjection::noiseEstimation()
@@ -637,10 +642,15 @@ void ProgSubtractProjection::preProcess()
 			projector = new FourierProjector(padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 		}
 	}
+
+	std::cout << "----------------------------------------------------------Fede1" << std::endl;
+
 }
 
 void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
  { 
+    std::cout << "----------------------------------------------------------Fede2" << std::endl;
+
 	// Initialize aux variable
 	disable = false;
 

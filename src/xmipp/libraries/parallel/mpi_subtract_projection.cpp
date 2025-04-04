@@ -42,6 +42,7 @@ void MpiProgSubtractProjection::read(int argc, char **argv, bool reportErrors)
 }
 void MpiProgSubtractProjection::preProcess()
 {
+        std::cout << "----------------------------------------------------------MultiFede1" << std::endl;
     rank = (int)node->rank;
     ProgSubtractProjection::preProcess();
     // Get the volume padded size from rank 0
@@ -81,6 +82,9 @@ void MpiProgSubtractProjection::preProcess()
     // Power noise estimation params
     if(noiseEstimationBool)
     {
+
+                    std::cout << "----------------------------------------------------------MultiFede1.1" << std::endl;
+
         int powerNoiseSizeX;
         int powerNoiseSizeY;
         int powerNoiseOrigin;
@@ -91,27 +95,35 @@ void MpiProgSubtractProjection::preProcess()
             powerNoiseSizeY = (int)YSIZE(powerNoise);
             powerNoiseOrigin = STARTINGX(powerNoise);
         }
+                    std::cout << "----------------------------------------------------------MultiFede1.2" << std::endl;
 
         MPI_Bcast(&powerNoiseSizeX, 1, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(&powerNoiseSizeY, 1, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(&powerNoiseOrigin, 1, MPI_INT, 0, MPI_COMM_WORLD);
+                    std::cout << "----------------------------------------------------------MultiFede1.3" << std::endl;
 
         if (rank != 0)
         {
             STARTINGX(powerNoise)=STARTINGY(powerNoise)=STARTINGZ(powerNoise)=powerNoiseOrigin;
         }
+                    std::cout << "----------------------------------------------------------MultiFede1.3" << std::endl;
 
         MPI_Bcast(&max_noiseEst, 1, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(&min_noiseEst, 1, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(&noiseAnalyzedParticles, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
         MPI_Bcast(MULTIDIM_ARRAY(powerNoise), (int)MULTIDIM_SIZE(powerNoise), MPI_DOUBLE, 0, MPI_COMM_WORLD);    
+                            std::cout << "----------------------------------------------------------MultiFede1.4" << std::endl;
+
     }
 
     MetaData &mdIn = *getInputMd();
     mdIn.addLabel(MDL_GATHER_ID);
     mdIn.fillLinear(MDL_GATHER_ID, 1, 1);
     createTaskDistributor(mdIn, blockSize);
+
+            std::cout << "----------------------------------------------------------MultiFede2" << std::endl;
+
 }
 void MpiProgSubtractProjection::startProcessing()
 {
