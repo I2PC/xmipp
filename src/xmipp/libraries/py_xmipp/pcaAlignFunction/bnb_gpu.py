@@ -225,18 +225,20 @@ class BnBgpu:
         col2 = tensor[:, 1].float()  
         col3 = tensor[:, 2].float()  
     
-        _, indices_col3 = torch.sort(col3)
-        tensor_sorted_col3 = tensor[indices_col3]
+        # _, indices_col3 = torch.sort(col3)
+        # tensor_sorted_col3 = tensor[indices_col3]
+        #
+        # print("tensor_with_indicator")
+        # print(tensor_sorted_col3)
         
-        print("tensor_with_indicator")
-        print(tensor_sorted_col3)
-        
-        indices = torch.arange(tensor_sorted_col3.size(0), device=tensor.device)
-        _, indices_col2 = torch.sort(tensor_sorted_col3[:, 1] + indices * 1e-9) # Añade indice como clave secundaria
-        sorted_tensor = tensor_sorted_col3[indices_col2]
-    
+
         # _, indices_col2 = torch.sort(tensor_sorted_col3[:, 1])
         # sorted_tensor = tensor_sorted_col3[indices_col2]
+        
+        composite_key = col2 * 1e6 + col3
+        _, sorted_indices = torch.sort(composite_key)
+        sorted_tensor = tensor[sorted_indices]
+        
         
         print("tensor_with_indicator")
         print(sorted_tensor)
