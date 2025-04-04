@@ -89,7 +89,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	realSpaceProjector = checkParam("--realSpaceProjection");
 	ignoreCTF = checkParam("--ignoreCTF");
 
-	noiseEstimationBool = checkParam("--num_particles_noise_est");
+	noiseEstimationBool = checkParam("--noise_est");
  }
 
  // Show ====================================================================
@@ -141,7 +141,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	addParamsLine("[--subtract]						: The mask contains the region to SUBTRACT");
 	addParamsLine("[--realSpaceProjection]			: Project volume in real space to avoid Fourier artifacts");
 	addParamsLine("[--ignoreCTF]					: Do not consider CTF in the subtraction. Use if particles have been CTF corrected.");
-	addParamsLine("[--num_particles_noise_est]		: Compute noise estimation from the subtracted regin of the particles. \
+	addParamsLine("[--noise_est]					: Compute noise estimation from the subtracted regin of the particles. \
 													  This caluclation do not modifies the subtration, just produces a noise estimation.");
 
 	// Example
