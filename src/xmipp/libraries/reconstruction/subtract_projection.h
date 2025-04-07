@@ -34,7 +34,7 @@
  #include "data/fourier_projection.h"
  #include "core/xmipp_metadata_program.h"
 
- #define DEBUG
+//  #define DEBUG
 //  #define DEBUG_OUTUT_FILES
 //  #define DEBUG_NOISE_ESTIMATION
 
@@ -170,7 +170,7 @@ class ProgSubtractProjection: public XmippMetadataProgram
     void defineParams() override;
     void preProcess() override;
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
-    void finishProcessing(const FileName &fnImgOut);
+    void finishProcessing();
  };
  //@}
 #endif

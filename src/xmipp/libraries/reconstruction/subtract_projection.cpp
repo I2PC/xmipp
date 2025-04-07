@@ -826,8 +826,12 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	writeParticle(rowOut, fnImgOut, Idiff, R2adj(0), beta0save, beta1save, b); 
 }
 
-void ProgSubtractProjection::finishProcessing(const FileName &fnImgOut)
+void ProgSubtractProjection::finishProcessing()
 {
+	if (allow_time_bar && verbose && !single_image)
+        progress_bar(time_bar_size);
+    writeOutput();
+
 	if(noiseEstimationBool)
 	{
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(powerNoise)
@@ -836,8 +840,10 @@ void ProgSubtractProjection::finishProcessing(const FileName &fnImgOut)
 		}
 
 		Image<double> saveImage;
-		size_t lastindex = fnImgOut.find_last_of("/\\");
-		std::string noiseEstOuputFile = fnImgOut.substr(0, lastindex) + "noisePower.mrc";
+		size_t lastindex = fn_out.find_last_of("/\\");
+		std::string noiseEstOuputFile = fn_out.substr(0, lastindex) + "/noisePower.mrc";
+
+		std::cout << "Saving noise power at: " << noiseEstOuputFile << std::endl;
 
 		saveImage() = powerNoise;
 		saveImage.write(noiseEstOuputFile);
