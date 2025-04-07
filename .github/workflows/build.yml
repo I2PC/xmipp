@@ -9,19 +9,18 @@ jobs:
     strategy:
       matrix:
         os:
-        - 'ubuntu-22.04'
+        - 'ubuntu-24.04'
 
         cuda:
-        - {version: '11.8.0', method: 'network'} 
-        - {version: '12.2.2', method: 'network'} 
+        - {version: '12.6.0', method: 'network'} 
         - {version: 'None'}
 
         compiler:
         - {cc: gcc, cxx: g++}
 
         include:
-          - os: 'ubuntu-20.04'
-            cuda: {version: '11.3.1', method: 'network'}
+          - os: 'ubuntu-22.04'
+            cuda: {version: '11.8.0', method: 'network'}
             compiler: {cc: gcc-9, cxx: g++-9, update-alternatives: True}
           - os: 'ubuntu-20.04'
             cuda: {version: '10.2.89', method: 'local'}
