@@ -152,7 +152,7 @@ void MpiProgSubtractProjection::finishProcessing()
     }
 
     if (node->isMaster())
-        ProgSubtractProjection::finishProcessing(fn_out);
+        ProgSubtractProjection::finishProcessing();
 }
 void MpiProgSubtractProjection::wait()
 {
