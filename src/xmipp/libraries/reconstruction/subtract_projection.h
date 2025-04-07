@@ -35,7 +35,7 @@
  #include "core/xmipp_metadata_program.h"
 
 //  #define DEBUG
-//  #define DEBUG_OUTUT_FILES
+//  #define DEBUG_OUTPUT_FILES
 //  #define DEBUG_NOISE_ESTIMATION
 
 
