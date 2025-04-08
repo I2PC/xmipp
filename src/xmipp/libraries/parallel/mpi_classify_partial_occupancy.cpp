@@ -42,19 +42,67 @@ void MpiProgClassifyPartialOccupancy::read(int argc, char **argv, bool reportErr
 void MpiProgClassifyPartialOccupancy::preProcess()
 {
     rank = (int)node->rank;
+
     ProgClassifyPartialOccupancy::preProcess();
-    // Get the volume padded size from rank 0
-    int realSizeX;
-    int realSizeY;
-    int realSizeZ;
-    int origin;
-    int realSizeMask;
-    int originMask;
+
+    // Initialize noise power and masks for MPI
+    int particleFreqMapSizeX;
+    int particleFreqMapSizeY;
+    int particleFreqMapOrigin;
 
     int noiseSizeX;
     int noiseSizeY;
     int noiseSizeOrigin;
-    
+
+    int radialAvgFTSize;
+    double* radialAvgFTOrigin;
+
+    if (node->rank == 0)
+    {
+
+        noiseSizeX = (int)XSIZE(powerNoise());
+        noiseSizeY = (int)YSIZE(powerNoise());
+        noiseSizeOrigin = STARTINGX(powerNoise());
+
+        particleFreqMapSizeX = (int)XSIZE(particleFreqMap);
+        particleFreqMapSizeY = (int)YSIZE(particleFreqMap);
+        particleFreqMapOrigin = STARTINGX(particleFreqMap);
+
+        radialAvgFTSize = radialAvg_FT.size();
+        radialAvgFTOrigin = radialAvg_FT.data();
+    }
+
+    MPI_Bcast(&noiseSizeX,      1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&noiseSizeY,      1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&noiseSizeOrigin, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+    MPI_Bcast(&particleFreqMapSizeX,  1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&particleFreqMapSizeY,  1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&particleFreqMapOrigin, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+    MPI_Bcast(&radialAvgFTSize,  1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&radialAvgFTOrigin, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+    if (rank != 0)
+    {
+        powerNoise().resizeNoCopy(noiseSizeY,noiseSizeX);
+        STARTINGX(powerNoise())=STARTINGY(powerNoise())=noiseSizeOrigin;
+
+        particleFreqMap.resizeNoCopy(particleFreqMapSizeY, particleFreqMapSizeX);
+        STARTINGX(particleFreqMap)=STARTINGY(particleFreqMap)=particleFreqMapOrigin;
+
+        radialAvg_FT.resize(radialAvgFTSize);
+    }
+
+    MPI_Bcast(MULTIDIM_ARRAY(powerNoise()),    (int)MULTIDIM_SIZE(powerNoise()),    MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(MULTIDIM_ARRAY(particleFreqMap), (int)MULTIDIM_SIZE(particleFreqMap), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(radialAvg_FT.data(), radialAvg_FT.size(), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    // Initialize Fourier projector for MPI
+    int realSizeX;
+    int realSizeY;
+    int realSizeZ;
+    int origin;
 
     if (!realSpaceProjector)
     {
@@ -64,10 +112,6 @@ void MpiProgClassifyPartialOccupancy::preProcess()
             realSizeY = (int)YSIZE(projector->VfourierRealCoefs);
             realSizeZ = (int)ZSIZE(projector->VfourierRealCoefs);
             origin = STARTINGX(projector->VfourierRealCoefs);
-
-            noiseSizeX = (int)XSIZE(powerNoise());
-            noiseSizeY = (int)YSIZE(powerNoise());
-            noiseSizeOrigin = STARTINGX(powerNoise());
         }
 
         MPI_Bcast(&realSizeX, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -77,28 +121,16 @@ void MpiProgClassifyPartialOccupancy::preProcess()
         MPI_Bcast(&(projector->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD); 
         MPI_Bcast(&projector->volumeSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-        MPI_Bcast(&realSizeMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(&originMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-        MPI_Bcast(&noiseSizeX, 1, MPI_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(&noiseSizeY, 1, MPI_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(&noiseSizeOrigin, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
         if (rank != 0)
         {
             projector->VfourierRealCoefs.resizeNoCopy(realSizeZ,realSizeY,realSizeX);
             projector->VfourierImagCoefs.resizeNoCopy(realSizeZ,realSizeY,realSizeX);
             STARTINGX(projector->VfourierRealCoefs)=STARTINGY(projector->VfourierRealCoefs)=STARTINGZ(projector->VfourierRealCoefs)=origin;
             STARTINGX(projector->VfourierImagCoefs)=STARTINGY(projector->VfourierImagCoefs)=STARTINGZ(projector->VfourierImagCoefs)=origin;
-
-            powerNoise().resizeNoCopy(noiseSizeY,noiseSizeX);
-            STARTINGX(powerNoise())=STARTINGY(powerNoise())=noiseSizeOrigin;
         }
 
         MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierRealCoefs), (int)MULTIDIM_SIZE(projector->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
         MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierImagCoefs), (int)MULTIDIM_SIZE(projector->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-        MPI_Bcast(MULTIDIM_ARRAY(powerNoise()), (int)MULTIDIM_SIZE(powerNoise()), MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
         if (rank != 0)
         {
@@ -136,8 +168,8 @@ void MpiProgClassifyPartialOccupancy::finishProcessing()
     MDaux.sort(getOutputMd(), MDL_GATHER_ID);
     MDaux.removeLabel(MDL_GATHER_ID);
     getOutputMd() = MDaux;
-    if (node->isMaster())
-        ProgClassifyPartialOccupancy::finishProcessing();
+    // if (node->isMaster())
+    //     ProgClassifyPartialOccupancy::finishProcessing();
 }
 void MpiProgClassifyPartialOccupancy::wait()
 {
