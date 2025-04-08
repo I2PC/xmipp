@@ -65,9 +65,9 @@ void MpiProgClassifyPartialOccupancy::preProcess()
             realSizeZ = (int)ZSIZE(projector->VfourierRealCoefs);
             origin = STARTINGX(projector->VfourierRealCoefs);
 
-            noiseSizeX = (int)XSIZE(powerNoise);
-            noiseSizeY = (int)YSIZE(powerNoise);
-            noiseSizeOrigin = STARTINGX(powerNoise);
+            noiseSizeX = (int)XSIZE(powerNoise());
+            noiseSizeY = (int)YSIZE(powerNoise());
+            noiseSizeOrigin = STARTINGX(powerNoise());
         }
 
         MPI_Bcast(&realSizeX, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -91,14 +91,14 @@ void MpiProgClassifyPartialOccupancy::preProcess()
             STARTINGX(projector->VfourierRealCoefs)=STARTINGY(projector->VfourierRealCoefs)=STARTINGZ(projector->VfourierRealCoefs)=origin;
             STARTINGX(projector->VfourierImagCoefs)=STARTINGY(projector->VfourierImagCoefs)=STARTINGZ(projector->VfourierImagCoefs)=origin;
 
-            powerNoise.resizeNoCopy(noiseSizeY,noiseSizeX);
-            STARTINGX(powerNoise)=STARTINGY(powerNoise)=noiseSizeOrigin;
+            powerNoise().resizeNoCopy(noiseSizeY,noiseSizeX);
+            STARTINGX(powerNoise())=STARTINGY(powerNoise())=noiseSizeOrigin;
         }
 
         MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierRealCoefs), (int)MULTIDIM_SIZE(projector->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
         MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierImagCoefs), (int)MULTIDIM_SIZE(projector->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-        MPI_Bcast(MULTIDIM_ARRAY(powerNoise), (int)MULTIDIM_SIZE(powerNoise), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+        MPI_Bcast(MULTIDIM_ARRAY(powerNoise()), (int)MULTIDIM_SIZE(powerNoise()), MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
         if (rank != 0)
         {

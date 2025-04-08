@@ -77,10 +77,12 @@ ProgClassifyPartialOccupancy::~ProgClassifyPartialOccupancy()
 	if (checkParam("--noise_est"))
 	{
 		fnNoiseEst = getParam("--noise_est");
+		computeNoiseEstimation = false;
 	}
 	else if (checkParam("--noise_est_particles"))
 	{
 		numParticlesNoiseEst = getIntParam("--noise_est_particles");
+		computeNoiseEstimation = true;
 	}
  }
 
@@ -365,8 +367,8 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP, c
 			// Consider only those frequencies (under Nyquist) whose radial module is over threshold
 			if (radialAvg_FT[DIRECT_MULTIDIM_ELEM(particleFreqMap,n)] > minModuleFT && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
 			{
-				ll_I_it     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / DIRECT_MULTIDIM_ELEM(powerNoise, n);
-				ll_IsubP_it += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / DIRECT_MULTIDIM_ELEM(powerNoise, n);
+				ll_I_it     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / DIRECT_MULTIDIM_ELEM(powerNoise(), n);
+				ll_IsubP_it += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / DIRECT_MULTIDIM_ELEM(powerNoise(), n);
 			}
 		}
 
@@ -458,9 +460,19 @@ void ProgClassifyPartialOccupancy::preProcess()
 			frequencyCharacterization();
 			std::cout << "-------Frequencies characterized-------" << std::endl;
 
-			std::cout << "-------Estimating noise -------" << std::endl;
-			noiseEstimation();
-			std::cout << "-------Noise estimated -------" << std::endl;
+			if (computeNoiseEstimation)
+			{
+				std::cout << "-------Estimating noise -------" << std::endl;
+				noiseEstimation();
+				std::cout << "-------Noise estimated -------" << std::endl;
+			}
+			else
+			{
+				powerNoise.read(fnNoiseEst);
+				std::cout << "Noise estimation read from: " << fnNoiseEst << std::endl;
+			}
+			
+
 
 		if (!realSpaceProjector)
 		{
@@ -534,7 +546,7 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 	size_t processedParticles = 0;
 
     MultidimArray< double > noiseCrop;
-	powerNoise.initZeros((int)Ydim, (int)Xdim/2 +1);
+	powerNoise().initZeros((int)Ydim, (int)Xdim/2 +1);
 
 	// Iterate particles
 	for (const auto& r : mdIn)
@@ -646,7 +658,7 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 		#endif
 
  		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(noiseSpectrum)
-			DIRECT_MULTIDIM_ELEM(powerNoise,n) += (DIRECT_MULTIDIM_ELEM(noiseSpectrum,n) * std::conj(DIRECT_MULTIDIM_ELEM(noiseSpectrum,n))).real();
+			DIRECT_MULTIDIM_ELEM(powerNoise(),n) += (DIRECT_MULTIDIM_ELEM(noiseSpectrum,n) * std::conj(DIRECT_MULTIDIM_ELEM(noiseSpectrum,n))).real();
 			
 		#ifdef DEBUG_NOISE_CALCULATION
 		std::cout << "Noise estimated from particle " << processedParticles + 1 << " sucessfully." << std::endl;
@@ -654,23 +666,19 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 
 		processedParticles++;
 
-		if (processedParticles == numberParticlesForNoiseEstimation)
+		if (processedParticles == numParticlesNoiseEst)
 		{
 			break;
 		}
 	}
 
-	powerNoise /= processedParticles;
+	powerNoise() /= processedParticles;
 
 
 	#ifdef DEBUG_OUTPUT_FILES
-	Image<double> saveImage;
 	size_t lastindex = fn_out.find_last_of(".");
-
 	std::string debugFileFn = fn_out.substr(0, lastindex) + "_noisePower.mrc";
-
-	saveImage() = powerNoise;
-	saveImage.write(debugFileFn);
+	powerNoise.write(debugFileFn);
 	#endif
 
 	#ifdef VERBOSE_OUTPUT
