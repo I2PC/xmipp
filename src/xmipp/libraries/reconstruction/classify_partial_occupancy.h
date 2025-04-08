@@ -143,7 +143,7 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
 
 public:
 
-    // ---------------------- IN/OUT FUNCTIONS -----------------------------
+    // ---------------------- IN/OUT METHODS -----------------------------
     // Define parameters
     void defineParams() override;
     // Read argument from command line
@@ -154,20 +154,19 @@ public:
     void readParticle(const MDRow &rowIn);
     void writeParticle(MDRow &rowOut, FileName, Image<double> &, double, double, double);
 
-    // ----------------------- MAIN FUNCTIONS ------------------------------
-    void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
-    void logLikelihood(double ll_I, double ll_IsubP, const FileName &fnImgOut);
+    // ----------------------- MAIN METHODS ------------------------------
     void preProcess() override;
-    void noiseEstimation();
+    void processParticle(const MDRow &rowIn, int sizeImg);
+    void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
+
+    // ----------------------- CORE METHODS ------------------------------
     void frequencyCharacterization();
+    void noiseEstimation();
+    void logLikelihood(double ll_I, double ll_IsubP, const FileName &fnImgOut);
 
-
-    // ---------------------- UTILS functions ------------------------------
-    /// Processing methods
+    // ---------------------- UTILS METHODS ------------------------------
     Image<double> binarizeMask(Projection &) const;
     Image<double> invertMask(const Image<double> &);
-    void processParticle(const MDRow &rowIn, int sizeImg);
-    void computeParticleStats(Image<double> &I, Image<double> &M, FileName fnImgOut, double &avg, double &std, double &zScore);
     void calculateBoundingBox(MultidimArray<double> PmaskRoiLabel, 
                               std::vector<int> &minX, 
                               std::vector<int> &minY, 
@@ -175,15 +174,15 @@ public:
                               std::vector<int> &maxY, 
                               int numLig);
 
-
-
-    // --------------------------- MAIN ------------------------------------
-
+    // ----------------------- CLASS METHODS ------------------------------
     // Empty constructor
     ProgClassifyPartialOccupancy();
 
     // Destructor
     ~ProgClassifyPartialOccupancy();
+
+    // ---------------------- UNUSED METHODS ------------------------------
+    void computeParticleStats(Image<double> &I, Image<double> &M, FileName fnImgOut, double &avg, double &std, double &zScore);
  };
  //@}
 #endif
