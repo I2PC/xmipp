@@ -170,6 +170,12 @@ void ProgClassifyPartialOccupancy::preProcess()
 			{
 				powerNoise.read(fnNoiseEst);
 				std::cout << "Noise estimation read from: " << fnNoiseEst << std::endl;
+				
+				#ifdef DEBUG_OUTPUT_FILES
+				size_t lastindex = fn_out.find_last_of(".");
+				std::string debugFileFn = fn_out.substr(0, lastindex) + "_noisePower.mrc";
+				powerNoise.write(debugFileFn);
+				#endif
 			}
 			
 
