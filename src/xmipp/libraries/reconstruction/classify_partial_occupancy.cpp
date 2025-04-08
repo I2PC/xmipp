@@ -73,6 +73,15 @@ ProgClassifyPartialOccupancy::~ProgClassifyPartialOccupancy()
 	fnMaskProtein=getParam("--mask_protein");
 	padFourier = getDoubleParam("--padding");
 	realSpaceProjector = checkParam("--realSpaceProjection");
+
+	if (checkParam("--noise_est"))
+	{
+		fnNoiseEst = getParam("--noise_est");
+	}
+	else if (checkParam("--noise_est_particles"))
+	{
+		numParticlesNoiseEst = getIntParam("--noise_est_particles");
+	}
  }
 
  // Show ====================================================================
@@ -94,9 +103,9 @@ ProgClassifyPartialOccupancy::~ProgClassifyPartialOccupancy()
  {
 	//Usage
     addUsageLine("This algorithm classify a set of particles based on the presence of signal in a particular location of the specimen. \
-				  The input particles must be projection subtraction keeping only the density of interes as in xmipp_subtract_projection,
-				  since subtraction parameters are relevant for calculation. Masks are expected to be binary. The algorithm is sensitive to 
-				  the noise estimation quality, whixh is recomended to be calculated previosuly as in xmipp_subtract_projection due to the 
+				  The input particles must be projection subtraction keeping only the density of interes as in xmipp_subtract_projection, \
+				  since subtraction parameters are relevant for calculation. Masks are expected to be binary. The algorithm is sensitive to \
+				  the noise estimation quality, whixh is recomended to be calculated previosuly as in xmipp_subtract_projection due to the \
 				  computational burden.");
 
     //Parameters

@@ -53,6 +53,8 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
 	FileName fnImgI; // Particle filename
     FileName fnMaskRoi; // Input 3D mask for region of interest to keep or subtract
     FileName fnMaskProtein; // Input 3D mask for the specimen
+    FileName fnNoiseEst; // Input path to previously calculated noise estimation
+    int numParticlesNoiseEst; // Number of particles to compute noise estimation
 
     // Volume dimensions
     size_t Xdim;
