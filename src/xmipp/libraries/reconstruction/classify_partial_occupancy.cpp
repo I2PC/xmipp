@@ -93,22 +93,29 @@ ProgClassifyPartialOccupancy::~ProgClassifyPartialOccupancy()
  void ProgClassifyPartialOccupancy::defineParams()
  {
 	//Usage
-    addUsageLine("This program computes the subtraction between particles and a reference"); 
-	addUsageLine(" volume, by computing its projections with the same angles that input particles have."); 
-	addUsageLine(" Then, each particle and the correspondent projection of the reference volume are numerically");
-	addUsageLine(" adjusted and subtracted using a mask which denotes the region of interest to keep or subtract.");
+    addUsageLine("This algorithm classify a set of particles based on the presence of signal in a particular location of the specimen. \
+				  The input particles must be projection subtraction keeping only the density of interes as in xmipp_subtract_projection,
+				  since subtraction parameters are relevant for calculation. Masks are expected to be binary. The algorithm is sensitive to 
+				  the noise estimation quality, whixh is recomended to be calculated previosuly as in xmipp_subtract_projection due to the 
+				  computational burden.");
 
     //Parameters
 	XmippMetadataProgram::defineParams();
     addParamsLine("--ref <volume>\t: Reference volume to subtract");
-    addParamsLine("--mask_protein <mask_roi=\"\">	: 3D mask for region of the specimen");
-    addParamsLine("--mask_roi <mask_roi=\"\">     	: 3D mask for region of interest to keep or subtract, no mask implies subtraction of whole images");
-	addParamsLine("[--realSpaceProjection]			: Project volume in real space to avoid Fourier artifacts");
-	addParamsLine("[--padding <p=2>]				: Padding factor for Fourier projector");
+    addParamsLine("--mask_protein <mask_protein=\"\">	: 3D mask for region of the specimen");
+    addParamsLine("--mask_roi <mask_roi=\"\">     		: 3D mask for region of interest to keep or subtract, no mask implies subtraction of whole images");
+
+	addParamsLine("--noise_est <noise_est=\"\">			: Previously calculated noise estimation for likelihood calculation.");
+	addParamsLine("or --noise_est_particles <n=5000>    : Number of particles to calculate the noise estimation if it is not previously calculated. \
+														  The computational burden of this operation is significative, especially if a high number of particles is processed.");
+
+	addParamsLine("[--realSpaceProjection]				: Project volume in real space to avoid Fourier artifacts");
+	addParamsLine("[--padding <p=2>]					: Padding factor for Fourier projector");
 
 	// Example
-    addExampleLine("A typical use is:",false);
-    addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask_roi mask_roi_vol.mrc --mask_protein mask_protein_vol.mrc -o output_particles");
+    addExampleLine("A typical use is:", false);
+    addExampleLine("xmipp_classify_partial_occupancy -i input_particles.xmd --ref input_map.mrc --mask_roi mask_roi_vol.mrc --mask_protein mask_protein_vol.mrc \
+													 -o output_particles.mrc --noise_est noise_estimation.mrc");
  }
 
  // I/O methods ===================================================================
