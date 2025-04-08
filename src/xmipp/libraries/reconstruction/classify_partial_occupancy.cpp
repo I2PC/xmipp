@@ -612,14 +612,7 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 
 void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP, const FileName &fnImgOut)
 {	
-	// Subtract ligand from particle
-	IsubP() = (I() - adjustParams.b) - (P() * adjustParams.b0);
-
-	// Por ahora solo consideramos ajuste de orden 0. 
-	// Si queremos considerar el del orden 1 hay que que comprobar que b1 > 0
-	// y ajustar por frecuencia
-
-	// Detect ligand regions
+	// -- Detect ligand regions
 	binarizeMask(PmaskRoi);
 	MultidimArray<double> PmaskRoiLabel;
 	PmaskRoiLabel.resizeNoCopy(PmaskRoi());
@@ -647,11 +640,18 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP, c
 
 	calculateBoundingBox(PmaskRoiLabel, minX, minY, maxX, maxY, numLig);
 
-	// Calculate likelihood ofor each region
+	// -- Calculate likelihood for each region
 	MultidimArray<double> centeredLigand;
 	MultidimArray<double> centeredLigandSubP;
 	MultidimArray< std::complex<double> > fftI;
 	MultidimArray< std::complex<double> > fftIsubP;
+
+	// Subtract proyected weight volume to particle
+	IsubP() = (I() - adjustParams.b) - (P() * adjustParams.b0);
+
+	// Por ahora solo consideramos ajuste de orden 0. 
+	// Si queremos considerar el del orden 1 hay que que comprobar que b1 > 0
+	// y ajustar por frecuencia
 
 	// Analyze each ligand region independently
 	for (size_t value = 0; value < numLig; ++value) 
