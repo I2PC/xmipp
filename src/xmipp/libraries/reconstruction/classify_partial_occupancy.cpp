@@ -628,9 +628,6 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP, c
 	size_t dotPos = fnImgOut.find_last_of('.');
 	Image<double> saveImage;
 
-	saveImage = IsubP;
-	saveImage.write(fnImgOut.substr(0, dotPos) + "_IsubP" + fnImgOut.substr(dotPos));
-
 	saveImage = PmaskRoi;
 	saveImage.write(fnImgOut.substr(0, dotPos) + "_PmaskRoiBinarize" + fnImgOut.substr(dotPos));
 
@@ -653,11 +650,16 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP, c
 	MultidimArray< std::complex<double> > fftIsubP;
 
 	// Subtract proyected weight volume to particle
-	IsubP() = (I() - adjustParams.b) - (P() * adjustParams.b0);
 
 	// Por ahora solo consideramos ajuste de orden 0. 
 	// Si queremos considerar el del orden 1 hay que que comprobar que b1 > 0
 	// y ajustar por frecuencia
+	IsubP() = (I() - adjustParams.b) - (P() * adjustParams.b0);
+
+	#ifdef DEBUG_OUTPUT_FILES
+	saveImage = IsubP;
+	saveImage.write(fnImgOut.substr(0, dotPos) + "_IsubP" + fnImgOut.substr(dotPos));
+	#endif
 
 	// Analyze each ligand region independently
 	for (size_t value = 0; value < numLig; ++value) 
