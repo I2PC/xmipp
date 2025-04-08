@@ -33,11 +33,11 @@
 #include "data/fourier_projection.h"
 #include "core/xmipp_metadata_program.h"
 
-#define DEBUG
+// #define DEBUG
 #define VERBOSE_OUTPUT
-#define DEBUG_FREQUENCY_PROFILE
-#define DEBUG_NOISE_CALCULATION
-#define DEBUG_LOG_LIKELIHOOD
+// #define DEBUG_FREQUENCY_PROFILE
+// #define DEBUG_NOISE_CALCULATION
+// #define DEBUG_LOG_LIKELIHOOD
 #define DEBUG_OUTPUT_FILES
 
 /**@defgroup ProgClassifyPartialOccupancy Subtract projections
