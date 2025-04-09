@@ -45,7 +45,8 @@ class ProgStatisticalMap: public XmippMetadataProgram
 {
  public:
     // Input params
-    FileName fnMapPoolMD; // Metadata containing the map pool
+    FileName fnMapPoolMD;   // Metadata containing the map pool
+    FileName fnOutput;     
 
     // Volume dimensions
     size_t Xdim;
@@ -54,9 +55,9 @@ class ProgStatisticalMap: public XmippMetadataProgram
     size_t Ndim;
 
     // Data variables
- 	Image<double> inputVolume; // Each input volume
- 	Image<double> avgVolume; // Average volume
- 	Image<double> stdVolume; // Standard deviation volume
+ 	Image<double> inputVolume;  // Each input volume
+ 	Image<double> avgVolume;    // Average volume
+ 	Image<double> stdVolume;    // Standard deviation volume
 
     // Particle metadata
     MetaDataVec mapPoolMD;
