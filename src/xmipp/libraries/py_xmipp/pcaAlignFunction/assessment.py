@@ -381,14 +381,19 @@ class evaluation:
         
         num_images = len(star)
         # num_images = len(star['particles'])
-        print(num_images)
+        
+        columns = ["anglePsi", "angleRot", "angleTilt", "shiftX", "shiftY", "shiftZ"]
+        for column in columns:
+            if column not in star.columns:
+                star[column] = 0.0
         
         anglesRot, anglesTilt = self.generate_random_angles(num_images)
         
-        star['angleRot'] = anglesRot
-        star['angleTilt'] = anglesTilt
-        # star['particles']['angleRot'] = anglesRot
-        # star['particles']['angleTilt'] = anglesTilt
+        star.loc[:, "angleRot"] = anglesRot
+        star.loc[:, "angleTilt"] = anglesTilt
+        
+        # star['angleRot'] = anglesRot
+        # star['angleTilt'] = anglesTilt
     
    
         starfile.write(star, outXMD, overwrite=True)
