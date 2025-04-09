@@ -86,8 +86,7 @@ public:
     void run();
 
     // ----------------------- CORE METHODS ------------------------------
-    void operateVolume(MultidimArray<double> &volume);
-    void processVolumes(MultidimArray<double> &volume);
+    void processVolume(FileName fn_vol);
 
     // ---------------------- UTILS METHODS ------------------------------
     // Generate side info
