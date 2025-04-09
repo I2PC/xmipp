@@ -81,8 +81,6 @@ public:
     void readVolume(const MDRow &rowIn);
     // Write output statistical map
     void writeStatisticalMap(MDRow &rowOut, FileName, Image<double> &, double, double, double);
-    // Generate side info
-    void generateSideInfo();
 
     // ----------------------- MAIN METHODS ------------------------------
     void run();
@@ -92,6 +90,9 @@ public:
     void processVolumes(MultidimArray<double> &volume);
 
     // ---------------------- UTILS METHODS ------------------------------
+    // Generate side info
+    void generateSideInfo();
+
 };
 //@}
 #endif
