@@ -83,14 +83,14 @@ void ProgStatisticalMap::defineParams()
 	V().setXmippOrigin();
  }
 
- void ProgStatisticalMap::writeParticle(MDRow &rowOut, FileName fnImgOut, Image<double> &img, double avg, double std, double zScore) 
+ void ProgStatisticalMap::writeStatisticalMap(MDRow &rowOut, FileName fnImgOut, Image<double> &img, double avg, double std, double zScore) 
  {
-	img.write(fnImgOut);
+    size_t dot_pos = fn_out.find_last_of('.');
+    FileName fn_out_avg_map = fn_out.substr(0, dot_pos) + "_avg" + fn_out.substr(dot_pos);
+    FileName fn_out_std_map = fn_out.substr(0, dot_pos) + "_std" + fn_out.substr(dot_pos);
 
-	rowOut.setValue(MDL_IMAGE, fnImgOut);
-	rowOut.setValue(MDL_AVG, avg); 
-	rowOut.setValue(MDL_STDDEV, std); 
-	rowOut.setValue(MDL_ZSCORE, zScore); 
+    avgVolume.write(fn_out_avg_map;
+ 	stdVolume.write(fn_out_std_map); 
  }
 
 
