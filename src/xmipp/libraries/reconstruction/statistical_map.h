@@ -48,6 +48,10 @@ class ProgStatisticalMap: public XmippProgram
     FileName fn_in;     // Input metadata with volume pool
     FileName fn_oroot;  // Output location for saving statistical maps
 
+    // Side info variables
+    FileName fn_out_avg_map;
+    FileName fn_out_std_map;
+
     // Volume dimensions
     size_t Xdim;
     size_t Ydim;
@@ -55,7 +59,8 @@ class ProgStatisticalMap: public XmippProgram
     size_t Ndim;
 
     // Data variables
- 	Image<double> V;  // Each input volume from pool
+    FileName fn_V;              // Filename for each input volume from pool
+ 	Image<double> V;            // Each input volume from pool
  	Image<double> avgVolume;    // Average volume
  	Image<double> stdVolume;    // Standard deviation volume
 
@@ -72,16 +77,19 @@ public:
     void readParams() override;
     // Show
     void show() const override;
-    /// Read input map from pool
+    // Read input map from pool
     void readVolume(const MDRow &rowIn);
-    /// Write output statistical map
+    // Write output statistical map
     void writeStatisticalMap(MDRow &rowOut, FileName, Image<double> &, double, double, double);
+    // Generate side info
+    void generateSideInfo();
 
     // ----------------------- MAIN METHODS ------------------------------
-    void processVolumes(MultidimArray<double> &volume);
+    void run();
 
     // ----------------------- CORE METHODS ------------------------------
     void operateVolume(MultidimArray<double> &volume);
+    void processVolumes(MultidimArray<double> &volume);
 
     // ---------------------- UTILS METHODS ------------------------------
 

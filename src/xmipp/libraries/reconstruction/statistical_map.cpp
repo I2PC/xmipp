@@ -86,15 +86,28 @@ void ProgStatisticalMap::defineParams()
 
  void ProgStatisticalMap::writeStatisticalMap(MDRow &rowOut, FileName fnImgOut, Image<double> &img, double avg, double std, double zScore) 
  {
-    FileName fn_out_avg_map = fn_oroot + "statsMap_avg.mrc";
-    FileName fn_out_std_map = fn_oroot + "statsMap_std.mrc";
-
     avgVolume.write(fn_out_avg_map);
  	stdVolume.write(fn_out_std_map); 
  }
 
 
-// Main methods ===================================================================
+// Main method ===================================================================
+void ProgStatisticalMap::run()
+{
+	auto t1 = std::chrono::high_resolution_clock::now();
+
+    generateSideInfo();
+
+    mapPoolMD.read(fn_in);
+
+    for (const auto& row : mapPoolMD)
+	{
+        row.getValue(MDL_IMAGE, fn_V);
+    }
+
+
+}
+
 void ProgStatisticalMap::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
  { 
 	// Project volume and process projections 
@@ -640,6 +653,12 @@ void ProgStatisticalMap::logLikelihood(double ll_I, double ll_IsubP, const FileN
 
 
 // Utils methods ===================================================================
+void ProgStatisticalMap::generateSideInfo()
+{
+    FileName fn_out_avg_map = fn_oroot + "statsMap_avg.mrc";
+    FileName fn_out_std_map = fn_oroot + "statsMap_std.mrc";
+}
+
 Image<double> ProgStatisticalMap::binarizeMask(Projection &m) const 
 {
 	MultidimArray<double> &mm=m();
