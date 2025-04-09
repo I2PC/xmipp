@@ -120,8 +120,10 @@ void ProgStatisticalMap::run()
             dimInitialized = true;
         }
 
-        processVolume()
+        processVolume();
     }
+
+    processStatisticalMaps();
 }
 
 
@@ -134,8 +136,22 @@ void ProgStatisticalMap::processVolume()
         double value = DIRECT_MULTIDIM_ELEM(V,n);
         DIRECT_MULTIDIM_ELEM(avgVolume,n) += value;
         DIRECT_MULTIDIM_ELEM(stdVolume,n) += value * value;
-    } 
+    }
 }
+
+void ProgStatisticalMap::processStatisticalMaps()
+{ 
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(avgVolume)
+    {
+        double value  = DIRECT_MULTIDIM_ELEM(avgVolume,n);
+        double value2 = DIRECT_MULTIDIM_ELEM(stdVolume,n);
+        double mean = value/Ndim;
+
+        DIRECT_MULTIDIM_ELEM(avgVolume,n) += mean;
+        DIRECT_MULTIDIM_ELEM(stdVolume,n) += sqrt(value2/Ndim - mean*mean);
+    }
+}
+
 
 
 // Utils methods ===================================================================

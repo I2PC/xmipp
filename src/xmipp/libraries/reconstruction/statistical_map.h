@@ -88,6 +88,7 @@ public:
 
     // ----------------------- CORE METHODS ------------------------------
     void processVolume();
+    void processStatisticalMaps();
 
     // ---------------------- UTILS METHODS ------------------------------
     // Generate side info
