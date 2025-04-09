@@ -77,14 +77,7 @@ void ProgStatisticalMap::defineParams()
     addParamsLine("--oroot <oroot=\"\"> : Output location for saving statistical maps.");
 }
 
- void ProgStatisticalMap::readVolume(const MDRow &r) 
- {
-	r.getValue(MDL_IMAGE, fnImgI,);
-	V.read(fnImgI);
-	V().setXmippOrigin();
- }
-
- void ProgStatisticalMap::writeStatisticalMap(MDRow &rowOut, FileName fnImgOut, Image<double> &img, double avg, double std, double zScore) 
+ void ProgStatisticalMap::writeStatisticalMap() 
  {
     avgVolume.write(fn_out_avg_map);
  	stdVolume.write(fn_out_std_map); 
@@ -124,31 +117,33 @@ void ProgStatisticalMap::run()
     }
 
     processStatisticalMaps();
+
+    writeStatisticalMap();
 }
 
 
 // Core methods ===================================================================
 void ProgStatisticalMap::processVolume()
 { 
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V)
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
         // Resused avg and std maps for sum and sum^2 (save memory)
-        double value = DIRECT_MULTIDIM_ELEM(V,n);
-        DIRECT_MULTIDIM_ELEM(avgVolume,n) += value;
-        DIRECT_MULTIDIM_ELEM(stdVolume,n) += value * value;
+        double value = DIRECT_MULTIDIM_ELEM(V(),n);
+        DIRECT_MULTIDIM_ELEM(avgVolume(),n) += value;
+        DIRECT_MULTIDIM_ELEM(stdVolume(),n) += value * value;
     }
 }
 
 void ProgStatisticalMap::processStatisticalMaps()
 { 
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(avgVolume)
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(avgVolume())
     {
-        double value  = DIRECT_MULTIDIM_ELEM(avgVolume,n);
-        double value2 = DIRECT_MULTIDIM_ELEM(stdVolume,n);
+        double value  = DIRECT_MULTIDIM_ELEM(avgVolume(),n);
+        double value2 = DIRECT_MULTIDIM_ELEM(stdVolume(),n);
         double mean = value/Ndim;
 
-        DIRECT_MULTIDIM_ELEM(avgVolume,n) += mean;
-        DIRECT_MULTIDIM_ELEM(stdVolume,n) += sqrt(value2/Ndim - mean*mean);
+        DIRECT_MULTIDIM_ELEM(avgVolume(),n) += mean;
+        DIRECT_MULTIDIM_ELEM(stdVolume(),n) += sqrt(value2/Ndim - mean*mean);
     }
 }
 

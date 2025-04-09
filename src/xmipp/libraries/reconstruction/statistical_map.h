@@ -27,11 +27,8 @@
 #define _PROG_STATISTICAL_MAP
 
 #include "core/metadata_vec.h"
-// #include "core/xmipp_program.h"
-// #include "core/xmipp_image.h"
-// #include "data/fourier_filter.h"
-// #include "data/fourier_projection.h"
-// #include "core/xmipp_metadata_program.h"
+#include "core/xmipp_program.h"
+#include "core/xmipp_image.h"
 
 #define VERBOSE_OUTPUT
 #define DEBUG_OUTPUT_FILES
@@ -78,10 +75,8 @@ public:
     void readParams() override;
     // Show
     void show() const override;
-    // Read input map from pool
-    void readVolume(const MDRow &rowIn);
     // Write output statistical map
-    void writeStatisticalMap(MDRow &rowOut, FileName, Image<double> &, double, double, double);
+    void writeStatisticalMap();
 
     // ----------------------- MAIN METHODS ------------------------------
     void run();
