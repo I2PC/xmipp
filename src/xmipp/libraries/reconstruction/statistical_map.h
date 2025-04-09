@@ -53,7 +53,7 @@ class ProgStatisticalMap: public XmippMetadataProgram
     size_t Ndim;
 
     // Data variables
- 	Image<double> inputVolume;  // Each input volume
+ 	Image<double> V;  // Each input volume from pool
  	Image<double> avgVolume;    // Average volume
  	Image<double> stdVolume;    // Standard deviation volume
 

@@ -76,11 +76,11 @@ void ProgStatisticalMap::defineParams()
     addParamsLine("-o <o=\"\">	    : Output path for statistical map.");
 }
 
- void ProgStatisticalMap::readParticle(const MDRow &r) 
+ void ProgStatisticalMap::readVolume(const MDRow &r) 
  {
-	r.getValueOrDefault(MDL_IMAGE, fnImgI, "no_filename");
-	I.read(fnImgI);
-	I().setXmippOrigin();
+	r.getValue(MDL_IMAGE, fnImgI,);
+	V.read(fnImgI);
+	V().setXmippOrigin();
  }
 
  void ProgStatisticalMap::writeParticle(MDRow &rowOut, FileName fnImgOut, Image<double> &img, double avg, double std, double zScore) 
