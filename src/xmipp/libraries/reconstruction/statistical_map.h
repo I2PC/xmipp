@@ -41,10 +41,12 @@
 //@{
 /** Calculate statistical map from a pool of input maps */
 
-class ProgStatisticalMap: public XmippMetadataProgram   XmippProgram
+class ProgStatisticalMap: public XmippProgram
 {
  public:
     // Input params
+    FileName fn_in;     // Input metadata with volume pool
+    FileName fn_oroot;  // Output location for saving statistical maps
 
     // Volume dimensions
     size_t Xdim;

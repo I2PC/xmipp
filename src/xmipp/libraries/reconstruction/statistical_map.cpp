@@ -52,7 +52,8 @@
 // I/O methods ===================================================================
 void ProgStatisticalMap::readParams()
 {
-	XmippMetadataProgram::readParams();
+    fn_in = getParam("-i");
+    fn_oroot = getParam("-oroot");
 }
 
 void ProgStatisticalMap::show() const
@@ -61,19 +62,19 @@ void ProgStatisticalMap::show() const
         return;
 	std::cout
 	<< "Input volume pool metadata:\t" << fn_in << std::endl
-	<< "Output statistical volume:\t" << fn_out << std::endl;
+	<< "Output location for statistical volumes:\t" << fn_oroot << std::endl;
 }
 
 void ProgStatisticalMap::defineParams()
 {
 	//Usage
-    addUsageLine("This algorithms computes a statistical map that characterize the input map pool for posterior comparison \
+    addUsageLine("This algorithm computes a statistical map that characterize the input map pool for posterior comparison \
                   to an input map in order to characterize the likelyness of its densities.");
 
     //Parameters
 	XmippMetadataProgram::defineParams();
-    addParamsLine("-i <i=\"\">      : Input metadata containing map pool for statistical map calculation.");
-    addParamsLine("-o <o=\"\">	    : Output path for statistical map.");
+    addParamsLine("-i <i=\"\">          : Input metadata containing map pool for statistical map calculation.");
+    addParamsLine("--oroot <oroot=\"\"> : Output location for saving statistical maps.");
 }
 
  void ProgStatisticalMap::readVolume(const MDRow &r) 
@@ -85,11 +86,10 @@ void ProgStatisticalMap::defineParams()
 
  void ProgStatisticalMap::writeStatisticalMap(MDRow &rowOut, FileName fnImgOut, Image<double> &img, double avg, double std, double zScore) 
  {
-    size_t dot_pos = fn_out.find_last_of('.');
-    FileName fn_out_avg_map = fn_out.substr(0, dot_pos) + "_avg" + fn_out.substr(dot_pos);
-    FileName fn_out_std_map = fn_out.substr(0, dot_pos) + "_std" + fn_out.substr(dot_pos);
+    FileName fn_out_avg_map = fn_oroot + "statsMap_avg.mrc";
+    FileName fn_out_std_map = fn_oroot + "statsMap_std.mrc";
 
-    avgVolume.write(fn_out_avg_map;
+    avgVolume.write(fn_out_avg_map);
  	stdVolume.write(fn_out_std_map); 
  }
 
