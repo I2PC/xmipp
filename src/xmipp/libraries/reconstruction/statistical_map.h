@@ -41,7 +41,7 @@
 //@{
 /** Calculate statistical map from a pool of input maps */
 
-class ProgStatisticalMap: public XmippMetadataProgram
+class ProgStatisticalMap: public XmippMetadataProgram   XmippProgram
 {
  public:
     // Input params
@@ -66,12 +66,13 @@ public:
     // ---------------------- IN/OUT METHODS -----------------------------
     // Define parameters
     void defineParams() override;
-    // Read argument from command line
+    // Read argument
     void readParams() override;
     // Show
     void show() const override;
-    /// Read and write methods
+    /// Read input map from pool
     void readVolume(const MDRow &rowIn);
+    /// Write output statistical map
     void writeStatisticalMap(MDRow &rowOut, FileName, Image<double> &, double, double, double);
 
     // ----------------------- MAIN METHODS ------------------------------
