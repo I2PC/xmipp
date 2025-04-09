@@ -389,6 +389,7 @@ class evaluation:
         
         anglesRot, anglesTilt = self.generate_random_angles(num_images)
         
+        star.loc[:, "anglePsi"] = 0.0
         star.loc[:, "angleRot"] = anglesRot
         star.loc[:, "angleTilt"] = anglesTilt
         
