@@ -92,13 +92,6 @@ public:
     void processVolumes(MultidimArray<double> &volume);
 
     // ---------------------- UTILS METHODS ------------------------------
-
-    // ----------------------- CLASS METHODS ------------------------------
-    // Empty constructor
-    ProgStatisticalMap();
-
-    // Destructor
-    ~ProgStatisticalMap();
 };
 //@}
 #endif

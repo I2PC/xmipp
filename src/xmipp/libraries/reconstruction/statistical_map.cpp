@@ -722,24 +722,6 @@ void ProgStatisticalMap::calculateBoundingBox(MultidimArray<double> PmaskRoiLabe
     }
 }
 
-
-// Class methods =======================================================
-ProgStatisticalMap::ProgStatisticalMap()
-{
-	produces_a_metadata = true;
-    each_image_produces_an_output = true;
-    keep_input_columns = true;
-	save_metadata_stack = true;
-	projector = nullptr;
-	rank = 0;
-}
-
-ProgStatisticalMap::~ProgStatisticalMap()
-{
-	delete projector;
-}
-
-
 // Unused methods ===================================================================
 void ProgStatisticalMap::computeParticleStats(Image<double> &I, Image<double> &M, FileName fnImgOut, double &avg, double &std, double &zScore)
 {	
