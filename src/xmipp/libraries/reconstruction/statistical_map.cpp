@@ -53,22 +53,6 @@
 void ProgStatisticalMap::readParams()
 {
 	XmippMetadataProgram::readParams();
- 	fnVolR = getParam("--ref");
-	fnMaskRoi=getParam("--mask_roi");
-	fnMaskProtein=getParam("--mask_protein");
-	padFourier = getDoubleParam("--padding");
-	realSpaceProjector = checkParam("--realSpaceProjection");
-
-	if (checkParam("--noise_est"))
-	{
-		fnNoiseEst = getParam("--noise_est");
-		computeNoiseEstimation = false;
-	}
-	else if (checkParam("--noise_est_particles"))
-	{
-		numParticlesNoiseEst = getIntParam("--noise_est_particles");
-		computeNoiseEstimation = true;
-	}
 }
 
 void ProgStatisticalMap::show() const

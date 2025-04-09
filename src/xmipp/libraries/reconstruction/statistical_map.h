@@ -45,8 +45,6 @@ class ProgStatisticalMap: public XmippMetadataProgram
 {
  public:
     // Input params
-    FileName fnMapPoolMD;   // Metadata containing the map pool
-    FileName fnOutput;     
 
     // Volume dimensions
     size_t Xdim;
