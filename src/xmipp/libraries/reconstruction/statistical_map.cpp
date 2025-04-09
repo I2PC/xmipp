@@ -99,20 +99,42 @@ void ProgStatisticalMap::run()
     generateSideInfo();
 
     mapPoolMD.read(fn_in);
+    Ndim = mapPoolMD.size();
 
     for (const auto& row : mapPoolMD)
 	{
         row.getValue(MDL_IMAGE, fn_V);
+        V.read(fn_V);
 
+        if (!dimInitialized)
+        {
+            // Read dim
+            Xdim = XSIZE(V);
+            Ydim = YSIZE(V);
+            Zdim = ZSIZE(V);
 
+            // Initialize statistical maps
+            avgVolume().initZeros(Zdim, Ydim, Xdim);
+            stdVolume().initZeros(Zdim, Ydim, Xdim);
+
+            dimInitialized = true;
+        }
+
+        processVolume()
     }
 }
 
 
 // Core methods ===================================================================
-void ProgStatisticalMap::processVolume(FileName fn_vol)
- { 
-	
+void ProgStatisticalMap::processVolume()
+{ 
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V)
+    {
+        // Resused avg and std maps for sum and sum^2 (save memory)
+        double value = DIRECT_MULTIDIM_ELEM(V,n);
+        DIRECT_MULTIDIM_ELEM(avgVolume,n) += value;
+        DIRECT_MULTIDIM_ELEM(stdVolume,n) += value * value;
+    } 
 }
 
 

@@ -53,6 +53,7 @@ class ProgStatisticalMap: public XmippProgram
     FileName fn_out_std_map;
 
     // Volume dimensions
+    bool dimInitialized = false;
     size_t Xdim;
     size_t Ydim;
     size_t Zdim;
@@ -86,7 +87,7 @@ public:
     void run();
 
     // ----------------------- CORE METHODS ------------------------------
-    void processVolume(FileName fn_vol);
+    void processVolume();
 
     // ---------------------- UTILS METHODS ------------------------------
     // Generate side info
