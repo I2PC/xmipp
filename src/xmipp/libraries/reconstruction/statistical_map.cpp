@@ -60,12 +60,8 @@ void ProgStatisticalMap::show() const
     if (!verbose)
         return;
 	std::cout
-	<< "Input particles:\t" << fn_in << std::endl
-	<< "Reference volume:\t" << fnVolR << std::endl
-	<< "Mask of the protein region:\t" << fnMaskProtein << std::endl
-	<< "Mask of the region of interest to keep or subtract:\t" << fnMaskRoi << std::endl
-	<< "Padding factor:\t" << padFourier << std::endl
-	<< "Output particles:\t" << fn_out << std::endl;
+	<< "Input volume pool metadata:\t" << fn_in << std::endl
+	<< "Output statistical volume:\t" << fn_out << std::endl;
 }
 
 void ProgStatisticalMap::defineParams()
