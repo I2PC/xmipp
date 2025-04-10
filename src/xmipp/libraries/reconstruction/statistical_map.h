@@ -62,6 +62,7 @@ class ProgStatisticalMap: public XmippProgram
     Image<double> V;            // Each input volume from pool
     Image<double> avgVolume;    // Average volume
     Image<double> stdVolume;    // Standard deviation volume
+    Image<double> weightedMap;  // Statistically-weighted map 
 
     // Particle metadata
     MetaDataVec mapPoolMD;
@@ -83,8 +84,9 @@ public:
     void run();
 
     // ----------------------- CORE METHODS ------------------------------
+    void processStaticalMap();
+    void computeStatisticalMaps();
     void processVolume();
-    void processStatisticalMaps();
 
     // ---------------------- UTILS METHODS ------------------------------
     // Generate side info

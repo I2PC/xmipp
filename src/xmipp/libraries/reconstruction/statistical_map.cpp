@@ -110,17 +110,17 @@ void ProgStatisticalMap::run()
             Ydim = YSIZE(V);
             Zdim = ZSIZE(V);
 
-            // Initialize statistical maps
+            // Initialize maps
             avgVolume().initZeros(Zdim, Ydim, Xdim);
             stdVolume().initZeros(Zdim, Ydim, Xdim);
 
             dimInitialized = true;
         }
 
-        processVolume();
+        processStaticalMap();
     }
 
-    processStatisticalMaps();
+    computeStatisticalMaps();
     writeStatisticalMap();
 
     // Compare input maps against statistical map
@@ -128,13 +128,16 @@ void ProgStatisticalMap::run()
 
     for (const auto& row : mapPoolMD)
 	{
+        row.getValue(MDL_IMAGE, fn_V);
+        V.read(fn_V);
 
+        processVolume();
     }
 }
 
 
 // Core methods ===================================================================
-void ProgStatisticalMap::processVolume()
+void ProgStatisticalMap::processStaticalMap()
 { 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
@@ -145,7 +148,7 @@ void ProgStatisticalMap::processVolume()
     }
 }
 
-void ProgStatisticalMap::processStatisticalMaps()
+void ProgStatisticalMap::computeStatisticalMaps()
 { 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(avgVolume())
     {
@@ -158,6 +161,14 @@ void ProgStatisticalMap::processStatisticalMaps()
     }
 }
 
+void ProgStatisticalMap::processVolume()
+{ 
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+    {
+        // Z-score
+        DIRECT_MULTIDIM_ELEM(V(),n) = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n));
+    }
+}
 
 
 // Utils methods ===================================================================
