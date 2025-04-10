@@ -119,11 +119,8 @@ void ProgClassifyPartialOccupancy::defineParams()
 	I().setXmippOrigin();
  }
 
- void ProgClassifyPartialOccupancy::writeParticle(MDRow &rowOut, FileName fnImgOut, Image<double> &img, double avg, double std, double zScore) 
+ void ProgClassifyPartialOccupancy::writeParticle(MDRow &rowOut, double avg, double std, double zScore) 
  {
-	img.write(fnImgOut);
-
-	rowOut.setValue(MDL_IMAGE, fnImgOut);
 	rowOut.setValue(MDL_AVG, avg); 
 	rowOut.setValue(MDL_STDDEV, std); 
 	rowOut.setValue(MDL_ZSCORE, zScore); 
@@ -230,7 +227,7 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 
 	logLikelihood(ll_I, ll_IsubP, fnImgOut);
 
-	writeParticle(rowOut, fnImgOut, I, ll_I, ll_IsubP, (ll_I-ll_IsubP)); 
+	writeParticle(rowOut, ll_I, ll_IsubP, (ll_I-ll_IsubP)); 
 }
 
 void ProgClassifyPartialOccupancy::processParticle(const MDRow &rowprocess, int sizeImg) 

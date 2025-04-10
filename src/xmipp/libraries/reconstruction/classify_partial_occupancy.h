@@ -152,7 +152,7 @@ public:
     void show() const override;
     /// Read and write methods
     void readParticle(const MDRow &rowIn);
-    void writeParticle(MDRow &rowOut, FileName, Image<double> &, double, double, double);
+    void writeParticle(MDRow &rowOut, double, double, double);
 
     // ----------------------- MAIN METHODS ------------------------------
     void preProcess() override;
