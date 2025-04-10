@@ -52,7 +52,8 @@
 // I/O methods ===================================================================
 void ProgStatisticalMap::readParams()
 {
-    fn_in = getParam("-i");
+    fn_mapPool = getParam("-i");
+    fn_mapPool_statistical = getParam("--input_mapPool");
     fn_oroot = getParam("-oroot");
 }
 
@@ -61,7 +62,8 @@ void ProgStatisticalMap::show() const
     if (!verbose)
         return;
 	std::cout
-	<< "Input volume pool metadata:\t" << fn_in << std::endl
+	<< "Input metadata with map pool for analysis:\t" << fn_mapPool << std::endl
+	<< "Input metadata with map pool for statistical map calculation:\t" << fn_mapPool_statistical << std::endl
 	<< "Output location for statistical volumes:\t" << fn_oroot << std::endl;
 }
 
@@ -69,12 +71,13 @@ void ProgStatisticalMap::defineParams()
 {
 	//Usage
     addUsageLine("This algorithm computes a statistical map that characterize the input map pool for posterior comparison \
-                  to an input map in order to characterize the likelyness of its densities.");
+                  to new map pool to characterize the likelyness of its densities.");
 
     //Parameters
 	XmippMetadataProgram::defineParams();
-    addParamsLine("-i <i=\"\">          : Input metadata containing map pool for statistical map calculation.");
-    addParamsLine("--oroot <oroot=\"\"> : Output location for saving statistical maps.");
+    addParamsLine("-i <i=\"\">                  : Input metadata containing volumes to analyze against the calculated statical map.");
+    addParamsLine("--input_mapPool <i=\"\">     : Input metadata containing map pool for statistical map calculation.");
+    addParamsLine("--oroot <oroot=\"\">         : Location for saving output.");
 }
 
  void ProgStatisticalMap::writeStatisticalMap() 
@@ -91,7 +94,8 @@ void ProgStatisticalMap::run()
 
     generateSideInfo();
 
-    mapPoolMD.read(fn_in);
+    // Calculate statistical map
+    mapPoolMD.read(fn_mapPool_statistical);
     Ndim = mapPoolMD.size();
 
     for (const auto& row : mapPoolMD)
@@ -117,8 +121,15 @@ void ProgStatisticalMap::run()
     }
 
     processStatisticalMaps();
-
     writeStatisticalMap();
+
+    // Compare input maps against statistical map
+    mapPoolMD.read(fn_mapPool);
+
+    for (const auto& row : mapPoolMD)
+	{
+
+    }
 }
 
 

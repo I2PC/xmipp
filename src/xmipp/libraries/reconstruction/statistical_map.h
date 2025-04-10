@@ -42,8 +42,9 @@ class ProgStatisticalMap: public XmippProgram
 {
  public:
     // Input params
-    FileName fn_in;     // Input metadata with volume pool
-    FileName fn_oroot;  // Output location for saving statistical maps
+    FileName fn_mapPool;               // Input metadata with map pool for analysis
+    FileName fn_mapPool_statistical;   // Input metadata with map pool for statistical map calculation
+    FileName fn_oroot;                 // Location for saving output maps
 
     // Side info variables
     FileName fn_out_avg_map;
@@ -58,9 +59,9 @@ class ProgStatisticalMap: public XmippProgram
 
     // Data variables
     FileName fn_V;              // Filename for each input volume from pool
- 	Image<double> V;            // Each input volume from pool
- 	Image<double> avgVolume;    // Average volume
- 	Image<double> stdVolume;    // Standard deviation volume
+    Image<double> V;            // Each input volume from pool
+    Image<double> avgVolume;    // Average volume
+    Image<double> stdVolume;    // Standard deviation volume
 
     // Particle metadata
     MetaDataVec mapPoolMD;
