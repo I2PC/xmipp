@@ -80,11 +80,31 @@ void ProgStatisticalMap::defineParams()
     addParamsLine("--oroot <oroot=\"\">         : Location for saving output.");
 }
 
- void ProgStatisticalMap::writeStatisticalMap() 
- {
+void ProgStatisticalMap::writeStatisticalMap() 
+{
     avgVolume.write(fn_out_avg_map);
- 	stdVolume.write(fn_out_std_map); 
- }
+    stdVolume.write(fn_out_std_map);
+}
+
+void ProgStatisticalMap::writeWeightedMap(Filename fnIn) 
+{
+    // Compose filename
+    size_t lastSlashPos = fnIn.find_last_of("/\\");
+    size_t lastDotPos = fnIn.find_last_of('.');
+
+    Filename newFilename = fnIn.substr(lastSlashPos + 1, lastDotPos - lastSlashPos - 1) + "_weighted" + fnIn.substr(lastDotPos);
+    Filename fnOut = fn_oroot + (fn_oroot.back() == '/' || fn_oroot.back() == '\\' ? "" : "/") + newFilename;
+
+    // Check if file already existes (the same pool map might contain to identical filenames
+    int counter = 1;
+    while (std::ifstream(fnOut)) 
+    {
+        fnOut = fn_oroot + (fn_oroot.back() == '/' || fn_oroot.back() == '\\' ? "" : "/") + fnIn.substr(fnIn.find_last_of("/\\") + 1, fnIn.find_last_of('.') - fnIn.find_last_of("/\\") - 1) + "_weighted_" + std::to_string(counter++) + fnIn.substr(fnIn.find_last_of('.'));
+    }
+
+    //Write output weighted volume
+    V.write(fnOut);
+}
 
 
 // Main method ===================================================================
@@ -132,6 +152,7 @@ void ProgStatisticalMap::run()
         V.read(fn_V);
 
         processVolume();
+        writeWeightedMap(fn_V);
     }
 }
 

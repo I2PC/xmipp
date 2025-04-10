@@ -79,6 +79,8 @@ public:
     void show() const override;
     // Write output statistical map
     void writeStatisticalMap();
+    // Write weighted map
+    void writeWeightedMap(Filename fnIn);
 
     // ----------------------- MAIN METHODS ------------------------------
     void run();
