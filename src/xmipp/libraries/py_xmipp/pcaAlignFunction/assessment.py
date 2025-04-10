@@ -370,10 +370,9 @@ class evaluation:
             
     # Generate random angles
     def generate_random_angles(self, num_images, angle_range=(-180, 180)):
-        self.anglePsi = np.random.uniform(angle_range[0], angle_range[1], num_images)
         self.anglesRot = np.random.uniform(angle_range[0], angle_range[1], num_images)
         self.anglesTilt = np.random.uniform(angle_range[0], angle_range[1], num_images)
-        return self.anglePsi, self.anglesRot, self.anglesTilt 
+        return self.anglesRot, self.anglesTilt 
         
     #for experimental images with starfile module
     def initRandomStar(self, expXMD, outXMD):
@@ -381,22 +380,17 @@ class evaluation:
         star = starfile.read(expXMD) 
         
         num_images = len(star)
-        # num_images = len(star['particles'])
         
         columns = ["anglePsi", "angleRot", "angleTilt", "shiftX", "shiftY", "shiftZ"]
         for column in columns:
             if column not in star.columns:
                 star[column] = 0.0
         
-        anglePsi, anglesRot, anglesTilt = self.generate_random_angles(num_images)
+        anglesRot, anglesTilt = self.generate_random_angles(num_images)
         
-        star.loc[:, "anglePsi"] = anglePsi
+        star.loc[:, "anglePsi"] = 0.0
         star.loc[:, "angleRot"] = anglesRot
-        star.loc[:, "angleTilt"] = anglesTilt
-        
-        # star['angleRot'] = anglesRot
-        # star['angleTilt'] = anglesTilt
-    
+        star.loc[:, "angleTilt"] = anglesTilt  
    
         starfile.write(star, outXMD, overwrite=True)
  
