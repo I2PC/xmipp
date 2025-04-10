@@ -109,7 +109,7 @@ void ProgClassifyPartialOccupancy::defineParams()
 	// Example
     addExampleLine("A typical use is:", false);
     addExampleLine("xmipp_classify_partial_occupancy -i input_particles.xmd --ref input_map.mrc --mask_roi mask_roi_vol.mrc --mask_protein mask_protein_vol.mrc \
-													 -o output_particles.mrc --noise_est noise_estimation.mrc");
+													 -o output_particles.xmd --noise_est noise_estimation.mrc");
 }
 
  void ProgClassifyPartialOccupancy::readParticle(const MDRow &r) 
@@ -257,6 +257,13 @@ void ProgClassifyPartialOccupancy::processParticle(const MDRow &rowprocess, int 
 		projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
 		selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
 	}
+}
+
+void ProgClassifyPartialOccupancy::finishProcessing()
+{
+	if (allow_time_bar && verbose && !single_image)
+        progress_bar(time_bar_size);
+    writeOutput();
 }
 
 
@@ -810,9 +817,7 @@ void ProgClassifyPartialOccupancy::calculateBoundingBox(MultidimArray<double> Pm
 ProgClassifyPartialOccupancy::ProgClassifyPartialOccupancy()
 {
 	produces_a_metadata = true;
-    each_image_produces_an_output = true;
-    keep_input_columns = true;
-	save_metadata_stack = true;
+	produces_an_output = true;
 	projector = nullptr;
 	rank = 0;
 }

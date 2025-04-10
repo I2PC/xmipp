@@ -158,6 +158,7 @@ public:
     void preProcess() override;
     void processParticle(const MDRow &rowIn, int sizeImg);
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
+    void finishProcessing();
 
     // ----------------------- CORE METHODS ------------------------------
     void frequencyCharacterization();
