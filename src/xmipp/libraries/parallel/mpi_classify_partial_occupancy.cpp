@@ -168,8 +168,8 @@ void MpiProgClassifyPartialOccupancy::finishProcessing()
     MDaux.sort(getOutputMd(), MDL_GATHER_ID);
     MDaux.removeLabel(MDL_GATHER_ID);
     getOutputMd() = MDaux;
-    // if (node->isMaster())
-    //     ProgClassifyPartialOccupancy::finishProcessing();
+    if (node->isMaster())
+        ProgClassifyPartialOccupancy::finishProcessing();
 }
 void MpiProgClassifyPartialOccupancy::wait()
 {
