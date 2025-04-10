@@ -373,7 +373,7 @@ class evaluation:
         self.anglePsi = np.random.uniform(angle_range[0], angle_range[1], num_images)
         self.anglesRot = np.random.uniform(angle_range[0], angle_range[1], num_images)
         self.anglesTilt = np.random.uniform(angle_range[0], angle_range[1], num_images)
-        return self.anglesRot, self.anglesTilt 
+        return self.anglePsi, self.anglesRot, self.anglesTilt 
         
     #for experimental images with starfile module
     def initRandomStar(self, expXMD, outXMD):
