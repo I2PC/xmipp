@@ -370,6 +370,7 @@ class evaluation:
             
     # Generate random angles
     def generate_random_angles(self, num_images, angle_range=(-180, 180)):
+        self.anglePsi = np.random.uniform(angle_range[0], angle_range[1], num_images)
         self.anglesRot = np.random.uniform(angle_range[0], angle_range[1], num_images)
         self.anglesTilt = np.random.uniform(angle_range[0], angle_range[1], num_images)
         return self.anglesRot, self.anglesTilt 
@@ -387,9 +388,9 @@ class evaluation:
             if column not in star.columns:
                 star[column] = 0.0
         
-        anglesRot, anglesTilt = self.generate_random_angles(num_images)
+        anglePsi, anglesRot, anglesTilt = self.generate_random_angles(num_images)
         
-        star.loc[:, "anglePsi"] = 0.0
+        star.loc[:, "anglePsi"] = anglePsi
         star.loc[:, "angleRot"] = anglesRot
         star.loc[:, "angleTilt"] = anglesTilt
         
