@@ -506,7 +506,6 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 		size_t dotPos = fn_out.find_last_of('.');
 		FileName outputPath = fn_out.substr(0, dotPos) + "_PmaskProtein.mrcs";
 		outputPath.compose(processedParticles + 1, outputPath);
-		std::cout << "---------- outputPath: " << outputPath << std::endl;
 		PmaskProtein.write(outputPath);
 		#endif
 
