@@ -278,7 +278,7 @@ if __name__=="__main__":
     # cl = bnb.increase_contrast_sigmoid(cl, 8, 0.6)
     # cl = bnb.normalize_particles_global(cl)
     # cl = bnb.process_images_iteratively(cl, 10)
-    # cl = bnb.center_by_com(cl)
+    cl = bnb.center_by_com(cl)
 
     file_contrast = output+"_contrast.mrcs"
     save_images(cl.cpu().detach().numpy(), sampling, file_contrast)           
