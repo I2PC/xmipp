@@ -36,9 +36,9 @@
 // #define DEBUG
 #define VERBOSE_OUTPUT
 // #define DEBUG_FREQUENCY_PROFILE
-#define DEBUG_NOISE_CALCULATION
+// #define DEBUG_NOISE_CALCULATION
 // #define DEBUG_LOG_LIKELIHOOD
-#define DEBUG_WRITE_PARICLE
+// #define DEBUG_WRITE_PARICLE
 #define DEBUG_OUTPUT_FILES
 
 /**@defgroup ProgClassifyPartialOccupancy Subtract projections

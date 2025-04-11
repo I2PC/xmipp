@@ -394,7 +394,7 @@ void ProgClassifyPartialOccupancy::frequencyCharacterization()
 
 	// Calculate minimum modulus for frequency 
 	auto maxElement = std::max_element(radialAvg_FT.begin(), radialAvg_FT.end());
-	minModuleFT = 0.25*static_cast<double>(*maxElement);
+	minModuleFT = 0.5*static_cast<double>(*maxElement);
 
 	//Construct particle frequency map (2D)
 	// Reuse freq_fourier_x and freq_fourier_y vectors
