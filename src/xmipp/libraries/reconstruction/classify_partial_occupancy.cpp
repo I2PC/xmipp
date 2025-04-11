@@ -101,7 +101,7 @@ void ProgClassifyPartialOccupancy::defineParams()
 	addParamsLine("--noise_est <noise_est=\"\">			: Previously calculated noise estimation for likelihood calculation.");
 	addParamsLine("or --noise_est_particles <n=5000>    : Number of particles to calculate the noise estimation if it is not previously calculated. \
 														  The computational burden of this operation is significative, especially if a high number of particles is processed.");
-	addParamsLine("--mask_protein <mask_protein=\"\">	: 3D mask for region of the specimen. Only required to calculate noise estimation.");
+	addParamsLine("[--mask_protein <mask_protein=\"\">]	: 3D mask for region of the specimen. Only required to calculate noise estimation.");
 
 	addParamsLine("[--realSpaceProjection]				: Project volume in real space to avoid Fourier artifacts");
 	addParamsLine("[--padding <p=2>]					: Padding factor for Fourier projector");
