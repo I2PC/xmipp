@@ -217,7 +217,6 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t dotPos = fnImgOut.find_last_of('.');
-	std::cout << "------------------------------ " << fnImgOut.substr(0, dotPos) + "_I.mrcs" << std::endl;
 	I.write(fnImgOut.substr(0, dotPos) + "_I.mrcs");
 	P.write(fnImgOut.substr(0, dotPos) + "_P.mrcs");
 	PmaskRoi.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi.mrcs");
