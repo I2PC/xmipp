@@ -121,6 +121,11 @@ void ProgClassifyPartialOccupancy::defineParams()
 
  void ProgClassifyPartialOccupancy::writeParticle(MDRow &rowOut, double avg, double std, double zScore) 
  {
+	#ifdef DEBUG_WRITE_PARICLE
+	std::cout << "Final ll_I: " << avg << " --- Final ll_IsubP: " << std << " --- Final delta_ll: " << zScore << std::endl;
+	#endif
+
+	rowOut.setValue(MDL_IMAGE, fnImgI); 
 	rowOut.setValue(MDL_AVG, avg); 
 	rowOut.setValue(MDL_STDDEV, std); 
 	rowOut.setValue(MDL_ZSCORE, zScore); 
@@ -211,17 +216,18 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 	// M = binarizeMask(PmaskRoi);
 
 	#ifdef DEBUG_OUTPUT_FILES
-	size_t dotPos = fn_out.find_last_of('.');
-	I.write(fn_out.substr(0, dotPos) + "_I.mrcs");
-	P.write(fn_out.substr(0, dotPos) + "_P.mrcs");
-	PmaskRoi.write(fn_out.substr(0, dotPos) + "_PmaskRoi.mrcs");
-	// M.write(fn_out.substr(0, dotPos) + "_PmaskRoi_Norm.mrcs");
+	size_t dotPos = fnImgOut.find_last_of('.');
+	std::cout << "------------------------------ " << fnImgOut.substr(0, dotPos) + "_I.mrcs" << std::endl;
+	I.write(fnImgOut.substr(0, dotPos) + "_I.mrcs");
+	P.write(fnImgOut.substr(0, dotPos) + "_P.mrcs");
+	PmaskRoi.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi.mrcs");
+	// M.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi_Norm.mrcs");
 	#endif
 
 	double ll_I = 0;
 	double ll_IsubP = 0;
 
-	logLikelihood(ll_I, ll_IsubP);
+	logLikelihood(ll_I, ll_IsubP, fnImgOut);
 
 	writeParticle(rowOut, ll_I, ll_IsubP, (ll_I-ll_IsubP)); 
 }
@@ -621,7 +627,7 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 	#endif
 }
 
-void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
+void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP, const FileName &fnImgOut)
 {	
 	// -- Detect ligand regions
 	binarizeMask(PmaskRoi);
@@ -630,14 +636,14 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 	int numLig = labelImage2D(PmaskRoi(), PmaskRoiLabel, 8);
 
 	#ifdef DEBUG_OUTPUT_FILES
-	size_t dotPos = fn_out.find_last_of('.');
+	size_t dotPos = fnImgOut.find_last_of('.');
 	Image<double> saveImage;
 
 	saveImage = PmaskRoi;
-	saveImage.write(fn_out.substr(0, dotPos) + "_PmaskRoiBinarize.mrcs");
+	saveImage.write(fnImgOut.substr(0, dotPos) + "_PmaskRoiBinarize.mrcs");
 
 	saveImage() = PmaskRoiLabel;
-	saveImage.write(fn_out.substr(0, dotPos) + "_PmaskRoiLabel.mrcs");
+	saveImage.write(fnImgOut.substr(0, dotPos) + "_PmaskRoiLabel.mrcs");
 	#endif
 
 	// Calculate bounding box for each ligand region
@@ -663,7 +669,7 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 
 	#ifdef DEBUG_OUTPUT_FILES
 	saveImage = IsubP;
-	saveImage.write(fn_out.substr(0, dotPos) + "_IsubP.mrcs");
+	saveImage.write(fnImgOut.substr(0, dotPos) + "_IsubP.mrcs");
 	#endif
 
 	// Analyze each ligand region independently
@@ -710,8 +716,8 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 		}
 
 		#ifdef DEBUG_OUTPUT_FILES
-		size_t lastindex = fn_out.find_last_of(".");
-		std::string debugFileFn = fn_out.substr(0, lastindex) + "_centeredLigand_" + std::to_string(value) + ".mrc";
+		size_t lastindex = fnImgOut.find_last_of(".");
+		std::string debugFileFn = fnImgOut.substr(0, lastindex) + "_centeredLigand_" + std::to_string(value) + ".mrcs";
 
 		saveImage() = centeredLigand;
 		saveImage.write(debugFileFn);
@@ -745,7 +751,10 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 		#endif
 	}
 
-	std::cout << "ll_I: " << ll_I << "		ll_IsubP: " << ll_IsubP << std::endl;
+	#ifdef DEBUG_LOG_LIKELIHOOD
+	std::cout << "Final ll_I: " << ll_I << std::endl;
+	std::cout << "Final ll_IsubP: " << ll_IsubP << std::endl;
+	#endif
 }
 
 
@@ -819,6 +828,7 @@ ProgClassifyPartialOccupancy::ProgClassifyPartialOccupancy()
 {
 	produces_a_metadata = true;
 	produces_an_output = true;
+	each_image_produces_an_output = true;
 	projector = nullptr;
 	rank = 0;
 }
@@ -830,7 +840,7 @@ ProgClassifyPartialOccupancy::~ProgClassifyPartialOccupancy()
 
 
 // Unused methods ===================================================================
-void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<double> &M, double &avg, double &std, double &zScore)
+void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<double> &M, FileName fnImgOut, double &avg, double &std, double &zScore)
 {	
 	MultidimArray<double> &mI=I();
 
@@ -882,9 +892,8 @@ void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<
 
 	#ifdef DEBUG_OUTPUT_FILES
 	// Save output masked particle for debugging
-	size_t dotPos = fn_out.find_last_of('.');
-	FileName fnMaskedImgOut = fn_out.substr(0, dotPos) + "_maskedParticle.mrcs";
+	size_t dotPos = fnImgOut.find_last_of('.');
 
-	M.write(fnMaskedImgOut);
+	M.write(fnImgOut.substr(0, dotPos) + "_maskesParicle.mrcs");
 	#endif
 }

@@ -36,8 +36,9 @@
 // #define DEBUG
 #define VERBOSE_OUTPUT
 // #define DEBUG_FREQUENCY_PROFILE
-#define DEBUG_NOISE_CALCULATION
+// #define DEBUG_NOISE_CALCULATION
 // #define DEBUG_LOG_LIKELIHOOD
+#define DEBUG_WRITE_PARICLE
 #define DEBUG_OUTPUT_FILES
 
 /**@defgroup ProgClassifyPartialOccupancy Subtract projections
@@ -163,7 +164,7 @@ public:
     // ----------------------- CORE METHODS ------------------------------
     void frequencyCharacterization();
     void noiseEstimation();
-    void logLikelihood(double ll_I, double ll_IsubP);
+    void logLikelihood(double &ll_I, double &ll_IsubP, const FileName &fnImgOut);
 
     // ---------------------- UTILS METHODS ------------------------------
     Image<double> binarizeMask(Projection &) const;
@@ -183,8 +184,7 @@ public:
     ~ProgClassifyPartialOccupancy();
 
     // ---------------------- UNUSED METHODS ------------------------------
-    void computeParticleStats(Image<double> &I, Image<double> &M, double &avg, double &std, double &zScore);
+    void computeParticleStats(Image<double> &I, Image<double> &M, FileName fnImgOut, double &avg, double &std, double &zScore);
  };
  //@}
 #endif
-
