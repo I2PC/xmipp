@@ -55,7 +55,6 @@ void ProgClassifyPartialOccupancy::readParams()
 	XmippMetadataProgram::readParams();
  	fnVolR = getParam("--ref");
 	fnMaskRoi=getParam("--mask_roi");
-	fnMaskProtein=getParam("--mask_protein");
 	padFourier = getDoubleParam("--padding");
 	realSpaceProjector = checkParam("--realSpaceProjection");
 
@@ -67,6 +66,7 @@ void ProgClassifyPartialOccupancy::readParams()
 	else if (checkParam("--noise_est_particles"))
 	{
 		numParticlesNoiseEst = getIntParam("--noise_est_particles");
+		fnMaskProtein=getParam("--mask_protein");
 		computeNoiseEstimation = true;
 	}
 }
@@ -96,12 +96,12 @@ void ProgClassifyPartialOccupancy::defineParams()
     //Parameters
 	XmippMetadataProgram::defineParams();
     addParamsLine("--ref <volume>\t: Reference volume to subtract");
-    addParamsLine("--mask_protein <mask_protein=\"\">	: 3D mask for region of the specimen");
     addParamsLine("--mask_roi <mask_roi=\"\">     		: 3D mask for region of interest to keep or subtract, no mask implies subtraction of whole images");
 
 	addParamsLine("--noise_est <noise_est=\"\">			: Previously calculated noise estimation for likelihood calculation.");
 	addParamsLine("or --noise_est_particles <n=5000>    : Number of particles to calculate the noise estimation if it is not previously calculated. \
 														  The computational burden of this operation is significative, especially if a high number of particles is processed.");
+	addParamsLine("--mask_protein <mask_protein=\"\">	: 3D mask for region of the specimen. Only required to calculate noise estimation.");
 
 	addParamsLine("[--realSpaceProjection]				: Project volume in real space to avoid Fourier artifacts");
 	addParamsLine("[--padding <p=2>]					: Padding factor for Fourier projector");
@@ -135,10 +135,6 @@ void ProgClassifyPartialOccupancy::preProcess()
 	V.read(fnVolR);
 	V().setXmippOrigin();
 
-	// Read Protein mask
-	vMaskP.read(fnMaskProtein);
-	vMaskP().setXmippOrigin();
-
 	// Read ROI mask
 	vMaskRoi.read(fnMaskRoi);
 	vMaskRoi().setXmippOrigin();
@@ -159,6 +155,10 @@ void ProgClassifyPartialOccupancy::preProcess()
 
 			if (computeNoiseEstimation)
 			{
+				// Read Protein mask
+				vMaskP().setXmippOrigin();
+				vMaskP.read(fnMaskProtein);
+
 				std::cout << "-------Estimating noise -------" << std::endl;
 				noiseEstimation();
 				std::cout << "-------Noise estimated -------" << std::endl;
@@ -204,21 +204,17 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 
 	processParticle(rowIn, sizeI);
 
-	// Build projected and final masks. Mask projection is always calculated in real space
-	projectVolume(vMaskP(), PmaskProtein, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
+	// Build projected ROI mask. Mask projection is always calculated in real space
 	projectVolume(vMaskRoi(), PmaskRoi, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
 
 	// Apply binarization to projected mask, DO NOT NEEDED BECAUSE PROJECTING IN REAL SPACE
-	// M_P = binarizeMask(PmaskProtein);
 	// M = binarizeMask(PmaskRoi);
 
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t dotPos = fnImgOut.find_last_of('.');
 	I.write(fnImgOut.substr(0, dotPos) + "_I" + fnImgOut.substr(dotPos));
 	P.write(fnImgOut.substr(0, dotPos) + "_P" + fnImgOut.substr(dotPos));
-	PmaskProtein.write(fnImgOut.substr(0, dotPos) + "_PmaskProtein" + fnImgOut.substr(dotPos));
 	PmaskRoi.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi" + fnImgOut.substr(dotPos));
-	// M_P.write(fnImgOut.substr(0, dotPos) + "_PmaskProtein_Norm" + fnImgOut.substr(dotPos));
 	// M.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi_Norm" + fnImgOut.substr(dotPos));
 	#endif
 
@@ -499,6 +495,11 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 
 		projectVolume(vMaskP(), PmaskProtein, Xdim, Ydim, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
 		projectVolume(vMaskRoi(), PmaskRoi, Xdim, Ydim, part_angles.rot, part_angles.tilt, part_angles.psi, &roffset);
+
+		#ifdef DEBUG_OUTPUT_FILES
+		size_t dotPos = fn_out.find_last_of('.');
+		PmaskProtein.write(fn_out.substr(0, dotPos) + "_PmaskProtein" + fn_out.substr(dotPos));
+		#endif
 
 		// Optimize noise calulation: search for random regions that fall in the square that circunscribe the 
 		// region that contain protein. We avoid generating random numbers in invalid regions.
