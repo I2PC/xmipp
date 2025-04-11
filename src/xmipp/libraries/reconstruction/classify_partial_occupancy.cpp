@@ -161,8 +161,8 @@ void ProgClassifyPartialOccupancy::preProcess()
 			if (computeNoiseEstimation)
 			{
 				// Read Protein mask
-				vMaskP().setXmippOrigin();
 				vMaskP.read(fnMaskProtein);
+				vMaskP().setXmippOrigin();
 
 				std::cout << "-------Estimating noise -------" << std::endl;
 				noiseEstimation();
@@ -504,7 +504,10 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 
 		#ifdef DEBUG_OUTPUT_FILES
 		size_t dotPos = fn_out.find_last_of('.');
-		PmaskProtein.write(fn_out.substr(0, dotPos) + "_PmaskProtein" + fn_out.substr(dotPos));
+		FileName outputPath = fn_out.substr(0, dotPos) + "_PmaskProtein.mrcs";
+		outputPath.compose(processedParticles + 1, outputPath);
+		std::cout << "---------- outputPath: " << outputPath << std::endl;
+		PmaskProtein.write(outputPath);
 		#endif
 
 		// Optimize noise calulation: search for random regions that fall in the square that circunscribe the 
