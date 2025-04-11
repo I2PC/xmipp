@@ -211,17 +211,17 @@ void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const Fil
 	// M = binarizeMask(PmaskRoi);
 
 	#ifdef DEBUG_OUTPUT_FILES
-	size_t dotPos = fnImgOut.find_last_of('.');
-	I.write(fnImgOut.substr(0, dotPos) + "_I" + fnImgOut.substr(dotPos));
-	P.write(fnImgOut.substr(0, dotPos) + "_P" + fnImgOut.substr(dotPos));
-	PmaskRoi.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi" + fnImgOut.substr(dotPos));
-	// M.write(fnImgOut.substr(0, dotPos) + "_PmaskRoi_Norm" + fnImgOut.substr(dotPos));
+	size_t dotPos = fn_out.find_last_of('.');
+	I.write(fn_out.substr(0, dotPos) + "_I.mrcs");
+	P.write(fn_out.substr(0, dotPos) + "_P.mrcs");
+	PmaskRoi.write(fn_out.substr(0, dotPos) + "_PmaskRoi.mrcs");
+	// M.write(fn_out.substr(0, dotPos) + "_PmaskRoi_Norm.mrcs");
 	#endif
 
 	double ll_I = 0;
 	double ll_IsubP = 0;
 
-	logLikelihood(ll_I, ll_IsubP, fnImgOut);
+	logLikelihood(ll_I, ll_IsubP);
 
 	writeParticle(rowOut, ll_I, ll_IsubP, (ll_I-ll_IsubP)); 
 }
@@ -621,7 +621,7 @@ void ProgClassifyPartialOccupancy::noiseEstimation()
 	#endif
 }
 
-void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP, const FileName &fnImgOut)
+void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP)
 {	
 	// -- Detect ligand regions
 	binarizeMask(PmaskRoi);
@@ -630,14 +630,14 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP, c
 	int numLig = labelImage2D(PmaskRoi(), PmaskRoiLabel, 8);
 
 	#ifdef DEBUG_OUTPUT_FILES
-	size_t dotPos = fnImgOut.find_last_of('.');
+	size_t dotPos = fn_out.find_last_of('.');
 	Image<double> saveImage;
 
 	saveImage = PmaskRoi;
-	saveImage.write(fnImgOut.substr(0, dotPos) + "_PmaskRoiBinarize" + fnImgOut.substr(dotPos));
+	saveImage.write(fn_out.substr(0, dotPos) + "_PmaskRoiBinarize.mrcs");
 
 	saveImage() = PmaskRoiLabel;
-	saveImage.write(fnImgOut.substr(0, dotPos) + "_PmaskRoiLabel" + fnImgOut.substr(dotPos));
+	saveImage.write(fn_out.substr(0, dotPos) + "_PmaskRoiLabel.mrcs");
 	#endif
 
 	// Calculate bounding box for each ligand region
@@ -663,7 +663,7 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP, c
 
 	#ifdef DEBUG_OUTPUT_FILES
 	saveImage = IsubP;
-	saveImage.write(fnImgOut.substr(0, dotPos) + "_IsubP" + fnImgOut.substr(dotPos));
+	saveImage.write(fn_out.substr(0, dotPos) + "_IsubP.mrcs");
 	#endif
 
 	// Analyze each ligand region independently
@@ -710,8 +710,8 @@ void ProgClassifyPartialOccupancy::logLikelihood(double ll_I, double ll_IsubP, c
 		}
 
 		#ifdef DEBUG_OUTPUT_FILES
-		size_t lastindex = fnImgOut.find_last_of(".");
-		std::string debugFileFn = fnImgOut.substr(0, lastindex) + "_centeredLigand_" + std::to_string(value) + ".mrc";
+		size_t lastindex = fn_out.find_last_of(".");
+		std::string debugFileFn = fn_out.substr(0, lastindex) + "_centeredLigand_" + std::to_string(value) + ".mrc";
 
 		saveImage() = centeredLigand;
 		saveImage.write(debugFileFn);
@@ -830,7 +830,7 @@ ProgClassifyPartialOccupancy::~ProgClassifyPartialOccupancy()
 
 
 // Unused methods ===================================================================
-void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<double> &M, FileName fnImgOut, double &avg, double &std, double &zScore)
+void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<double> &M, double &avg, double &std, double &zScore)
 {	
 	MultidimArray<double> &mI=I();
 
@@ -882,15 +882,9 @@ void ProgClassifyPartialOccupancy::computeParticleStats(Image<double> &I, Image<
 
 	#ifdef DEBUG_OUTPUT_FILES
 	// Save output masked particle for debugging
-	FileName fnMaskedImgOut;
-	size_t dotPos = fnImgOut.find_last_of('.');
+	size_t dotPos = fn_out.find_last_of('.');
+	FileName fnMaskedImgOut = fn_out.substr(0, dotPos) + "_maskedParticle.mrcs";
 
-    if (dotPos == std::string::npos) {
-        // No extension found
-        fnMaskedImgOut = fnImgOut + "_masked";
-    }
-    fnMaskedImgOut = fnImgOut.substr(0, dotPos) + "_masked" + fnImgOut.substr(dotPos);
-
-	M.write(fnImgOut.substr(0, dotPos) + "_mask" + fnImgOut.substr(dotPos));
+	M.write(fnMaskedImgOut);
 	#endif
 }
