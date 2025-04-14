@@ -33,6 +33,7 @@
 
 #define VERBOSE_OUTPUT
 #define DEBUG_STAT_MAP
+#define DEBUG_WEIGHT_MAP
 #define DEBUG_WRITE_OUTPUT
 
 /**@defgroup ProgStatisticalMap Calculates statistical map

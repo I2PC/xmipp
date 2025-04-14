@@ -27,16 +27,7 @@
  #include "core/transformations.h"
  #include "core/metadata_extension.h"
  #include "core/multidim_array.h"
- #include "core/xmipp_image_extension.h"
- #include "core/xmipp_image_generic.h"
  #include "core/xmipp_image_base.h"
- #include "core/xmipp_fft.h"
- #include "core/xmipp_fftw.h"
- #include "core/linear_system_helper.h"
- #include "data/projection.h"
- #include "data/mask.h"
- #include "data/filters.h"
- #include "data/morphology.h"
  #include <iostream>
  #include <string>
  #include <sstream>
@@ -81,11 +72,11 @@ void ProgStatisticalMap::defineParams()
 
 void ProgStatisticalMap::writeStatisticalMap() 
 {
+    avgVolume.write(fn_out_avg_map);
+    stdVolume.write(fn_out_std_map);
     #ifdef DEBUG_WRITE_OUTPUT
     std::cout << "Statistical map saved at: " << fn_out_avg_map << " and " << fn_out_std_map<<std::endl;
     #endif
-    avgVolume.write(fn_out_avg_map);
-    stdVolume.write(fn_out_std_map);
 }
 
 void ProgStatisticalMap::writeWeightedMap(FileName fnIn) 
@@ -162,7 +153,7 @@ void ProgStatisticalMap::run()
 	{
         row.getValue(MDL_IMAGE, fn_V);
 
-        #ifdef VERBOSE_OUTPUT
+        #ifdef DEBUG_WEIGHT_MAP
         std::cout << "Anayzing volume " << fn_V << " against statistical map..." << std::endl;
         #endif
 
@@ -171,6 +162,10 @@ void ProgStatisticalMap::run()
         processVolume();
         writeWeightedMap(fn_V);
     }
+
+    #ifdef DEBUG_WEIGHT_MAP
+    std::cout << "Input map succesfully analyzed!" << std::endl;
+    #endif
 }
 
 
