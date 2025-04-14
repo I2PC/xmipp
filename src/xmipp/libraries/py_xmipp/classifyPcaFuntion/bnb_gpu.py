@@ -416,7 +416,7 @@ class BnBgpu:
         newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL]    
         clk = self.averages_increaseClas(mmap, iter, newCL, classes)
         
-        if iter < 5:
+        if iter < 6:
             clk = clk * self.create_circular_mask(clk)
         else:
             clk = clk * self.create_gaussian_masks_different_sigma(clk)
@@ -851,7 +851,7 @@ class BnBgpu:
         return batch
     
     
-    def approximate_otsu_threshold(self, imgs, percentile=50):
+    def approximate_otsu_threshold(self, imgs, percentile=20):
 
         N, H, W = imgs.shape
         flat = imgs.view(N, -1)
