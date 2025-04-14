@@ -89,7 +89,7 @@ void ProgStatisticalMap::writeZscoresMap(FileName fnIn)
     }
 
     //Write output weighted volume
-    V.write(fnOut);
+    V_Zscores.write(fnOut);
 }
 
 void ProgStatisticalMap::writeWeightedMap(FileName fnIn) 
@@ -144,6 +144,7 @@ void ProgStatisticalMap::run()
             // Initialize maps
             avgVolume().initZeros(Zdim, Ydim, Xdim);
             stdVolume().initZeros(Zdim, Ydim, Xdim);
+            V_Zscores().initZeros(Zdim, Ydim, Xdim);
 
             dimInitialized = true;
         }
@@ -219,9 +220,19 @@ void ProgStatisticalMap::calculateZscoreMap()
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
         // Z-score
+        DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
+    }
+}
+
+void ProgStatisticalMap::weightMap()
+{ 
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+    {
+        // Z-score
         DIRECT_MULTIDIM_ELEM(V(),n) = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
     }
 }
+
 
 
 // Utils methods ===================================================================

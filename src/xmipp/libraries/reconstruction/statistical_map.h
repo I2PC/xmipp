@@ -62,6 +62,7 @@ class ProgStatisticalMap: public XmippProgram
     // Data variables
     FileName fn_V;              // Filename for each input volume from pool
     Image<double> V;            // Each input volume from pool
+    Image<double> V_Zscores;    // Each z-scores map from pool
     Image<double> avgVolume;    // Average volume
     Image<double> stdVolume;    // Standard deviation volume
     Image<double> weightedMap;  // Statistically-weighted map 
@@ -81,6 +82,8 @@ public:
     void show() const override;
     // Write output statistical map
     void writeStatisticalMap();
+    // Write Z-scores map
+    void writeZscoresMap(FileName fnIn);
     // Write weighted map
     void writeWeightedMap(FileName fnIn);
 
