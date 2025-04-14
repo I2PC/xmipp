@@ -38,7 +38,7 @@
 /**@defgroup ProgStatisticalMap Calculates statistical map
    @ingroup ReconsLibrary */
 //@{
-/** Calculate statistical map from a pool of input maps */
+/** Calculate statistical map from a pool of input maps and weight input volume*/
 
 class ProgStatisticalMap: public XmippProgram
 {
@@ -90,7 +90,7 @@ public:
     // ----------------------- CORE METHODS ------------------------------
     void processStaticalMap();
     void computeStatisticalMaps();
-    void processVolume();
+    void calculateZscoreMap();
 
     // ---------------------- UTILS METHODS ------------------------------
     // Generate side info

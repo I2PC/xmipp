@@ -72,6 +72,26 @@ void ProgStatisticalMap::writeStatisticalMap()
     #endif
 }
 
+void ProgStatisticalMap::writeZscoresMap(FileName fnIn) 
+{
+    // Compose filename
+    size_t lastSlashPos = fnIn.find_last_of("/\\");
+    size_t lastDotPos = fnIn.find_last_of('.');
+
+    FileName newFileName = fnIn.substr(lastSlashPos + 1, lastDotPos - lastSlashPos - 1) + "_Zscores" + fnIn.substr(lastDotPos);
+    FileName fnOut = fn_oroot + (fn_oroot.back() == '/' || fn_oroot.back() == '\\' ? "" : "/") + newFileName;
+
+    // Check if file already existes (the same pool map might contain to identical filenames
+    int counter = 1;
+    while (std::ifstream(fnOut)) 
+    {
+        fnOut = fn_oroot + (fn_oroot.back() == '/' || fn_oroot.back() == '\\' ? "" : "/") + fnIn.substr(fnIn.find_last_of("/\\") + 1, fnIn.find_last_of('.') - fnIn.find_last_of("/\\") - 1) + "_Zscores_" + std::to_string(counter++) + fnIn.substr(fnIn.find_last_of('.'));
+    }
+
+    //Write output weighted volume
+    V.write(fnOut);
+}
+
 void ProgStatisticalMap::writeWeightedMap(FileName fnIn) 
 {
     // Compose filename
@@ -152,7 +172,9 @@ void ProgStatisticalMap::run()
 
         V.read(fn_V);
 
-        processVolume();
+        calculateZscoreMap();
+        writeZscoresMap(fn_V);
+
         writeWeightedMap(fn_V);
     }
 
@@ -192,7 +214,7 @@ void ProgStatisticalMap::computeStatisticalMaps()
     }
 }
 
-void ProgStatisticalMap::processVolume()
+void ProgStatisticalMap::calculateZscoreMap()
 { 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
