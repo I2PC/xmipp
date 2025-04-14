@@ -861,9 +861,10 @@ class BnBgpu:
         self.binary_masks = (imgs > thresholds).float()
         return self.binary_masks
     
-    def compute_particle_radius(percentile: float = 99):
+    
+    def compute_particle_radius(self, imgs, percentile: float = 99):
         
-        masksself.approximate_otsu_threshold
+        masks= self.approximate_otsu_threshold(imgs, percentile=10)
         
         B, H, W = masks.shape
         device = masks.device
@@ -887,7 +888,7 @@ class BnBgpu:
     
     def create_gaussian_masks_different_sigma(self, images):
         
-        sigmas = self.compute_particle_radius
+        sigmas = self.compute_particle_radius(images, 99 )
         
         B = images.size(0)
         dim = images.size(-1)
