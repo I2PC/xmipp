@@ -416,7 +416,9 @@ class BnBgpu:
         newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL]    
         clk = self.averages_increaseClas(mmap, iter, newCL, classes)
         
-        clk = clk * self.create_circular_mask(clk)
+        # clk = clk * self.create_circular_mask(clk)
+        clk = clk * self.create_gaussian_masks_different_sigma(clk)
+        
         if iter < 3:
             clk = self.center_by_com(clk)     
         # if mask:
@@ -481,7 +483,8 @@ class BnBgpu:
                 self.grad_squared = torch.zeros_like(cl)
             clk, self.grad_squared = self.update_classes_rmsprop(cl, clk, 0.001, 0.9, 1e-8, self.grad_squared)
             
-            clk = clk * self.create_circular_mask(clk)
+            # clk = clk * self.create_circular_mask(clk)
+            clk = clk * self.create_gaussian_masks_different_sigma(clk)
       
         else: 
             del(transforIm)
@@ -750,58 +753,28 @@ class BnBgpu:
         return filtered_images
         
         
-
-    def apply_lowpass_filter_no(self, images, cutoff_frequency, sampling):
-        batch_size, height, width = images.size()
-        dim = max(height, width)
-    
-        frequencies = torch.fft.fftfreq(dim, device=images.device)
-    
-        freq_band = torch.zeros((dim, dim), device=images.device)
-    
-        maxFreq = sampling / cutoff_frequency
-        
-        wx, wy = torch.meshgrid(frequencies, frequencies, indexing='ij')
-        w = torch.sqrt(wx**2 + wy**2)
-        freq_band[w < maxFreq] = 1
-
-        images_fft = torch.fft.fftn(images, dim=(1, 2))
-        freq_band_expanded = freq_band.unsqueeze(0)
-        freq_band_expanded = freq_band_expanded.repeat(batch_size, 1, 1)
-        images_filtered_fft = images_fft * freq_band_expanded
-        images_filtered = torch.fft.ifftn(images_filtered_fft, dim=(1, 2)).real
-    
-        return images_filtered
-    
     
     def apply_lowpass_filter(self, images, cutoff_frequency, sampling):
         batch_size, height, width = images.shape
         device = images.device
     
-        # Compute frequency coordinates
         freq_y = torch.fft.fftfreq(height, d=1/sampling, device=device)
         freq_x = torch.fft.fftfreq(width, d=1/sampling, device=device)
         
-        # Create meshgrid for frequency components
         wx, wy = torch.meshgrid(freq_x, freq_y, indexing='ij')
         w = torch.sqrt(wx**2 + wy**2)
     
-        # Define low-pass filter mask
-        maxFreq = 1/cutoff_frequency  # Corrected cutoff condition
+        maxFreq = 1/cutoff_frequency  
         freq_band = (w < maxFreq).float()
     
-        # Apply FFT to the image batch
-        images_fft = torch.fft.fft2(images, dim=(1, 2))  # 2D FFT per image
+        images_fft = torch.fft.fft2(images, dim=(1, 2))  
         
-        # Expand mask to batch size
-        freq_band = freq_band.unsqueeze(0)  # Shape: (1, H, W)
-        freq_band = freq_band.expand(batch_size, -1, -1)  # Shape: (B, H, W)
+        freq_band = freq_band.unsqueeze(0)  
+        freq_band = freq_band.expand(batch_size, -1, -1)  
     
-        # Apply the filter
         images_filtered_fft = images_fft * freq_band
     
-        # Inverse FFT to obtain filtered images
-        images_filtered = torch.fft.ifft2(images_filtered_fft, dim=(1, 2)).real  # Extract real part
+        images_filtered = torch.fft.ifft2(images_filtered_fft, dim=(1, 2)).real  
     
         return images_filtered
     
@@ -838,7 +811,7 @@ class BnBgpu:
     
     def increase_contrast_sigmoid(self, images, alpha=10, beta=0.6):
    
-        normalized_images = (images + 1) / 2.0  # Escalar de (-1, 1) a (0, 1)
+        normalized_images = (images + 1) / 2.0 
         # sigmoid function
         adjusted_images = 1 / (1 + torch.exp(-alpha * (normalized_images - beta)))
         adjusted_images = adjusted_images * 2.0 - 1.0
@@ -874,6 +847,65 @@ class BnBgpu:
             lower_values_mean = lower_values_sum / (lower_values_count + 1e-8)
             batch = batch + torch.abs(lower_values_mean)
         return batch
+    
+    
+    def approximate_otsu_threshold(self, imgs, percentile=10):
+
+        N, H, W = imgs.shape
+        flat = imgs.view(N, -1)
+        k = int(flat.shape[1] * (percentile / 100.0))
+    
+        topk_vals, _ = torch.topk(flat, k=k, dim=1)
+        thresholds = topk_vals[:, -1].clamp(min=0.0).view(N, 1, 1)
+    
+        self.binary_masks = (imgs > thresholds).float()
+        return self.binary_masks
+    
+    def compute_particle_radius(percentile: float = 99):
+        
+        masksself.approximate_otsu_threshold
+        
+        B, H, W = masks.shape
+        device = masks.device
+    
+        y_coords = torch.arange(H, device=device).float() - H / 2
+        x_coords = torch.arange(W, device=device).float() - W / 2
+        yy, xx = torch.meshgrid(y_coords, x_coords, indexing='ij')
+    
+        dist_sq = xx**2 + yy**2  # shape (H, W)
+        self.max_distances = torch.zeros(B, device=device)
+    
+        for i in range(B):
+            foreground = masks[i] > 0.5
+            foreground_distances = dist_sq[foreground]
+            if foreground_distances.numel() > 0:
+                percentile_value_sq = torch.quantile(foreground_distances, percentile / 100.0)
+                self.max_distances[i] = torch.sqrt(percentile_value_sq)
+    
+        return self.max_distances
+    
+    
+    def create_gaussian_masks_different_sigma(self, images):
+        
+        sigmas = self.compute_particle_radius
+        
+        B = images.size(0)
+        dim = images.size(-1)
+        center = dim // 2
+    
+        y, x = torch.meshgrid(
+            torch.arange(dim, device=images.device) - center,
+            torch.arange(dim, device=images.device) - center,
+            indexing='ij'
+        )
+        dist2 = (x**2 + y**2).float()
+        dist2 = dist2.unsqueeze(0).expand(B, -1, -1)
+        sigma2 = sigmas.view(-1, 1, 1)**2
+        K = 1. / (torch.sqrt(2 * torch.tensor(np.pi, device=images.device)) * sigmas).view(-1, 1, 1)**2
+        masks = K * torch.exp(-0.5 * dist2 / sigma2)
+        center_val = masks[:, center, center].clone().view(-1, 1, 1)
+        masks = masks / center_val
+        return masks
 
 
     def determine_batches(self, free_memory, dim):
