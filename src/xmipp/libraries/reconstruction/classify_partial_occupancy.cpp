@@ -33,6 +33,7 @@
  #include "core/xmipp_fft.h"
  #include "core/xmipp_fftw.h"
  #include "core/linear_system_helper.h"
+ #include "core/xmipp_error.h"
  #include "data/projection.h"
  #include "data/mask.h"
  #include "data/filters.h"
@@ -66,7 +67,16 @@ void ProgClassifyPartialOccupancy::readParams()
 	else if (checkParam("--noise_est_particles"))
 	{
 		numParticlesNoiseEst = getIntParam("--noise_est_particles");
-		fnMaskProtein=getParam("--mask_protein");
+
+		if (checkParam("--mask_protein"))
+		{
+			fnMaskProtein=getParam("--mask_protein");
+		}
+		else
+		{
+			REPORT_ERROR(ERR_IO, "Mask protein not provided> mandatory for noise estimation.");
+		}
+
 		computeNoiseEstimation = true;
 	}
 }
