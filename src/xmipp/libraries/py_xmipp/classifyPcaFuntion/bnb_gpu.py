@@ -420,6 +420,7 @@ class BnBgpu:
             clk = clk * self.create_circular_mask(clk)
         else:
             clk = clk * self.create_gaussian_masks_different_sigma(clk)
+            clk = clk * self.create_circular_mask(clk)
         
         if iter < 3:
             clk = self.center_by_com(clk)     
@@ -485,8 +486,8 @@ class BnBgpu:
                 self.grad_squared = torch.zeros_like(cl)
             clk, self.grad_squared = self.update_classes_rmsprop(cl, clk, 0.001, 0.9, 1e-8, self.grad_squared)
             
-            # clk = clk * self.create_circular_mask(clk)
-            clk = clk * self.create_gaussian_masks_different_sigma(clk)
+            clk = clk * self.create_circular_mask(clk)
+            # clk = clk * self.create_gaussian_masks_different_sigma(clk)
       
         else: 
             del(transforIm)
