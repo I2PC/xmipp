@@ -54,7 +54,7 @@ void ProgStatisticalMap::readParams()
 {
     fn_mapPool = getParam("-i");
     fn_mapPool_statistical = getParam("--input_mapPool");
-    fn_oroot = getParam("-oroot");
+    fn_oroot = getParam("--oroot");
 }
 
 void ProgStatisticalMap::show() const
