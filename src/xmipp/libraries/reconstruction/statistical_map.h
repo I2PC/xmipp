@@ -26,6 +26,7 @@
 #ifndef _PROG_STATISTICAL_MAP
 #define _PROG_STATISTICAL_MAP
 
+#include "core/metadata_vec.h"
 #include "core/xmipp_program.h"
 #include "core/xmipp_image.h"
 #include "core/xmipp_filename.h"
@@ -94,6 +95,7 @@ public:
     void processStaticalMap();
     void computeStatisticalMaps();
     void calculateZscoreMap();
+    void weightMap();
 
     // ---------------------- UTILS METHODS ------------------------------
     // Generate side info
