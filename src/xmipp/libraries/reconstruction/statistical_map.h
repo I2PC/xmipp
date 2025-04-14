@@ -29,6 +29,7 @@
 #include "core/metadata_vec.h"
 #include "core/xmipp_program.h"
 #include "core/xmipp_image.h"
+#include "core/xmipp_filename.h"
 
 #define VERBOSE_OUTPUT
 #define DEBUG_OUTPUT_FILES
@@ -80,7 +81,7 @@ public:
     // Write output statistical map
     void writeStatisticalMap();
     // Write weighted map
-    void writeWeightedMap(Filename fnIn);
+    void writeWeightedMap(FileName fnIn);
 
     // ----------------------- MAIN METHODS ------------------------------
     void run();

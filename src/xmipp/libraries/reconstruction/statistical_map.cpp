@@ -74,7 +74,7 @@ void ProgStatisticalMap::defineParams()
                   to new map pool to characterize the likelyness of its densities.");
 
     //Parameters
-	XmippMetadataProgram::defineParams();
+	XmippProgram::defineParams();
     addParamsLine("-i <i=\"\">                  : Input metadata containing volumes to analyze against the calculated statical map.");
     addParamsLine("--input_mapPool <i=\"\">     : Input metadata containing map pool for statistical map calculation.");
     addParamsLine("--oroot <oroot=\"\">         : Location for saving output.");
@@ -86,14 +86,14 @@ void ProgStatisticalMap::writeStatisticalMap()
     stdVolume.write(fn_out_std_map);
 }
 
-void ProgStatisticalMap::writeWeightedMap(Filename fnIn) 
+void ProgStatisticalMap::writeWeightedMap(FileName fnIn) 
 {
     // Compose filename
     size_t lastSlashPos = fnIn.find_last_of("/\\");
     size_t lastDotPos = fnIn.find_last_of('.');
 
-    Filename newFilename = fnIn.substr(lastSlashPos + 1, lastDotPos - lastSlashPos - 1) + "_weighted" + fnIn.substr(lastDotPos);
-    Filename fnOut = fn_oroot + (fn_oroot.back() == '/' || fn_oroot.back() == '\\' ? "" : "/") + newFilename;
+    FileName newFileName = fnIn.substr(lastSlashPos + 1, lastDotPos - lastSlashPos - 1) + "_weighted" + fnIn.substr(lastDotPos);
+    FileName fnOut = fn_oroot + (fn_oroot.back() == '/' || fn_oroot.back() == '\\' ? "" : "/") + newFileName;
 
     // Check if file already existes (the same pool map might contain to identical filenames
     int counter = 1;
@@ -126,9 +126,9 @@ void ProgStatisticalMap::run()
         if (!dimInitialized)
         {
             // Read dim
-            Xdim = XSIZE(V);
-            Ydim = YSIZE(V);
-            Zdim = ZSIZE(V);
+            Xdim = XSIZE(V());
+            Ydim = YSIZE(V());
+            Zdim = ZSIZE(V());
 
             // Initialize maps
             avgVolume().initZeros(Zdim, Ydim, Xdim);
@@ -187,7 +187,7 @@ void ProgStatisticalMap::processVolume()
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
         // Z-score
-        DIRECT_MULTIDIM_ELEM(V(),n) = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n));
+        DIRECT_MULTIDIM_ELEM(V(),n) = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
     }
 }
 
