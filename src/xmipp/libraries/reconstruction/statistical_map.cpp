@@ -166,6 +166,11 @@ void ProgStatisticalMap::run()
     #ifdef DEBUG_WEIGHT_MAP
     std::cout << "Input map succesfully analyzed!" << std::endl;
     #endif
+
+    auto t2 = high_resolution_clock::now();
+    auto ms_int = duration_cast<milliseconds>(t2 - t1);
+
+ 	std::cout << "Execution time: " << ms_int.count() << std::endl;
 }
 
 
