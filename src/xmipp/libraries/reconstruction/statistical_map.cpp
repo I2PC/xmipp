@@ -141,6 +141,14 @@ void ProgStatisticalMap::run()
             Ydim = YSIZE(V());
             Zdim = ZSIZE(V());
 
+            #ifdef DEBUG_DIM
+            std::cout 
+            << "Xdim: " << Xdim << std::endl
+            << "Ydim: " << Ydim << std::endl
+            << "Zdim: " << Zdim << std::endl
+            << "Ndim: " << Ndim << std::endl;
+            #endif
+
             // Initialize maps
             avgVolume().initZeros(Zdim, Ydim, Xdim);
             stdVolume().initZeros(Zdim, Ydim, Xdim);
@@ -206,12 +214,12 @@ void ProgStatisticalMap::computeStatisticalMaps()
 { 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(avgVolume())
     {
-        double value  = DIRECT_MULTIDIM_ELEM(avgVolume(),n);
-        double value2 = DIRECT_MULTIDIM_ELEM(stdVolume(),n);
-        double mean = value/Ndim;
+        double sum  = DIRECT_MULTIDIM_ELEM(avgVolume(),n);
+        double sum2 = DIRECT_MULTIDIM_ELEM(stdVolume(),n);
+        double mean = sum/Ndim;
 
-        DIRECT_MULTIDIM_ELEM(avgVolume(),n) += mean;
-        DIRECT_MULTIDIM_ELEM(stdVolume(),n) += sqrt(value2/Ndim - mean*mean);
+        DIRECT_MULTIDIM_ELEM(avgVolume(),n) = sum;
+        DIRECT_MULTIDIM_ELEM(stdVolume(),n) = sqrt(sum2/Ndim - mean*mean);
     }
 }
 

@@ -32,6 +32,7 @@
 #include "core/xmipp_filename.h"
 
 #define VERBOSE_OUTPUT
+#define DEBUG_DIM
 #define DEBUG_STAT_MAP
 #define DEBUG_WEIGHT_MAP
 #define DEBUG_WRITE_OUTPUT
