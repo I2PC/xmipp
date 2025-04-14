@@ -30,12 +30,7 @@
  #include "core/xmipp_image_base.h"
  #include <iostream>
  #include <string>
- #include <sstream>
- #include "data/image_operate.h"
  #include <iostream>
- #include <cstdlib>
- #include <vector>
- #include <utility>
  #include <chrono>
 
 
@@ -167,10 +162,10 @@ void ProgStatisticalMap::run()
     std::cout << "Input map succesfully analyzed!" << std::endl;
     #endif
 
-    auto t2 = high_resolution_clock::now();
-    auto ms_int = duration_cast<milliseconds>(t2 - t1);
+    auto t2 = std::chrono::high_resolution_clock::now();
+    auto ms_int = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
 
- 	std::cout << "Execution time: " << ms_int.count() << std::endl;
+ 	std::cout << "Execution time: " << ms_int.count() << " ms" << std::endl;
 }
 
 
