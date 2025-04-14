@@ -24,13 +24,11 @@
  ***************************************************************************/
 
  #include "statistical_map.h"
- #include "core/transformations.h"
  #include "core/metadata_extension.h"
  #include "core/multidim_array.h"
  #include "core/xmipp_image_base.h"
  #include <iostream>
  #include <string>
- #include <iostream>
  #include <chrono>
 
 
