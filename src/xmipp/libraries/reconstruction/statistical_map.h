@@ -32,7 +32,8 @@
 #include "core/xmipp_filename.h"
 
 #define VERBOSE_OUTPUT
-#define DEBUG_OUTPUT_FILES
+#define DEBUG_STAT_MAP
+#define DEBUG_WRITE_OUTPUT
 
 /**@defgroup ProgStatisticalMap Calculates statistical map
    @ingroup ReconsLibrary */

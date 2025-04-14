@@ -81,6 +81,9 @@ void ProgStatisticalMap::defineParams()
 
 void ProgStatisticalMap::writeStatisticalMap() 
 {
+    #ifdef DEBUG_WRITE_OUTPUT
+    std::cout << "Statistical map saved at: " << fn_out_avg_map << " and " << fn_out_std_map<<std::endl;
+    #endif
     avgVolume.write(fn_out_avg_map);
     stdVolume.write(fn_out_std_map);
 }
@@ -120,7 +123,12 @@ void ProgStatisticalMap::run()
     for (const auto& row : mapPoolMD)
 	{
         row.getValue(MDL_IMAGE, fn_V);
-        V.read(fn_V);
+
+        #ifdef DEBUG_STAT_MAP
+        std::cout << "Processing volume " << fn_V << " from statistical map pool..." << std::endl;
+        #endif
+
+        V.read(fn_V); 
 
         if (!dimInitialized)
         {
@@ -140,6 +148,11 @@ void ProgStatisticalMap::run()
     }
 
     computeStatisticalMaps();
+
+    #ifdef DEBUG_STAT_MAP
+    std::cout << "Statistical map succesfully calculated!" << std::endl;
+    #endif
+    
     writeStatisticalMap();
 
     // Compare input maps against statistical map
@@ -148,6 +161,11 @@ void ProgStatisticalMap::run()
     for (const auto& row : mapPoolMD)
 	{
         row.getValue(MDL_IMAGE, fn_V);
+
+        #ifdef VERBOSE_OUTPUT
+        std::cout << "Anayzing volume " << fn_V << " against statistical map..." << std::endl;
+        #endif
+
         V.read(fn_V);
 
         processVolume();
@@ -194,6 +212,6 @@ void ProgStatisticalMap::processVolume()
 // Utils methods ===================================================================
 void ProgStatisticalMap::generateSideInfo()
 {
-    FileName fn_out_avg_map = fn_oroot + "statsMap_avg.mrc";
-    FileName fn_out_std_map = fn_oroot + "statsMap_std.mrc";
+    fn_out_avg_map = fn_oroot + "statsMap_avg.mrc";
+    fn_out_std_map = fn_oroot + "statsMap_std.mrc";
 }
