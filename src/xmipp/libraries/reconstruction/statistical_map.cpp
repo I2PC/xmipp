@@ -74,9 +74,9 @@ void ProgStatisticalMap::defineParams()
                   to new map pool to characterize the likelyness of its densities.");
 
     //Parameters
-    addParamsLine("-i <i=\"\">                  : Input metadata containing volumes to analyze against the calculated statical map.");
-    addParamsLine("--input_mapPool <i=\"\">     : Input metadata containing map pool for statistical map calculation.");
-    addParamsLine("--oroot <oroot=\"\">         : Location for saving output.");
+    addParamsLine("-i <i=\"\">                              : Input metadata containing volumes to analyze against the calculated statical map.");
+    addParamsLine("--input_mapPool <input_mapPool=\"\">     : Input metadata containing map pool for statistical map calculation.");
+    addParamsLine("--oroot <oroot=\"\">                     : Location for saving output.");
 }
 
 void ProgStatisticalMap::writeStatisticalMap() 
