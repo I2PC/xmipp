@@ -38,6 +38,7 @@
  #include "data/mask.h"
  #include "data/filters.h"
  #include "data/morphology.h"
+ #include "data/unitCell.h"
  #include <iostream>
  #include <string>
  #include <sstream>
@@ -82,7 +83,7 @@ void ProgClassifyPartialOccupancy::readParams()
 	if (checkParam("--unitcell"))
 	{
 		symmetryProvided = true;
-		uc_sym = getParam("--unitcell")
+		uc_sym = getParam("--unitcell");
 	}
 	else
 	{
@@ -311,7 +312,7 @@ void ProgClassifyPartialOccupancy::finishProcessing()
 void ProgClassifyPartialOccupancy::unitCellExtraction()
 {
 	UnitCell UC(uc_sym, uc_rmin, uc_rmax, uc_expandFactor, uc_offset, uc_sampling, uc_x_origin, uc_y_origin, uc_z_origin);
-	UC.maskUnitCell(V,V_unitcell);
+	UC.maskUnitCell(V, V_unitcell);
 }
 
 
@@ -322,7 +323,7 @@ void ProgClassifyPartialOccupancy::frequencyCharacterization()
     MultidimArray<double> V_ft_mod; // Volume FT modulus
 
 	FourierTransformer fcTransformer;
-	fcTransformer.FourierTransform(V(), V_ft, false);
+	fcTransformer.FourierTransform(V_unitcell(), V_ft, false);
 
 	// FT dimensions
 	int Xdim_ft = XSIZE(V_ft);
@@ -785,6 +786,10 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 			// if (radialAvg_FT[DIRECT_MULTIDIM_ELEM(particleFreqMap,n)] > thrModuleFT && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
 			
 			// Consider all frequencies and weight by frquency magnitude (normalized with the maximum)
+			// if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
+			// {
+
+			// Consider only "mount Fuji" frequencies (in Halo but not in APO)
 			if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
 			{
 				ll_I_it     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / DIRECT_MULTIDIM_ELEM(powerNoise(), n);
