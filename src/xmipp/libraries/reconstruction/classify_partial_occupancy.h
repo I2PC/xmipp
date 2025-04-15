@@ -136,7 +136,8 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
     Image<double> powerNoise;
     
     // Variables for frequency profiling
-    double minModuleFT; // Defined as x% of the value of the frequency with the maximum module
+    double thrModuleFT; // Defined as x% of the value of the frequency with the maximum module
+    double maxModuleFT; // Just keep track of the maximum frequency magnitude for normalization
     std::vector<double> radialAvg_FT;
     MultidimArray<double> particleFreqMap;
 

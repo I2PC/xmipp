@@ -403,7 +403,8 @@ void ProgClassifyPartialOccupancy::frequencyCharacterization()
 
 	// Calculate minimum modulus for frequency 
 	auto maxElement = std::max_element(radialAvg_FT.begin(), radialAvg_FT.end());
-	minModuleFT = 0.5*static_cast<double>(*maxElement);
+	thrModuleFT = 0.5*static_cast<double>(*maxElement);
+	maxModuleFT = static_cast<double>(*maxElement);
 
 	//Construct particle frequency map (2D)
 	// Reuse freq_fourier_x and freq_fourier_y vectors
@@ -466,7 +467,7 @@ void ProgClassifyPartialOccupancy::frequencyCharacterization()
 	md.write(outputMD);
 	#endif
 
-	std::cout << "Frenquency profiling estimated. Minimum modulus value: " << minModuleFT << std::endl;
+	std::cout << "Frenquency profiling estimated. Minimum modulus value: " << thrModuleFT << std::endl;
 }
 
 void ProgClassifyPartialOccupancy::noiseEstimation()
@@ -745,10 +746,17 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI)
 		{		
 			// Consider only those frequencies (under Nyquist) whose radial module is over threshold
-			if (radialAvg_FT[DIRECT_MULTIDIM_ELEM(particleFreqMap,n)] > minModuleFT && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
+			// if (radialAvg_FT[DIRECT_MULTIDIM_ELEM(particleFreqMap,n)] > thrModuleFT && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
+			
+			// Consider all frequencies and weight by frquency magnitude (normalized with the maximum)
+			if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
 			{
 				ll_I_it     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / DIRECT_MULTIDIM_ELEM(powerNoise(), n);
 				ll_IsubP_it += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / DIRECT_MULTIDIM_ELEM(powerNoise(), n);
+
+				double freqNormFactor = radialAvg_FT[DIRECT_MULTIDIM_ELEM(particleFreqMap,n)] / maxModuleFT;
+				ll_I_it		*= freqNormFactor;
+				ll_IsubP_it	*= freqNormFactor;
 			}
 		}
 
