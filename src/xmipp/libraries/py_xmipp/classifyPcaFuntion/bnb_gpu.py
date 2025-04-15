@@ -851,7 +851,7 @@ class BnBgpu:
         return batch
     
     
-    def approximate_otsu_threshold(self, imgs, percentile=10):
+    def approximate_otsu_threshold(self, imgs, percentile=5):
 
         N, H, W = imgs.shape
         flat = imgs.view(N, -1)
