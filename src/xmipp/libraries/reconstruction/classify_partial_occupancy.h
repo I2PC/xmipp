@@ -31,6 +31,7 @@
 #include "core/xmipp_image.h"
 #include "data/fourier_filter.h"
 #include "data/fourier_projection.h"
+#include "data/unitCell.h"
 #include "core/xmipp_metadata_program.h"
 
 // #define DEBUG
@@ -141,6 +142,18 @@ class ProgClassifyPartialOccupancy: public XmippMetadataProgram
     std::vector<double> radialAvg_FT;
     MultidimArray<double> particleFreqMap;
 
+    // Variables for unit cell calculation
+    bool symmetryProvided;
+ 	Image<double> V_unitcell; // volume unit cell for symmetric specimens
+    String uc_sym;
+    int uc_rmin = 0;
+    int uc_rmax;
+    int uc_expandFactor = 0;
+    int uc_offset = 0;
+    double uc_sampling = 1.0;
+    double uc_x_origin;
+    double uc_y_origin;
+    double uc_z_origin;
 
 
 public:
@@ -163,6 +176,7 @@ public:
     void finishProcessing();
 
     // ----------------------- CORE METHODS ------------------------------
+    void unitCellExtraction();
     void frequencyCharacterization();
     void noiseEstimation();
     void logLikelihood(double &ll_I, double &ll_IsubP, const FileName &fnImgOut);

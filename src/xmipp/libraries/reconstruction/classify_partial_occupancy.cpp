@@ -76,9 +76,19 @@ void ProgClassifyPartialOccupancy::readParams()
 		{
 			REPORT_ERROR(ERR_IO, "Mask protein not provided> mandatory for noise estimation.");
 		}
-
 		computeNoiseEstimation = true;
 	}
+
+	if (checkParam("--unitcell"))
+	{
+		symmetryProvided = true;
+		uc_sym = getParam("--unitcell")
+	}
+	else
+	{
+		symmetryProvided = false;
+	}
+	
 }
 
 void ProgClassifyPartialOccupancy::show() const
@@ -105,13 +115,16 @@ void ProgClassifyPartialOccupancy::defineParams()
 
     //Parameters
 	XmippMetadataProgram::defineParams();
-    addParamsLine("--ref <volume>\t: Reference volume to subtract");
+    addParamsLine("--ref <volume>\t						: Reference volume to subtract");
     addParamsLine("--mask_roi <mask_roi=\"\">     		: 3D mask for region of interest to keep or subtract, no mask implies subtraction of whole images");
 
 	addParamsLine("--noise_est <noise_est=\"\">			: Previously calculated noise estimation for likelihood calculation.");
-	addParamsLine("or --noise_est_particles <n=5000>    : Number of particles to calculate the noise estimation if it is not previously calculated. \
-														  The computational burden of this operation is significative, especially if a high number of particles is processed.");
+	addParamsLine("or --noise_est_particles <n=5000>    : Number of particles to calculate the noise estimation if it is not previously calculated. ");
+	addParamsLine(										 "The computational burden of this operation is significative, especially if a high number of particles is processed.");
 	addParamsLine("[--mask_protein <mask_protein=\"\">]	: 3D mask for region of the specimen. Only required to calculate noise estimation.");
+
+	addParamsLine("[--unitcell <sym>] 					: Extract a unit cell from volume for frequency profilling. Recomended if the specimen presents symmetry ");
+	addParamsLine(										 "and in particular if the reference volume is recosntructed as this.");
 
 	addParamsLine("[--realSpaceProjection]				: Project volume in real space to avoid Fourier artifacts");
 	addParamsLine("[--padding <p=2>]					: Padding factor for Fourier projector");
@@ -165,6 +178,22 @@ void ProgClassifyPartialOccupancy::preProcess()
 	if (rank==0)
 	{
 			std::cout << "-------Charactizing frequencies-------" << std::endl;
+			// Extract unit cell
+			if (symmetryProvided)
+			{
+				uc_rmax = Xdim / 2;	// Assume square volume
+				uc_x_origin = Xdim / 2;
+				uc_y_origin = Ydim / 2;
+				uc_z_origin = Zdim / 2;
+
+				unitCellExtraction();
+			}
+			else
+			{
+				V_unitcell = V;
+			}
+			
+			// Extract frequencies
 			frequencyCharacterization();
 			std::cout << "-------Frequencies characterized-------" << std::endl;
 
@@ -279,6 +308,13 @@ void ProgClassifyPartialOccupancy::finishProcessing()
 
 
 // Core methods ===================================================================
+void ProgClassifyPartialOccupancy::unitCellExtraction()
+{
+	UnitCell UC(uc_sym, uc_rmin, uc_rmax, uc_expandFactor, uc_offset, uc_sampling, uc_x_origin, uc_y_origin, uc_z_origin);
+	UC.maskUnitCell(V,V_unitcell);
+}
+
+
 void ProgClassifyPartialOccupancy::frequencyCharacterization()
 {
 	// Calculate FT
