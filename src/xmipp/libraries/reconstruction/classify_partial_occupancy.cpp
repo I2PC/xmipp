@@ -312,7 +312,7 @@ void ProgClassifyPartialOccupancy::finishProcessing()
 void ProgClassifyPartialOccupancy::unitCellExtraction()
 {
 	UnitCell UC(uc_sym, uc_rmin, uc_rmax, uc_expandFactor, uc_offset, uc_sampling, uc_x_origin, uc_y_origin, uc_z_origin);
-	UC.maskUnitCell(V, V_unitcell);
+	// UC.maskUnitCell(V, V_unitcell);
 }
 
 
@@ -790,7 +790,7 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 			// {
 
 			// Consider only "mount Fuji" frequencies (in Halo but not in APO)
-			if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
+			if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) > 75 && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) < 125)
 			{
 				ll_I_it     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / DIRECT_MULTIDIM_ELEM(powerNoise(), n);
 				ll_IsubP_it += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / DIRECT_MULTIDIM_ELEM(powerNoise(), n);
