@@ -236,7 +236,7 @@ void ProgStatisticalMap::calculateZscoreMap()
         }
         else
         {
-            DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;   
+            DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = 0;   
         }
     }
 }
