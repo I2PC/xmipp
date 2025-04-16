@@ -184,6 +184,7 @@ void ProgStatisticalMap::run()
         calculateZscoreMap();
         writeZscoresMap(fn_V);
 
+        weightMap();
         writeWeightedMap(fn_V);
     }
 
