@@ -120,12 +120,12 @@ void ProgClassifyPartialOccupancy::defineParams()
     addParamsLine("--mask_roi <mask_roi=\"\">     		: 3D mask for region of interest to keep or subtract, no mask implies subtraction of whole images");
 
 	addParamsLine("--noise_est <noise_est=\"\">			: Previously calculated noise estimation for likelihood calculation.");
-	addParamsLine("or --noise_est_particles <n=5000>    : Number of particles to calculate the noise estimation if it is not previously calculated. ");
-	addParamsLine(										 "The computational burden of this operation is significative, especially if a high number of particles is processed.");
+	addParamsLine("or --noise_est_particles <n=5000>    : Number of particles to calculate the noise estimation if it is not previously calculated. \
+										                  The computational burden of this operation is significative, especially if a high number of particles is processed.");
 	addParamsLine("[--mask_protein <mask_protein=\"\">]	: 3D mask for region of the specimen. Only required to calculate noise estimation.");
 
-	addParamsLine("[--unitcell <sym>] 					: Extract a unit cell from volume for frequency profilling. Recomended if the specimen presents symmetry ");
-	addParamsLine(										 "and in particular if the reference volume is recosntructed as this.");
+	addParamsLine("[--unitcell <sym>] 					: Extract a unit cell from volume for frequency profilling. Recomended if the specimen presents symmetry \
+														  and in particular if the reference volume is recosntructed as this.");
 
 	addParamsLine("[--realSpaceProjection]				: Project volume in real space to avoid Fourier artifacts");
 	addParamsLine("[--padding <p=2>]					: Padding factor for Fourier projector");
