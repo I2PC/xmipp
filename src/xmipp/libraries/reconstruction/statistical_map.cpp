@@ -228,8 +228,16 @@ void ProgStatisticalMap::calculateZscoreMap()
 { 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
-        // Z-score
-        DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
+        // Positive Z-score
+        double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
+        if (zscore > 0)
+        {
+            DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;
+        }
+        else
+        {
+            DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;   
+        }
     }
 }
 
