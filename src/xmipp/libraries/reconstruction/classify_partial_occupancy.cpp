@@ -146,7 +146,10 @@ void ProgClassifyPartialOccupancy::defineParams()
  void ProgClassifyPartialOccupancy::writeParticle(MDRow &rowOut, double avg, double std, double zScore) 
  {
 	#ifdef DEBUG_WRITE_PARICLE
+	std::cout << "-------------- writing output particle" << std::endl;
 	std::cout << "Final ll_I: " << avg << " --- Final ll_IsubP: " << std << " --- Final delta_ll: " << zScore << std::endl;
+	std::cout << "fnImgI: " << fnImgI << std::endl;
+	std::cout << "-------------- " << std::endl;
 	#endif
 
 	rowOut.setValue(MDL_IMAGE, fnImgI); 
@@ -244,6 +247,12 @@ void ProgClassifyPartialOccupancy::preProcess()
 
 void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
  { 
+
+	std::cout << "-------------- fedeBug" << std::endl;
+	std::cout << "fnImg: " << fnImg << std::endl;
+	std::cout << "-------------- " << std::endl;
+
+
 	// Project volume and process projections 
 	const auto sizeI = (int)XSIZE(I());
 
