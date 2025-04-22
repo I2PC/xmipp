@@ -387,7 +387,7 @@ void ProgSubtractProjection::generateNoiseEstimationSideInfo()
 			{
 				for(size_t j=0; j<Xdim; ++j)
 				{
-					if (DIRECT_A3D_ELEM(maskVol(), n) > 0) {
+					if (DIRECT_MULTIDIM_ELEM(maskVol(), n) > 0) {
 						minX = std::min(minX, (int)i);
 						minY = std::min(minY, (int)j);
 						minZ = std::min(minZ, (int)k);
