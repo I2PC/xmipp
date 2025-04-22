@@ -444,11 +444,6 @@ void ProgSubtractProjection::noiseEstimation()
 		{
 			for (size_t j = 0; j < cropSize; j++)
 			{
-				#ifdef DEBUG_NOISE_ESTIMATION
-				std::cout << "--------------------------------------------------" << std::endl;
-				std::cout << "y + i  " << y + i << " x + j " << x + j << std::endl;
-				std::cout << "(Ydim/2) - (cropSize/2) + i  " << (Ydim/2) - (cropSize/2) + i << " (Xdim/2) - (cropSize/2) + j " << (Xdim/2) - (cropSize/2) + j << std::endl;
-				#endif
 
 				if (DIRECT_A2D_ELEM(Pmask(), y + i, x + j) == 0 || DIRECT_A2D_ELEM(PmaskRoi(), y + i, x + j) > 0)
 				{
