@@ -379,13 +379,15 @@ void ProgSubtractProjection::generateNoiseEstimationSideInfo()
 		int maxY = 0;
 		int maxZ = 0;
 
+		long n = 0;
+
 		for(size_t k=0; k<Zdim; ++k)
 		{
 			for(size_t i=0; i<Ydim; ++i)
 			{
 				for(size_t j=0; j<Xdim; ++j)
 				{
-					if (DIRECT_A3D_ELEM(maskVol(), k, i, j) > 0) {
+					if (DIRECT_A3D_ELEM(maskVol(), n) > 0) {
 						minX = std::min(minX, (int)i);
 						minY = std::min(minY, (int)j);
 						minZ = std::min(minZ, (int)k);
@@ -393,6 +395,8 @@ void ProgSubtractProjection::generateNoiseEstimationSideInfo()
 						maxY = std::max(maxY, (int)j);
 						maxZ = std::max(maxZ, (int)k);
 					}
+
+					++n;
 				}
 			}
 		}
