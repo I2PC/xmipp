@@ -29,6 +29,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
+import collections
+import itertools
 
 import xmippPyModules.swiftalign.image as image
 import xmippPyModules.swiftalign.metadata as md
@@ -36,27 +38,28 @@ import xmippPyModules.swiftalign.operators as operators
 import xmippPyModules.swiftalign.transform as transform
 from xmippPyModules.swiftalign.pca import PCA
 
+class CudaComputeContext:
+    def __init__(self, device: torch.device):
+        self.device = device
+        self.compute_stream = torch.cuda.Stream(device=device)
+        self.h2d_transfer_stream = torch.cuda.Stream(device=device)
+        self.d2h_transfer_stream = torch.cuda.Stream(device=device)
+    
 class DirectionalTransformer:
     def __init__(self, 
-                 device: torch.device,
                  interpolation: str = 'bilinear',
                  padding: str = 'zeros' ):
-        self.device = device
-        self.transfer_stream = torch.cuda.Stream(device)
-        self.compute_stream = torch.cuda.Stream(device)
-        self.transfer_event = torch.cuda.Event()
         self.interpolation = interpolation
         self.padding = padding
         self.flattener = None
-        self.direction = torch.tensor([0, 0, 1], dtype=torch.float32)
     
     def setup(self,
               direction_angles: torch.Tensor,
+              compute_context: CudaComputeContext,
               mask: torch.Tensor ):
         
-        with torch.cuda.stream(self.transfer_stream):
-            mask = mask.to(self.device, non_blocking=True)
-            self.transfer_event.record()
+        with torch.cuda.stream(compute_context.h2d_transfer_stream):
+            mask = mask.to(compute_context.device, non_blocking=True)
         
         direction_angles = torch.deg2rad(direction_angles)
         direction_quaternion = transform.euler_to_quaternion(
@@ -66,18 +69,18 @@ class DirectionalTransformer:
         )
         self.inv_direction_quaternion = transform.quaternion_conj(direction_quaternion)
         
-        with torch.cuda.stream(self.compute_stream):
-            self.transfer_event.wait()
+        compute_context.compute_stream.wait_stream(compute_context.h2d_transfer_stream)
+        with torch.cuda.stream(compute_context.compute_stream):
             self.flattener = operators.MaskFlattener(mask)
     
     def transform(self,
                   images: torch.Tensor,
                   angles: torch.Tensor,
                   shifts: torch.Tensor,
+                  compute_context: CudaComputeContext,
                   out: torch.Tensor ):
-        
-        with torch.cuda.stream(self.transfer_stream):
-            images = images.to(self.device, non_blocking=True)
+        with torch.cuda.stream(compute_context.h2d_transfer_stream):
+            images = images.to(compute_context.device, non_blocking=True)
             
         centre = torch.tensor(images.shape[-2:]) / 2
         angles = torch.deg2rad(angles)
@@ -98,12 +101,11 @@ class DirectionalTransformer:
             centre=centre,
         )
 
-        with torch.cuda.stream(self.transfer_stream):
-            matrices = matrices.to(images, non_blocking=True)
-            self.transfer_event.record()
-        
-        with torch.cuda.stream(self.compute_stream):
-            self.transfer_event.wait()
+        with torch.cuda.stream(compute_context.h2d_transfer_stream):
+            matrices = matrices.to(compute_context.device, non_blocking=True)
+            
+        compute_context.compute_stream.wait_stream(compute_context.h2d_transfer_stream)
+        with torch.cuda.stream(compute_context.compute_stream):
             images = transform.affine_2d(
                 images=images, 
                 matrices=matrices,
@@ -119,38 +121,62 @@ def process_direction(direction_md: pd.DataFrame,
                       direction_angles: np.ndarray,
                       mask: np.ndarray,
                       transformer: DirectionalTransformer,
+                      compute_context: CudaComputeContext,
+                      reader: image.CachingReader,
                       dimred,
                       batch_size: int = 256):
     images_paths = list(map(image.parse_path, direction_md[md.IMAGE]))
-    images_dataset = image.torch_utils.Dataset(images_paths)
     angles = direction_md[[md.ANGLE_ROT, md.ANGLE_TILT, md.ANGLE_PSI]].to_numpy()
     shifts = direction_md[[md.SHIFT_X, md.SHIFT_Y]].to_numpy()
 
     start = 0
     n_elements = len(direction_md)
     
-    data = torch.empty((n_elements, np.count_nonzero(mask)), device=transformer.device)
-    transformer.setup(torch.as_tensor(direction_angles, dtype=torch.float32), torch.as_tensor(mask))
+    data = torch.empty((n_elements, np.count_nonzero(mask)), device=compute_context.device)
+    transformer.setup(
+        direction_angles=torch.as_tensor(direction_angles, dtype=torch.float32), 
+        mask=torch.as_tensor(mask),
+        compute_context=compute_context
+    )
 
     while start < n_elements:
         end = min(start + batch_size, n_elements)
         
-        images = torch.as_tensor(images_dataset[start:end]).pin_memory()
+        images = reader.read_batch(images_paths[start:end], pin_memory=True)
         transformer.transform(
             images=images,
             angles=torch.as_tensor(angles[start:end], dtype=torch.float32),
             shifts=torch.as_tensor(shifts[start:end], dtype=torch.float32),
+            compute_context=compute_context,
             out=data[start:end]
         )
         
         start = end
     
-    mean = data.mean(dim=0, keepdim=True)
-    data -= mean
-    data = dimred.fit_transform(data, mean=mean, mean_centered=True)
-    data = data.to('cpu', non_blocking=True)
+    with torch.cuda.stream(compute_context.compute_stream):
+        mean = data.mean(dim=0, keepdim=True)
+        data -= mean
+        data = dimred.fit_transform(data, mean=mean, mean_centered=True)
+    
+    compute_context.d2h_transfer_stream.wait_stream(compute_context.compute_stream)
+    with torch.cuda.stream(compute_context.d2h_transfer_stream):
+        dimred.to('cpu', non_blocking=True)
+        data = data.to('cpu', non_blocking=True)
     
     return data, dimred
+
+def save_direction(index: int, pca, data: torch.Tensor, mask: np.ndarray, output_root: str):
+    mean = pca.mean_.squeeze().numpy()
+    average_image = np.zeros_like(mask, dtype=mean.dtype)
+    average_image[mask] = mean
+    image.write(average_image, os.path.join(output_root, f'{index:06d}_average.mrc'))
+
+    components = pca.components_.numpy()
+    eigen_images = np.zeros((len(components), ) + mask.shape, dtype=components.dtype)
+    eigen_images[:,mask] = components
+    image.write(eigen_images, os.path.join(output_root, f'{index:06d}_eigen.mrcs'), image_stack=True)
+    
+    np.save(os.path.join(output_root, f'{index:06d}_data.npy'), data)
 
 def run(directional_md_path: str, 
         output_root: str, 
@@ -163,40 +189,41 @@ def run(directional_md_path: str,
     else:
         devices = [torch.device('cpu')]
     
-    transformer = DirectionalTransformer(device=devices[0])
-        
+    n_in_flight_directions = 3*len(devices)
+    compute_contexts = [CudaComputeContext(device) for device in devices]
+    transformer = DirectionalTransformer()
+    particle_reader = image.CachingReader()
+    mask_reader = image.CachingReader()
+    
     directional_md = md.read(directional_md_path)
-    for i, row in directional_md.iterrows():
+    in_flight_directions = collections.deque()
+    for (i, row), compute_context in zip(directional_md.iterrows(), itertools.cycle(compute_contexts)):
         direction_md_path = row[md.SELFILE]
         mask_path = image.parse_path(row[md.MASK])
         direction_angles = row[[md.ANGLE_ROT, md.ANGLE_TILT, md.ANGLE_PSI]]
         direction_md = md.read(direction_md_path)
-        mask = image.read(mask_path.filename)
-        if mask_path.position_in_stack is not None:
-            mask = mask[mask_path.position_in_stack-1]
+        mask = mask_reader.read(mask_path)
         mask = mask.astype(bool)
         
-        pca = PCA(n_components=n_components)
         data, pca = process_direction(
             direction_md=direction_md,
             direction_angles=direction_angles,
             mask=mask,
             transformer=transformer,
-            dimred=pca,
+            dimred=PCA(n_components=n_components),
+            compute_context=compute_context,
+            reader=particle_reader,
             batch_size=batch_size
         )
+        in_flight_directions.append((i, pca, data, mask))
         
-        mean = pca.mean_.squeeze().to('cpu').numpy()
-        average_image = np.zeros_like(mask, dtype=mean.dtype)
-        average_image[mask] = mean
-        image.write(average_image, os.path.join(output_root, f'{i:06d}_average.mrc'))
-
-        components = pca.components_.to('cpu').numpy()
-        eigen_images = np.zeros((len(components), ) + mask.shape, dtype=components.dtype)
-        eigen_images[:,mask] = components
-        image.write(eigen_images, os.path.join(output_root, f'{i:06d}_eigen.mrcs'), image_stack=True)
-        
-        np.save(os.path.join(output_root, f'{i:06d}_data.npy'), data)
+        if len(in_flight_directions) > n_in_flight_directions:
+            index, pca, data, mask = in_flight_directions.popleft()
+            save_direction(index, pca, data, mask, output_root)
+            
+    while in_flight_directions:
+        index, pca, data, mask = in_flight_directions.popleft()
+        save_direction(index, pca, data, mask, output_root)
         
 if __name__ == '__main__':
     # Define the input

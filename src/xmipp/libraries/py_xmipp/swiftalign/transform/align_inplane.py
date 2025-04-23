@@ -29,10 +29,15 @@ from .affine_matrix_2d import make_affine_matrix_2d
 def align_inplane(matrices_3d: torch.Tensor,
                   shifts: torch.Tensor,
                   centre: torch.Tensor,
+                  apply_streching: bool = False,
                   out: Optional[torch.Tensor] = None ) -> torch.Tensor:
 
-    u, _, vh = torch.linalg.svd(matrices_3d[..., :2,:2])
-    matrices_2d = u @ vh
+    if apply_streching:
+        inverse_matrices_3d = torch.linalg.inv(matrices_3d)
+        matrices_2d = torch.linalg.inv(inverse_matrices_3d[..., :2,:2])
+    else:
+        u, _, vh = torch.linalg.svd(matrices_3d[..., :2,:2])
+        matrices_2d = u @ vh
     
     return make_affine_matrix_2d(
         m22=matrices_2d,

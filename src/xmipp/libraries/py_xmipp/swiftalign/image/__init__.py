@@ -24,4 +24,5 @@ from .read import read
 from .write import write
 from .utils import get_image2d_size, parse_path
 from .Path import Path
+from .CachingReader import CachingReader
 from . import torch_utils
