@@ -73,7 +73,9 @@ class CachingReader:
         self.max_open = max_open
         self._cache = collections.OrderedDict()
     
-    def read(self, path: Path) -> torch.Tensor:
+    def read(self, path: Path,
+             dtype: Optional[torch.dtype]=None,
+             pin_memory=False) -> torch.Tensor:
         # Get referenced data
         mrc = self.__read_file(path.filename)
         
@@ -82,36 +84,47 @@ class CachingReader:
         if mrc.is_image_stack() or mrc.is_volume_stack():
             data = data[path.position_in_stack-1]
             
-        return data
+        result = torch.tensor(data, dtype=dtype)
+        if pin_memory:
+            result = result.pin_memory()
+        
+        return result
         
     def read_batch(self, 
                    paths: Iterable[Path],
+                   dtype: Optional[torch.dtype]=None,
                    pin_memory=False) -> torch.Tensor:
         output_stacks = []
         for filename, index_slice in _batch_files(paths):
             mrc = self.__read_file(filename)
-            data = mrc.data
+            data = torch.as_tensor(mrc.data, dtype=dtype)
             
             if mrc.is_image_stack() or mrc.is_volume_stack():
                 if index_slice is None:
                     raise RuntimeError('Image index should be provided for image stacks')
-                output_stacks.append(data[index_slice])
+                data = data[index_slice]
             else:
-                output_stacks.append(data[None])
+                data = data[None]
+            
+            output_stacks.append(data)
 
         # Concatenate the arrays
         if len(output_stacks) == 1:
-            result = torch.as_tensor(output_stacks[0])
+            result = output_stacks[0]
             if pin_memory:
                 result = result.pin_memory()
             
         else:
-            n_images = sum(map(len, output_stacks))
-            result_shape = (n_images, ) + output_stacks[0].shape[1:]
-            result = torch.empty(result_shape, pin_memory=pin_memory)
-            np.concatenate(output_stacks, axis=0, out=result.numpy())
+            if pin_memory:
+                n_images = sum(map(len, output_stacks))
+                result_shape = (n_images, ) + output_stacks[0].shape[1:]
+                result = torch.empty(result_shape, pin_memory=pin_memory, dtype=dtype)
+            else:
+                result = None
+                
+            result = torch.concat(output_stacks, dim=0, out=result)
 
-        return torch.as_tensor(result)
+        return result
 
     def __read_file(self, filename: str):
         item = self._cache.get(filename, None)
