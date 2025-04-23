@@ -20,38 +20,24 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-IMAGE = 'image'
-REFERENCE_IMAGE = 'imageRef'
-MASK = 'mask'
+from typing import Optional
 
-REF = 'ref'
-REF3D = 'ref3d'
+import torch
 
-RESOLUTION_FREQ = 'resolutionFreq'
-SIGMANOISE = 'sigmaNoise'
+from .affine_matrix_2d import make_affine_matrix_2d
 
-COST = 'cost'
-DIMRED = 'dimredCoeffs'
+def align_inplane(matrices_3d: torch.Tensor,
+                  shifts: torch.Tensor,
+                  centre: torch.Tensor,
+                  out: Optional[torch.Tensor] = None ) -> torch.Tensor:
 
-ANGLE_PSI = 'anglePsi'
-ANGLE_PSI2 = 'anglePsi2'
-ANGLE_ROT = 'angleRot'
-ANGLE_ROT2 = 'angleRot2'
-ANGLE_TILT = 'angleTilt'
-ANGLE_TILT2 = 'angleTilt2'
-
-SHIFT_X = 'shiftX'
-SHIFT_X2 = 'shiftX2'
-SHIFT_Y = 'shiftY'
-SHIFT_Y2 = 'shiftY2'
-
-X = 'x'
-Y = 'y'
-Z = 'z'
-
-ITEM_ID = 'itemId'
-SELFILE = 'selfile'
-
-CTF_DEFOCUS_U = 'ctfDefocusU'
-CTF_DEFOCUS_V = 'ctfDefocusV'
-CTF_DEFOCUS_ANGLE = 'ctfDefocusAngle'
+    u, _, vh = torch.linalg.svd(matrices_3d[..., :2,:2])
+    matrices_2d = u @ vh
+    
+    return make_affine_matrix_2d(
+        m22=matrices_2d,
+        shifts=shifts,
+        centre=centre,
+        shift_first=True,
+        out=out
+    )

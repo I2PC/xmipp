@@ -28,4 +28,5 @@ from . import image
 from . import metadata
 from . import operators
 from . import transform
+from . import pca
 from . import utils

@@ -79,13 +79,18 @@ class Dataset(torch.utils.data.Dataset):
     def __len__(self) -> int:
         return len(self._paths)
     
-    def __getitem__(self, index: Union[int, Iterable[int]]) -> np.ndarray:
+    def __getitem__(self, index: Union[int, Iterable[int], slice]) -> torch.Tensor:
         if isinstance(index, Iterable):
             return self.get_batch(index)
+        elif isinstance(index, slice):
+            start = index.start or 0
+            stop = index.stop
+            step = index.step or 1
+            return self.get_batch(range(start, stop, step))
         else:
             return self.get_single(index)
     
-    def get_single(self, index: int) -> np.ndarray:
+    def get_single(self, index: int) -> torch.Tensor:
         path = self._paths[index]
         
         # Get referenced data
@@ -98,7 +103,7 @@ class Dataset(torch.utils.data.Dataset):
             
         return data
         
-    def get_batch(self, indices: Iterable[int]) -> np.ndarray:
+    def get_batch(self, indices: Iterable[int]) -> torch.Tensor:
         output_stacks = []
         filenames = map(self._paths.__getitem__, indices)
         for filename, index_slice in _batch_files(filenames):

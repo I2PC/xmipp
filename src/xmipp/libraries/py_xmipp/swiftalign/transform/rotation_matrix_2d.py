@@ -20,20 +20,29 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional
+from typing import Optional, Tuple, Union
 import torch
 
-def rotation_matrix_2d(angles: torch.Tensor,
+def rotation_matrix_2d(angles: Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]],
                        out: Optional[torch.Tensor] = None):
 
-    out = torch.empty((len(angles), 2, 2), out=out)
-    
     # The 2D rotation matrix is defined as:
     #|c -s|
     #|s  c|
-    out[:,0,0] = torch.cos(angles, out=out[:,0,0]) #c
-    out[:,1,0] = torch.sin(angles, out=out[:,0,1]) #s
-    out[:,0,1] = -out[:,1,0] #-s
-    out[:,1,1] = out[:,0,0] #c
+    
+    out = torch.empty(angles.shape + (2, 2), out=out)
+
+    if angles.dtype.is_complex:
+        out[:,0,0] = angles.real
+        out[:,1,0] = angles.imag
+        
+    else:
+        torch.cos(angles, out=out[:,0,0])
+        torch.sin(angles, out=out[:,1,0])
+        
+    c = out[:,0,0]
+    s = out[:,1,0]
+    out[:,0,1] = -s
+    out[:,1,1] = c
 
     return out

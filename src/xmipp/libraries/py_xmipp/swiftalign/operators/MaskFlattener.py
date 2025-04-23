@@ -26,10 +26,9 @@ import torch
 class MaskFlattener:
     def __init__(   self, 
                     mask: torch.Tensor,
-                    padded_length: Optional[int] = None,
-                    device: Optional[torch.device] = None):
+                    padded_length: Optional[int] = None ):
         self._mask = mask
-        self._indices = self._calculate_indices(mask, device=device)
+        self._indices = self._calculate_indices(mask)
         self._length = padded_length or len(self._indices)
 
     def __call__(   self,
@@ -71,9 +70,7 @@ class MaskFlattener:
         return self._length
 
     def _calculate_indices(self,
-                           mask: torch.BoolTensor, 
-                           device: Optional[torch.device] = None ) -> torch.IntTensor:
+                           mask: torch.BoolTensor ) -> torch.IntTensor:
         flat_mask = torch.flatten(mask)
-        indices = torch.argwhere(flat_mask)[:,0]
-        return indices.to(device)
+        return torch.argwhere(flat_mask)[:,0]
 

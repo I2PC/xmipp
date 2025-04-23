@@ -56,4 +56,3 @@ def quaternion_product(q: torch.Tensor,
     out[...,3] = q0*r3 + q1*r2 - q2*r1 + q3*r0
     
     return out
-    

@@ -20,4 +20,4 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .InPlaneTransformCorrector import InPlaneTransformCorrector
+from .PCA import PCA

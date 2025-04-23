@@ -51,12 +51,20 @@ def affine_matrix_2d(angles: torch.Tensor,
                      shift_first: bool = False,
                      out: Optional[torch.Tensor] = None ) -> torch.Tensor:
 
-    batch_shape = angles.shape
+    if isinstance(angles, tuple):
+        batch_shape = torch.broadcast_shapes(angles[0].shape, shifts.shape[:-1])
+    else:
+        batch_shape = torch.broadcast_shapes(angles.shape, shifts.shape[:-1])
 
-    if shifts.shape != batch_shape + (2, ):
+    if shifts.shape[-1] != 2:
         raise RuntimeError('shifts has not the expected size')
 
-    out = torch.empty(batch_shape + (2, 3), out=out)
+    out = torch.empty(
+        batch_shape + (2, 3), 
+        dtype=shifts.dtype, 
+        device=shifts.device, 
+        out=out
+    )
 
     # Compute the rotation matrix
     rotation_matrix_2d(
@@ -69,7 +77,7 @@ def affine_matrix_2d(angles: torch.Tensor,
         if mirror:
             out[...,0,:] = -out[...,0,:]
     else:
-        out[mirror,0,:] = -out[mirror,0,:]
+        out[mirror,:2,1] = -out[mirror,:2,1]
     
     _apply_shifts(
         m23=out,

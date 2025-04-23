@@ -20,38 +20,34 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-IMAGE = 'image'
-REFERENCE_IMAGE = 'imageRef'
-MASK = 'mask'
+from typing import Tuple
 
-REF = 'ref'
-REF3D = 'ref3d'
+import torch
 
-RESOLUTION_FREQ = 'resolutionFreq'
-SIGMANOISE = 'sigmaNoise'
+def svd_flip(u: torch.Tensor, vh: torch.Tensor, u_based_decision: bool=True) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    Adjusts the signs of the singular vectors from the SVD decomposition for
+    deterministic output.
 
-COST = 'cost'
-DIMRED = 'dimredCoeffs'
+    This method ensures that the output remains consistent across different
+    runs.
 
-ANGLE_PSI = 'anglePsi'
-ANGLE_PSI2 = 'anglePsi2'
-ANGLE_ROT = 'angleRot'
-ANGLE_ROT2 = 'angleRot2'
-ANGLE_TILT = 'angleTilt'
-ANGLE_TILT2 = 'angleTilt2'
+    Args:
+        u (torch.Tensor): Left singular vectors tensor.
+        vh (torch.Tensor): Right singular vectors tensor.
+        u_based_decision (bool, optional): If True, uses the left singular
+            vectors to determine the sign flipping. Defaults to True.
 
-SHIFT_X = 'shiftX'
-SHIFT_X2 = 'shiftX2'
-SHIFT_Y = 'shiftY'
-SHIFT_Y2 = 'shiftY2'
-
-X = 'x'
-Y = 'y'
-Z = 'z'
-
-ITEM_ID = 'itemId'
-SELFILE = 'selfile'
-
-CTF_DEFOCUS_U = 'ctfDefocusU'
-CTF_DEFOCUS_V = 'ctfDefocusV'
-CTF_DEFOCUS_ANGLE = 'ctfDefocusAngle'
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor]: Adjusted left and right singular
+            vectors tensors.
+    """
+    if u_based_decision:
+        max_abs_cols = torch.argmax(torch.abs(u), dim=0)
+        signs = torch.sign(u[max_abs_cols, :])
+    else:
+        max_abs_rows = torch.argmax(torch.abs(vh), dim=1)
+        signs = torch.sign(vh[:, max_abs_rows])
+    u *= signs
+    vh *= signs[:, None]
+    return u, vh

@@ -20,48 +20,40 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 
 import torch
 
 from .quaternion_arithmetic import quaternion_product, quaternion_conj
 
 def twist_decomposition(quaternions: torch.Tensor,
-                        direction: Union[torch.Tensor, int],
+                        directions: torch.Tensor,
                         assume_normalized: bool = True,
-                        normalize_output: bool = True,
-                        out: Optional[torch.Tensor] = None) -> torch.Tensor:
+                        compute_quaternions: bool = False,
+                        return_phasor: bool = False ):
 
     if not assume_normalized:
         raise NotImplementedError()
     
-    # Create the output
-    out = torch.empty(quaternions.shape, dtype=quaternions.dtype, device=quaternions.device, out=out)
+    proj = torch.sum(quaternions[...,1:4]*directions, axis=-1)
+    half_angles = torch.complex(
+        quaternions[...,0],
+        proj
+    )
+    half_angles /= abs(half_angles)
     
-    if isinstance(direction, int):
-        # Only copy the selected axis to te output
-        for i in range(3):
-            out[...,i+1] = quaternions[...,i+1] if i == direction else 0
-        
+    if return_phasor:
+        angles = torch.square(half_angles)
     else:
-        # Compute the dot product of the direction and quaternion xyz
-        # and store it on the w component of the output
-        torch.matmul(direction[...,None,:], quaternions[...,1:4,None], out=out[...,0,None])
+        angles = 2*torch.acos(half_angles.real)
     
-        # Compute the xyz components by scaling the direction
-        # with the dot product. This is equivalent to the 
-        # projection of q.xyz onto the direction
-        torch.mul(direction, out[...,0,None], out=out[1:4])
-    
-    # Overwrite the w component with the w component of the
-    # input quaternions
-    out[...,0] = quaternions[...,0]
-    
-    # Normalize
-    if normalize_output:
-        out /= torch.norm(out, dim=-1, keepdim=True)
-    
-    return out
+    if compute_quaternions:
+        w = half_angles.real[...,None]
+        v = half_angles.imag[...,None] * directions
+        twist = torch.concat((w, v), axis=-1)
+        return angles, twist
+    else:
+        return angles
 
 def swing_decomposition(quaternions: torch.Tensor,
                         twists: torch.Tensor,
@@ -76,4 +68,25 @@ def swing_decomposition(quaternions: torch.Tensor,
         quaternion_conj(twists),
         out=out
     )
+
+def twist_swing_decomposition(quaternions: torch.Tensor,
+                              directions: Union[torch.Tensor],
+                              assume_normalized: bool = True,
+                              return_phasor: bool = False ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    if not assume_normalized:
+        raise NotImplementedError()
+
+    angles, twists = twist_decomposition(
+        quaternions, 
+        directions, 
+        assume_normalized=True,
+        compute_quaternions=True,
+        return_phasor=return_phasor
+    )
+    swing = swing_decomposition(
+        quaternions, 
+        twists, 
+        assume_normalized=True
+    )
     
+    return angles, twists, swing

@@ -32,9 +32,10 @@ def affine_2d(images: torch.Tensor,
               out: Optional[torch.Tensor] = None ) -> torch.Tensor:
     
     images = images[:,None,:,:]
-    out = kornia.geometry.transform.affine(
+    out = kornia.geometry.transform.warp_affine(
         images,
-        matrix=matrices,
+        M=matrices,
+        dsize=images.shape[-2:],
         mode=interpolation,
         padding_mode=padding
     )

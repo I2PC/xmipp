@@ -22,6 +22,7 @@
 
 from .affine_2d import affine_2d
 from .affine_matrix_2d import affine_matrix_2d, make_affine_matrix_2d
+from .align_inplane import align_inplane
 from .rotation_matrix_2d import rotation_matrix_2d
 from .euler_to_quaternion import euler_to_quaternion
 from .euler_to_matrix import euler_to_matrix
