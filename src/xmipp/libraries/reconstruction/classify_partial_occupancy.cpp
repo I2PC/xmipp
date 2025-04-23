@@ -247,12 +247,6 @@ void ProgClassifyPartialOccupancy::preProcess()
 
 void ProgClassifyPartialOccupancy::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
  { 
-
-	std::cout << "-------------- fedeBug" << std::endl;
-	std::cout << "fnImg: " << fnImg << std::endl;
-	std::cout << "-------------- " << std::endl;
-
-
 	// Project volume and process projections 
 	const auto sizeI = (int)XSIZE(I());
 
@@ -794,19 +788,25 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 			// Consider only those frequencies (under Nyquist) whose radial module is over threshold
 			// if (radialAvg_FT[DIRECT_MULTIDIM_ELEM(particleFreqMap,n)] > thrModuleFT && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
 			
-			// Consider all frequencies and weight by frquency magnitude (normalized with the maximum)
+			// Consider all frequencies
 			// if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
 			// {
 
 			// Consider only "mount Fuji" frequencies (in Halo but not in APO)
 			if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) > 75 && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) < 125)
 			{
+				if (DIRECT_MULTIDIM_ELEM(powerNoise(), n) == 0)
+				{
+					std::cout << "+++++++++++++++++++++++++++++++ power noise )!!!!!!!!!!" <<  DIRECT_MULTIDIM_ELEM(powerNoise(), n)<< std::endl;
+				}
+				
 				ll_I_it     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / DIRECT_MULTIDIM_ELEM(powerNoise(), n);
 				ll_IsubP_it += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / DIRECT_MULTIDIM_ELEM(powerNoise(), n);
 
-				double freqNormFactor = radialAvg_FT[DIRECT_MULTIDIM_ELEM(particleFreqMap,n)] / maxModuleFT;
-				ll_I_it		*= freqNormFactor;
-				ll_IsubP_it	*= freqNormFactor;
+				// Weight by frquency magnitude (normalized with the maximum)
+				// double freqNormFactor = radialAvg_FT[DIRECT_MULTIDIM_ELEM(particleFreqMap,n)] / maxModuleFT;
+				// ll_I_it		*= freqNormFactor;
+				// ll_IsubP_it	*= freqNormFactor;
 			}
 		}
 
