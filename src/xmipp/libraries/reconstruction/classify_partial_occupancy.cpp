@@ -790,15 +790,16 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI)
 		{		
 			// Consider only those frequencies (under Nyquist) whose radial module is over threshold
-			// if (radialAvg_FT[DIRECT_MULTIDIM_ELEM(particleFreqMap,n)] > thrModuleFT && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
+			if (radialAvg_FT[DIRECT_MULTIDIM_ELEM(particleFreqMap,n)] > thrModuleFT && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
+			{
 			
 			// Consider all frequencies
 			// if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
 			// {
 
 			// Consider only "mount Fuji" frequencies (in Halo but not in APO)
-			if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) > 75 && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) < 125)
-			{
+			// if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) > 75 && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) < 125)
+			// {
 				if (DIRECT_MULTIDIM_ELEM(powerNoise(), n) == 0)
 				{
 					std::cout << "+++++++++++++++++++++++++++++++ power noise )!!!!!!!!!!" <<  DIRECT_MULTIDIM_ELEM(powerNoise(), n)<< std::endl;
