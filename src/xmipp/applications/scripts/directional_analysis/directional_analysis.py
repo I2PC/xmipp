@@ -176,7 +176,7 @@ def preprocess_direction(direction_md: pd.DataFrame,
     return data
 
 def save_direction(index: int, pca, data: torch.Tensor, mask: torch.Tensor, output_root: str):
-    data = data.nunmpy()
+    data = data.numpy()
     mask = mask.numpy()
     
     mean = pca.mean_.squeeze()
