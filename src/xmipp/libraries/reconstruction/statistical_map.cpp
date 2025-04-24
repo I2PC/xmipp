@@ -230,11 +230,16 @@ void ProgStatisticalMap::computeStatisticalMaps()
 }
 
 void ProgStatisticalMap::calculateZscoreMap()
-{ 
+{
+    // Compute avg and std for every map to normalize before Z-score map calculation
+    double avg;
+    double std;
+    V().computeAvgStdev(avg, std);
+
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
         // Positive Z-score
-        double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
+        double zscore  = ((DIRECT_MULTIDIM_ELEM(V(),n) - avg) / std - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
         if (zscore > 0)
         {
             DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;
