@@ -202,10 +202,15 @@ void ProgStatisticalMap::run()
 // Core methods ===================================================================
 void ProgStatisticalMap::processStaticalMap()
 { 
+    // Compute avg and std for every map to normalize before statistical map calculation
+    double avg;
+    double std;
+    V().computeAvgStdev(avg, std);
+
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
         // Resused avg and std maps for sum and sum^2 (save memory)
-        double value = DIRECT_MULTIDIM_ELEM(V(),n);
+        double value = (DIRECT_MULTIDIM_ELEM(V(),n) - avg) / std;
         DIRECT_MULTIDIM_ELEM(avgVolume(),n) += value;
         DIRECT_MULTIDIM_ELEM(stdVolume(),n) += value * value;
     }
