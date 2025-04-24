@@ -175,10 +175,7 @@ def preprocess_direction(direction_md: pd.DataFrame,
             
     return data
 
-def save_direction(index: int, pca, data: torch.Tensor, mask: torch.Tensor, output_root: str):
-    data = data.numpy()
-    mask = mask.numpy()
-    
+def save_direction(index: int, pca, data: np.ndarray, mask: np.ndarray, output_root: str):
     mean = pca.mean_.squeeze()
     average_image = np.zeros_like(mask, dtype=mean.dtype)
     average_image[mask] = mean
@@ -232,12 +229,12 @@ def run(directional_md_path: str,
         if len(in_flight_directions) > n_in_flight_directions:
             index, data, mask = in_flight_directions.popleft()
             data = pca.fit_transform(data.numpy())
-            save_direction(index, pca, data, mask, output_root)
+            save_direction(index, pca, data, mask.numpy(), output_root)
             
     while in_flight_directions:
         index, data, mask = in_flight_directions.popleft()
         data = pca.fit_transform(data.numpy())
-        save_direction(index, pca, data, mask, output_root)
+        save_direction(index, pca, data, mask.numpy(), output_root)
         
 if __name__ == '__main__':
     # Define the input
