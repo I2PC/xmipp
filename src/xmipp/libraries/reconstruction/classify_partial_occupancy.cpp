@@ -769,15 +769,19 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 
 		#ifdef DEBUG_OUTPUT_FILES
 		size_t lastindex = fnImgOut.find_last_of(".");
-		std::string debugFileFn = fnImgOut.substr(0, lastindex) + "_centeredLigand_" + std::to_string(value) + ".mrcs";
 
+		std::string debugFileFn = fnImgOut.substr(0, lastindex) + "_centeredLigand_" + std::to_string(value) + ".mrcs";
 		saveImage() = centeredLigand;
+		saveImage.write(debugFileFn);
+
+		debugFileFn = fnImgOut.substr(0, lastindex) + "_centeredLigandSubP_" + std::to_string(value) + ".mrcs";
+		saveImage() = centeredLigandSubP;
 		saveImage.write(debugFileFn);
 		#endif
 
 		// Calculate FT for each cropping
-		transformerI.FourierTransform(I(), fftI, false);
-		transformerIsubP.FourierTransform(IsubP(), fftIsubP, false);
+		transformerI.FourierTransform(centeredLigand, fftI, false);
+		transformerIsubP.FourierTransform(centeredLigandSubP, fftIsubP, false);
 
 		// Calculate likelyhood for each region
 		double ll_I_it = 0;
