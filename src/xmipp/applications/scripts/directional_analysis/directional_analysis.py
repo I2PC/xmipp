@@ -224,7 +224,7 @@ def run(directional_md_path: str,
             reader=particle_reader,
             batch_size=batch_size
         )
-        in_flight_directions.append((i, data, mask))
+        in_flight_directions.append((i+1, data, mask))
         
         if len(in_flight_directions) > n_in_flight_directions:
             index, data, mask = in_flight_directions.popleft()
