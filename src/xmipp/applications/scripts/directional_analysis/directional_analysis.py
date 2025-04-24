@@ -122,8 +122,12 @@ class DirectionalTransformer:
                 padding=self.padding
             )
             
-            out[...] = self.flattener(images)
+            result = self.flattener(images)
         
+        compute_context.d2h_transfer_stream.wait_stream(compute_context.compute_stream)
+        with torch.cuda.stream(compute_context.d2h_transfer_stream):
+            out.copy_(result, non_blocking=True)
+
         return out
 
 def preprocess_direction(direction_md: pd.DataFrame,
@@ -142,7 +146,8 @@ def preprocess_direction(direction_md: pd.DataFrame,
 
     data = torch.empty(
         (n_elements, torch.count_nonzero(mask)), 
-        device=compute_context.device
+        device='cpu',
+        pin_memory=True
     )
     transformer.setup(
         direction_angles=torch.as_tensor(direction_angles, dtype=torch.float32), 
@@ -165,16 +170,15 @@ def preprocess_direction(direction_md: pd.DataFrame,
             compute_context=compute_context,
             out=data[start:end]
         )
-            
+        
         start = end
             
-    compute_context.d2h_transfer_stream.wait_stream(compute_context.compute_stream)
-    with torch.cuda.stream(compute_context.d2h_transfer_stream):
-        data = data.to('cpu', non_blocking=True)
-
     return data
 
-def save_direction(index: int, pca, data: torch.Tensor, mask: np.ndarray, output_root: str):
+def save_direction(index: int, pca, data: torch.Tensor, mask: torch.Tensor, output_root: str):
+    data = data.nunmpy()
+    mask = mask.numpy()
+    
     mean = pca.mean_.squeeze()
     average_image = np.zeros_like(mask, dtype=mean.dtype)
     average_image[mask] = mean
