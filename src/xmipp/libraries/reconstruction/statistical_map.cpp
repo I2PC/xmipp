@@ -207,6 +207,7 @@ void ProgStatisticalMap::run()
 void ProgStatisticalMap::processFSCmap()
 {
     FourierTransformer ft;
+    MultidimArray<std::complex<double>> V_ft; // Volume FT
 	ft.FourierTransform(V(), V_ft, false);
 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
@@ -222,7 +223,7 @@ void ProgStatisticalMap::computeFSC()
     // Compute mFSC map
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mFSC_map)
     {
-        DIRECT_MULTIDIM_ELEM(mFSC_map2, n) = (DIRECT_MULTIDIM_ELEM(mFSC_map,n) * std::conj(DIRECT_MULTIDIM_ELEM(mFSC_map,n))).real() / (Ndim * DIRECT_MULTIDIM_ELEM(mFSC_map2, n))
+        DIRECT_MULTIDIM_ELEM(mFSC_map2, n) = (DIRECT_MULTIDIM_ELEM(mFSC_map,n) * std::conj(DIRECT_MULTIDIM_ELEM(mFSC_map,n))).real() / (Ndim * DIRECT_MULTIDIM_ELEM(mFSC_map2, n));
     }
 
     #ifdef DEBUG_OUTPUT_FILES
@@ -348,7 +349,7 @@ void ProgStatisticalMap::composefreqMap()
 	int Ndim_ft = NSIZE(V_ft);
 
     // Use this dimension to initialize mFSC auxiliary maps
-    mFSC.initZeros(std::max(Xdim_ft, std::max(Ydim_ft, Zdim_ft)))
+    mFSC.initZeros(std::max(Xdim_ft, std::max(Ydim_ft, Zdim_ft)));
     mFSC_map2.initZeros(Zdim_ft, Ydim_ft, Xdim_ft);
     mFSC_map.initZeros(Zdim_ft, Ydim_ft, Xdim_ft);
 
