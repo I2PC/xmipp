@@ -232,10 +232,12 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 
 				for (size_t i = 0; i < numberResMod; i++)
 				{
-					if (removeOutliers && resMod_image[i].mahalanobisDistance < mahaThr)
+					double distance = resMod_image[i].mahalanobisDistance
+					
+					if (removeOutliers &&  < mahaThr)
 					{
-						sumMahaDist += resMod_image[i].mahalanobisDistance;
-						sumMahaDist2 += resMod_image[i].mahalanobisDistance * resMod_image[i].mahalanobisDistance;
+						sumMahaDist += distance;
+						sumMahaDist2 += distance * distance;
 					}
 				}
 
