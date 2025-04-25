@@ -130,12 +130,9 @@ void ProgTomoTSDetectMisalignmentCorr::lowpassFilter(MultidimArray<double> &tilt
 			{
 				DIRECT_MULTIDIM_ELEM(fftTI, n) = 0;
 			} 
-			else
+			else if(u >= freq && u < cutoffFreq)
 			{
-				if(u >= freq && u < cutoffFreq)
-				{
-					DIRECT_MULTIDIM_ELEM(fftTI, n) *= 0.5*(1+cos((u-freq)*delta));
-				}
+				DIRECT_MULTIDIM_ELEM(fftTI, n) *= 0.5*(1+cos((u-freq)*delta));
 			}
 			
 			++n;
