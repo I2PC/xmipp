@@ -27,6 +27,7 @@
  #include "core/metadata_extension.h"
  #include "core/multidim_array.h"
  #include "core/xmipp_image_base.h"
+ #include "core/xmipp_fftw.h"
  #include <iostream>
  #include <string>
  #include <chrono>
@@ -153,6 +154,8 @@ void ProgStatisticalMap::run()
             avgVolume().initZeros(Zdim, Ydim, Xdim);
             stdVolume().initZeros(Zdim, Ydim, Xdim);
 
+            composefreqMap();
+
             dimInitialized = true;
         }
 
@@ -271,4 +274,102 @@ void ProgStatisticalMap::generateSideInfo()
 {
     fn_out_avg_map = fn_oroot + "statsMap_avg.mrc";
     fn_out_std_map = fn_oroot + "statsMap_std.mrc";
+}
+
+
+void ProgStatisticalMap::composefreqMap()
+{
+	// Calculate FT
+    V().initZeros(Zdim, Ydim, Xdim);
+	MultidimArray<std::complex<double>> V_ft; // Volume FT
+
+	FourierTransformer ft;
+	ft.FourierTransform(V(), V_ft, false);
+
+	// FT dimensions
+	int Xdim_ft = XSIZE(V_ft);
+	int Ydim_ft = YSIZE(V_ft);
+	int Zdim_ft = ZSIZE(V_ft);
+	int Ndim_ft = NSIZE(V_ft);
+
+	if (Zdim_ft == 1)
+	{
+		Zdim_ft = Ndim_ft;
+	}
+
+	int maxRadius = std::min(Xdim_ft, std::min(Ydim_ft, Zdim_ft));	// Restric analysis to Nyquist
+
+	#ifdef DEBUG_FREQUENCY_MAP
+	std::cout << "FFT map dimensions: " << std::endl;  
+	std::cout << "FT xSize " << Xdim_ft << std::endl;
+	std::cout << "FT ySize " << Ydim_ft << std::endl;
+	std::cout << "FT zSize " << Zdim_ft << std::endl;
+	std::cout << "FT nSize " << Ndim_ft << std::endl;
+	std::cout << "maxRadius " << maxRadius << std::endl;
+	#endif
+
+	// Construct frequency map and initialize the frequency vectors
+	Matrix1D<double> freq_fourier_x;
+	Matrix1D<double> freq_fourier_y;
+	Matrix1D<double> freq_fourier_z;
+
+	freq_fourier_x.initZeros(Xdim_ft);
+	freq_fourier_y.initZeros(Ydim_ft);
+	freq_fourier_z.initZeros(Zdim_ft);
+
+	double u;	// u is the frequency
+
+	// Defining frequency components. First element should be 0, it is set as the smallest number to avoid singularities
+	VEC_ELEM(freq_fourier_z,0) = std::numeric_limits<double>::min();
+	for(size_t k=1; k<Zdim_ft; ++k){
+		FFT_IDX2DIGFREQ(k,Zdim, u);
+		VEC_ELEM(freq_fourier_z, k) = u;
+	}
+
+	VEC_ELEM(freq_fourier_y,0) = std::numeric_limits<double>::min();
+	for(size_t k=1; k<Ydim_ft; ++k){
+		FFT_IDX2DIGFREQ(k,Ydim, u);
+		VEC_ELEM(freq_fourier_y, k) = u;
+	}
+
+	VEC_ELEM(freq_fourier_x,0) = std::numeric_limits<double>::min();
+	for(size_t k=1; k<Xdim_ft; ++k){
+		FFT_IDX2DIGFREQ(k,Xdim, u);
+		VEC_ELEM(freq_fourier_x, k) = u;
+	}
+
+	//Initializing map with frequencies
+	freqMap.resizeNoCopy(V_ft);
+
+	// Directional frequencies along each direction
+	double uz;
+	double uy;
+	double ux;
+	double uz2;
+	double uz2y2;
+	long n=0;
+	int idx = 0;
+
+	for(size_t k=0; k<Zdim_ft; ++k)
+	{
+		uz = VEC_ELEM(freq_fourier_z, k);
+		uz2 = uz*uz;
+		
+		for(size_t i=0; i<Ydim_ft; ++i)
+		{
+			uy = VEC_ELEM(freq_fourier_y, i);
+			uz2y2 = uz2 + uy*uy;
+
+			for(size_t j=0; j<Xdim_ft; ++j)
+			{
+				ux = VEC_ELEM(freq_fourier_x, j);
+				ux = sqrt(uz2y2 + ux*ux);
+
+				idx = (int) round(ux * Xdim);
+				DIRECT_MULTIDIM_ELEM(freqMap,n) = idx;
+
+				++n;
+			}
+		}
+	}
 }

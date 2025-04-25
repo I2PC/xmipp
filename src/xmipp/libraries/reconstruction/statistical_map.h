@@ -33,6 +33,7 @@
 
 #define VERBOSE_OUTPUT
 #define DEBUG_DIM
+#define DEBUG_FREQUENCY_MAP
 #define DEBUG_STAT_MAP
 #define DEBUG_WEIGHT_MAP
 #define DEBUG_WRITE_OUTPUT
@@ -62,12 +63,13 @@ class ProgStatisticalMap: public XmippProgram
     size_t Ndim;
 
     // Data variables
-    FileName fn_V;              // Filename for each input volume from pool
-    Image<double> V;            // Each input volume from pool
-    Image<double> V_Zscores;    // Each z-scores map from pool
-    Image<double> avgVolume;    // Average volume
-    Image<double> stdVolume;    // Standard deviation volume
-    Image<double> weightedMap;  // Statistically-weighted map 
+    MultidimArray<double> freqMap;  // Frequency mapping in Fourier space
+    FileName fn_V;                  // Filename for each input volume from pool
+    Image<double> V;                // Each input volume from pool
+    Image<double> V_Zscores;        // Each z-scores map from pool
+    Image<double> avgVolume;        // Average volume
+    Image<double> stdVolume;        // Standard deviation volume
+    Image<double> weightedMap;      // Statistically-weighted map 
 
     // Particle metadata
     MetaDataVec mapPoolMD;
@@ -101,6 +103,8 @@ public:
     // ---------------------- UTILS METHODS ------------------------------
     // Generate side info
     void generateSideInfo();
+    void composefreqMap();
+
 
 };
 //@}
