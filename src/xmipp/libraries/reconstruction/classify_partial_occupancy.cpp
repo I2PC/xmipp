@@ -724,6 +724,9 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 	saveImage.write(fnImgOut.substr(0, dotPos) + "_IsubP.mrcs");
 	#endif
 
+	std::cout << "--------------------------------------------------------------------- " 	<< std::endl;
+	std::cout << fnImgI << std::endl;
+
 	// Analyze each ligand region independently
 	for (size_t value = 0; value < numLig; ++value) 
 	{
@@ -790,20 +793,16 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI)
 		{		
 			// Consider only those frequencies (under Nyquist) whose radial module is over threshold
-			if (radialAvg_FT[DIRECT_MULTIDIM_ELEM(particleFreqMap,n)] > thrModuleFT && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
-			{
+			// if (radialAvg_FT[DIRECT_MULTIDIM_ELEM(particleFreqMap,n)] > thrModuleFT && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
+			// {
 			
 			// Consider all frequencies
 			// if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
 			// {
 
 			// Consider only "mount Fuji" frequencies (in Halo but not in APO)
-			// if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) > 75 && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) < 125)
-			// {
-				if (DIRECT_MULTIDIM_ELEM(powerNoise(), n) == 0)
-				{
-					std::cout << "+++++++++++++++++++++++++++++++ power noise )!!!!!!!!!!" <<  DIRECT_MULTIDIM_ELEM(powerNoise(), n)<< std::endl;
-				}
+			if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) > 75 && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) < 125)
+			{
 				
 				ll_I_it     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / (1 + DIRECT_MULTIDIM_ELEM(powerNoise(), n));
 				ll_IsubP_it += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / (1 + DIRECT_MULTIDIM_ELEM(powerNoise(), n));
@@ -815,15 +814,27 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 			}
 		}
 
+		std::cout << "ll_I_it " 	<< ll_I_it << std::endl;
+		std::cout << "ll_IsubP_it " 	<< ll_IsubP_it << std::endl;
+
 		// Normalize likelyhood by number of pixels of the crop adn take logarithms
 		ll_I	 += std::log10(ll_I_it 	   / numberOfPx);
 		ll_IsubP += std::log10(ll_IsubP_it / numberOfPx);
+
+		std::cout << "ll_I_it for interation "     << value << " : " << ll_I_it     << ". Number of pixels: " << numberOfPx << std::endl;
+		std::cout << "ll_IsubP_it for interation " << value << " : " << ll_IsubP_it << ". Number of pixels: " << numberOfPx << std::endl;
 
 		#ifdef DEBUG_LOG_LIKELIHOOD
 		std::cout << "ll_I_it for interation "     << value << " : " << ll_I_it     << ". Number of pixels: " << numberOfPx << std::endl;
 		std::cout << "ll_IsubP_it for interation " << value << " : " << ll_IsubP_it << ". Number of pixels: " << numberOfPx << std::endl;
 		#endif
 	}
+
+	std::cout << "Final ll_I: " << ll_I << std::endl;
+	std::cout << "Final ll_IsubP: " << ll_IsubP << std::endl;
+
+	std::cout << "--------------------------------------------------------------------- " 	<< std::endl;
+
 
 	#ifdef DEBUG_LOG_LIKELIHOOD
 	std::cout << "Final ll_I: " << ll_I << std::endl;
