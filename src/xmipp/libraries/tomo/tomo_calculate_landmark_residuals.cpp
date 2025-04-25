@@ -270,30 +270,6 @@ void ProgTomoCalculateLandmarkResiduals::calculateResidualVectors()
 					{
 						distance = (XX(projectedGoldBead) - coordinatesInSlice[i].x)*(XX(projectedGoldBead) - coordinatesInSlice[i].x) + (YY(projectedGoldBead) - coordinatesInSlice[i].y)*(YY(projectedGoldBead) - coordinatesInSlice[i].y);
 
-						#ifdef DEBUG_RESID
-						// std::cout << "------------------------------------------------------------------------------------" << std::endl;
-						// std::cout << "i/i_total " << i << "/" << coordinatesInSlice.size()-1 << std::endl;
-						
-						// std::cout << "tiltAngles[n] " << tiltAngles[n] << std::endl;
-						// std::cout << "XX(projectedGoldBead) " << XX(projectedGoldBead) << std::endl;
-						// std::cout << "YY(projectedGoldBead) " << YY(projectedGoldBead) << std::endl;
-						// std::cout << "ZZ(projectedGoldBead) " << ZZ(projectedGoldBead) << std::endl;
-						
-						// std::cout << "XX(goldBead3d) " << XX(goldBead3d) << std::endl;
-						// std::cout << "YY(goldBead3d) " << YY(goldBead3d) << std::endl;
-						// std::cout << "ZZ(goldBead3d) " << ZZ(goldBead3d) << std::endl;
-
-						// std::cout << "coordinatesInSlice[i].x " << coordinatesInSlice[i].x << std::endl;
-						// std::cout << "coordinatesInSlice[i].y " << coordinatesInSlice[i].y << std::endl;
-
-						// std::cout << "coordinatesInSlice[i].x - XX(projectedGoldBead) " << coordinatesInSlice[i].x - XX(projectedGoldBead) << std::endl;
-						// std::cout << "coordinatesInSlice[i].y - YY(projectedGoldBead) " << coordinatesInSlice[i].y - YY(projectedGoldBead) << std::endl;
-
-						// std::cout << "minDistance " << minDistance << std::endl;
-						// std::cout << "distance " << distance << std::endl;
-						// std::cout << "------------------------------------------------------------------------------------" << std::endl;					
-						#endif
-
 						if(distance < minDistance)
 						{
 							minDistance = distance;
