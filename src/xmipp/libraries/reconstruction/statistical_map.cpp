@@ -160,9 +160,11 @@ void ProgStatisticalMap::run()
         }
 
         processStaticalMap();
+        processFSCmap();
     }
 
     computeStatisticalMaps();
+    computeFSC();
 
     #ifdef DEBUG_STAT_MAP
     std::cout << "Statistical map succesfully calculated!" << std::endl;
@@ -433,4 +435,11 @@ void ProgStatisticalMap::composefreqMap()
 			}
 		}
 	}
+
+    #ifdef DEBUG_OUTPUT_FILES
+	Image<double> saveImage;
+	std::string debugFileFn = fn_oroot + "freqMap.mrc";
+	saveImage() = freqMap;
+	saveImage.write(debugFileFn);
+    #endif
 }
