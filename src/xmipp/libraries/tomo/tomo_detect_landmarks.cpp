@@ -1424,8 +1424,6 @@ void ProgTomoDetectLandmarks::directionalFilterFourier(MultidimArray<double> &im
 
 			if (1/iun<upperBound && 1/iun>lowerBound)
 			{
-				// Si nos queremos y nos amamos porque no nos besamos por donde meamos
-				// 														   - J.L Vilas
 				auto ux_norm = ux*iun;
 				auto uy_norm = uy*iun;
 				double cosine = fabs(xdir*ux_norm + ydir*uy_norm);
