@@ -163,8 +163,8 @@ void ProgStatisticalMap::run()
         processFSCmap();
     }
 
-    computeStatisticalMaps();
     computeFSC();
+    computeStatisticalMaps();
 
     #ifdef DEBUG_STAT_MAP
     std::cout << "Statistical map succesfully calculated!" << std::endl;
@@ -209,7 +209,7 @@ void ProgStatisticalMap::run()
 void ProgStatisticalMap::processFSCmap()
 {
     FourierTransformer ft;
-    MultidimArray<std::complex<double>> V_ft; // Volume FT
+    MultidimArray<std::complex<double>> V_ft;
 	ft.FourierTransform(V(), V_ft, false);
 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
@@ -230,7 +230,7 @@ void ProgStatisticalMap::computeFSC()
 
     #ifdef DEBUG_OUTPUT_FILES
 	Image<double> saveImage;
-    std::string debugFileFn = fn_oroot + ".mrc";
+    std::string debugFileFn = fn_oroot + "mFSC.mrc";
 
 	saveImage() = mFSC_map2;
 	saveImage.write(debugFileFn);
