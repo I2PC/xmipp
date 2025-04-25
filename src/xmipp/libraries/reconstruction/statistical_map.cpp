@@ -226,7 +226,7 @@ void ProgStatisticalMap::computeStatisticalMaps()
         double sum2 = DIRECT_MULTIDIM_ELEM(stdVolume(),n);
         double mean = sum/Ndim;
 
-        DIRECT_MULTIDIM_ELEM(avgVolume(),n) = sum;
+        DIRECT_MULTIDIM_ELEM(avgVolume(),n) = mean;
         DIRECT_MULTIDIM_ELEM(stdVolume(),n) = sqrt(sum2/Ndim - mean*mean);
     }
 }
@@ -242,8 +242,7 @@ void ProgStatisticalMap::calculateZscoreMap()
     {
         // Positive Z-score
         // double zscore  = ((DIRECT_MULTIDIM_ELEM(V(),n) - avg) / std - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
-        // double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
-        double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n));
+        double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
 
         if (zscore > 0)
         {
