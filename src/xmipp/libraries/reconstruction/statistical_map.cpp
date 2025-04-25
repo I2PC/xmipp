@@ -204,6 +204,61 @@ void ProgStatisticalMap::run()
 
 
 // Core methods ===================================================================
+void ProgStatisticalMap::processFSCmap()
+{
+    FourierTransformer ft;
+	ft.FourierTransform(V(), V_ft, false);
+
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
+    {
+        DIRECT_MULTIDIM_ELEM(mFSC_map,  n) += DIRECT_MULTIDIM_ELEM(V_ft,n);
+        DIRECT_MULTIDIM_ELEM(mFSC_map2, n) += (DIRECT_MULTIDIM_ELEM(V_ft,n) * std::conj(DIRECT_MULTIDIM_ELEM(V_ft,n))).real();
+    }
+}
+
+
+void ProgStatisticalMap::computeFSC()
+{
+    // Compute mFSC map
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mFSC_map)
+    {
+        DIRECT_MULTIDIM_ELEM(mFSC_map2, n) = (DIRECT_MULTIDIM_ELEM(mFSC_map,n) * std::conj(DIRECT_MULTIDIM_ELEM(mFSC_map,n))).real() / (Ndim * DIRECT_MULTIDIM_ELEM(mFSC_map2, n))
+    }
+
+    #ifdef DEBUG_OUTPUT_FILES
+	Image<double> saveImage;
+    std::string debugFileFn = fn_oroot + ".mrc";
+
+	saveImage() = mFSC_map2;
+	saveImage.write(debugFileFn);
+    #endif
+
+    // Coherence per fequency
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mFSC_map2)
+	{
+        DIRECT_MULTIDIM_ELEM(mFSC,         (int)(DIRECT_MULTIDIM_ELEM(freqMap,n))) += DIRECT_MULTIDIM_ELEM(mFSC_map2,n);
+        DIRECT_MULTIDIM_ELEM(mFSC_counter, (int)(DIRECT_MULTIDIM_ELEM(freqMap,n))) += 1;
+	}
+
+    // Save output metadata
+	MetaDataVec md;
+	size_t id;
+
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mFSC)
+	{
+        DIRECT_MULTIDIM_ELEM(mFSC,n) /= DIRECT_MULTIDIM_ELEM(mFSC_counter,n);
+
+		id = md.addObject();
+		md.setValue(MDL_X, DIRECT_MULTIDIM_ELEM(mFSC,n),          id);
+		md.setValue(MDL_Z, DIRECT_MULTIDIM_ELEM(mFSC_counter,n),  id);
+	}
+
+	std::string outputMD = fn_oroot + "_mFSC.xmd";
+	md.write(outputMD);
+
+	std::cout << "Fourier shell coherence written at: " << outputMD << std::endl;
+}
+
 void ProgStatisticalMap::processStaticalMap()
 { 
     // // Compute avg and std for every map to normalize before statistical map calculation
@@ -291,6 +346,11 @@ void ProgStatisticalMap::composefreqMap()
 	int Ydim_ft = YSIZE(V_ft);
 	int Zdim_ft = ZSIZE(V_ft);
 	int Ndim_ft = NSIZE(V_ft);
+
+    // Use this dimension to initialize mFSC auxiliary maps
+    mFSC.initZeros(std::max(Xdim_ft, std::max(Ydim_ft, Zdim_ft)))
+    mFSC_map2.initZeros(Zdim_ft, Ydim_ft, Xdim_ft);
+    mFSC_map.initZeros(Zdim_ft, Ydim_ft, Xdim_ft);
 
 	if (Zdim_ft == 1)
 	{

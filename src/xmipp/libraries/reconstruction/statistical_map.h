@@ -37,6 +37,7 @@
 #define DEBUG_STAT_MAP
 #define DEBUG_WEIGHT_MAP
 #define DEBUG_WRITE_OUTPUT
+#define DEBUG_OUTPUT_FILES
 
 /**@defgroup ProgStatisticalMap Calculates statistical map
    @ingroup ReconsLibrary */
@@ -63,13 +64,18 @@ class ProgStatisticalMap: public XmippProgram
     size_t Ndim;
 
     // Data variables
-    MultidimArray<double> freqMap;  // Frequency mapping in Fourier space
-    FileName fn_V;                  // Filename for each input volume from pool
-    Image<double> V;                // Each input volume from pool
-    Image<double> V_Zscores;        // Each z-scores map from pool
-    Image<double> avgVolume;        // Average volume
-    Image<double> stdVolume;        // Standard deviation volume
-    Image<double> weightedMap;      // Statistically-weighted map 
+    MultidimArray<double> freqMap;                  // Frequency mapping in Fourier space
+    MultidimArray<double> mFSC;                     // Fourier Shell Coherence
+    MultidimArray<double> mFSC_counter;             // Fourier Shell Coherence counter (denominator)
+    MultidimArray<std::complex<double>> mFSC_map;   // FSC map components
+    MultidimArray<double> mFSC_map2;                // FSC squared map components
+    FileName fn_V;                                  // Filename for each input volume from pool
+    Image<double> V;                                // Each input volume from pool
+    Image<double> V_Zscores;                        // Each z-scores map from pool
+    Image<double> avgVolume;                        // Average volume
+    Image<double> stdVolume;                        // Standard deviation volume
+    Image<double> weightedMap;                      // Statistically-weighted map 
+
 
     // Particle metadata
     MetaDataVec mapPoolMD;
@@ -96,6 +102,8 @@ public:
 
     // ----------------------- CORE METHODS ------------------------------
     void processStaticalMap();
+    void processFSCmap();
+    void computeFSC();
     void computeStatisticalMaps();
     void calculateZscoreMap();
     void weightMap();
