@@ -790,12 +790,12 @@ void ProgTomoDetectMisalignmentResiduals::writeOutputAlignmentReport()
 // --------------------------- MAIN ----------------------------------
 void ProgTomoDetectMisalignmentResiduals::run()
 {
-	using std::chrono::high_resolution_clock;
+	using std::chrono::steady_clock;
     using std::chrono::duration_cast;
     using std::chrono::duration;
     using std::chrono::milliseconds;	
 
-	auto t1 = high_resolution_clock::now();
+	auto t1 = steady_clock::now();
 
 	std::cout << "Starting..." << std::endl;
 
@@ -812,7 +812,7 @@ void ProgTomoDetectMisalignmentResiduals::run()
 	writeOutputAlignmentReport();
 	writeWeightedResiduals();
 
-	auto t2 = high_resolution_clock::now();
+	auto t2 = steady_clock::now();
     auto ms_int = duration_cast<milliseconds>(t2 - t1); 	// Getting number of milliseconds as an integer
  	std::cout << "Execution time: " << ms_int.count() << "ms\n";
 }
