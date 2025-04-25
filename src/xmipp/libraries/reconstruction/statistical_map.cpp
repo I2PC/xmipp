@@ -243,17 +243,24 @@ void ProgStatisticalMap::computeFSC()
         DIRECT_MULTIDIM_ELEM(mFSC_counter, (int)(DIRECT_MULTIDIM_ELEM(freqMap,n))) += 1;
 	}
 
+    std::cout << "mFSC calculated!!!" << std::endl;
+
     // Save output metadata
 	MetaDataVec md;
 	size_t id;
 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mFSC)
 	{
+        std::cout << "---" << std::endl;
+        std::cout << n << std::endl;
+        std::cout << DIRECT_MULTIDIM_ELEM(mFSC_counter,n) << std::endl;
+        std::cout << DIRECT_MULTIDIM_ELEM(mFSC,n) << std::endl;
+
         DIRECT_MULTIDIM_ELEM(mFSC,n) /= DIRECT_MULTIDIM_ELEM(mFSC_counter,n);
 
 		id = md.addObject();
 		md.setValue(MDL_X, DIRECT_MULTIDIM_ELEM(mFSC,n),          id);
-		md.setValue(MDL_Z, DIRECT_MULTIDIM_ELEM(mFSC_counter,n),  id);
+		md.setValue(MDL_Y, DIRECT_MULTIDIM_ELEM(mFSC_counter,n),  id);
 	}
 
 	std::string outputMD = fn_oroot + "_mFSC.xmd";
@@ -351,7 +358,8 @@ void ProgStatisticalMap::composefreqMap()
 	int Ndim_ft = NSIZE(V_ft);
 
     // Use this dimension to initialize mFSC auxiliary maps
-    mFSC.initZeros(std::max(Xdim_ft, std::max(Ydim_ft, Zdim_ft)));
+    mFSC.initZeros(std::min(Xdim_ft, std::min(Ydim_ft, Zdim_ft)));
+    mFSC_counter.initZeros(std::min(Xdim_ft, std::min(Ydim_ft, Zdim_ft)));
     mFSC_map2.initZeros(Zdim_ft, Ydim_ft, Xdim_ft);
     mFSC_map.initZeros(Zdim_ft, Ydim_ft, Xdim_ft);
 
