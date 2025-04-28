@@ -814,15 +814,9 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 			}
 		}
 
-		std::cout << "ll_I_it " 	<< ll_I_it << std::endl;
-		std::cout << "ll_IsubP_it " 	<< ll_IsubP_it << std::endl;
-
 		// Normalize likelyhood by number of pixels of the crop adn take logarithms
 		ll_I	 += std::log10(ll_I_it 	   / numberOfPx);
 		ll_IsubP += std::log10(ll_IsubP_it / numberOfPx);
-
-		std::cout << "ll_I_it for interation "     << value << " : " << ll_I_it     << ". Number of pixels: " << numberOfPx << std::endl;
-		std::cout << "ll_IsubP_it for interation " << value << " : " << ll_IsubP_it << ". Number of pixels: " << numberOfPx << std::endl;
 
 		#ifdef DEBUG_LOG_LIKELIHOOD
 		std::cout << "ll_I_it for interation "     << value << " : " << ll_I_it     << ". Number of pixels: " << numberOfPx << std::endl;
