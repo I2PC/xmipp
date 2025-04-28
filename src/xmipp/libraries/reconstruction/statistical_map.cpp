@@ -195,7 +195,7 @@ void ProgStatisticalMap::run()
     }
 
     #ifdef DEBUG_WEIGHT_MAP
-    std::cout << "Input map succesfully analyzed!" << std::endl;
+    std::cout << "Input maps succesfully analyzed!" << std::endl;
     #endif
 
     auto t2 = std::chrono::high_resolution_clock::now();
@@ -256,8 +256,8 @@ void ProgStatisticalMap::computeFSC()
         DIRECT_MULTIDIM_ELEM(mFSC,n) = value;
 
 		id = md.addObject();
-		md.setValue(MDL_X, DIRECT_MULTIDIM_ELEM(mFSC,n),          id);
-		md.setValue(MDL_Y, DIRECT_MULTIDIM_ELEM(mFSC_counter,n),          id);
+		md.setValue(MDL_X, DIRECT_MULTIDIM_ELEM(mFSC,n), id);
+		md.setValue(MDL_Y, DIRECT_MULTIDIM_ELEM(mFSC_counter,n), id);
 	}
 
 	std::string outputMD = fn_oroot + "mFSC.xmd";
@@ -324,9 +324,50 @@ void ProgStatisticalMap::weightMap()
 { 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
-        // Z-score
         DIRECT_MULTIDIM_ELEM(V(),n) *= DIRECT_MULTIDIM_ELEM(V_Zscores(),n);
     }
+
+    std::cout << "fede 1" << std::endl;
+    int indexThr;
+    double thr = 0.143;
+
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mFSC)
+    {
+        if (DIRECT_MULTIDIM_ELEM(mFSC, n) < thr)
+        {
+            indexThr = n;
+            break;           
+        }
+    }
+    std::cout << "indexThr " << indexThr << std::endl;
+
+    std::cout << "fede 2" << std::endl;
+
+    FourierTransformer ft;
+        std::cout << "fede 2.1" << std::endl;
+
+    MultidimArray<double> Vm;
+    Vm = V();
+    MultidimArray<std::complex<double>> V_ft;
+        std::cout << "fede 2.2" << std::endl;
+
+	ft.FourierTransform(Vm, V_ft, false);
+
+    std::cout << "fede 2.3" << std::endl;
+
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
+    {
+        std::cout << "n " << n << std::endl;
+        if (DIRECT_MULTIDIM_ELEM(freqMap, n) > indexThr)
+        {
+            DIRECT_MULTIDIM_ELEM(V_ft,  n) = 0;
+        }
+    }
+    std::cout << "fede 3" << std::endl;
+
+    ft.inverseFourierTransform();
+        std::cout << "fede 4" << std::endl;
+
 }
 
 

@@ -76,7 +76,6 @@ class ProgStatisticalMap: public XmippProgram
     Image<double> stdVolume;                        // Standard deviation volume
     Image<double> weightedMap;                      // Statistically-weighted map 
 
-
     // Particle metadata
     MetaDataVec mapPoolMD;
     MDRowVec row;
