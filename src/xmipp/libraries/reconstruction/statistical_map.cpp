@@ -239,8 +239,14 @@ void ProgStatisticalMap::computeFSC()
     // Coherence per fequency
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mFSC_map2)
 	{
-        DIRECT_MULTIDIM_ELEM(mFSC,         (int)(DIRECT_MULTIDIM_ELEM(freqMap,n))) += DIRECT_MULTIDIM_ELEM(mFSC_map2,n);
-        DIRECT_MULTIDIM_ELEM(mFSC_counter, (int)(DIRECT_MULTIDIM_ELEM(freqMap,n))) += 1;
+        int freqIdx = (int)(DIRECT_MULTIDIM_ELEM(freqMap,n));
+
+        // Consider only up to Nyquist (remove corners from analysis)
+        if (freqIdx < NZYXSIZE(mFSC))
+        {
+            DIRECT_MULTIDIM_ELEM(mFSC,         freqIdx) += DIRECT_MULTIDIM_ELEM(mFSC_map2,n);
+            DIRECT_MULTIDIM_ELEM(mFSC_counter, freqIdx) += 1;
+        }
 	}
 
     std::cout << "mFSC calculated!!!" << std::endl;
@@ -327,7 +333,6 @@ void ProgStatisticalMap::weightMap()
         DIRECT_MULTIDIM_ELEM(V(),n) *= DIRECT_MULTIDIM_ELEM(V_Zscores(),n);
     }
 
-    std::cout << "fede 1" << std::endl;
     int indexThr;
     double thr = 0.143;
 
@@ -339,35 +344,22 @@ void ProgStatisticalMap::weightMap()
             break;           
         }
     }
-    std::cout << "indexThr " << indexThr << std::endl;
 
-    std::cout << "fede 2" << std::endl;
+    std::cout << "Frequency (normalized) thresholded at (for FSCoh > " << thr << "): " << indexThr/NZYXSIZE(mFSC) << std::endl;
 
     FourierTransformer ft;
-        std::cout << "fede 2.1" << std::endl;
-
-    MultidimArray<double> Vm;
-    Vm = V();
     MultidimArray<std::complex<double>> V_ft;
-        std::cout << "fede 2.2" << std::endl;
-
-	ft.FourierTransform(Vm, V_ft, false);
-
-    std::cout << "fede 2.3" << std::endl;
+	ft.FourierTransform(V(), V_ft, false);
 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
     {
-        std::cout << "n " << n << std::endl;
         if (DIRECT_MULTIDIM_ELEM(freqMap, n) > indexThr)
         {
             DIRECT_MULTIDIM_ELEM(V_ft,  n) = 0;
         }
     }
-    std::cout << "fede 3" << std::endl;
 
     ft.inverseFourierTransform();
-        std::cout << "fede 4" << std::endl;
-
 }
 
 
