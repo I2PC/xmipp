@@ -249,21 +249,44 @@ void ProgStatisticalMap::computeFSC()
 	MetaDataVec md;
 	size_t id;
 
+    std::cout << "XSIZE(mFSC)" << XSIZE(mFSC) << std::endl;
+    std::cout << "YSIZE(mFSC)" << YSIZE(mFSC) << std::endl;
+    std::cout << "ZSIZE(mFSC)" << ZSIZE(mFSC) << std::endl;
+    std::cout << "NSIZE(mFSC)" << NSIZE(mFSC) << std::endl;
+
+    std::cout << "XSIZE(mFSC_counter)" << XSIZE(mFSC_counter) << std::endl;
+    std::cout << "YSIZE(mFSC_counter)" << YSIZE(mFSC_counter) << std::endl;
+    std::cout << "ZSIZE(mFSC_counter)" << ZSIZE(mFSC_counter) << std::endl;
+    std::cout << "NSIZE(mFSC_counter)" << NSIZE(mFSC_counter) << std::endl;
+
+
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mFSC)
 	{
         std::cout << "---" << std::endl;
         std::cout << n << std::endl;
         std::cout << DIRECT_MULTIDIM_ELEM(mFSC_counter,n) << std::endl;
         std::cout << DIRECT_MULTIDIM_ELEM(mFSC,n) << std::endl;
+        std::cout << DIRECT_MULTIDIM_ELEM(mFSC,n) / DIRECT_MULTIDIM_ELEM(mFSC_counter,n) << std::endl;
 
         DIRECT_MULTIDIM_ELEM(mFSC,n) /= DIRECT_MULTIDIM_ELEM(mFSC_counter,n);
 
+        std::cout << "a" << std::endl;
+
 		id = md.addObject();
+
+        std::cout << "b" << std::endl;
+
 		md.setValue(MDL_X, DIRECT_MULTIDIM_ELEM(mFSC,n),          id);
-		md.setValue(MDL_Y, DIRECT_MULTIDIM_ELEM(mFSC_counter,n),  id);
+
+        std::cout << "c" << std::endl;
+
+		// md.setValue(MDL_Y, DIRECT_MULTIDIM_ELEM(mFSC,n) / DIRECT_MULTIDIM_ELEM(mFSC_counter,n),  id);
+
+        std::cout << "---" << std::endl;
+
 	}
 
-	std::string outputMD = fn_oroot + "_mFSC.xmd";
+	std::string outputMD = fn_oroot + "mFSC.xmd";
 	md.write(outputMD);
 
 	std::cout << "Fourier shell coherence written at: " << outputMD << std::endl;
