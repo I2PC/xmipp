@@ -309,6 +309,8 @@ void ProgStatisticalMap::calculateZscoreMap()
     // double std;
     // V().computeAvgStdev(avg, std);
 
+    std::cout << "    Calculating Zscore map..." << std::endl;
+
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
         // Positive Z-score
@@ -328,6 +330,8 @@ void ProgStatisticalMap::calculateZscoreMap()
 
 void ProgStatisticalMap::weightMap()
 { 
+    std::cout << "    Calculating weighted map..." << std::endl;
+
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
         DIRECT_MULTIDIM_ELEM(V(),n) *= DIRECT_MULTIDIM_ELEM(V_Zscores(),n);
