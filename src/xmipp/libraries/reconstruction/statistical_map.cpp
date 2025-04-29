@@ -159,8 +159,8 @@ void ProgStatisticalMap::run()
             dimInitialized = true;
         }
 
-        processStaticalMap();
         processFSCmap();
+        processStaticalMap();
     }
 
     computeFSC();
@@ -208,6 +208,8 @@ void ProgStatisticalMap::run()
 // Core methods ===================================================================
 void ProgStatisticalMap::processFSCmap()
 {
+    std::cout << "    Processing input map for Fourier Shell Coherence calculation..." << std::endl;
+
     FourierTransformer ft;
     MultidimArray<std::complex<double>> V_ft;
 	ft.FourierTransform(V(), V_ft, false);
@@ -219,9 +221,29 @@ void ProgStatisticalMap::processFSCmap()
     }
 }
 
+void ProgStatisticalMap::processStaticalMap()
+{ 
+    std::cout << "    Processing input map for statistical map calculation..." << std::endl;
+ 
+    // // Compute avg and std for every map to normalize before statistical map calculation
+    // double avg;
+    // double std;
+    // V().computeAvgStdev(avg, std);
+
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+    {
+        // Resused avg and std maps for sum and sum^2 (save memory)
+        // double value = (DIRECT_MULTIDIM_ELEM(V(),n) - avg) / std;
+        double value = DIRECT_MULTIDIM_ELEM(V(),n);
+        DIRECT_MULTIDIM_ELEM(avgVolume(),n) += value;
+        DIRECT_MULTIDIM_ELEM(stdVolume(),n) += value * value;
+    }
+}
 
 void ProgStatisticalMap::computeFSC()
 {
+    std::cout << "Computing Fourier Shell Coherence..." << std::endl;
+
     // Compute mFSC map
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mFSC_map2)
     {
@@ -249,8 +271,6 @@ void ProgStatisticalMap::computeFSC()
         }
 	}
 
-    std::cout << "mFSC calculated!!!" << std::endl;
-
     // Save output metadata
 	MetaDataVec md;
 	size_t id;
@@ -272,25 +292,10 @@ void ProgStatisticalMap::computeFSC()
 	std::cout << "Fourier shell coherence written at: " << outputMD << std::endl;
 }
 
-void ProgStatisticalMap::processStaticalMap()
-{ 
-    // // Compute avg and std for every map to normalize before statistical map calculation
-    // double avg;
-    // double std;
-    // V().computeAvgStdev(avg, std);
-
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
-    {
-        // Resused avg and std maps for sum and sum^2 (save memory)
-        // double value = (DIRECT_MULTIDIM_ELEM(V(),n) - avg) / std;
-        double value = DIRECT_MULTIDIM_ELEM(V(),n);
-        DIRECT_MULTIDIM_ELEM(avgVolume(),n) += value;
-        DIRECT_MULTIDIM_ELEM(stdVolume(),n) += value * value;
-    }
-}
-
 void ProgStatisticalMap::computeStatisticalMaps()
 { 
+    std::cout << "Computing statisical map..." << std::endl;
+
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(avgVolume())
     {
         double sum  = DIRECT_MULTIDIM_ELEM(avgVolume(),n);
@@ -350,6 +355,7 @@ void ProgStatisticalMap::weightMap()
     }
 
     std::cout << "Frequency (normalized) thresholded at (for FSCoh > " << thr << "): " << (float)(indexThr/NZYXSIZE(mFSC)) << std::endl;
+    std::cout << "indexThr " << indexThr << std::endl;
 
     FourierTransformer ft;
     MultidimArray<std::complex<double>> V_ft;
