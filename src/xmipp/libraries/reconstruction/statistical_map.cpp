@@ -342,9 +342,12 @@ void ProgStatisticalMap::weightMap()
         DIRECT_MULTIDIM_ELEM(V(),n) *= DIRECT_MULTIDIM_ELEM(V_Zscores(),n);
     }
 
-    int indexThr;
-    double thr = 0.143;
+    // Define Coherence threhold (demonstration in notebook)
+    int m = 7;  // Rosenthal and Henderson 2003. If SNR = 1/m: m=7 for FSC=0.143
+    double thr = (m+Ndim)/(Ndim*(m+1));
 
+    int indexThr;
+    
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mFSC)
     {
         if (DIRECT_MULTIDIM_ELEM(mFSC, n) < thr)
@@ -354,7 +357,7 @@ void ProgStatisticalMap::weightMap()
         }
     }
 
-    std::cout << "Frequency (normalized) thresholded at (for FSCoh > " << thr << "): " << (float)(indexThr/NZYXSIZE(mFSC)) << std::endl;
+    std::cout << "Frequency (normalized) thresholded at (for FSCoh > " << thr << "): " << (2*(float)NZYXSIZE(mFSC))/(float)indexThr << std::endl;
     std::cout << "indexThr " << indexThr << std::endl;
 
     FourierTransformer ft;
