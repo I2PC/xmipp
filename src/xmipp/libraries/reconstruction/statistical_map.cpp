@@ -385,7 +385,6 @@ void ProgStatisticalMap::generateSideInfo()
 void ProgStatisticalMap::composefreqMap()
 {
 	// Calculate FT
-    V().initZeros(Zdim, Ydim, Xdim);
 	MultidimArray<std::complex<double>> V_ft; // Volume FT
 
 	FourierTransformer ft;
