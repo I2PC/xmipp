@@ -349,7 +349,7 @@ void ProgStatisticalMap::weightMap()
         }
     }
 
-    std::cout << "Frequency (normalized) thresholded at (for FSCoh > " << thr << "): " << indexThr/NZYXSIZE(mFSC) << std::endl;
+    std::cout << "Frequency (normalized) thresholded at (for FSCoh > " << thr << "): " << (float)(indexThr/NZYXSIZE(mFSC)) << std::endl;
 
     FourierTransformer ft;
     MultidimArray<std::complex<double>> V_ft;
