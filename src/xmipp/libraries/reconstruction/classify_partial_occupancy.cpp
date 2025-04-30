@@ -804,8 +804,8 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 			if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) > 75 && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) < 125)
 			{
 				
-				ll_I_it     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / (1 + DIRECT_MULTIDIM_ELEM(powerNoise(), n));
-				ll_IsubP_it += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / (1 + DIRECT_MULTIDIM_ELEM(powerNoise(), n));
+				ll_I_it     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / (1+DIRECT_MULTIDIM_ELEM(powerNoise(), n));
+				ll_IsubP_it += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / (1+DIRECT_MULTIDIM_ELEM(powerNoise(), n));
 
 				// Weight by frquency magnitude (normalized with the maximum)
 				// double freqNormFactor = radialAvg_FT[DIRECT_MULTIDIM_ELEM(particleFreqMap,n)] / maxModuleFT;
