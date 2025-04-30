@@ -343,7 +343,7 @@ void ProgStatisticalMap::weightMap()
     }
 
     // Define Coherence threhold (demonstration in notebook)
-    int m = 7;  // Rosenthal and Henderson 2003. If SNR = 1/m: m=7 for FSC=0.143
+    float m = 7;  // Rosenthal and Henderson 2003. If SNR = 1/m: m=7 for FSC=0.143
     double thr = (m+Ndim)/(Ndim*(m+1));
 
     int indexThr;
