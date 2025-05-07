@@ -738,7 +738,7 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 		int height = maxY[value] - minY[value] + 1;
 		int centerX = Xdim / 2;
 		int centerY = Ydim / 2;
-		int numberOfPx = width * height;
+		int numberOfPx = 0;
 
 		#ifdef DEBUG_LOG_LIKELIHOOD
 		std::cout << "minX[value] " << minX[value] << std::endl;
@@ -766,6 +766,8 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 				{
 					DIRECT_A2D_ELEM(centeredLigand, newI, newJ) = DIRECT_A2D_ELEM(I(), i, j);
 					DIRECT_A2D_ELEM(centeredLigandSubP, newI, newJ) = DIRECT_A2D_ELEM(IsubP(), i, j);
+					
+					numberOfPx++;
 				}
 			}
 		}
@@ -797,12 +799,12 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 			// {
 			
 			// Consider all frequencies
-			// if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
-			// {
+			if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
+			{
 
 			// Consider only "mount Fuji" frequencies (in Halo but not in APO)
-			if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) > 75 && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) < 150)
-			{
+			// if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) > 75 && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) < 150)
+			// {
 				
 				ll_I_it     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / (DIRECT_MULTIDIM_ELEM(powerNoise(), n));
 				ll_IsubP_it += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / (DIRECT_MULTIDIM_ELEM(powerNoise(), n));
@@ -814,15 +816,20 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 			}
 		}
 
-		// Normalize likelyhood by number of pixels of the crop adn take logarithms
-		ll_I	 += std::log10(ll_I_it 	   / numberOfPx);
-		ll_IsubP += std::log10(ll_IsubP_it / numberOfPx);
+		// Normalize likelyhood by number of pixels of the crop and take logarithms
+		// ll_I	 += std::log10(ll_I_it 	   / numberOfPx);
+		// ll_IsubP += std::log10(ll_IsubP_it / numberOfPx);
+		ll_I	 += ll_I_it 	/ numberOfPx;
+		ll_IsubP += ll_IsubP_it / numberOfPx;
 
 		#ifdef DEBUG_LOG_LIKELIHOOD
 		std::cout << "ll_I_it for interation "     << value << " : " << ll_I_it     << ". Number of pixels: " << numberOfPx << std::endl;
 		std::cout << "ll_IsubP_it for interation " << value << " : " << ll_IsubP_it << ". Number of pixels: " << numberOfPx << std::endl;
 		#endif
 	}
+
+	ll_I	 = std::log10(ll_I);
+	ll_IsubP = std::log10(ll_IsubP);
 
 	std::cout << "Final ll_I: " << ll_I << std::endl;
 	std::cout << "Final ll_IsubP: " << ll_IsubP << std::endl;
