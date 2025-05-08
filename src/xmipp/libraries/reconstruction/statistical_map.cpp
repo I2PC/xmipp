@@ -125,6 +125,8 @@ void ProgStatisticalMap::run()
     mapPoolMD.read(fn_mapPool_statistical);
     Ndim = mapPoolMD.size();
 
+    FourierShellCoherence(mapPoolMD);
+
     for (const auto& row : mapPoolMD)
 	{
         row.getValue(MDL_IMAGE, fn_V);
@@ -134,30 +136,6 @@ void ProgStatisticalMap::run()
         #endif
 
         V.read(fn_V); 
-
-        if (!dimInitialized)
-        {
-            // Read dim
-            Xdim = XSIZE(V());
-            Ydim = YSIZE(V());
-            Zdim = ZSIZE(V());
-
-            #ifdef DEBUG_DIM
-            std::cout 
-            << "Xdim: " << Xdim << std::endl
-            << "Ydim: " << Ydim << std::endl
-            << "Zdim: " << Zdim << std::endl
-            << "Ndim: " << Ndim << std::endl;
-            #endif
-
-            // Initialize maps
-            avgVolume().initZeros(Zdim, Ydim, Xdim);
-            stdVolume().initZeros(Zdim, Ydim, Xdim);
-
-            composefreqMap();
-
-            dimInitialized = true;
-        }
 
         processFSCmap();
         processStaticalMap();
@@ -206,43 +184,55 @@ void ProgStatisticalMap::run()
 
 
 // Core methods ===================================================================
-void ProgStatisticalMap::processFSCmap()
+void ProgStatisticalMap::FourierShellCoherence(MetaDataVec mapPoolMD)
 {
-    std::cout << "    Processing input map for Fourier Shell Coherence calculation..." << std::endl;
+    std::cout << "Calculating Fourier Shell Coherence..." << std::endl;
 
     FourierTransformer ft;
     MultidimArray<std::complex<double>> V_ft;
-	ft.FourierTransform(V(), V_ft, false);
 
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
-    {
-        DIRECT_MULTIDIM_ELEM(mFSC_map,  n) += DIRECT_MULTIDIM_ELEM(V_ft,n);
-        DIRECT_MULTIDIM_ELEM(mFSC_map2, n) += (DIRECT_MULTIDIM_ELEM(V_ft,n) * std::conj(DIRECT_MULTIDIM_ELEM(V_ft,n))).real();
+    for (const auto& row : mapPoolMD)
+	{
+        row.getValue(MDL_IMAGE, fn_V);
+
+        #ifdef DEBUG_STAT_MAP
+        std::cout << "  Processing volume " << fn_V << " For FSC calculation" << std::endl;
+        #endif
+
+        V.read(fn_V); 
+
+        if (!dimInitialized)
+        {
+            // Read dim
+            Xdim = XSIZE(V());
+            Ydim = YSIZE(V());
+            Zdim = ZSIZE(V());
+
+            #ifdef DEBUG_DIM
+            std::cout 
+            << "Xdim: " << Xdim << std::endl
+            << "Ydim: " << Ydim << std::endl
+            << "Zdim: " << Zdim << std::endl
+            << "Ndim: " << Ndim << std::endl;
+            #endif
+
+            // Initialize maps
+            avgVolume().initZeros(Zdim, Ydim, Xdim);
+            stdVolume().initZeros(Zdim, Ydim, Xdim);
+
+            composefreqMap();
+
+            dimInitialized = true;
+        }
+
+        ft.FourierTransform(V(), V_ft, false);
+
+        FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
+        {
+            DIRECT_MULTIDIM_ELEM(mFSC_map,  n) +=  DIRECT_MULTIDIM_ELEM(V_ft,n);
+            DIRECT_MULTIDIM_ELEM(mFSC_map2, n) += (DIRECT_MULTIDIM_ELEM(V_ft,n) * std::conj(DIRECT_MULTIDIM_ELEM(V_ft,n))).real();
+        }
     }
-}
-
-void ProgStatisticalMap::processStaticalMap()
-{ 
-    std::cout << "    Processing input map for statistical map calculation..." << std::endl;
- 
-    // Compute avg and std for every map to normalize before statistical map calculation
-    double avg;
-    double std;
-    V().computeAvgStdev(avg, std);
-
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
-    {
-        // Reuse avg and std maps for sum and sum^2 (save memory)
-        double value = (DIRECT_MULTIDIM_ELEM(V(),n) - avg) / std;
-        // double value = DIRECT_MULTIDIM_ELEM(V(),n);
-        DIRECT_MULTIDIM_ELEM(avgVolume(),n) += value;   // sum
-        DIRECT_MULTIDIM_ELEM(stdVolume(),n) += value * value;   // sum squared
-    }
-}
-
-void ProgStatisticalMap::computeFSC()
-{
-    std::cout << "Computing Fourier Shell Coherence..." << std::endl;
 
     // Compute mFSC map
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mFSC_map2)
@@ -289,7 +279,42 @@ void ProgStatisticalMap::computeFSC()
 	std::string outputMD = fn_oroot + "mFSC.xmd";
 	md.write(outputMD);
 
-	std::cout << "Fourier shell coherence written at: " << outputMD << std::endl;
+	std::cout << "  Fourier shell coherence written at: " << outputMD << std::endl;
+
+    // Define Coherence threhold (demonstration in notebook)
+    float m = 7;  // Rosenthal and Henderson 2003. If SNR = 1/m: m=7 for FSC=0.143
+    double thr = (m+Ndim)/(Ndim*(m+1));
+    
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mFSC)
+    {
+        if (DIRECT_MULTIDIM_ELEM(mFSC, n) < thr)
+        {
+            indexThr = n;
+            break;           
+        }
+    }
+
+    std::cout << "  Frequency (normalized) thresholded at (for FSCoh > " << thr << "): " << (2*(float)NZYXSIZE(mFSC))/(float)indexThr << std::endl;
+    std::cout << "  indexThr " << indexThr << std::endl;
+}
+
+void ProgStatisticalMap::processStaticalMap()
+{ 
+    std::cout << "    Processing input map for statistical map calculation..." << std::endl;
+ 
+    // Compute avg and std for every map to normalize before statistical map calculation
+    double avg;
+    double std;
+    V().computeAvgStdev(avg, std);
+
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+    {
+        // Reuse avg and std maps for sum and sum^2 (save memory)
+        double value = (DIRECT_MULTIDIM_ELEM(V(),n) - avg) / std;
+        // double value = DIRECT_MULTIDIM_ELEM(V(),n);
+        DIRECT_MULTIDIM_ELEM(avgVolume(),n) += value;   // sum
+        DIRECT_MULTIDIM_ELEM(stdVolume(),n) += value * value;   // sum squared
+    }
 }
 
 void ProgStatisticalMap::computeStatisticalMaps()
@@ -341,22 +366,6 @@ void ProgStatisticalMap::weightMap()
     {
         DIRECT_MULTIDIM_ELEM(V(),n) *= DIRECT_MULTIDIM_ELEM(V_Zscores(),n);
     }
-
-    // Define Coherence threhold (demonstration in notebook)
-    float m = 7;  // Rosenthal and Henderson 2003. If SNR = 1/m: m=7 for FSC=0.143
-    double thr = (m+Ndim)/(Ndim*(m+1));
-    
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mFSC)
-    {
-        if (DIRECT_MULTIDIM_ELEM(mFSC, n) < thr)
-        {
-            indexThr = n;
-            break;           
-        }
-    }
-
-    std::cout << "Frequency (normalized) thresholded at (for FSCoh > " << thr << "): " << (2*(float)NZYXSIZE(mFSC))/(float)indexThr << std::endl;
-    std::cout << "indexThr " << indexThr << std::endl;
 
     FourierTransformer ft;
     MultidimArray<std::complex<double>> V_ft;

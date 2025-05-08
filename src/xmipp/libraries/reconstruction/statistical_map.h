@@ -103,6 +103,7 @@ public:
     void run();
 
     // ----------------------- CORE METHODS ------------------------------
+    void FourierShellCoherence(MetaDataVec mapPoolMD);
     void processStaticalMap();
     void processFSCmap();
     void computeFSC();
