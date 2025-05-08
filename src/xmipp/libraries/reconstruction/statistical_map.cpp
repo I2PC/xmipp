@@ -301,6 +301,21 @@ void ProgStatisticalMap::FourierShellCoherence(MetaDataVec mapPoolMD)
 void ProgStatisticalMap::processStaticalMap()
 { 
     std::cout << "    Processing input map for statistical map calculation..." << std::endl;
+
+    // Filter uncoherent frequencies
+    FourierTransformer ft;
+    MultidimArray<std::complex<double>> V_ft;
+	ft.FourierTransform(V(), V_ft, false);
+
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
+    {
+        if (DIRECT_MULTIDIM_ELEM(freqMap, n) > indexThr)
+        {
+            DIRECT_MULTIDIM_ELEM(V_ft,  n) = 0;
+        }
+    }
+
+    ft.inverseFourierTransform();
  
     // Compute avg and std for every map to normalize before statistical map calculation
     double avg;
@@ -318,7 +333,7 @@ void ProgStatisticalMap::processStaticalMap()
 }
 
 void ProgStatisticalMap::computeStatisticalMaps()
-{ 
+{
     std::cout << "Computing statisical map..." << std::endl;
 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(avgVolume())
@@ -362,11 +377,7 @@ void ProgStatisticalMap::weightMap()
 { 
     std::cout << "    Calculating weighted map..." << std::endl;
 
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
-    {
-        DIRECT_MULTIDIM_ELEM(V(),n) *= DIRECT_MULTIDIM_ELEM(V_Zscores(),n);
-    }
-
+    // Filter uncoherent frequencies
     FourierTransformer ft;
     MultidimArray<std::complex<double>> V_ft;
 	ft.FourierTransform(V(), V_ft, false);
@@ -380,6 +391,12 @@ void ProgStatisticalMap::weightMap()
     }
 
     ft.inverseFourierTransform();
+
+    // Weight by z-scores
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+    {
+        DIRECT_MULTIDIM_ELEM(V(),n) *= DIRECT_MULTIDIM_ELEM(V_Zscores(),n);
+    }
 }
 
 

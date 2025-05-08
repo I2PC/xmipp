@@ -105,8 +105,6 @@ public:
     // ----------------------- CORE METHODS ------------------------------
     void FourierShellCoherence(MetaDataVec mapPoolMD);
     void processStaticalMap();
-    void processFSCmap();
-    void computeFSC();
     void computeStatisticalMaps();
     void calculateZscoreMap();
     void weightMap();
