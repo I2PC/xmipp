@@ -225,18 +225,18 @@ void ProgStatisticalMap::processStaticalMap()
 { 
     std::cout << "    Processing input map for statistical map calculation..." << std::endl;
  
-    // // Compute avg and std for every map to normalize before statistical map calculation
-    // double avg;
-    // double std;
-    // V().computeAvgStdev(avg, std);
+    // Compute avg and std for every map to normalize before statistical map calculation
+    double avg;
+    double std;
+    V().computeAvgStdev(avg, std);
 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
-        // Resused avg and std maps for sum and sum^2 (save memory)
-        // double value = (DIRECT_MULTIDIM_ELEM(V(),n) - avg) / std;
-        double value = DIRECT_MULTIDIM_ELEM(V(),n);
-        DIRECT_MULTIDIM_ELEM(avgVolume(),n) += value;
-        DIRECT_MULTIDIM_ELEM(stdVolume(),n) += value * value;
+        // Reuse avg and std maps for sum and sum^2 (save memory)
+        double value = (DIRECT_MULTIDIM_ELEM(V(),n) - avg) / std;
+        // double value = DIRECT_MULTIDIM_ELEM(V(),n);
+        DIRECT_MULTIDIM_ELEM(avgVolume(),n) += value;   // sum
+        DIRECT_MULTIDIM_ELEM(stdVolume(),n) += value * value;   // sum squared
     }
 }
 
@@ -309,18 +309,18 @@ void ProgStatisticalMap::computeStatisticalMaps()
 
 void ProgStatisticalMap::calculateZscoreMap()
 {
-    // Compute avg and std for every map to normalize before Z-score map calculation
-    // double avg;
-    // double std;
-    // V().computeAvgStdev(avg, std);
-
     std::cout << "    Calculating Zscore map..." << std::endl;
+
+    // Compute avg and std for every map to normalize before Z-score map calculation
+    double avg;
+    double std;
+    V().computeAvgStdev(avg, std);
 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
         // Positive Z-score
-        // double zscore  = ((DIRECT_MULTIDIM_ELEM(V(),n) - avg) / std - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
-        double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
+        double zscore  = (((DIRECT_MULTIDIM_ELEM(V(),n) - avg) / std) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
+        // double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
 
         if (zscore > 0)
         {
@@ -345,8 +345,6 @@ void ProgStatisticalMap::weightMap()
     // Define Coherence threhold (demonstration in notebook)
     float m = 7;  // Rosenthal and Henderson 2003. If SNR = 1/m: m=7 for FSC=0.143
     double thr = (m+Ndim)/(Ndim*(m+1));
-
-    int indexThr;
     
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mFSC)
     {

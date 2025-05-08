@@ -32,7 +32,7 @@
 #include "core/xmipp_filename.h"
 
 #define VERBOSE_OUTPUT
-// #define DEBUG_DIM
+#define DEBUG_DIM
 // #define DEBUG_FREQUENCY_MAP
 #define DEBUG_STAT_MAP
 #define DEBUG_WEIGHT_MAP
@@ -79,6 +79,9 @@ class ProgStatisticalMap: public XmippProgram
     // Particle metadata
     MetaDataVec mapPoolMD;
     MDRowVec row;
+
+    // Filtering variables
+    int indexThr;
 
 public:
 
