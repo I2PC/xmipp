@@ -137,11 +137,9 @@ void ProgStatisticalMap::run()
 
         V.read(fn_V); 
 
-        processFSCmap();
         processStaticalMap();
     }
 
-    computeFSC();
     computeStatisticalMaps();
 
     #ifdef DEBUG_STAT_MAP
