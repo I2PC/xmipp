@@ -454,13 +454,15 @@ void ProgSubtractProjection::generateNoiseEstimationSideInfo()
 		int maxY = 0;
 		int maxZ = 0;
 
+		long n = 0;
+
 		for(size_t k=0; k<Zdim; ++k)
 		{
 			for(size_t i=0; i<Ydim; ++i)
 			{
 				for(size_t j=0; j<Xdim; ++j)
 				{
-					if (DIRECT_A3D_ELEM(maskVol(), k, i, j) > 0) {
+					if (DIRECT_MULTIDIM_ELEM(maskVol(), n) > 0) {
 						minX = std::min(minX, (int)i);
 						minY = std::min(minY, (int)j);
 						minZ = std::min(minZ, (int)k);
@@ -468,6 +470,8 @@ void ProgSubtractProjection::generateNoiseEstimationSideInfo()
 						maxY = std::max(maxY, (int)j);
 						maxZ = std::max(maxZ, (int)k);
 					}
+
+					++n;
 				}
 			}
 		}
@@ -519,11 +523,6 @@ void ProgSubtractProjection::noiseEstimation()
 		{
 			for (size_t j = 0; j < cropSize; j++)
 			{
-				#ifdef DEBUG_NOISE_ESTIMATION
-				std::cout << "--------------------------------------------------" << std::endl;
-				std::cout << "y + i  " << y + i << " x + j " << x + j << std::endl;
-				std::cout << "(Ydim/2) - (cropSize/2) + i  " << (Ydim/2) - (cropSize/2) + i << " (Xdim/2) - (cropSize/2) + j " << (Xdim/2) - (cropSize/2) + j << std::endl;
-				#endif
 
 				if (DIRECT_A2D_ELEM(Pmask(), y + i, x + j) == 0 || DIRECT_A2D_ELEM(PmaskRoi(), y + i, x + j) > 0)
 				{
