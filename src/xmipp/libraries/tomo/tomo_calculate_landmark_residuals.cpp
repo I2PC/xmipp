@@ -542,6 +542,7 @@ void ProgTomoCalculateLandmarkResiduals::run()
 	generateSideInfo();
 	coordinates3D = lmDetector.coordinates3D;
 
+	#ifdef DEBUG_OUTPUT_FILES
 	MultidimArray<int> proyectedCoordinates;
 	proyectedCoordinates.initZeros(ySize, xSize);
 
@@ -550,7 +551,6 @@ void ProgTomoCalculateLandmarkResiduals::run()
 		fillImageLandmark(proyectedCoordinates, (int)coordinates3D[n].x, (int)coordinates3D[n].y, 1);
 	}
 
-	#ifdef DEBUG_OUTPUT_FILES
 	size_t lastindexBis = fnOut.find_last_of("\\/");
 	std::string rawnameBis = fnOut.substr(0, lastindexBis);
 	std::string outputFileNameFilteredVolumeBis;
@@ -577,7 +577,8 @@ void ProgTomoCalculateLandmarkResiduals::run()
 // --------------------------- UTILS functions ----------------------------
 void ProgTomoCalculateLandmarkResiduals::fillImageLandmark(MultidimArray<int> &proyectedImage, int x, int y, int value)
 {
-	int distance = fiducialSizePx/6;
+	int fiducialSizePxRatio = 6;	// Relative size of the region to be filled
+	int distance = fiducialSizePx/fiducialSizePxRatio;
 
 	for (int i = -distance; i <= distance; i++)
 	{

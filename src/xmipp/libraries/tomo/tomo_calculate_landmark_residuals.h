@@ -148,7 +148,7 @@ public:
 
     // --------------------------- UTILS functions ----------------------------
     /**
-     * Filter labeled regions.
+     * Method to paint a landmar in an image at a given coodinate for debuggin purposes.
     */
     void fillImageLandmark(MultidimArray<int> &proyectedImage, int x, int y, int value);
 
