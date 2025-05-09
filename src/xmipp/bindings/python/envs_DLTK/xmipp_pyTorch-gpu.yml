@@ -13,8 +13,9 @@ dependencies:
   - pytorch==1.13.1
   - torchvision=0.14
   - pytorch-cuda=11.7
+  - kornia=0.6.8    #The last that is provided as *.bz2 extension
+  - starfile=0.4.11  #The last that is provided as *.bz2 extension
   - pip  
   - pip:
       - numpy==1.23 
-      - kornia==0.6.8    #The last that is provided as *.bz2 extension
-      - starfile==0.4.11  #The last that that is provided as *.bz2 extension
+
