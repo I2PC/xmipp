@@ -25,7 +25,8 @@
 
 #include "tomo_detect_misalignment_residuals.h"
 #include <chrono>
-
+#include <core/metadata_vec.h>
+#include <fstream>
 
 
 // --------------------------- INFO functions ----------------------------
