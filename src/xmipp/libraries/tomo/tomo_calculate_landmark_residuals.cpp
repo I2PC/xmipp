@@ -71,17 +71,12 @@ void ProgTomoCalculateLandmarkResiduals::generateSideInfo()
 	size_t objIdTlt;
 
 	double tiltAngle;
-	tiltAngleStep=0;
 
 	for(size_t objIdTlt : inputTiltAnglesMd.ids())
 	{
 		inputTiltAnglesMd.getValue(MDL_ANGLE_TILT, tiltAngle, objIdTlt);
 		tiltAngles.push_back(tiltAngle);
-
-		tiltAngleStep += tiltAngle;
 	}
-
-	tiltAngleStep /= tiltAngles.size();
 
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Input tilt angles read from: " << fnTiltAngles << std::endl;

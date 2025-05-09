@@ -99,9 +99,6 @@ public:
     std::vector<Point3D<int>> inputCoords;
     size_t numberOfInputCoords = inputCoords.size();
 
-    /** Angle step */
-    float tiltAngleStep;
-
     /** Vector for peaked coordinates components */
     std::vector<Point3D<double>> coordinates3D;
 
