@@ -26,27 +26,17 @@
 #ifndef __TOMO_DETECT_LANDMARKS
 #define __TOMO_DETECT_LANDMARKS
 
-#include <iostream>
-#include <math.h>
-#include <limits>
-#include <complex>
-#include <string>
-#include <stdio.h>
-#include <core/xmipp_filename.h>
-#include <core/multidim_array.h>
 #include <core/xmipp_program.h>
-#include <core/metadata_label.h>
-#include <core/metadata_vec.h>
-#include <core/xmipp_image.h>
-#include <core/xmipp_fft.h>
-#include <core/xmipp_fftw.h>
-#include <core/xmipp_image_generic.h>
+#include <iostream>
 #include <data/point3D.h>
 #include <data/point2D.h>
 #include <data/filters.h>
-#include <data/mask.h>
-#include <core/histogram.h>
-#include <fstream>
+#include <core/xmipp_fft.h>
+#include <core/xmipp_fftw.h>
+#include <core/xmipp_image_generic.h>
+#include <core/xmipp_filename.h>
+#include <core/multidim_array.h>
+
    
 #define VERBOSE_OUTPUT
 

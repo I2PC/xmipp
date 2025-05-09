@@ -25,6 +25,17 @@
 
 #include "tomo_detect_landmarks.h"
 #include <chrono>
+#include <core/metadata_label.h>
+#include <core/metadata_vec.h>
+#include <core/histogram.h>
+#include <data/mask.h>
+#include <fstream>
+#include <core/xmipp_image.h>
+#include <math.h>
+#include <limits>
+#include <complex>
+#include <string>
+#include <stdio.h>
 
 
 
