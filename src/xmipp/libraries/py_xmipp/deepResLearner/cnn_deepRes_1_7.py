@@ -1,7 +1,7 @@
-from keras.models import Sequential
-from keras.layers import Conv3D, MaxPooling3D, BatchNormalization, Dropout, Flatten, Dense
-from keras.callbacks import ModelCheckpoint, TensorBoard
-from keras.utils import Sequence, to_categorical
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv3D, MaxPooling3D, BatchNormalization, Dropout, Flatten, Dense
+from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard
+from tensorflow.keras.utils import Sequence, to_categorical
 import glob
 import numpy as np
 import os

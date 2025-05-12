@@ -25,9 +25,8 @@
  ***************************************************************************/
 """
 
-from keras.models import load_model
-from keras.utils import Sequence
-import matplotlib.pyplot as plt
+from tensorflow.keras.models import load_model
+from tensorflow.keras.utils import Sequence
 import numpy as np
 import os
 import sys
