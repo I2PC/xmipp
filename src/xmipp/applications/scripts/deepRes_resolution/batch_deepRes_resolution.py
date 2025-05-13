@@ -109,13 +109,27 @@ class VolumeManager(Sequence):
          return True
 
     def advance(self):
-        ok=self.advancePos()
+        ok = self.advancePos()
+        shape_M = self.M.shape
+        shape_V = self.V.shape
+
         while ok:
-            if self.M[self.z,self.y,self.x]>0.15 and self.V[self.z,self.y,self.x]>0.00015:
-                    if (self.x+self.y+self.z)%2==0:
+            if (0 <= self.z < shape_M[0] and
+            	    0 <= self.y < shape_M[1] and
+            	    0 <= self.x < shape_M[2] and
+            	    0 <= self.z < shape_V[0] and
+            	    0 <= self.y < shape_V[1] and
+            	    0 <= self.x < shape_V[2]):
+
+                if self.M[self.z, self.y, self.x] > 0.15 and self.V[
+            	    self.z, self.y, self.x] > 0.00015:
+                    if (self.x + self.y + self.z) % 2 == 0:
                         break
-            ok=self.advancePos()
-        return ok 
+            else:
+                print(
+            	    f"Index out of range: x={self.x}, y={self.y}, z={self.z}")
+            ok = self.advancePos()
+        return ok
 
 
     def __getitem__(self,idx):
@@ -226,7 +240,7 @@ def main(fnModel, fnVolIn, fnMask, sampling, fnVolOut):
 
   model = load_model(fnModel)
   manager = VolumeManager(fnVolIn, fnMask)
-  Y = model.predict_generator(manager, manager.getNumberOfBlocks())
+  Y = model.predict(manager, steps=manager.getNumberOfBlocks())
 
   if fnModel == XmippScript.getModel("deepRes", "model_w13.h5"):
     model = 1
