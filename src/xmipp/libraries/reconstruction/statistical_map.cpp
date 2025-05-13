@@ -40,6 +40,7 @@ void ProgStatisticalMap::readParams()
     fn_mapPool = getParam("-i");
     fn_mapPool_statistical = getParam("--input_mapPool");
     fn_oroot = getParam("--oroot");
+    sampling_rate = getDoubleParam("--sampling_rate");
 }
 
 void ProgStatisticalMap::show() const
@@ -62,6 +63,7 @@ void ProgStatisticalMap::defineParams()
     addParamsLine("-i <i=\"\">                              : Input metadata containing volumes to analyze against the calculated statical map.");
     addParamsLine("--input_mapPool <input_mapPool=\"\">     : Input metadata containing map pool for statistical map calculation.");
     addParamsLine("--oroot <oroot=\"\">                     : Location for saving output.");
+    addParamsLine("--sampling_rate <sampling_rate=1.0>      : Sampling rate of the input of maps.");
 }
 
 void ProgStatisticalMap::writeStatisticalMap() 
@@ -292,7 +294,7 @@ void ProgStatisticalMap::FourierShellCoherence(MetaDataVec mapPoolMD)
         }
     }
 
-    std::cout << "  Frequency (normalized) thresholded at (for FSCoh > " << thr << "): " << (2*(float)NZYXSIZE(mFSC))/(float)indexThr << std::endl;
+    std::cout << "  Frequency (normalized) thresholded at (for FSCoh > " << thr << "): " << sampling_rate*((2*(float)NZYXSIZE(mFSC))/(float)indexThr) << std::endl;
     std::cout << "  indexThr " << indexThr << std::endl;
 }
 
