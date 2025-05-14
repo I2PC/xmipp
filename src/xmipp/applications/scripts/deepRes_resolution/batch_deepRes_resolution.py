@@ -25,6 +25,7 @@
  ***************************************************************************/
 """
 
+import tensorflow as tf
 from tensorflow.keras.models import load_model
 from tensorflow.keras.utils import Sequence
 import numpy as np
@@ -109,26 +110,14 @@ class VolumeManager(Sequence):
          return True
 
     def advance(self):
-        ok = self.advancePos()
-        shape_M = self.M.shape
-        shape_V = self.V.shape
-
+        ok=self.advancePos()
         while ok:
-            if (0 <= self.z < shape_M[0] and
-            	    0 <= self.y < shape_M[1] and
-            	    0 <= self.x < shape_M[2] and
-            	    0 <= self.z < shape_V[0] and
-            	    0 <= self.y < shape_V[1] and
-            	    0 <= self.x < shape_V[2]):
-
-                if self.M[self.z, self.y, self.x] > 0.15 and self.V[
-            	    self.z, self.y, self.x] > 0.00015:
-                    if (self.x + self.y + self.z) % 2 == 0:
+            shape = tf.shape(self.M)
+            z, y, x = tf.clip_by_value(self.z, 0, shape[0]), tf.clip_by_value(self.y, 0, shape[1]), tf.clip_by_value(self.x, 0, shape[2])
+            if self.M[z,y,x]>0.15 and self.V[z,y,x]>0.00015:
+                    if (self.x+self.y+self.z)%2==0:
                         break
-            else:
-                print(
-            	    f"Index out of range: x={self.x}, y={self.y}, z={self.z}")
-            ok = self.advancePos()
+            ok=self.advancePos()
         return ok
 
 
@@ -240,7 +229,8 @@ def main(fnModel, fnVolIn, fnMask, sampling, fnVolOut):
 
   model = load_model(fnModel)
   manager = VolumeManager(fnVolIn, fnMask)
-  Y = model.predict(manager, steps=manager.getNumberOfBlocks())
+  predict = tf.function(model.predict)
+  Y = predict(manager, steps=manager.getNumberOfBlocks())
 
   if fnModel == XmippScript.getModel("deepRes", "model_w13.h5"):
     model = 1
