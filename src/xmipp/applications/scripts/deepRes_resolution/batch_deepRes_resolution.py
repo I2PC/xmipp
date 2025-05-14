@@ -229,8 +229,8 @@ def main(fnModel, fnVolIn, fnMask, sampling, fnVolOut):
 
   model = load_model(fnModel)
   manager = VolumeManager(fnVolIn, fnMask)
-  predict = tf.function(model.predict)
-  Y = predict(manager, steps=manager.getNumberOfBlocks())
+  predict = tf.function(model.predict, jit_compile=True)
+  Y = predict(manager, steps=manager.geNumberOfBlocks())
 
   if fnModel == XmippScript.getModel("deepRes", "model_w13.h5"):
     model = 1
