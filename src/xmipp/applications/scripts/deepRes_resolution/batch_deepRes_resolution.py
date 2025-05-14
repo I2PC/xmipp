@@ -227,10 +227,11 @@ def main(fnModel, fnVolIn, fnMask, sampling, fnVolOut):
   elif fnModel=="highRes":
     fnModel= XmippScript.getModel("deepRes", "model_w7.h5")
 
-  model = load_model(fnModel)
-  manager = VolumeManager(fnVolIn, fnMask)
-  predict = tf.function(model.predict, jit_compile=True)
-  Y = predict(manager, steps=manager.geNumberOfBlocks())
+  with tf.device("/GPU:0"):
+    model = load_model(fnModel)
+    manager = VolumeManager(fnVolIn, fnMask)
+    predict = tf.function(model.predict, jit_compile=True)
+    Y = predict(manager, steps=manager.geNumberOfBlocks())
 
   if fnModel == XmippScript.getModel("deepRes", "model_w13.h5"):
     model = 1
