@@ -123,20 +123,6 @@ class VolumeManager(Sequence):
         return ok
 
 
-    # def advance(self):
-	#
-    #     ok=self.advancePos()
-    #     while ok:
-    #         #tf.print(f'z: {self.z}   y {self.y}  x {self.x}', output_stream=sys.stdout)
-    #         # z, y, x = tf.clip_by_value(self.z, 0, shape[0]), tf.clip_by_value(self.y, 0, shape[1]), tf.clip_by_value(self.x, 0, shape[2])
-    #         # if (self.z > self.M.shape[0] or self.z < 0) and (self.y > self.M.shape[1] or self.y < 0) and (self.x > self.M.shape[2] or self.x < 0):
-    #         if self.M[self.z,self.y,self.x]>0.15 and self.V[self.z,self.y,self.x]>0.00015:
-    #                 if (self.x+self.y+self.z)%2==0:
-    #                     break
-    #         ok=self.advancePos()
-    #     return ok
-
-
     def __getitem__(self,idx):
         count=0
         batchX = []
