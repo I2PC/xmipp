@@ -26,6 +26,7 @@
 """
 
 import tensorflow as tf
+#tf.compat.v1.disable_v2_behavior()
 from tensorflow.keras.models import load_model
 from tensorflow.keras.utils import Sequence
 import numpy as np
@@ -40,7 +41,7 @@ from xmipp_base import XmippScript
 
 boxDim = 13
 boxDim2 = boxDim//2
-maxSize = 10000
+maxSize = 1000
 
 def getBox(V,z,y,x):
     boxDim2 = boxDim//2
@@ -106,6 +107,7 @@ class VolumeManager(Sequence):
                 self.y = boxDim2
                 self.z+=1
                 if self.z==self.Zdim-boxDim2:
+                    #self.z = boxDim2
                     return False
          return True
 
@@ -121,8 +123,22 @@ class VolumeManager(Sequence):
         return ok
 
 
+    # def advance(self):
+	#
+    #     ok=self.advancePos()
+    #     while ok:
+    #         #tf.print(f'z: {self.z}   y {self.y}  x {self.x}', output_stream=sys.stdout)
+    #         # z, y, x = tf.clip_by_value(self.z, 0, shape[0]), tf.clip_by_value(self.y, 0, shape[1]), tf.clip_by_value(self.x, 0, shape[2])
+    #         # if (self.z > self.M.shape[0] or self.z < 0) and (self.y > self.M.shape[1] or self.y < 0) and (self.x > self.M.shape[2] or self.x < 0):
+    #         if self.M[self.z,self.y,self.x]>0.15 and self.V[self.z,self.y,self.x]>0.00015:
+    #                 if (self.x+self.y+self.z)%2==0:
+    #                     break
+    #         ok=self.advancePos()
+    #     return ok
+
+
     def __getitem__(self,idx):
-        count=0;
+        count=0
         batchX = []
         ok = True 
         while (count<maxSize and ok):
@@ -131,10 +147,12 @@ class VolumeManager(Sequence):
             ok=self.advance()
             count+=1
         batchX=np.asarray(batchX).astype("float32")
-        print("count = ", count)
+        tf.print(f'count = {count}', output_stream=sys.stdout)
+
         batchX = batchX.reshape(count, batchX.shape[1], batchX.shape[2], batchX.shape[3], 1)      
 
-        print("batchX.shape = ", batchX.shape)
+        tf.print(f'batchX.shape = {batchX.shape}', output_stream=sys.stdout)
+
         return (batchX)
    
 
@@ -216,7 +234,7 @@ def produceOutput(fnVolInOrNumpy, fnMaskOrNumpy, model, sampling, Y, fnVolOut):
 
     if fnVolOut is not None:
       Vxmipp = xmippLib.Image()
-      Vxmipp.setData(V)
+      Vxmipp.setData(V.astype(np.float32))
       Vxmipp.write(fnVolOut)
     return V
 
@@ -228,9 +246,10 @@ def main(fnModel, fnVolIn, fnMask, sampling, fnVolOut):
     fnModel= XmippScript.getModel("deepRes", "model_w7.h5")
 
   model = load_model(fnModel)
-  manager = VolumeManager(fnVolIn, fnMask)
+  #tf.print(f'load_model', output_stream=sys.stdout)
+  Vmanager = VolumeManager(fnVolIn, fnMask)
   predict = tf.function(model.predict)#, jit_compile=True)
-  Y = predict(manager, steps=manager.geNumberOfBlocks())
+  Y = predict(Vmanager, steps=Vmanager.geNumberOfBlocks())
 
   if fnModel == XmippScript.getModel("deepRes", "model_w13.h5"):
     model = 1
