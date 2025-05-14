@@ -8,13 +8,13 @@ name: xmipp_DLTK_v0.3
 channels:
   - conda-forge
 dependencies:
-  - python=3.7
-  - tensorflow-gpu=2.6
-  - cudatoolkit=11
-  - cudnn=8.2
-  - libstdcxx-ng=14.2.0
+  - python=3.7  #3.6 fails with tensorflow 1.14
+  - libstdcxx-ng=14.2.0 # To be compatible with scipion env
   - pip
   - pip:
+      - tensorflow-gpu==1.15.0
       - numpy==1.19.5
       - h5py==2.10.0
+      - keras==2.2.5
       - scikit-learn==0.22
+      - protobuf==3.20.3
