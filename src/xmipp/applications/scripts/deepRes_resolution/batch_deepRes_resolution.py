@@ -114,9 +114,7 @@ class VolumeManager(Sequence):
     def advance(self):
         ok=self.advancePos()
         while ok:
-            shape = tf.shape(self.M)
-            z, y, x = tf.clip_by_value(self.z, 0, shape[0]), tf.clip_by_value(self.y, 0, shape[1]), tf.clip_by_value(self.x, 0, shape[2])
-            if self.M[z,y,x]>0.15 and self.V[z,y,x]>0.00015:
+            if self.M[self.z,self.y,self.x]>0.15 and self.V[self.z,self.y,self.x]>0.00015:
                     if (self.x+self.y+self.z)%2==0:
                         break
             ok=self.advancePos()
