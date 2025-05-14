@@ -40,7 +40,7 @@ from xmipp_base import XmippScript
 
 boxDim = 13
 boxDim2 = boxDim//2
-maxSize = 1000
+maxSize = 10000
 
 def getBox(V,z,y,x):
     boxDim2 = boxDim//2
@@ -131,10 +131,10 @@ class VolumeManager(Sequence):
             ok=self.advance()
             count+=1
         batchX=np.asarray(batchX).astype("float32")
-        #print("count = ", count) 
+        print("count = ", count)
         batchX = batchX.reshape(count, batchX.shape[1], batchX.shape[2], batchX.shape[3], 1)      
 
-        #print("batchX.shape = ", batchX.shape)
+        print("batchX.shape = ", batchX.shape)
         return (batchX)
    
 
@@ -227,11 +227,10 @@ def main(fnModel, fnVolIn, fnMask, sampling, fnVolOut):
   elif fnModel=="highRes":
     fnModel= XmippScript.getModel("deepRes", "model_w7.h5")
 
-  with tf.device("/GPU:0"):
-    model = load_model(fnModel)
-    manager = VolumeManager(fnVolIn, fnMask)
-    predict = tf.function(model.predict, jit_compile=True)
-    Y = predict(manager, steps=manager.geNumberOfBlocks())
+  model = load_model(fnModel)
+  manager = VolumeManager(fnVolIn, fnMask)
+  predict = tf.function(model.predict)#, jit_compile=True)
+  Y = predict(manager, steps=manager.geNumberOfBlocks())
 
   if fnModel == XmippScript.getModel("deepRes", "model_w13.h5"):
     model = 1
