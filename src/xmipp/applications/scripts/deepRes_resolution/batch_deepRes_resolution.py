@@ -25,9 +25,8 @@
  ***************************************************************************/
 """
 
-import tensorflow as tf
-from tensorflow.keras.models import load_model
-from tensorflow.keras.utils import Sequence
+from keras.models import load_model
+from keras.utils import Sequence
 import numpy as np
 import sys
 import argparse
