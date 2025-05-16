@@ -2,8 +2,6 @@
 
 name: xmipp_deepEMhancer
 channels:
-  - anaconda
-  - defaults
   - rsanchez1369
   - conda-forge
 dependencies:
