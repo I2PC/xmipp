@@ -2,8 +2,6 @@
 rsanchez@cnb.csic.es
 
 '''
-#from keras import backend as K
-
 import keras
 from keras import backend as K
 
