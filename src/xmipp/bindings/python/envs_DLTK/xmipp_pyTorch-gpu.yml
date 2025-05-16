@@ -9,11 +9,7 @@ dependencies:
   - mrcfile=1.4.3
   - kornia=0.6.8  #The last that is provided as *.bz2 extension
   - starfile=0.4.11 #The last that that is provided as *.bz2 extension
-#  - pytorch==1.13.1
-#  - pytorch-cuda=11.7
-#  - torchvision=0.14
-  - pip
-  - pip:
-      - torch==1.13.0+cu117
-      - torchvision==0.14.0+cu117
-      - --extra-index-url https://download.pytorch.org/whl/cu117
+  - requests=2
+  - pillow
+  - pytorch-gpu=1.13.1
+  - torchvision=0.14

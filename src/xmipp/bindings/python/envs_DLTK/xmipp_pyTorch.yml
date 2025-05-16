@@ -9,6 +9,7 @@ dependencies:
   - mrcfile=1.4.3
   - kornia=0.6.8  # Última con formato *.bz2
   - starfile=0.4.11  # Última con formato *.bz2
+  - requests=2
   - pip
   - pip:
       - torch==1.13.0
