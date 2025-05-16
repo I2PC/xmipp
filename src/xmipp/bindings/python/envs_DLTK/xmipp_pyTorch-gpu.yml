@@ -13,3 +13,4 @@ dependencies:
   - pillow
   - pytorch-gpu=1.13.1
   - torchvision=0.14
+  - cudatoolkit=11.3.1
