@@ -37,9 +37,9 @@ def main_network(input_shape, nData, l2RegStrength=1e-5, num_labels=2):
 
   for i in range(1, MODEL_DEPTH+1):
     network= keras.layers.Conv2D(2**(nFiltersInit+i), max(3, 30//2**i), activation='relu',  padding='same',
-                                                kernel_regularizer= tf.keras.regularizers.l2(l2RegStrength) )(network)
+                                                kernel_regularizer= keras.regularizers.l2(l2RegStrength) )(network)
     network= keras.layers.Conv2D(2**(nFiltersInit+i), max(3, 30//2**i), activation='linear',  padding='same',
-                                                kernel_regularizer= tf.keras.regularizers.l2(l2RegStrength) )(network)
+                                                kernel_regularizer= keras.regularizers.l2(l2RegStrength) )(network)
     network= keras.layers.BatchNormalization()(network)
     network= keras.layers.Activation('relu')(network)
     if i!=MODEL_DEPTH:
@@ -49,7 +49,7 @@ def main_network(input_shape, nData, l2RegStrength=1e-5, num_labels=2):
   network= keras.layers.Flatten()(network)
 
   network= keras.layers.Dense(2**9, activation='relu',
-                                kernel_regularizer= tf.keras.regularizers.l2(l2RegStrength))(network)
+                                kernel_regularizer= keras.regularizers.l2(l2RegStrength))(network)
   network= keras.layers.Dropout(1-DROPOUT_KEEP_PROB)(network)
   y_pred= keras.layers.Dense(num_labels, activation='softmax')(network),
   
