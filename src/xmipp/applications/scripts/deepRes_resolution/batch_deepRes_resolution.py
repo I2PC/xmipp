@@ -26,11 +26,9 @@
 """
 
 import tensorflow as tf
-#tf.compat.v1.disable_v2_behavior()
 from tensorflow.keras.models import load_model
 from tensorflow.keras.utils import Sequence
 import numpy as np
-import os
 import sys
 import argparse
 import xmippLib
