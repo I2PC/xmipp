@@ -8,4 +8,8 @@ dependencies:
   - python=3.6
   - deepemhancer=0.12
   - numba=0.45
+  - pip
+  - pip:
+    - absl-py<0.12
+    - h5py==2.10.0
 
