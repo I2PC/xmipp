@@ -129,11 +129,11 @@ class VolumeManager(Sequence):
             ok=self.advance()
             count+=1
         batchX=np.asarray(batchX).astype("float32")
-        tf.print(f'count = {count}', output_stream=sys.stdout)
+        #tf.print(f'count = {count}', output_stream=sys.stdout)
 
         batchX = batchX.reshape(count, batchX.shape[1], batchX.shape[2], batchX.shape[3], 1)      
 
-        tf.print(f'batchX.shape = {batchX.shape}', output_stream=sys.stdout)
+        #tf.print(f'batchX.shape = {batchX.shape}', output_stream=sys.stdout)
 
         return (batchX)
    

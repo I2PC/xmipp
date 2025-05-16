@@ -161,13 +161,11 @@ class DeepTFSupervised(object):
       physical_devices = tf.config.experimental.list_physical_devices('GPU')
       assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
       config = tf.config.experimental.set_memory_growth(physical_devices[0], True)
-      #self.session = tf.Session(config=config)
-      self.session = tf.compat.v1.Session(config=config) #compatible with tensorflow 2.6
+      self.session = tf.Session(config=config)
     else:
-      self.session= tf.compat.v1.Session(config=tf.ConfigProto(intra_op_parallelism_threads=self.numberOfThreads,
+      self.session= tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=self.numberOfThreads,
                                                      gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.7),
                                                      allow_soft_placement = True))
-    tf.compat.v1.disable_eager_execution()
     K.set_session(self.session)
     return self.session
 
@@ -207,20 +205,20 @@ class DeepTFSupervised(object):
 #      print(self.nNetModel.summary())
       print("nEpochs : %.1f --> Epochs: %d.\nTraining begins: Epoch 0/%d"%(nEpochs__, nEpochs, nEpochs))
       sys.stdout.flush()
-      cBacks= [ keras.callbacks.ModelCheckpoint((currentCheckPointName) , monitor='val_accuracy', verbose=1,
+      cBacks= [ keras.callbacks.ModelCheckpoint((currentCheckPointName) , monitor='val_acc', verbose=1,
                 save_best_only=True, save_weights_only=False, period=1) ]
       if auto_stop:
-        cBacks+= [ keras.callbacks.EarlyStopping(monitor='val_accuracy', min_delta=0.001, patience=10, verbose=1) ]
+        cBacks+= [ keras.callbacks.EarlyStopping(monitor='val_acc', min_delta=0.001, patience=10, verbose=1) ]
 
-      cBacks+= [ keras.callbacks.ReduceLROnPlateau(monitor='val_accuracy', factor=0.1, patience=3, cooldown=1,
+      cBacks+= [ keras.callbacks.ReduceLROnPlateau(monitor='val_acc', factor=0.1, patience=3, cooldown=1,
                  min_lr= learningRate*1e-3, verbose=1) ]
 
-      history = self.nNetModel.fit(dataManagerTrain.getTrainIterator(),steps_per_epoch= CHECK_POINT_AT,
+      history = self.nNetModel.fit_generator(dataManagerTrain.getTrainIterator(),steps_per_epoch= CHECK_POINT_AT,
                                  validation_data=dataManagerTrain.getValidationIterator( batchesPerEpoch= n_batches_per_epoch_val), 
-                                 validation_steps=n_batches_per_epoch_val, callbacks=cBacks, epochs=int(nEpochs),
+                                 validation_steps=n_batches_per_epoch_val, callbacks=cBacks, epochs=nEpochs,
                                  use_multiprocessing=True, verbose=2)
 
-      last_val_acc = history.history['val_accuracy'][-1]
+      last_val_acc = history.history['val_acc'][-1]
       writeNetAccuracy(currentCheckPointName, last_val_acc)
       self.closeSession()
 

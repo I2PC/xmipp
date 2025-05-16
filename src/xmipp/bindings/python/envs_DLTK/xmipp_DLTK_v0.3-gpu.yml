@@ -1,6 +1,5 @@
 #Protocols ussing the enviroment:
-#protocol_screen_deeplearning
-#protocol_deep_denoising
+
 #protocol_resolution_deepres
 #protocol_screen_deepConsensus
 
@@ -8,7 +7,7 @@ name: xmipp_DLTK_v0.3
 channels:
   - conda-forge
 dependencies:
-  - python=3.7  #3.6 fails with tensorflow 1.14
+  - python=3.7
   - libstdcxx-ng=14.2.0 # To be compatible with scipion env
   - pip
   - pip:
