@@ -30,7 +30,7 @@ def main_network(input_shape, nData, l2RegStrength=1e-5, num_labels=2):
     network= keras.layers.Lambda( lambda x: K.tf.image.resize_images(x, (DESIRED_INPUT_SIZE, DESIRED_INPUT_SIZE)),
                                                                      name="resize_tf")(network_input)
   else:
-    network_input= keras.layers.Input(shape= input_shape)
+    network_input= keras.layers.Input(shape= input_shape) 
     network= network_input
 
   for i in range(1, MODEL_DEPTH+1):
