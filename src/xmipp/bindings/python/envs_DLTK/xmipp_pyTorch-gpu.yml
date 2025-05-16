@@ -11,6 +11,7 @@ dependencies:
   - starfile=0.4.11 #The last that that is provided as *.bz2 extension
   - requests=2
   - pillow
+  - libstdcxx-ng=14.2.0 # To be compatible with scipion env
   - pytorch-gpu=1.13.1
   - torchvision=0.14
   - cudatoolkit=11.3.1
