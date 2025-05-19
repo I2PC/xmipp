@@ -76,7 +76,7 @@ if __name__=="__main__":
     classes = int(args.classes)
     final_classes = classes  
     refImages = args.ref
-    niter = 14
+    niter = 20
     bands = args.bands
     vecs = args.vecs
     mask = args.mask
@@ -221,12 +221,12 @@ if __name__=="__main__":
                 else:
                     cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(expImages, cl, tMatrix, iter, subset, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
 
-                #save classes
-                # file = output+"_%s_%s.mrcs"%(initBatch,iter+1)
-                # save_images(cl.cpu().detach().numpy(), sampling, file)
+                # save classes
+                file = output+"_%s_%s.mrcs"%(initBatch,iter+1)
+                save_images(cl.cpu().detach().numpy(), sampling, file)
 
 
-                if mode == "create_classes" and iter == 13:
+                if mode == "create_classes" and iter == 19:
                     
                     refClas[:endBatch] = matches[:, 1]
                                                           
