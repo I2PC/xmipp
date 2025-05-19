@@ -407,7 +407,11 @@ class BnBgpu:
 
  
             for n in range(classes):
-                    class_images = transforIm[matches[initBatch:endBatch, 1] == n]
+                    # class_images = transforIm[matches[initBatch:endBatch, 1] == n]
+                    # newCL[n].append(class_images)
+                    maskSel = matches[initBatch:endBatch, 1] == n  
+                    sorted_indices = torch.argsort(matches[initBatch:endBatch, 2][maskSel])  
+                    class_images = transforIm[maskSel][sorted_indices[:max(1, len(sorted_indices) // 2)]]  
                     newCL[n].append(class_images)
                 
             del(transforIm)    
