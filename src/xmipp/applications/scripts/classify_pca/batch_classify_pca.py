@@ -76,7 +76,7 @@ if __name__=="__main__":
     classes = int(args.classes)
     final_classes = classes  
     refImages = args.ref
-    niter = 20
+    niter = 14
     bands = args.bands
     vecs = args.vecs
     mask = args.mask
@@ -226,7 +226,7 @@ if __name__=="__main__":
                 save_images(cl.cpu().detach().numpy(), sampling, file)
 
 
-                if mode == "create_classes" and iter == 19:
+                if mode == "create_classes" and iter == 13:
                     
                     refClas[:endBatch] = matches[:, 1]
                                                           
