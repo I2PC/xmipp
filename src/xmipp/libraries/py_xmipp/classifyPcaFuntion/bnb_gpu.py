@@ -386,8 +386,9 @@ class BnBgpu:
                         
             transforIm, matrixIm = self.center_particles_inverse_save_matrix(mmap.data[initBatch:endBatch], tMatrix[initBatch:endBatch], 
                                                                              rotBatch[initBatch:endBatch], translations[initBatch:endBatch], centerxy)
-
-            transforIm = transforIm * self.approximate_otsu_threshold(transforIm, percentile=20)
+            
+            if iter < 13:
+                transforIm = transforIm * self.approximate_otsu_threshold(transforIm, percentile=20)
             
             if mask:
                 transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
@@ -421,8 +422,8 @@ class BnBgpu:
         newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL]    
         clk = self.averages_increaseClas(mmap, iter, newCL, classes)
         
-        if iter > 3 and iter < 13:
-            clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
+        # if iter > 3 and iter < 13:
+        #     clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
 
             
         clk = clk * self.create_circular_mask(clk)
