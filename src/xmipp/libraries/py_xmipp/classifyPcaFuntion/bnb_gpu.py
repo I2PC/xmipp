@@ -423,7 +423,7 @@ class BnBgpu:
         if iter > 3 and iter < 13:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
         if iter == 13:
-            clk = apply_leaky_relu(clk, relu = 0.5)
+            clk = self.apply_leaky_relu(clk, relu = 0.5)
             
         clk = clk * self.create_circular_mask(clk)
         
@@ -494,7 +494,7 @@ class BnBgpu:
             if iter < 3:
                 clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
             else:
-                clk = apply_leaky_relu(clk, relu = 0.5)
+                clk = self.apply_leaky_relu(clk, relu = 0.5)
                 
             clk = clk * self.create_circular_mask(clk)
             # clk = clk * self.create_gaussian_masks_different_sigma(clk)
