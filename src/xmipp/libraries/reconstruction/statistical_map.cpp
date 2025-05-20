@@ -362,14 +362,26 @@ void ProgStatisticalMap::calculateZscoreMap()
         double zscore  = (((DIRECT_MULTIDIM_ELEM(V(),n) - avg) / std) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
         // double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
 
-        if (zscore > 0)
-        {
-            DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;
-        }
-        else
-        {
-            DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = 0;   
-        }
+        // if (zscore > 0)
+        // {
+        //     DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;
+        // }
+        // else
+        // {
+        //     DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = 0;   
+        // }
+
+        DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;
+    }
+
+    // Normalize Z-score map
+    V_Zscores().computeAvgStdev(avg, std);
+
+    std::cout << "avg " << avg << "  --  std " << std << std::endl;
+
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+    {
+        DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = (DIRECT_MULTIDIM_ELEM(V_Zscores(),n) - avg) / std;
     }
 }
 
