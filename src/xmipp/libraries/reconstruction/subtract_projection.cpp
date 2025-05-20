@@ -508,6 +508,8 @@ void ProgSubtractProjection::noiseEstimation()
 	std::cout << "scallignFactor " << scallignFactor << std::endl;
 	#endif
 
+	double mean;
+
 	do {
 		invalidRegion = false;
 		noiseCrop.initZeros((int)Ydim, (int)Xdim);
@@ -518,6 +520,8 @@ void ProgSubtractProjection::noiseEstimation()
 		#ifdef DEBUG_NOISE_ESTIMATION
 		std::cout << "x  " << x << " y " << y  << std::endl;
 		#endif
+
+		mean = 0;
 
 		for (size_t i = 0; i < cropSize; i++)
 		{
@@ -539,7 +543,8 @@ void ProgSubtractProjection::noiseEstimation()
 				std::cout << "(Ydim/2) - (cropSize/2) + i  " << (Ydim/2) - (cropSize/2) + i << " (Xdim/2) - (cropSize/2) + j " << (Xdim/2) - (cropSize/2) + j << std::endl;
 				#endif
 
-				DIRECT_A2D_ELEM(noiseCrop,  (Ydim/2) - (cropSize/2) + i, (Xdim/2) - (cropSize/2) + j) = scallignFactor * DIRECT_A2D_ELEM(Idiff(), y + i, x + j);
+				DIRECT_A2D_ELEM(noiseCrop,  (Ydim/2) - (cropSize/2) + i, (Xdim/2) - (cropSize/2) + j) = DIRECT_A2D_ELEM(Idiff(), y + i, x + j);
+				mean += scallignFactor * DIRECT_A2D_ELEM(Idiff(), y + i, x + j);
 			}
 
 			if (invalidRegion) {
@@ -547,6 +552,17 @@ void ProgSubtractProjection::noiseEstimation()
 			}
 		}
 	} while (invalidRegion);
+
+	// mean /= (cropSize*cropSize);
+	// std::cout << "mean " << mean << std::endl;
+
+	// for (size_t i = 0; i < cropSize; i++)
+	// {
+	// 	for (size_t j = 0; j < cropSize; j++)
+	// 	{
+	// 		DIRECT_A2D_ELEM(noiseCrop,  (Ydim/2) - (cropSize/2) + i, (Xdim/2) - (cropSize/2) + j) -= mean;
+	// 	}
+	// } 	
 
 	#ifdef DEBUG_NOISE_ESTIMATION
 	size_t lastindex = fn_out.find_last_of(".");
@@ -578,7 +594,7 @@ void ProgSubtractProjection::noiseEstimation()
 	#endif
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(noiseSpectrum)
-		DIRECT_MULTIDIM_ELEM(powerNoise,n) += (DIRECT_MULTIDIM_ELEM(noiseSpectrum,n) * std::conj(DIRECT_MULTIDIM_ELEM(noiseSpectrum,n))).real();
+		DIRECT_MULTIDIM_ELEM(powerNoise,n) += scallignFactor * ( (DIRECT_MULTIDIM_ELEM(noiseSpectrum,n) * std::conj(DIRECT_MULTIDIM_ELEM(noiseSpectrum,n))).real());
 		
 	#ifdef DEBUG_NOISE_ESTIMATION
 	std::cout << "Noise sucessfully estimated from particle." << std::endl;
