@@ -387,7 +387,8 @@ class BnBgpu:
             transforIm, matrixIm = self.center_particles_inverse_save_matrix(mmap.data[initBatch:endBatch], tMatrix[initBatch:endBatch], 
                                                                              rotBatch[initBatch:endBatch], translations[initBatch:endBatch], centerxy)
 
-
+            transforIm = transforIm * self.approximate_otsu_threshold(transforIm, percentile=20)
+            
             if mask:
                 transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
             else:
@@ -422,8 +423,7 @@ class BnBgpu:
         
         if iter > 3 and iter < 13:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
-        if iter == 13:
-            clk = self.apply_leaky_relu(clk, relu = 0.5)
+
             
         clk = clk * self.create_circular_mask(clk)
         
@@ -493,8 +493,7 @@ class BnBgpu:
             
             if iter < 3:
                 clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
-            else:
-                clk = self.apply_leaky_relu(clk, relu = 0.5)
+
                 
             clk = clk * self.create_circular_mask(clk)
             # clk = clk * self.create_gaussian_masks_different_sigma(clk)
