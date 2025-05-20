@@ -407,12 +407,12 @@ class BnBgpu:
 
  
             for n in range(classes):
-                    # class_images = transforIm[matches[initBatch:endBatch, 1] == n]
-                    # newCL[n].append(class_images)
-                    maskSel = matches[initBatch:endBatch, 1] == n  
-                    sorted_indices = torch.argsort(matches[initBatch:endBatch, 2][maskSel], descending=True)  
-                    class_images = transforIm[maskSel][sorted_indices[:max(1, len(sorted_indices) // 2)]]  
+                    class_images = transforIm[matches[initBatch:endBatch, 1] == n]
                     newCL[n].append(class_images)
+                    # maskSel = matches[initBatch:endBatch, 1] == n  
+                    # sorted_indices = torch.argsort(matches[initBatch:endBatch, 2][maskSel])  
+                    # class_images = transforIm[maskSel][sorted_indices[:max(1, len(sorted_indices) // 2)]]  
+                    # newCL[n].append(class_images)
                 
             del(transforIm)    
                     
@@ -420,6 +420,8 @@ class BnBgpu:
         newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL]    
         clk = self.averages_increaseClas(mmap, iter, newCL, classes)
         
+        if iter > 3:
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=30)
         clk = clk * self.create_circular_mask(clk)
         
         if iter < 3:
@@ -852,7 +854,7 @@ class BnBgpu:
         return batch
     
     
-    def approximate_otsu_threshold(self, imgs, percentile=10):
+    def approximate_otsu_threshold(self, imgs, percentile=30):
 
         N, H, W = imgs.shape
         flat = imgs.view(N, -1)
