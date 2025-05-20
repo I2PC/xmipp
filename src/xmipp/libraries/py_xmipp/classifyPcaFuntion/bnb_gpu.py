@@ -407,12 +407,12 @@ class BnBgpu:
 
  
             for n in range(classes):
-                    class_images = transforIm[matches[initBatch:endBatch, 1] == n]
-                    newCL[n].append(class_images)
-                    # maskSel = matches[initBatch:endBatch, 1] == n  
-                    # sorted_indices = torch.argsort(matches[initBatch:endBatch, 2][maskSel])  
-                    # class_images = transforIm[maskSel][sorted_indices[:max(1, len(sorted_indices) // 2)]]  
+                    # class_images = transforIm[matches[initBatch:endBatch, 1] == n]
                     # newCL[n].append(class_images)
+                    maskSel = matches[initBatch:endBatch, 1] == n  
+                    sorted_indices = torch.argsort(matches[initBatch:endBatch, 2][maskSel])  
+                    class_images = transforIm[maskSel][sorted_indices[:max(1, len(sorted_indices) // 2)]]  
+                    newCL[n].append(class_images)
                 
             del(transforIm)    
                     
@@ -422,6 +422,8 @@ class BnBgpu:
         
         if iter > 3 and iter < 13:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
+        if iter == 13:
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=100)
         clk = clk * self.create_circular_mask(clk)
         
         if iter < 3:
@@ -490,6 +492,8 @@ class BnBgpu:
             
             if iter < 3:
                 clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
+            else:
+                clk = clk * self.approximate_otsu_threshold(clk, percentile=100)
             clk = clk * self.create_circular_mask(clk)
             # clk = clk * self.create_gaussian_masks_different_sigma(clk)
       
