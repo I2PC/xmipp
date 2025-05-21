@@ -423,10 +423,10 @@ class BnBgpu:
         clk = self.averages_increaseClas(mmap, iter, newCL, classes)
         
         # if iter > 3 and iter < 13:
-        if iter in [2, 4]:
-            clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
-        elif iter in [6, 8, 10]:
-            clk = clk * self.approximate_otsu_threshold(clk, percentile=20) 
+        # if iter in [2, 4]:
+        #     clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
+        # elif iter in [6, 8, 10]:
+        #     clk = clk * self.approximate_otsu_threshold(clk, percentile=20) 
 
             
         clk = clk * self.create_circular_mask(clk)
@@ -991,25 +991,17 @@ class BnBgpu:
             # elif iter < 14:
             #     ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
             
-            if iter < 1:
-                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            elif iter < 2:
-                ang, shiftMove = (-180, 180, 7), (-maxShift, maxShift+4, 4)
-            elif iter < 3:
-                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            elif iter < 4:
-                ang, shiftMove = (-180, 180, 7), (-maxShift, maxShift+4, 4)
-            elif iter < 5:
-                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            elif iter < 6:
-                ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            elif iter < 7:
-                ang, shiftMove = (-180, 180, 5), (-8, 10, 2)
+            if iter < 10:
+                ang, shiftMove = (-180, 180, 10), (-maxShift, maxShift+4, 4)
             elif iter < 8:
+                ang, shiftMove = (-180, 180, 8), (-maxShift, maxShift+4, 4)
+            elif iter < 10:
+                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)                             
+            elif iter <13:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            elif iter < 11:
+            elif iter < 16:
                 ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
-            elif iter < 14:
+            elif iter < 19:
                 ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
                 
         else:
