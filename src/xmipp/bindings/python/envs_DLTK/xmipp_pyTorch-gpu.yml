@@ -13,8 +13,11 @@ dependencies:
   - pillow
   - libstdcxx-ng=14.2.0 # To be compatible with scipion env
   - pytorch-gpu=1.13.1
-  - torchvision=0.14
-  - cudatoolkit=11.3.1
+  - cudatoolkit=11.3
+  - libcurl=7
   - pip
   - pip:
+    - --extra-index-url https://download.pytorch.org/whl/torch_stable.html
     - numpy==1.23
+    - torch==1.13.0
+    - torchvision==0.14.0

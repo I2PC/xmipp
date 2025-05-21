@@ -11,6 +11,7 @@ dependencies:
   - starfile=0.4.11  # Última con formato *.bz2
   - requests=2
   - libstdcxx-ng=14.2.0 # To be compatible with scipion env
+  - libcurl=7
   - pip
   - pip:
       - numpy==1.23
