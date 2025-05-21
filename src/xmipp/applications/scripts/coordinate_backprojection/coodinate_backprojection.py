@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-""""
+
+"""
 **************************************************************************
 *
 * Authors:  Oier Lauzirika Zarrabeitia (olauzirika@cnb.csic.es)
 *
-* Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+* Unidad de  Bioinformatica of Centro Nacional de Biotecnologia, CSIC
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -27,7 +28,7 @@
 **************************************************************************
 """
 
-from typing import Tuple, Dict
+from typing import Tuple, List, NamedTuple
 
 import random
 import numpy as np
@@ -37,6 +38,10 @@ import scipy.optimize
 from xmipp_base import XmippScript
 import xmippLib
 
+class TiltData(NamedTuple):
+    projectionMatrix: np.ndarray
+    shift: np.ndarray
+    coordinates2d: np.ndarray
 
 class ScriptCoordinateBackProjection(XmippScript):
     def __init__(self):
@@ -44,69 +49,95 @@ class ScriptCoordinateBackProjection(XmippScript):
 
     def defineParams(self):
         self.addUsageLine('Coordinate backprojection')
-        ## params
         self.addParamsLine('-i <inputMetadata>          : Path to a metadata file with all the 2D coordinates')
-        self.addParamsLine('--ts <tsMetadata>           : Path to a metadata file with the tilt-series information')
+        self.addParamsLine('-a <tsMetadata>             : Path to a metadata file with the tilt-series alignment information')
         self.addParamsLine('-o <outputMetadata>         : Path to a metadata with the reconstructed 3D coordinates')
-        self.addParamsLine('-n <numberOfCoords=500>     : Number of reconstructed 3D coordinates')
-        self.addParamsLine('--lr <learningRate=0.01>    : Learning rate')
-        self.addParamsLine('--iter <iterations=1024>    : Number of iterations')
-        self.addParamsLine('--box <x=1000> <y=1000>, <z=300> : Box size')
+        self.addParamsLine('-n <numberOfCoords=1000>    : Number of reconstructed 3D coordinates')
+        self.addParamsLine('--lr <learningRate=0.3>     : Learning rate')
+        self.addParamsLine('--batch <miniBatchSize=8>   : Number of tilts used in minibatches')
+        self.addParamsLine('--box <x=1000> <y=1000> <z=300> : Box size')
+        self.addParamsLine('[--loss <outputLossFunction>] : Path where loss function is written')
         
     def run(self):
         inputMetadataFn = self.getParam('-i')
-        inputTsMetadataFn = self.getParam('--ts')
+        inputTsAliMetadataFn = self.getParam('-a')
         outputMetadataFn = self.getParam('-o')
         nCoords = self.getIntParam('-n')
-        nu = self.getFloatParam('--lr')
-        nIter = self.getIntParam('--iter')
+        lr = self.getDoubleParam('--lr')
+        miniBatchSize = self.getIntParam('--batch')
         boxSize = (
             self.getIntParam('--box', 0),
             self.getIntParam('--box', 1),
             self.getIntParam('--box', 2)
         )
+        lossFn = None
+        if self.checkParam('--loss'):
+            lossFn = self.getParam('--loss')
         
-        self.coordinateBackProjection(
-            inputMetadataFn=inputTsMetadataFn,
-            inputTsMetadataFn=inputTsMetadataFn,
-            outputMetadataFn=outputMetadataFn,
+        
+        tiltSeriesCoordinates = self.readTiltSeriesCoordinates(inputMetadataFn)
+        transforms = self.readTiltSeriesProjectionTransforms(inputTsAliMetadataFn)
+        tiltIds = set(tiltSeriesCoordinates.keys()) & set(transforms.keys())
+        
+        data = []
+        for tiltId in tiltIds:
+            matrix, shift = transforms[tiltId]
+            coordinates2d = np.array(tiltSeriesCoordinates[tiltId])
+            data.append(TiltData(matrix, shift, coordinates2d))
+        
+        positions, count, losses = self.coordinateBackProjection(
+            data=data,
             nCoords=nCoords,
-            nu=nu,
-            nIter=nIter,
+            nBatch=miniBatchSize,
+            lr=lr,
             boxSize=boxSize
         )
+        
+        outputMd = xmippLib.MetaData()
+        for position, count in zip(positions, count):
+            x, y, z = position
+            objId = outputMd.addObject()
+            outputMd.setValue(xmippLib.MDL_X, x, objId)
+            outputMd.setValue(xmippLib.MDL_Y, y, objId)
+            outputMd.setValue(xmippLib.MDL_Z, z, objId)
+            outputMd.setValue(xmippLib.MDL_COUNT, int(count), objId)
+        outputMd.write(outputMetadataFn)
 
+        if lossFn is not None:
+            np.save(lossFn, np.array(losses))
+        
     def readTiltSeriesProjectionTransforms(self, filename):
         result = dict()
         
         md = xmippLib.MetaData(filename)
         for objId in md:
-            rot = md.getValue(xmippLib.MDL_ANGLE_ROT, objId) or 0.0
-            tilt = md.getValue(xmippLib.MDL_ANGLE_TILT, objId) or 0.0
-            psi = md.getValue(xmippLib.MDL_ANGLE_PSI, objId) or 0.0
-            shiftX = md.getValue(xmippLib.MDL_SHIFTX, objId) or 0.0
-            shiftY = md.getValue(xmippLib.MDL_SHIFTY, objId) or 0.0
-            tiltId = md.getValue(xmippLib.MDL_TILT_ID, objId) or objId
+            #rot = np.radians(md.getValue(xmippLib.MDL_ANGLE_ROT, objId) or 0.0)
+            tilt = np.radians(md.getValue(xmippLib.MDL_ANGLE_TILT, objId) or 0.0)
+            #psi = np.radians(md.getValue(xmippLib.MDL_ANGLE_PSI, objId) or 0.0)
+            shiftX = md.getValue(xmippLib.MDL_SHIFT_X, objId) or 0.0
+            shiftY = md.getValue(xmippLib.MDL_SHIFT_Y, objId) or 0.0
+            tiltId = md.getValue(xmippLib.MDL_IMAGE_IDX, objId) or objId
 
-            # TODO matrix
+            # TODO consider tilt and psi
             matrix = np.zeros((2, 3))
-            matrix[0, 0] = 1
             matrix[1, 1] = 1
-            
-            shift = (shiftX, shiftY)
+            matrix[0, 0] = np.cos(tilt)
+            matrix[0, 2] = np.sin(tilt)
+
+            shift = np.array((shiftX, shiftY))
 
             result[tiltId] = (matrix, shift)
 
         return result
     
-    def readCoordinateProjections(self, filename):
+    def readTiltSeriesCoordinates(self, filename):
         result = dict()
         
         md = xmippLib.MetaData(filename)
         for objId in md:
             x = md.getValue(xmippLib.MDL_X, objId)
             y = md.getValue(xmippLib.MDL_Y, objId)
-            tiltId = md.getValue(xmippLib.MDL_TILT_ID, objId)
+            tiltId = md.getValue(xmippLib.MDL_IMAGE_IDX, objId)
             
             coord2d = (x, y)
             if tiltId in result:
@@ -114,9 +145,6 @@ class ScriptCoordinateBackProjection(XmippScript):
             else:
                 result[tiltId] = [coord2d]
                 
-        for key in result.keys():
-            result[key] = np.array(result[key])
-        
         return result
     
     def pointMatching(self, x, y):
@@ -124,16 +152,14 @@ class ScriptCoordinateBackProjection(XmippScript):
         return scipy.optimize.linear_sum_assignment(cost_matrix)
     
     def countContributions(self,
-                           positions,
-                           keys,
-                           trasforms,
-                           tiltSeriesCoordinates ):
-        count = np.zeros(len(positions))
+                           positions: np.ndarray,
+                           data: List[TiltData] ):
+        count = np.zeros(len(positions), dtype=np.int64)
 
-        for key in keys:
-            matrix, shift = trasforms[key]
-            coordinates2d = tiltSeriesCoordinates[key]
-            coordinates2dProj = (matrix @ positions.T).T + shift
+        for tilt in data:
+            projectionMatrix = tilt.projectionMatrix
+            coordinates2d = tilt.coordinates2d
+            coordinates2dProj = (projectionMatrix @ positions.T).T
             
             _, positionIndices = self.pointMatching(
                 coordinates2d, 
@@ -145,60 +171,58 @@ class ScriptCoordinateBackProjection(XmippScript):
         return count
             
     def coordinateBackProjection(self,
-                                 inputMetadataFn: str,
-                                 inputTsMetadataFn: str,
-                                 outputMetadataFn: str,
+                                 data: List[TiltData], 
                                  nCoords: int,
-                                 nu: float,
-                                 nIter: int,
-                                 boxSize: Tuple[int, int, int]):
+                                 nBatch: int,
+                                 lr: float,
+                                 boxSize: Tuple[int, int, int],
+                                 patience: int = 1024 ) -> Tuple[np.ndarray, np.ndarray]:
         
-        tiltSeriesCoordinates = self.readCoordinateProjections(inputMetadataFn)
-        transforms = self.readTiltSeriesProjectionTransforms(inputTsMetadataFn)
-        keys = set(tiltSeriesCoordinates.keys()) & set(transforms.keys())
-
         positions = np.random.uniform(
-            low=-2*np.array(boxSize)/2,
-            high=+2*np.array(boxSize)/2,
+            low=np.array(boxSize)/2,
+            high=np.array(boxSize)/2,
             size=(nCoords, 3)
         )
 
-        for _ in range(nIter):
-            key = random.choice(keys)
-            
-            matrix, shift = transforms[key]
-            tiltCoordinates = tiltSeriesCoordinates[key]
+        iterationsSinceLastImprovement = 0
+        bestLoss = np.inf
+        losses = []
+        while iterationsSinceLastImprovement < patience:
+            batch = random.sample(data, nBatch)
+            gradient = np.zeros_like(positions)
+            loss = 0.0
+            count = 0
+            for tilt in batch:
+                coordinates = tilt.coordinates2d
+                projectionMatrix = tilt.projectionMatrix
 
-            projections = (matrix @ positions.T).T + shift
-            sampleIndices, positionIndices = self.pointMatching(
-                tiltCoordinates, 
-                projections
-            )
+                projections = (projectionMatrix @ positions.T).T
+                sampleIndices, positionIndices = self.pointMatching(coordinates, projections)
 
-            tiltCoordinates = tiltCoordinates[sampleIndices]
-            projections = projections[positionIndices]
+                coordinates = coordinates[sampleIndices]
+                projections = projections[positionIndices]
 
-            residual2d = tiltCoordinates - projections
-            residual3d = (matrix.T @ residual2d.T).T
+                residual2d = coordinates - projections
+                residual3d = (projectionMatrix.T @ residual2d.T).T
 
-            positions[positionIndices] += nu*residual3d
+                gradient[positionIndices] += residual3d
+                loss += np.sum(np.square(residual2d))
+                count += len(positionIndices)
 
-        counts = self.countContributions(
-            positions, 
-            keys, 
-            transforms, 
-            tiltSeriesCoordinates
-        )
-        
-        resultMd = xmippLib.Metadata()
-        for coordinate3d, score in zip(positions, counts):
-            objId = resultMd.addObject()
-            resultMd.setValue(xmippLib.MDL_X, float(coordinate3d[0]), objId)
-            resultMd.setValue(xmippLib.MDL_Y, float(coordinate3d[1]), objId)
-            resultMd.setValue(xmippLib.MDL_Z, float(coordinate3d[2]), objId)
-            resultMd.setValue(xmippLib.MDL_SCORE, float(score), objId)
-        
-        resultMd.write(outputMetadataFn)
+            loss /= count
+            gradient /= len(batch)
+            losses.append(loss)
+
+            positions += lr*gradient
+
+            if loss < bestLoss:
+                bestLoss = loss
+                iterationsSinceLastImprovement = 0
+            else:
+                iterationsSinceLastImprovement += 1
+
+        count = self.countContributions(positions, data)
+        return positions, count, losses
         
 if __name__=="__main__":
     ScriptCoordinateBackProjection().tryRun()
