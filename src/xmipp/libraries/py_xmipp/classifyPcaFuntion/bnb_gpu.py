@@ -423,8 +423,10 @@ class BnBgpu:
         clk = self.averages_increaseClas(mmap, iter, newCL, classes)
         
         # if iter > 3 and iter < 13:
-        if iter in [2, 4, 6, 8, 10]:
-            clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
+        if iter in [2, 4]:
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
+        elif iter in [6, 8, 10]:
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=20) 
 
             
         clk = clk * self.create_circular_mask(clk)
