@@ -178,9 +178,10 @@ class ScriptCoordinateBackProjection(XmippScript):
                                  boxSize: Tuple[int, int, int],
                                  patience: int = 1024 ) -> Tuple[np.ndarray, np.ndarray]:
         
+        boundary = np.array(boxSize) / 2
         positions = np.random.uniform(
-            low=np.array(boxSize)/2,
-            high=np.array(boxSize)/2,
+            low=-boundary,
+            high=boundary,
             size=(nCoords, 3)
         )
 
@@ -214,6 +215,7 @@ class ScriptCoordinateBackProjection(XmippScript):
             losses.append(loss)
 
             positions += lr*gradient
+            positions = np.clip(positions, -boundary, boundary)
 
             if loss < bestLoss:
                 bestLoss = loss
