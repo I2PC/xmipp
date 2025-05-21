@@ -578,7 +578,7 @@ void ProgSubtractProjection::noiseEstimation()
 	#endif
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(noiseSpectrum)
-		DIRECT_MULTIDIM_ELEM(powerNoise,n) += ((DIRECT_MULTIDIM_ELEM(noiseSpectrum,n) * std::conj(DIRECT_MULTIDIM_ELEM(noiseSpectrum,n))).real());
+		DIRECT_MULTIDIM_ELEM(powerNoise,n) += (DIRECT_MULTIDIM_ELEM(noiseSpectrum,n) * std::conj(DIRECT_MULTIDIM_ELEM(noiseSpectrum,n))).real();
 		
 	#ifdef DEBUG_NOISE_ESTIMATION
 	std::cout << "Noise sucessfully estimated from particle." << std::endl;
