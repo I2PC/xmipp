@@ -422,8 +422,9 @@ class BnBgpu:
         newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL]    
         clk = self.averages_increaseClas(mmap, iter, newCL, classes)
         
-        if iter > 3 and iter < 13:
-            clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
+        # if iter > 3 and iter < 13:
+        if iter in [3, 5, 7, 9, 11]:
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
 
             
         clk = clk * self.create_circular_mask(clk)
@@ -493,7 +494,7 @@ class BnBgpu:
             clk, self.grad_squared = self.update_classes_rmsprop(cl, clk, 0.001, 0.9, 1e-8, self.grad_squared)
             
             if iter < 3:
-                clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
+                clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
 
                 
             clk = clk * self.create_circular_mask(clk)
