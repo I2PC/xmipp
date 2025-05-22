@@ -270,12 +270,13 @@ class BnBgpu:
         # print("----------create-classes-------------")      
         
         class_split = 0
-        if iter >= 1 and iter < 5:
+        # if iter >= 1 and iter < 5:
+        if iter >= 5 and iter < 10:
 
             thr = self.split_classes_for_range(classes, matches)
             class_split = int(final_classes/(iter*4))
 
-            if iter == 4:
+            if iter == 9:
                 class_split = final_classes - classes
             
         newCL = [[] for i in range(classes + class_split)]
@@ -316,7 +317,8 @@ class BnBgpu:
             count+=1
                           
              
-            if iter >= 1 and iter < 5: 
+            # if iter >= 1 and iter < 5:
+            if iter >= 5 and iter < 10: 
                 for n in range(classes):
                     
                     if n < class_split:
@@ -355,6 +357,10 @@ class BnBgpu:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
 
         clk = clk * self.create_circular_mask(clk)    
+        
+        # if iter in [2, 3]:
+        if iter > 2 and iter < 10:
+            clk = self.center_by_com(clk) 
          
         # if mask:
         #     if iter < 13:
@@ -437,7 +443,8 @@ class BnBgpu:
             
         clk = clk * self.create_circular_mask(clk)
         
-        if iter in [2, 3]:
+        # if iter in [2, 3]:
+        if iter > 2 and iter < 10:
             clk = self.center_by_com(clk)     
         # if mask:
         #     if iter < 13:
@@ -997,26 +1004,38 @@ class BnBgpu:
             # elif iter < 14:
             #     ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
             
-            if iter < 1:
+            #print("---Iter %s for creating classes---"%(iter+1))
+            if iter < 10:
+                ang, shiftMove = (-180, 180, 10), (-maxShift, maxShift+4, 4)
+            if iter < 13:
                 ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            elif iter < 2:
-                ang, shiftMove = (-180, 180, 7), (-maxShift, maxShift+4, 4)
-            elif iter < 3:
-                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            elif iter < 4:
-                ang, shiftMove = (-180, 180, 7), (-maxShift, maxShift+4, 4)
-            elif iter < 5:
-                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            elif iter < 6:
+            elif iter < 16:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            elif iter < 7:
-                ang, shiftMove = (-180, 180, 5), (-8, 10, 2)
-            elif iter < 8:
-                ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            elif iter < 11:
+            elif iter < 19:
                 ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
-            elif iter < 14:
-                ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
+            elif iter < 22:
+                ang, shiftMove = (-30, 31, 1), (-3, 4, 1)            
+            
+            # if iter < 1:
+            #     ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
+            # elif iter < 2:
+            #     ang, shiftMove = (-180, 180, 7), (-maxShift, maxShift+4, 4)
+            # elif iter < 3:
+            #     ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
+            # elif iter < 4:
+            #     ang, shiftMove = (-180, 180, 7), (-maxShift, maxShift+4, 4)
+            # elif iter < 5:
+            #     ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
+            # elif iter < 6:
+            #     ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
+            # elif iter < 7:
+            #     ang, shiftMove = (-180, 180, 5), (-8, 10, 2)
+            # elif iter < 8:
+            #     ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
+            # elif iter < 11:
+            #     ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
+            # elif iter < 14:
+            #     ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
                 
         else:
             #print("---Iter %s for align to classes---"%(iter+1))

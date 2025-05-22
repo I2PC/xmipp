@@ -76,7 +76,7 @@ if __name__=="__main__":
     classes = int(args.classes)
     final_classes = classes  
     refImages = args.ref
-    niter = 14
+    niter = 22
     bands = args.bands
     vecs = args.vecs
     mask = args.mask
@@ -216,8 +216,10 @@ if __name__=="__main__":
                 classes = len(cl)
         
                 if mode == "create_classes":
-                    # cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version0(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
-                    cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, mask, sigma)
+                    if iter < 10:
+                        cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version0(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
+                    else:
+                        cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, mask, sigma)
                 else:
                     cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(expImages, cl, tMatrix, iter, subset, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
 
@@ -226,7 +228,7 @@ if __name__=="__main__":
                 save_images(cl.cpu().detach().numpy(), sampling, file)
 
 
-                if mode == "create_classes" and iter == 13:
+                if mode == "create_classes" and iter == 21:
                     
                     refClas[:endBatch] = matches[:, 1]
                                                           
