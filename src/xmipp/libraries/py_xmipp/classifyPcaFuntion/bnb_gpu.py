@@ -382,7 +382,21 @@ class BnBgpu:
         if iter > 0 and iter < 5:
             thr = self.split_classes_for_range(classes, matches)
             
-        newCL = [[] for i in range(classes * 2)]
+
+        # if iter > 1 and iter < 4:
+        #     num = int(classes/2)
+        #     newCL = [[] for i in range(classes)]
+        # else:
+        #     num = classes
+        #     newCL = [[] for i in range(classes)]
+        
+        print(classes)    
+        if iter > 0 and iter < 4:
+            num = classes // 2
+            newCL = [[] for _ in range(2 * num)]
+        else:
+            num = classes
+            newCL = [[] for _ in range(num)]
 
 
 
@@ -418,19 +432,16 @@ class BnBgpu:
             batch_projExp_cpu[count] = self.batchExpToCpu(transforIm, freqBn, coef, cvecs)
             count+=1
 
-            if iter > 1 or iter > 4:
-                num = int(classes/2)
-            else:
-                num = classes
             
             if iter > 0 and iter < 4:
+                
                 for n in range(num):
                     
                     class_images = transforIm[(matches[initBatch:endBatch, 1] == n) & (matches[initBatch:endBatch, 2] < thr[n])]
                     newCL[n].append(class_images)
                     
                     non_class_images = transforIm[(matches[initBatch:endBatch, 1] == n) & (matches[initBatch:endBatch, 2] >= thr[n])] 
-                    newCL[n + classes].append(non_class_images)
+                    newCL[n + num].append(non_class_images)
             
             else:  
       
