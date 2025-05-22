@@ -216,7 +216,7 @@ if __name__=="__main__":
                 classes = len(cl)
         
                 if mode == "create_classes":
-                    if iter < 10:
+                    if iter < 5:
                         cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version0(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
                     else:
                         cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, mask, sigma)

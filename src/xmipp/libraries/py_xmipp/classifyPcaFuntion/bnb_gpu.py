@@ -271,12 +271,13 @@ class BnBgpu:
         
         class_split = 0
         # if iter >= 1 and iter < 5:
-        if iter >= 5 and iter < 10:
+        if iter >= 5 and iter < 9:
 
             thr = self.split_classes_for_range(classes, matches)
             class_split = int(final_classes/(iter*4))
 
-            if iter == 9:
+            # if iter == 4:
+            if iter == 8:
                 class_split = final_classes - classes
             
         newCL = [[] for i in range(classes + class_split)]
@@ -626,7 +627,8 @@ class BnBgpu:
             newCL = sorted(newCL, key=len, reverse=True)    
         element = list(map(len, newCL))
 
-        if iter > 0 and iter < 4:
+        # if iter > 0 and iter < 4:
+        if iter > 0 and iter < 5:
             numClas = int(classes/2)
         else:
             numClas = classes
