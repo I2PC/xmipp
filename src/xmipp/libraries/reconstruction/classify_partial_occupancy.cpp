@@ -852,6 +852,7 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 
 	std::cout << "Final ll_I: " << ll_I << std::endl;
 	std::cout << "Final ll_IsubP: " << ll_IsubP << std::endl;
+	std::cout << "Final diff ll_I - ll_IsubP: " << ll_I - ll_IsubP << std::endl;
 
 	std::cout << "--------------------------------------------------------------------- " 	<< std::endl;
 
