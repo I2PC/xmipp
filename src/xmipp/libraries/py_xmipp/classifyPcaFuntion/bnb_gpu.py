@@ -374,6 +374,93 @@ class BnBgpu:
     
     
     
+    def create_classes_version00(self, mmap, tMatrix, iter, nExp, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma):
+        
+        # print("----------create-classes-------------")      
+            
+        
+        if iter > 0 and iter < 5:
+            thr = self.split_classes_for_range(classes, matches)
+            
+        newCL = [[] for i in range(classes * 2)]
+
+
+
+        step = int(np.ceil(nExp/expBatchSize))
+        batch_projExp_cpu = [0 for i in range(step)]
+        
+        #rotate and translations
+        rotBatch = -matches[:,3].view(nExp,1)
+        translations = list(map(lambda i: vectorshift[i], matches[:, 4].int()))
+        translations = torch.tensor(translations, device = self.cuda).view(nExp,2)
+        
+        centerIm = mmap.data.shape[1]/2 
+        centerxy = torch.tensor([centerIm,centerIm], device = self.cuda)
+        
+        count = 0
+        for initBatch in range(0, nExp, expBatchSize):
+            
+            endBatch = min(initBatch+expBatchSize, nExp)
+                        
+            transforIm, matrixIm = self.center_particles_inverse_save_matrix(mmap.data[initBatch:endBatch], tMatrix[initBatch:endBatch], 
+                                                                             rotBatch[initBatch:endBatch], translations[initBatch:endBatch], centerxy)
+            
+            
+            if mask:
+                transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+            else:
+                transforIm = transforIm * self.create_circular_mask(transforIm)
+                
+                    
+            
+            tMatrix[initBatch:endBatch] = matrixIm
+            
+            batch_projExp_cpu[count] = self.batchExpToCpu(transforIm, freqBn, coef, cvecs)
+            count+=1
+
+            if iter > 1 or iter > 4:
+                num = int(classes/2)
+            else:
+                num = classes
+            
+            if iter > 0 and iter < 4:
+                for n in range(num):
+                    
+                    class_images = transforIm[(matches[initBatch:endBatch, 1] == n) & (matches[initBatch:endBatch, 2] < thr[n])]
+                    newCL[n].append(class_images)
+                    
+                    non_class_images = transforIm[(matches[initBatch:endBatch, 1] == n) & (matches[initBatch:endBatch, 2] >= thr[n])] 
+                    newCL[n + classes].append(non_class_images)
+            
+            else:  
+      
+                for n in range(num):
+                    class_images = transforIm[matches[initBatch:endBatch, 1] == n]
+                    newCL[n].append(class_images)
+
+                
+            del(transforIm)    
+                    
+   
+        newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
+        clk = self.averages_createClasses(mmap, iter, newCL)   
+
+        
+        if iter in [2, 4]:
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
+        elif iter in [6, 8, 10]:
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=20) 
+
+            
+        clk = clk * self.create_circular_mask(clk)
+        
+        if iter > 2 and iter < 10:
+            clk = self.center_by_com(clk)                    
+        
+        return(clk, tMatrix, batch_projExp_cpu)
+    
+    
+    
     def create_classes_version0(self, mmap, tMatrix, iter, nExp, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma):
         
         # print("----------create-classes-------------")      
