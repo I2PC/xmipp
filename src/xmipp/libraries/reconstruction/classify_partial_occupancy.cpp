@@ -772,6 +772,26 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 			}
 		}
 
+		// Fix scale previous to FT
+		double scallignFactor = (Xdim * Ydim) / (numberOfPx);
+
+		for (int i = minY[value]; i <= maxY[value]; ++i) 
+		{
+			for (int j = minX[value]; j <= maxX[value]; ++j) 
+			{
+				int newI = centerY - height / 2 + (i - minY[value]);
+				int newJ = centerX - width / 2 + (j - minX[value]);
+				
+				if (DIRECT_A2D_ELEM(PmaskRoiLabel, i, j) > 0)
+				{
+					DIRECT_A2D_ELEM(centeredLigand, newI, newJ) *= scallignFactor;
+					DIRECT_A2D_ELEM(centeredLigandSubP, newI, newJ) *= scallignFactor;
+					
+					numberOfPx++;
+				}
+			}
+		}
+
 		#ifdef DEBUG_OUTPUT_FILES
 		size_t lastindex = fnImgOut.find_last_of(".");
 
