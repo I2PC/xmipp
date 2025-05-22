@@ -249,7 +249,7 @@ class BnBgpu:
         return(cl)
     
     
-    def split_classes_for_range(self, classes, matches, percent=0.5):
+    def split_classes_for_range(self, classes, matches, percent=0.3):
         thr = torch.zeros(classes)
         for n in range(classes):
             if len(matches[matches[:, 1] == n, 2]) > 2: 
@@ -347,6 +347,12 @@ class BnBgpu:
         newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL]    
                      
         clk = self.averages_createClasses(mmap, iter, newCL)
+        
+        
+        if iter in [2, 4]:
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
+        elif iter in [6, 8, 10]:
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
 
         clk = clk * self.create_circular_mask(clk)    
          
