@@ -274,7 +274,7 @@ class BnBgpu:
         if iter >= 5 and iter < 9:
 
             thr = self.split_classes_for_range(classes, matches)
-            class_split = int(final_classes/(iter*4))
+            class_split = int(final_classes/((iter-5)*4))
 
             # if iter == 4:
             if iter == 8:
