@@ -817,8 +817,8 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 		}
 
 		// Do not noralize
-		ll_I	 += std::log10(ll_I_it);
-		ll_IsubP += std::log10(ll_IsubP_it);
+		ll_I	 += ll_I_it;
+		ll_IsubP += ll_IsubP_it;
 
 		// Normalize likelyhood by number of pixels of the crop and take logarithms
 		// ll_I	 += std::log10(ll_I_it 	   / numberOfPx);
