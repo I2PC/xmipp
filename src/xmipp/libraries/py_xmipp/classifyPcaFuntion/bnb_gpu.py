@@ -271,14 +271,15 @@ class BnBgpu:
         
         class_split = 0
         # if iter >= 1 and iter < 5:
-        if iter >= 5 and iter < 9:
+        if iter >= 5 and iter < 7:
 
             thr = self.split_classes_for_range(classes, matches)
-            class_split = int(final_classes/((iter-4)*4))
+            # class_split = int(final_classes/((iter-4)*4))
+            class_split = int(final_classes/4)
 
             # if iter == 4:
-            if iter == 8:
-                class_split = final_classes - classes
+            # if iter == 7:
+            #     class_split = final_classes - classes
             
         newCL = [[] for i in range(classes + class_split)]
 
@@ -319,7 +320,7 @@ class BnBgpu:
                           
              
             # if iter >= 1 and iter < 5:
-            if iter >= 5 and iter < 10: 
+            if iter >= 5 and iter < 9: 
                 for n in range(classes):
                     
                     if n < class_split:
@@ -352,9 +353,9 @@ class BnBgpu:
         clk = self.averages_createClasses(mmap, iter, newCL)
         
         
-        if iter in [2, 4]:
+        if iter < 5:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
-        elif iter in [6, 8, 10]:
+        elif iter < 10:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
 
         clk = clk * self.create_circular_mask(clk)    
@@ -390,10 +391,12 @@ class BnBgpu:
         #     num = classes
         #     newCL = [[] for i in range(classes)]
         
-        print(classes)    
         if iter > 0 and iter < 4:
             num = classes // 2
             newCL = [[] for _ in range(2 * num)]
+        elif iter == 4:
+            num = classes // 2
+            newCL = [[] for _ in range(num)]
         else:
             num = classes
             newCL = [[] for _ in range(num)]
@@ -442,7 +445,11 @@ class BnBgpu:
                     
                     non_class_images = transforIm[(matches[initBatch:endBatch, 1] == n) & (matches[initBatch:endBatch, 2] >= thr[n])] 
                     newCL[n + num].append(non_class_images)
-            
+            elif iter == 4:
+                for n in range(num):
+                    # Solo llenar las primeras 'num' clases con imágenes por debajo del umbral
+                    class_images = transforIm[(matches[initBatch:endBatch, 1] == n) & (matches[initBatch:endBatch, 2] < thr[n])]
+                    newCL[n].append(class_images)
             else:  
       
                 for n in range(num):
@@ -457,9 +464,9 @@ class BnBgpu:
         clk = self.averages_createClasses(mmap, iter, newCL)   
 
         
-        if iter in [2, 4]:
+        if iter < 5:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
-        elif iter in [6, 8, 10]:
+        elif iter < 10:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=20) 
 
             

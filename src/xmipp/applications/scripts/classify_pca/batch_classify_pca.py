@@ -131,8 +131,8 @@ if __name__=="__main__":
         cl = torch.from_numpy(clIm).float().to(cuda)
     else:
         initStep = int(min(numFirstBatch, np.ceil(nExp/expBatchSize)))
-        # cl = bnb.init_ramdon_classes(final_classes, mmap, initSubset) 
-        cl = bnb.init_ramdon_classes(final_classes//2, mmap, initSubset)
+        cl = bnb.init_ramdon_classes(final_classes, mmap, initSubset) 
+        # cl = bnb.init_ramdon_classes(final_classes//2, mmap, initSubset)
         
     
     if refImages:
