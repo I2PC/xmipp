@@ -28,12 +28,8 @@
 **************************************************************************
 """
 
-from typing import Tuple, List, NamedTuple
-
-import random
+from typing import Tuple, List, NamedTuple, Iterable
 import numpy as np
-import scipy.spatial
-import scipy.optimize
 
 from xmipp_base import XmippScript
 import xmippLib
@@ -42,6 +38,63 @@ class TiltData(NamedTuple):
     projectionMatrix: np.ndarray
     shift: np.ndarray
     coordinates2d: np.ndarray
+
+def _computeProjectionDeltas(positions: np.ndarray,
+                             data: Iterable[TiltData] ) -> np.ndarray:
+    n = 0
+    for tilt in data:
+        n += len(tilt.coordinates2d)
+    k = len(positions)
+    
+    projected = np.empty((n, k, 2))
+    backprojected = np.empty((n, k, 3))
+    start = 0
+    for tilt in data:
+        end = start + len(tilt.coordinates2d)
+
+        projectionMatrix = tilt.projectionMatrix
+        detections = tilt.coordinates2d
+        projections = (projectionMatrix @ positions.T).T
+        projected[start:end] = detections[:,None] - projections[None,:]
+
+        projectionMatrix2 = projectionMatrix.T @ projectionMatrix
+        projections2 = (projectionMatrix2 @ positions.T).T
+        detections2 = (projectionMatrix.T @ detections.T).T
+        backprojected[start:end] = detections2[:,None] - projections2[None,:]
+            
+        start = end
+
+    assert start == n, "Not all deltas have been computed"
+    return projected, backprojected
+    
+def _computeGmmResponsibilities(deltas: np.ndarray,
+                                sigma2: np.ndarray,
+                                weights: np.ndarray,
+                                returnLogLikelihood: bool = False ) -> np.ndarray:
+
+  _, _, D = deltas.shape
+  LOG2PI = np.log(2*np.pi)
+
+  distance2 = np.sum(np.square(deltas), axis=2)
+  exponent = -0.5 * distance2 / sigma2
+
+  logSigma2 = np.log(sigma2)
+  logWeights = np.log(weights)
+  logCoefficient = -0.5*D*(LOG2PI + logSigma2)
+
+  logProbabilities = logWeights + logCoefficient + exponent
+
+  logNorm = np.logaddexp.reduce(logProbabilities, axis=1, keepdims=True)
+  logProbabilities -= logNorm
+
+  gamma = np.exp(logProbabilities)
+  if returnLogLikelihood:
+    logLikelihood = np.sum(logNorm)
+    return gamma, logLikelihood
+  else:
+    return gamma
+
+
 
 class ScriptCoordinateBackProjection(XmippScript):
     def __init__(self):
@@ -52,27 +105,21 @@ class ScriptCoordinateBackProjection(XmippScript):
         self.addParamsLine('-i <inputMetadata>          : Path to a metadata file with all the 2D coordinates')
         self.addParamsLine('-a <tsMetadata>             : Path to a metadata file with the tilt-series alignment information')
         self.addParamsLine('-o <outputMetadata>         : Path to a metadata with the reconstructed 3D coordinates')
-        self.addParamsLine('-n <numberOfCoords=1000>    : Number of reconstructed 3D coordinates')
-        self.addParamsLine('--lr <learningRate=0.3>     : Learning rate')
-        self.addParamsLine('--batch <miniBatchSize=8>   : Number of tilts used in minibatches')
-        self.addParamsLine('--box <x=1000> <y=1000> <z=300> : Box size')
-        self.addParamsLine('[--loss <outputLossFunction>] : Path where loss function is written')
+        self.addParamsLine('-n <numberOfCoords>         : Number of reconstructed 3D coordinates')
+        self.addParamsLine('--box <x> <y> <z>           : Box size')
+        self.addParamsLine('[--sigma <noise=8.0>]       : Picking noise std deviation estimation')
         
     def run(self):
         inputMetadataFn = self.getParam('-i')
         inputTsAliMetadataFn = self.getParam('-a')
         outputMetadataFn = self.getParam('-o')
         nCoords = self.getIntParam('-n')
-        lr = self.getDoubleParam('--lr')
-        miniBatchSize = self.getIntParam('--batch')
         boxSize = (
             self.getIntParam('--box', 0),
             self.getIntParam('--box', 1),
             self.getIntParam('--box', 2)
         )
-        lossFn = None
-        if self.checkParam('--loss'):
-            lossFn = self.getParam('--loss')
+        sigma = self.getDoubleParam('--sigma')
         
         
         tiltSeriesCoordinates = self.readTiltSeriesCoordinates(inputMetadataFn)
@@ -85,26 +132,22 @@ class ScriptCoordinateBackProjection(XmippScript):
             coordinates2d = np.array(tiltSeriesCoordinates[tiltId])
             data.append(TiltData(matrix, shift, coordinates2d))
         
-        positions, count, losses = self.coordinateBackProjection(
+        positions, effectiveCounts = self.coordinateBackProjection(
             data=data,
             nCoords=nCoords,
-            nBatch=miniBatchSize,
-            lr=lr,
-            boxSize=boxSize
+            boxSize=boxSize,
+            sigma=sigma
         )
         
         outputMd = xmippLib.MetaData()
-        for position, count in zip(positions, count):
+        for position, effectiveCount in zip(positions, effectiveCounts):
             x, y, z = position
             objId = outputMd.addObject()
             outputMd.setValue(xmippLib.MDL_X, x, objId)
             outputMd.setValue(xmippLib.MDL_Y, y, objId)
             outputMd.setValue(xmippLib.MDL_Z, z, objId)
-            outputMd.setValue(xmippLib.MDL_COUNT, int(count), objId)
+            outputMd.setValue(xmippLib.MDL_LL, float(effectiveCount), objId)
         outputMd.write(outputMetadataFn)
-
-        if lossFn is not None:
-            np.save(lossFn, np.array(losses))
         
     def readTiltSeriesProjectionTransforms(self, filename):
         result = dict()
@@ -147,36 +190,11 @@ class ScriptCoordinateBackProjection(XmippScript):
                 
         return result
     
-    def pointMatching(self, x, y):
-        cost_matrix = np.square(scipy.spatial.distance.cdist(x, y))
-        return scipy.optimize.linear_sum_assignment(cost_matrix)
-    
-    def countContributions(self,
-                           positions: np.ndarray,
-                           data: List[TiltData] ):
-        count = np.zeros(len(positions), dtype=np.int64)
-
-        for tilt in data:
-            projectionMatrix = tilt.projectionMatrix
-            coordinates2d = tilt.coordinates2d
-            coordinates2dProj = (projectionMatrix @ positions.T).T
-            
-            _, positionIndices = self.pointMatching(
-                coordinates2d, 
-                coordinates2dProj
-            )
-            
-            count[positionIndices] += 1
-
-        return count
-            
     def coordinateBackProjection(self,
                                  data: List[TiltData], 
                                  nCoords: int,
-                                 nBatch: int,
-                                 lr: float,
-                                 boxSize: Tuple[int, int, int],
-                                 patience: int = 1024 ) -> Tuple[np.ndarray, np.ndarray]:
+                                 sigma: float,
+                                 boxSize: Tuple[int, int, int] ) -> Tuple[np.ndarray, np.ndarray]:
         
         boundary = np.array(boxSize) / 2
         positions = np.random.uniform(
@@ -185,46 +203,30 @@ class ScriptCoordinateBackProjection(XmippScript):
             size=(nCoords, 3)
         )
 
-        iterationsSinceLastImprovement = 0
-        bestLoss = np.inf
-        losses = []
-        while iterationsSinceLastImprovement < patience:
-            batch = random.sample(data, nBatch)
-            gradient = np.zeros_like(positions)
-            loss = 0.0
-            count = 0
-            for tilt in batch:
-                coordinates = tilt.coordinates2d
-                projectionMatrix = tilt.projectionMatrix
+        weights = np.full(nCoords, 1/nCoords)
+        sigma2 = np.full(nCoords, np.square(sigma))
 
-                projections = (projectionMatrix @ positions.T).T
-                sampleIndices, positionIndices = self.pointMatching(coordinates, projections)
-
-                coordinates = coordinates[sampleIndices]
-                projections = projections[positionIndices]
-
-                residual2d = coordinates - projections
-                residual3d = (projectionMatrix.T @ residual2d.T).T
-
-                gradient[positionIndices] += residual3d
-                loss += np.sum(np.square(residual2d))
-                count += len(positionIndices)
-
-            loss /= count
-            gradient /= len(batch)
-            losses.append(loss)
-
-            positions += lr*gradient
+        oldLogLikelihood = -np.inf
+        while True:
+            deltas, backprojectedDeltas = _computeProjectionDeltas(positions, data)
+            
+            responsibilities, logLikelihood = _computeGmmResponsibilities(
+                deltas, sigma2, weights, 
+                returnLogLikelihood=True
+            )
+            
+            n = np.sum(responsibilities, axis=0)
+            backprojectedDeltas *= responsibilities[:,:,None]
+            positions += np.sum(backprojectedDeltas, axis=0) / np.maximum(n[:,None], 1e-6)
             positions = np.clip(positions, -boundary, boundary)
+            
+            weights = n / responsibilities.shape[0]
 
-            if loss < bestLoss:
-                bestLoss = loss
-                iterationsSinceLastImprovement = 0
-            else:
-                iterationsSinceLastImprovement += 1
-
-        count = self.countContributions(positions, data)
-        return positions, count, losses
+            if oldLogLikelihood + 0.1 > logLikelihood:
+                break # No improvement
+            oldLogLikelihood = logLikelihood
+            
+        return positions, n
         
 if __name__=="__main__":
     ScriptCoordinateBackProjection().tryRun()
