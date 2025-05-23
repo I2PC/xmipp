@@ -18,14 +18,14 @@ class evaluation:
         self.cuda = torch.device('cuda:0')
     
         #for experimental images with starfile module
-    def updateExpStar(self, expStar, refClas, angle, shiftVec, output):
+    def updateExpStar(self, expStar, refClas, angle, shiftVec, output, dist):
         
         star = starfile.read(expStar)
         new = output + "_images.star"  
     
         star.loc[:,"ref"] = refClas.int()+1
         
-        columns = ["anglePsi", "angleRot", "angleTilt", "shiftX", "shiftY", "shiftZ"]
+        columns = ["anglePsi", "angleRot", "angleTilt", "shiftX", "shiftY", "shiftZ", "dist"]
         for column in columns:
             # if column not in star.columns:
             star[column] = 0.0
@@ -34,6 +34,8 @@ class evaluation:
         star.loc[:, "anglePsi"] = angle
         star.loc[:, "shiftX"] = shiftVec[:,0].cpu().detach().numpy()
         star.loc[:, "shiftY"] = shiftVec[:,1].cpu().detach().numpy()
+        
+        star.loc[:, "dist"] = dist
     
         starfile.write(star, new, overwrite=True)
         

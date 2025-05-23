@@ -105,6 +105,7 @@ if __name__=="__main__":
     
     initSubset = min(100000, nExp)
     refClas = torch.zeros(nExp)
+    dist = np.zeros(nExp, dtype=np.float32)
     translation_vector = torch.zeros(nExp, 2)
     angles_deg = np.zeros(nExp)
     
@@ -216,10 +217,10 @@ if __name__=="__main__":
                 classes = len(cl)
         
                 if mode == "create_classes":
-                    if iter < 5:
-                        cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version00(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
-                    else:
-                        cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, mask, sigma)
+                    # if iter < 5:
+                    cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version00(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
+                    # else:
+                        # cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, mask, sigma)
                 else:
                     cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(expImages, cl, tMatrix, iter, subset, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)
 
@@ -231,6 +232,7 @@ if __name__=="__main__":
                 if mode == "create_classes" and iter == 21:
                     
                     refClas[:endBatch] = matches[:, 1]
+                    dist[:endBatch] = matches[:, 2].cpu().numpy()
                                                           
                     #Applying TMT(inv). 
                     #This is done because the rotation is performed from the center of the image.
@@ -253,6 +255,7 @@ if __name__=="__main__":
                 elif mode == "align_classes" and iter == 3:
                     
                     refClas[initBatch:endBatch] = matches[:, 1]
+                    dist[initBatch:endBatch] = matches[:, 2].cpu().numpy()
                     
                     initial_shift = torch.tensor([[1.0, 0.0, -dim/2],
                                                   [0.0, 1.0, -dim/2],
@@ -269,6 +272,7 @@ if __name__=="__main__":
                     angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
                     angles_deg[initBatch:endBatch] = np.degrees(angles_rad.cpu().numpy())
         del(expImages)
+        
         
     counts = torch.bincount(refClas.to(torch.int64), minlength=classes)
     
@@ -288,7 +292,7 @@ if __name__=="__main__":
     # print(counts.int())
     
     assess = evaluation()
-    assess.updateExpStar(expStar, refClas, -angles_deg, translation_vector, output)
+    assess.updateExpStar(expStar, refClas, -angles_deg, translation_vector, output, dist)
     assess.createClassesStar(classes, file, counts, output)
     assess.createClassesStar(classes, file_contrast, counts, output+"_contrast")
 
