@@ -249,7 +249,7 @@ class BnBgpu:
         return(cl)
     
     
-    def get_robust_zscore_thresholds(self, classes, matches, threshold=2.0):
+    def get_robust_zscore_thresholds(self, classes, matches, threshold=1.0):
 
         thr_low = torch.full((classes,), float('-inf'))
         thr_high = torch.full((classes,), float('inf'))
@@ -478,6 +478,7 @@ class BnBgpu:
                                             )
                                         ]
                     newCL[n + num].append(non_class_images)
+                    print(class_images.shape, non_class_images.shape)
             # elif iter == 4:
             #     for n in range(num):
             #         # Solo llenar las primeras 'num' clases con imágenes por debajo del umbral
