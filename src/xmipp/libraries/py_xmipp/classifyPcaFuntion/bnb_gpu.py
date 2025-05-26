@@ -500,13 +500,15 @@ class BnBgpu:
         
         if iter > 1 and iter < 5:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
+        elif iter == 6:
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=5)
         elif iter >= 5 and iter < 10:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=20) 
 
             
         clk = clk * self.create_circular_mask(clk)
         
-        if iter > 2 and iter < 10:
+        if iter > 2 and iter < 11:
             clk = self.center_by_com(clk)                    
         
         return(clk, tMatrix, batch_projExp_cpu)
