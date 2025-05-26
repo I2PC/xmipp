@@ -196,6 +196,8 @@ class ScriptCoordinateBackProjection(XmippScript):
                                  sigma: float,
                                  boxSize: Tuple[int, int, int] ) -> Tuple[np.ndarray, np.ndarray]:
         
+        EPS = 1e-8
+        
         boundary = np.array(boxSize) / 2
         positions = np.random.uniform(
             low=-boundary,
@@ -221,6 +223,7 @@ class ScriptCoordinateBackProjection(XmippScript):
             positions = np.clip(positions, -boundary, boundary)
             
             weights = n / responsibilities.shape[0]
+            weights = np.maximum(weights, EPS)
 
             if oldLogLikelihood + 0.1 > logLikelihood:
                 break # No improvement
