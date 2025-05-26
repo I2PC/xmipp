@@ -249,7 +249,7 @@ class BnBgpu:
         return(cl)
     
     
-    def get_robust_zscore_thresholds(self, classes, matches, threshold=1.0):
+    def get_robust_zscore_thresholds(self, classes, matches, threshold=2.0):
 
         thr_low = torch.full((classes,), float('-inf'))
         thr_high = torch.full((classes,), float('inf'))
@@ -499,8 +499,8 @@ class BnBgpu:
 
         
         if iter > 1 and iter < 5:
-            clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
-        elif iter == 6:
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
+        elif iter == 6 or iter == 8:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=5)
         elif iter >= 5 and iter < 10:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=20) 
