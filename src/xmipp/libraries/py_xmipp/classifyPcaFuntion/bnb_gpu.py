@@ -249,6 +249,27 @@ class BnBgpu:
         return(cl)
     
     
+    def get_robust_zscore_thresholds(self, classes, matches, threshold=2.0):
+
+        thr_low = torch.full((classes,), float('-inf'))
+        thr_high = torch.full((classes,), float('inf'))
+    
+        for n in range(classes):
+            class_scores = matches[matches[:, 1] == n, 2]
+            if len(class_scores) > 2:
+                median = class_scores.median()
+                mad = torch.median(torch.abs(class_scores - median)) + 1e-8  # evitar división por cero
+                thr_low[n] = median - threshold * mad
+                thr_high[n] = median + threshold * mad
+                
+                vmin = torch.min(matches[matches[:, 1] == n, 2])
+                vmax = torch.max(matches[matches[:, 1] == n, 2])
+                print("dist", vmin, vmax)
+                print("thr",   thr_low[n], thr_high[n])
+    
+        return thr_low, thr_high
+    
+    
     def split_classes_for_range(self, classes, matches, percent=0.3):
         thr = torch.zeros(classes)
         for n in range(classes):
@@ -381,7 +402,8 @@ class BnBgpu:
             
         
         if iter > 3 and iter < 10:
-            thr = self.split_classes_for_range(classes, matches)
+            # thr = self.split_classes_for_range(classes, matches)
+            thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches)
             
 
         if iter > 3 and iter < 10:
@@ -440,10 +462,20 @@ class BnBgpu:
                 
                 for n in range(num):
                     
-                    class_images = transforIm[(matches[initBatch:endBatch, 1] == n) & (matches[initBatch:endBatch, 2] < thr[n])]
+                    class_images = transforIm[
+                                            (matches[initBatch:endBatch, 1] == n) &
+                                            (matches[initBatch:endBatch, 2] > thr_low[n]) &
+                                            (matches[initBatch:endBatch, 2] < thr_high[n])
+                                        ]
                     newCL[n].append(class_images)
                     
-                    non_class_images = transforIm[(matches[initBatch:endBatch, 1] == n) & (matches[initBatch:endBatch, 2] >= thr[n])] 
+                    non_class_images = transforIm[
+                                            (matches[initBatch:endBatch, 1] == n) &
+                                            (
+                                                (matches[initBatch:endBatch, 2] <= thr_low[n]) |
+                                                (matches[initBatch:endBatch, 2] >= thr_high[n])
+                                            )
+                                        ]
                     newCL[n + num].append(non_class_images)
             # elif iter == 4:
             #     for n in range(num):
