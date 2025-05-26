@@ -403,6 +403,7 @@ class BnBgpu:
         
         if iter > 3 and iter < 10:
             # thr = self.split_classes_for_range(classes, matches)
+            print("--------", iter, "-----------")
             thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches)
             
 
