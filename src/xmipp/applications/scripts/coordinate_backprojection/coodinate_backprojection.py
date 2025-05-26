@@ -28,7 +28,7 @@
 **************************************************************************
 """
 
-from typing import Tuple, List, NamedTuple, Iterable
+from typing import Tuple, List, NamedTuple, Iterable, Optional
 import numpy as np
 
 from xmipp_base import XmippScript
@@ -40,14 +40,24 @@ class TiltData(NamedTuple):
     coordinates2d: np.ndarray
 
 def _computeProjectionDeltas(positions: np.ndarray,
-                             data: Iterable[TiltData] ) -> np.ndarray:
+                             data: Iterable[TiltData],
+                             outProjected: Optional[np.ndarray] = None,
+                             outBackprojected: Optional[np.ndarray] = None) -> np.ndarray:
     n = 0
     for tilt in data:
         n += len(tilt.coordinates2d)
     k = len(positions)
     
-    projected = np.empty((n, k, 2))
-    backprojected = np.empty((n, k, 3))
+    if outProjected is None:
+        outProjected = np.empty((n, k, 2))
+    elif outProjected.shape != (n, k, 2):
+        raise ValueError(f"outProjected must have shape ({n}, {k}, 2), got {outProjected.shape}")
+    
+    if outBackprojected is None:
+        outBackprojected = np.empty((n, k, 3))
+    elif outBackprojected.shape != (n, k, 3):
+        raise ValueError(f"outBackprojected must have shape ({n}, {k}, 3), got {outBackprojected.shape}")
+        
     start = 0
     for tilt in data:
         end = start + len(tilt.coordinates2d)
@@ -55,44 +65,57 @@ def _computeProjectionDeltas(positions: np.ndarray,
         projectionMatrix = tilt.projectionMatrix
         detections = tilt.coordinates2d
         projections = (projectionMatrix @ positions.T).T
-        projected[start:end] = detections[:,None] - projections[None,:]
+        np.subtract(
+            detections[:,None], 
+            projections[None,:], 
+            out=outProjected[start:end]
+        )
 
         projectionMatrix2 = projectionMatrix.T @ projectionMatrix
         projections2 = (projectionMatrix2 @ positions.T).T
         detections2 = (projectionMatrix.T @ detections.T).T
-        backprojected[start:end] = detections2[:,None] - projections2[None,:]
+        np.subtract(
+            detections2[:,None],
+            projections2[None,:],
+            out=outBackprojected[start:end]
+        )
             
         start = end
 
     assert start == n, "Not all deltas have been computed"
-    return projected, backprojected
+    return outProjected, outBackprojected
     
 def _computeGmmResponsibilities(deltas: np.ndarray,
                                 sigma2: np.ndarray,
                                 weights: np.ndarray,
-                                returnLogLikelihood: bool = False ) -> np.ndarray:
+                                returnLogLikelihood: bool = False,
+                                out: Optional[np.ndarray] = None) -> np.ndarray:
 
-  _, _, D = deltas.shape
-  LOG2PI = np.log(2*np.pi)
+    _, _, D = deltas.shape
+    LOG2PI = np.log(2*np.pi)
 
-  distance2 = np.sum(np.square(deltas), axis=2)
-  exponent = -0.5 * distance2 / sigma2
+    distance2 = np.sum(np.square(deltas), axis=2, out=out)
+    distance2 *= -0.5 / sigma2
+    exponent = distance2 # Alias
 
-  logSigma2 = np.log(sigma2)
-  logWeights = np.log(weights)
-  logCoefficient = -0.5*D*(LOG2PI + logSigma2)
+    logSigma2 = np.log(sigma2)
+    logWeights = np.log(weights)
+    logCoefficient = -0.5*D*(LOG2PI + logSigma2)
+    logMantissa = logWeights + logCoefficient
 
-  logProbabilities = logWeights + logCoefficient + exponent
+    logProbabilities = exponent # Alias
+    logProbabilities += logMantissa
+    
+    logNorm = np.logaddexp.reduce(logProbabilities, axis=1, keepdims=True)
+    logProbabilities -= logNorm
 
-  logNorm = np.logaddexp.reduce(logProbabilities, axis=1, keepdims=True)
-  logProbabilities -= logNorm
-
-  gamma = np.exp(logProbabilities)
-  if returnLogLikelihood:
-    logLikelihood = np.sum(logNorm)
-    return gamma, logLikelihood
-  else:
-    return gamma
+    gamma = logProbabilities # Alias
+    np.exp(gamma, out=gamma)
+    if returnLogLikelihood:
+        logLikelihood = np.sum(logNorm)
+        return gamma, logLikelihood
+    else:
+        return gamma
 
 
 
@@ -195,8 +218,7 @@ class ScriptCoordinateBackProjection(XmippScript):
                                  nCoords: int,
                                  sigma: float,
                                  boxSize: Tuple[int, int, int] ) -> Tuple[np.ndarray, np.ndarray]:
-        
-        EPS = 1e-8
+        EPS = 1e-12
         
         boundary = np.array(boxSize) / 2
         positions = np.random.uniform(
@@ -208,18 +230,27 @@ class ScriptCoordinateBackProjection(XmippScript):
         weights = np.full(nCoords, 1/nCoords)
         sigma2 = np.full(nCoords, np.square(sigma))
 
+        responsibilities = None
+        deltas = None
+        backprojectedDeltas = None
         oldLogLikelihood = -np.inf
         while True:
-            deltas, backprojectedDeltas = _computeProjectionDeltas(positions, data)
+            deltas, backprojectedDeltas = _computeProjectionDeltas(
+                positions, 
+                data, 
+                outProjected=deltas,
+                outBackprojected=backprojectedDeltas
+            )
             
             responsibilities, logLikelihood = _computeGmmResponsibilities(
                 deltas, sigma2, weights, 
-                returnLogLikelihood=True
+                returnLogLikelihood=True,
+                out=responsibilities
             )
             
             n = np.sum(responsibilities, axis=0)
             backprojectedDeltas *= responsibilities[:,:,None]
-            positions += np.sum(backprojectedDeltas, axis=0) / np.maximum(n[:,None], 1e-6)
+            positions += np.sum(backprojectedDeltas, axis=0) / np.maximum(n[:,None], EPS)
             positions = np.clip(positions, -boundary, boundary)
             
             weights = n / responsibilities.shape[0]
