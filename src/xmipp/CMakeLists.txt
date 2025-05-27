@@ -74,7 +74,7 @@ file(
 	PARALLEL_SOURCES
 		${CMAKE_CURRENT_SOURCE_DIR}/libraries/parallel/*.cpp
 )
-file(
+fil
 	GLOB_RECURSE 
 	CUDA_SOURCES
 		${CMAKE_CURRENT_SOURCE_DIR}/libraries/reconstruction_cuda/*.cpp
@@ -204,6 +204,33 @@ endif()
 
 # Register CUDA sources
 if(${XMIPP_USE_CUDA})
+
+    # Find NVML if is not defined
+    find_path(NVML_INCLUDE_DIR nvml.h
+        HINTS
+            /usr/include
+            /usr/local/cuda/include
+            /usr/include/nvidia
+        REQUIRED
+    )
+
+    find_library(NVML_LIBRARY nvidia-ml
+        HINTS
+            /usr/lib
+            /usr/lib64
+            /usr/local/cuda/lib64
+        REQUIRED
+    )
+    message(STATUS "Found NVML include at ${NVML_INCLUDE_DIR}")
+    message(STATUS "Found NVML library at ${NVML_LIBRARY}")
+
+
+    # Create a target INTERFACE to use as cuda_nvml
+    add_library(cuda_nvml INTERFACE)
+    target_include_directories(cuda_nvml INTERFACE ${NVML_INCLUDE_DIR})
+    target_link_libraries(cuda_nvml INTERFACE ${NVML_LIBRARY})
+
+
 	set_source_files_properties(
  		${CUDA_SOURCES}
 		PROPERTIES LANGUAGE CUDA
@@ -248,7 +275,8 @@ if(${XMIPP_USE_CUDA})
 			Xmipp
 			CUDA::cudart
 			CUDA::cufft
-			CUDA::nvml
+			cuda_nvml
+			# CUDA::nvml
 	)
 
 	add_library(XmippInterfaceCuda SHARED ${CUDA_INTERFACE_SOURCES})
