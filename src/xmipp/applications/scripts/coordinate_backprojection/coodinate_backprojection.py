@@ -28,7 +28,7 @@
 **************************************************************************
 """
 
-from typing import Tuple, List, NamedTuple, Iterable, Optional
+from typing import Tuple, List, NamedTuple, Iterable, Optional, Union
 import numpy as np
 
 from xmipp_base import XmippScript
@@ -85,32 +85,27 @@ def _computeProjectionDeltas(positions: np.ndarray,
     assert start == n, "Not all deltas have been computed"
     return outProjected, outBackprojected
     
-def _computeGmmResponsibilities(deltas: np.ndarray,
-                                sigma2: np.ndarray,
+def _computeGmmResponsibilities(distance2: np.ndarray,
+                                sigma2: Union[np.ndarray, float],
                                 weights: np.ndarray,
+                                d: int,
                                 returnLogLikelihood: bool = False,
                                 out: Optional[np.ndarray] = None) -> np.ndarray:
 
-    _, _, D = deltas.shape
     LOG2PI = np.log(2*np.pi)
 
-    distance2 = np.sum(np.square(deltas), axis=2, out=out)
-    distance2 *= -0.5 / sigma2
-    exponent = distance2 # Alias
+    exponent = np.multiply(distance2, -0.5 / sigma2, out=out)
 
     logSigma2 = np.log(sigma2)
     logWeights = np.log(weights)
-    logCoefficient = -0.5*D*(LOG2PI + logSigma2)
+    logCoefficient = -0.5*d*(LOG2PI + logSigma2)
     logMantissa = logWeights + logCoefficient
-
-    logProbabilities = exponent # Alias
-    logProbabilities += logMantissa
+    exponent += logMantissa
     
-    logNorm = np.logaddexp.reduce(logProbabilities, axis=1, keepdims=True)
-    logProbabilities -= logNorm
+    logNorm = np.logaddexp.reduce(exponent, axis=1, keepdims=True)
+    exponent -= logNorm
 
-    gamma = logProbabilities # Alias
-    np.exp(gamma, out=gamma)
+    gamma = np.exp(exponent, out=exponent) # Aliasing
     if returnLogLikelihood:
         logLikelihood = np.sum(logNorm)
         return gamma, logLikelihood
@@ -228,11 +223,10 @@ class ScriptCoordinateBackProjection(XmippScript):
         )
 
         weights = np.full(nCoords, 1/nCoords)
-        sigma2 = np.full(nCoords, np.square(sigma))
-
-        responsibilities = None
+        sigma2 = np.square(sigma)
         deltas = None
         backprojectedDeltas = None
+        distances2 = None
         oldLogLikelihood = -np.inf
         while True:
             deltas, backprojectedDeltas = _computeProjectionDeltas(
@@ -242,10 +236,13 @@ class ScriptCoordinateBackProjection(XmippScript):
                 outBackprojected=backprojectedDeltas
             )
             
+            deltas2 = np.square(deltas, out=deltas) # Aliasing
+            distances2 = np.sum(deltas2, axis=2, out=distances2)
+            
             responsibilities, logLikelihood = _computeGmmResponsibilities(
-                deltas, sigma2, weights, 
+                distances2, sigma2, weights, deltas2.shape[-1],
                 returnLogLikelihood=True,
-                out=responsibilities
+                out=distances2 # Aliasing
             )
             
             n = np.sum(responsibilities, axis=0)
