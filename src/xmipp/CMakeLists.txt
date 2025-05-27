@@ -228,30 +228,18 @@ if(${XMIPP_USE_CUDA})
     include(FindPackageHandleStandardArgs)
     find_package_handle_standard_args(NVML DEFAULT_MSG NVML_LIBRARY NVML_INCLUDE_DIR)
 
-    if(NVML_FOUND)
-        message(STATUS "✅ Found NVML include at ${NVML_INCLUDE_DIR}")
-        message(STATUS "✅ Found NVML library at ${NVML_LIBRARY}")
-
-    if(NOT TARGET cuda_nvml)
-      add_library(cuda_nvml INTERFACE)
-      target_include_directories(cuda_nvml INTERFACE ${NVML_INCLUDE_DIR})
-      target_link_libraries(cuda_nvml INTERFACE ${NVML_LIBRARY})
-    endif()
-
-        add_library(cuda_nvml INTERFACE)
-        target_include_directories(cuda_nvml INTERFACE ${NVML_INCLUDE_DIR})
-        target_link_libraries(cuda_nvml INTERFACE ${NVML_LIBRARY})
-    else()
-        message(WARNING "⚠️ NVML not found. cuda_nvml target will be unavailable. Some features may not compile.")
-    endif()
-
-
-
-    # Create a target INTERFACE to use as cuda_nvml
-    add_library(cuda_nvml INTERFACE)
-    target_include_directories(cuda_nvml INTERFACE ${NVML_INCLUDE_DIR})
-    target_link_libraries(cuda_nvml INTERFACE ${NVML_LIBRARY})
-
+	if(NVML_FOUND)
+	    message(STATUS "✅ Found NVML include at ${NVML_INCLUDE_DIR}")
+	    message(STATUS "✅ Found NVML library at ${NVML_LIBRARY}")
+	
+	    if(NOT TARGET cuda_nvml)
+	        add_library(cuda_nvml INTERFACE)
+	        target_include_directories(cuda_nvml INTERFACE ${NVML_INCLUDE_DIR})
+	        target_link_libraries(cuda_nvml INTERFACE ${NVML_LIBRARY})
+	    endif()
+	else()
+	    message(WARNING "⚠️ NVML not found. cuda_nvml target will be unavailable. Some features may not compile.")
+	endif()
 
 	set_source_files_properties(
  		${CUDA_SOURCES}
