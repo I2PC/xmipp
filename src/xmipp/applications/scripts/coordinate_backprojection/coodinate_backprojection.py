@@ -214,6 +214,7 @@ class ScriptCoordinateBackProjection(XmippScript):
                                  sigma: float,
                                  boxSize: Tuple[int, int, int] ) -> Tuple[np.ndarray, np.ndarray]:
         EPS = 1e-12
+        TOL = 1e-4
         
         boundary = np.array(boxSize) / 2
         positions = np.random.uniform(
@@ -224,6 +225,7 @@ class ScriptCoordinateBackProjection(XmippScript):
 
         weights = np.full(nCoords, 1/nCoords)
         sigma2 = np.square(sigma)
+        
         deltas = None
         backprojectedDeltas = None
         distances2 = None
@@ -245,15 +247,16 @@ class ScriptCoordinateBackProjection(XmippScript):
                 out=distances2 # Aliasing
             )
             
-            n = np.sum(responsibilities, axis=0)
+            n = np.maximum(np.sum(responsibilities, axis=0), EPS)
             backprojectedDeltas *= responsibilities[:,:,None]
-            positions += np.sum(backprojectedDeltas, axis=0) / np.maximum(n[:,None], EPS)
+            positions += np.sum(backprojectedDeltas, axis=0) / n[:,None]
             positions = np.clip(positions, -boundary, boundary)
             
             weights = n / responsibilities.shape[0]
             weights = np.maximum(weights, EPS)
-
-            if oldLogLikelihood + 0.1 > logLikelihood:
+            
+            improvement = (logLikelihood - oldLogLikelihood) / (-oldLogLikelihood)
+            if improvement < TOL:
                 break # No improvement
             oldLogLikelihood = logLikelihood
             
