@@ -645,9 +645,9 @@ class BnBgpu:
                 # newCL[n].append(class_images)
                           
                 class_images = transforIm[
-                                        (matches[initBatch:endBatch, 1] == n) &
-                                        (matches[initBatch:endBatch, 2] > thr_low[n]) &
-                                        (matches[initBatch:endBatch, 2] < thr_high[n])
+                                        (matches[:, 1] == n) &
+                                        (matches[:, 2] > thr_low[n]) &
+                                        (matches[:, 2] < thr_high[n])
                                     ]
                 newCL[n].append(class_images)
                 
