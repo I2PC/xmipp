@@ -232,6 +232,12 @@ if(${XMIPP_USE_CUDA})
         message(STATUS "✅ Found NVML include at ${NVML_INCLUDE_DIR}")
         message(STATUS "✅ Found NVML library at ${NVML_LIBRARY}")
 
+    if(NOT TARGET cuda_nvml)
+      add_library(cuda_nvml INTERFACE)
+      target_include_directories(cuda_nvml INTERFACE ${NVML_INCLUDE_DIR})
+      target_link_libraries(cuda_nvml INTERFACE ${NVML_LIBRARY})
+    endif()
+
         add_library(cuda_nvml INTERFACE)
         target_include_directories(cuda_nvml INTERFACE ${NVML_INCLUDE_DIR})
         target_link_libraries(cuda_nvml INTERFACE ${NVML_LIBRARY})
