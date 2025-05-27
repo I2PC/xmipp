@@ -105,7 +105,7 @@ if __name__=="__main__":
     
     initSubset = min(100000, nExp)
     refClas = torch.zeros(nExp)
-    dist = np.zeros(nExp, dtype=np.float32)
+    dist = torch.zeros(nExp)
     translation_vector = torch.zeros(nExp, 2)
     angles_deg = np.zeros(nExp)
     
@@ -232,7 +232,7 @@ if __name__=="__main__":
                 if mode == "create_classes" and iter == 21:
                     
                     refClas[:endBatch] = matches[:, 1]
-                    dist[:endBatch] = matches[:, 2].cpu().numpy()
+                    dist[:endBatch] = matches[:, 2].cpu()
                                                           
                     #Applying TMT(inv). 
                     #This is done because the rotation is performed from the center of the image.
@@ -255,7 +255,7 @@ if __name__=="__main__":
                 elif mode == "align_classes" and iter == 3:
                     
                     refClas[initBatch:endBatch] = matches[:, 1]
-                    dist[initBatch:endBatch] = matches[:, 2].cpu().numpy()
+                    dist[initBatch:endBatch] = matches[:, 2].cpu()
                     
                     initial_shift = torch.tensor([[1.0, 0.0, -dim/2],
                                                   [0.0, 1.0, -dim/2],
