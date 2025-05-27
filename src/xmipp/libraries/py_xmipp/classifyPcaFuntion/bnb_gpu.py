@@ -401,11 +401,13 @@ class BnBgpu:
         # print("----------create-classes-------------")      
             
         
-        # if iter > 3 and iter < 10:
-        if iter > 3:
+        if iter > 3 and iter < 10:
             # thr = self.split_classes_for_range(classes, matches)
             print("--------", iter, "-----------")
-            thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches)
+            thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
+        elif iter >= 10:
+            print("--------", iter, "-----------")
+            thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=1.0)
             
 
         if iter > 3 and iter < 10:
@@ -609,7 +611,7 @@ class BnBgpu:
         # print("----------align-to-classes-------------")
         
         if iter == 3:
-            thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches)
+            thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=1.0)
         
         #rotate and translations
         rotBatch = -matches[:,3].view(expBatchSize,1)
