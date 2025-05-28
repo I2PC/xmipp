@@ -32,7 +32,7 @@ class evaluation:
         
         dist_array = dist.detach().cpu().numpy()
         dist_array = np.nan_to_num(dist_array, nan=0.0, posinf=1e6, neginf=-1e6)
-        star["dist"] = dist_array.astype(np.float64)
+        star["cost"] = dist_array.astype(np.float64)
 
         columns = ["anglePsi", "angleRot", "angleTilt", "shiftX", "shiftY", "shiftZ"]
         for column in columns:
