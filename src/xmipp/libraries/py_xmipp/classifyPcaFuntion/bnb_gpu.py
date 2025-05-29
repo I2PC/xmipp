@@ -1100,7 +1100,7 @@ class BnBgpu:
         masks = masks / center_val
         return masks
     
-    def unsharp_mask(self, imgs, kernel_size=5, strength=1.0):
+    def unsharp_mask(self, imgs, kernel_size=5, strength=2.0):
         N, H, W = imgs.shape
         pad = kernel_size // 2
         kernel = torch.ones(1, 1, kernel_size, kernel_size, device=imgs.device) / (kernel_size ** 2)
