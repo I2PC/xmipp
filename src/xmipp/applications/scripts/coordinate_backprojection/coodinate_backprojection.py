@@ -64,16 +64,15 @@ def _computeProjectionDeltas(positions: np.ndarray,
 
         projectionMatrix = tilt.projectionMatrix
         detections = tilt.coordinates2d
-        projections = (projectionMatrix @ positions.T).T
+        projections = (projectionMatrix @ positions.T).T + tilt.shift
         np.subtract(
             detections[:,None], 
             projections[None,:], 
             out=outProjected[start:end]
         )
 
-        projectionMatrix2 = projectionMatrix.T @ projectionMatrix
-        projections2 = (projectionMatrix2 @ positions.T).T
         detections2 = (projectionMatrix.T @ detections.T).T
+        projections2 = (projectionMatrix.T @ projections.T).T
         np.subtract(
             detections2[:,None],
             projections2[None,:],
@@ -172,19 +171,15 @@ class ScriptCoordinateBackProjection(XmippScript):
         
         md = xmippLib.MetaData(filename)
         for objId in md:
-            #rot = np.radians(md.getValue(xmippLib.MDL_ANGLE_ROT, objId) or 0.0)
-            tilt = np.radians(md.getValue(xmippLib.MDL_ANGLE_TILT, objId) or 0.0)
-            #psi = np.radians(md.getValue(xmippLib.MDL_ANGLE_PSI, objId) or 0.0)
+            rot = md.getValue(xmippLib.MDL_ANGLE_ROT, objId) or 0.0
+            tilt = md.getValue(xmippLib.MDL_ANGLE_TILT, objId) or 0.0
+            psi = md.getValue(xmippLib.MDL_ANGLE_PSI, objId) or 0.0
             shiftX = md.getValue(xmippLib.MDL_SHIFT_X, objId) or 0.0
             shiftY = md.getValue(xmippLib.MDL_SHIFT_Y, objId) or 0.0
             tiltId = md.getValue(xmippLib.MDL_IMAGE_IDX, objId) or objId
 
-            # TODO consider tilt and psi
-            matrix = np.zeros((2, 3))
-            matrix[1, 1] = 1
-            matrix[0, 0] = np.cos(tilt)
-            matrix[0, 2] = np.sin(tilt)
-
+            matrix = xmippLib.Euler_angles2matrix(rot, tilt, psi)
+            matrix = matrix[:2]
             shift = np.array((shiftX, shiftY))
 
             result[tiltId] = (matrix, shift)
