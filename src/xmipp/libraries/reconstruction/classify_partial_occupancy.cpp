@@ -786,8 +786,6 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 				{
 					DIRECT_A2D_ELEM(centeredLigand, newI, newJ) *= scallignFactor;
 					DIRECT_A2D_ELEM(centeredLigandSubP, newI, newJ) *= scallignFactor;
-					
-					numberOfPx++;
 				}
 			}
 		}
@@ -841,7 +839,7 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 		ll_IsubP += ll_IsubP_it;
 
 		// Normalize likelyhood by number of pixels of the crop and take logarithms
-		// ll_I	 += std::log10(ll_I_it 	   / numberOfPx);
+		// ll_I	    += std::log10(ll_I_it 	  / numberOfPx);
 		// ll_IsubP += std::log10(ll_IsubP_it / numberOfPx);
 
 		#ifdef DEBUG_LOG_LIKELIHOOD
