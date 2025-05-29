@@ -665,24 +665,21 @@ class BnBgpu:
             
             newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
             clk = self.averages(data, newCL, classes)
+            
+            clk = self.unsharp_mask(clk) 
                         
             
             if not hasattr(self, 'grad_squared'):
                 self.grad_squared = torch.zeros_like(cl)
-            clk, self.grad_squared = self.update_classes_rmsprop(cl, clk, 0.001, 0.9, 1e-8, self.grad_squared)
-            
-            if iter < 3:
-                clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
-
+            clk, self.grad_squared = self.update_classes_rmsprop(cl, clk, 0.001, 0.9, 1e-8, self.grad_squared)         
                 
             clk = clk * self.create_circular_mask(clk)
-            if iter == 3:   
-                clk = self.unsharp_mask(clk) 
             # clk = clk * self.create_gaussian_masks_different_sigma(clk)
       
         else: 
             del(transforIm)
-            clk = cl  
+            clk = cl 
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=20) 
             
         return (clk, tMatrix, batch_projExp_cpu)
     
