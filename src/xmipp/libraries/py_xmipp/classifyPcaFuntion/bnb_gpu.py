@@ -407,7 +407,7 @@ class BnBgpu:
             thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
         elif iter >= 10:
             print("--------", iter, "-----------")
-            thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=1.0)
+            thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
             
 
         if iter > 3 and iter < 10:
@@ -516,7 +516,10 @@ class BnBgpu:
         clk = clk * self.create_circular_mask(clk)
         
         if iter > 2 and iter < 11:
-            clk = self.center_by_com(clk)                    
+            clk = self.center_by_com(clk)   
+        
+        if iter > 10:   
+            clk = self.unsharp_mask(clk)                 
         
         return(clk, tMatrix, batch_projExp_cpu)
     
@@ -611,7 +614,7 @@ class BnBgpu:
         # print("----------align-to-classes-------------")
         
         if iter == 3:
-            thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=1.0)
+            thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
         
         #rotate and translations
         rotBatch = -matches[:,3].view(expBatchSize,1)
@@ -673,6 +676,8 @@ class BnBgpu:
 
                 
             clk = clk * self.create_circular_mask(clk)
+            if iter == 3:   
+                clk = self.unsharp_mask(clk) 
             # clk = clk * self.create_gaussian_masks_different_sigma(clk)
       
         else: 
@@ -1098,6 +1103,16 @@ class BnBgpu:
         center_val = masks[:, center, center].clone().view(-1, 1, 1)
         masks = masks / center_val
         return masks
+    
+    def unsharp_mask(self, imgs, kernel_size=5, strength=2.0):
+        N, H, W = imgs.shape
+        pad = kernel_size // 2
+        kernel = torch.ones(1, 1, kernel_size, kernel_size, device=imgs.device) / (kernel_size ** 2)
+    
+        imgs_ = imgs.unsqueeze(1)
+        blurred = F.conv2d(imgs_, kernel, padding=pad)
+        sharpened = imgs_ + strength * (imgs_ - blurred)
+        return sharpened.squeeze(1)
 
 
     def determine_batches(self, free_memory, dim):
