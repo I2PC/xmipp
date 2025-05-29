@@ -405,9 +405,9 @@ class BnBgpu:
             # thr = self.split_classes_for_range(classes, matches)
             print("--------", iter, "-----------")
             thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
-        elif iter >= 10:
-            print("--------", iter, "-----------")
-            thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
+        # elif iter >= 10:
+        #     print("--------", iter, "-----------")
+        #     thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
             
 
         if iter > 3 and iter < 10:
@@ -483,16 +483,16 @@ class BnBgpu:
                     newCL[n + num].append(non_class_images)
                     print(class_images.shape, non_class_images.shape)
                     
-            elif iter >= 10:
-                
-                for n in range(num):
-                    
-                    class_images = transforIm[
-                                            (matches[initBatch:endBatch, 1] == n) &
-                                            (matches[initBatch:endBatch, 2] > thr_low[n]) &
-                                            (matches[initBatch:endBatch, 2] < thr_high[n])
-                                        ]
-                    newCL[n].append(class_images)
+            # elif iter >= 10:
+            #
+            #     for n in range(num):
+            #
+            #         class_images = transforIm[
+            #                                 (matches[initBatch:endBatch, 1] == n) &
+            #                                 (matches[initBatch:endBatch, 2] > thr_low[n]) &
+            #                                 (matches[initBatch:endBatch, 2] < thr_high[n])
+            #                             ]
+            #         newCL[n].append(class_images)
 
             else:  
       
@@ -613,8 +613,8 @@ class BnBgpu:
         
         # print("----------align-to-classes-------------")
         
-        if iter == 3:
-            thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
+        # if iter == 3:
+        #     thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
         
         #rotate and translations
         rotBatch = -matches[:,3].view(expBatchSize,1)
@@ -646,15 +646,15 @@ class BnBgpu:
             newCL = [[] for i in range(classes)]              
                     
             for n in range(classes):
-                # class_images = transforIm[matches[:, 1] == n]
-                # newCL[n].append(class_images)
-                          
-                class_images = transforIm[
-                                        (matches[:, 1] == n) &
-                                        (matches[:, 2] > thr_low[n]) &
-                                        (matches[:, 2] < thr_high[n])
-                                    ]
+                class_images = transforIm[matches[:, 1] == n]
                 newCL[n].append(class_images)
+                          
+                # class_images = transforIm[
+                #                         (matches[:, 1] == n) &
+                #                         (matches[:, 2] > thr_low[n]) &
+                #                         (matches[:, 2] < thr_high[n])
+                #                     ]
+                # newCL[n].append(class_images)
                 
                 # maskSel = matches[:, 1] == n  
                 # sorted_indices = torch.argsort(matches[:, 2][maskSel])  
@@ -1104,7 +1104,7 @@ class BnBgpu:
         masks = masks / center_val
         return masks
     
-    def unsharp_mask(self, imgs, kernel_size=5, strength=2.0):
+    def unsharp_mask(self, imgs, kernel_size=5, strength=1.0):
         N, H, W = imgs.shape
         pad = kernel_size // 2
         kernel = torch.ones(1, 1, kernel_size, kernel_size, device=imgs.device) / (kernel_size ** 2)
