@@ -678,8 +678,7 @@ class BnBgpu:
       
         else: 
             del(transforIm)
-            clk = cl 
-            clk = clk * self.approximate_otsu_threshold(clk, percentile=20) 
+            clk = cl  
             
         return (clk, tMatrix, batch_projExp_cpu)
     
