@@ -9,7 +9,7 @@ dependencies:
   - micrograph-cleaner-em=0.35
   - pip
   - pip:
-  - tensorflow-gpu==1.12
-  - absl-py<0.12
+    - tensorflow-gpu==1.12
+    - absl-py<0.12
 
 
