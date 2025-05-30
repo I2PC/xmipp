@@ -519,7 +519,7 @@ class BnBgpu:
             clk = self.center_by_com(clk)   
         
         if iter > 10:   
-            clk = self.unsharp_mask(clk)                 
+            clk = self.unsharp_mask_norm(clk)                 
         
         return(clk, tMatrix, batch_projExp_cpu)
     
@@ -666,7 +666,7 @@ class BnBgpu:
             newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
             clk = self.averages(data, newCL, classes)
             
-            clk = self.unsharp_mask(clk) 
+            clk = self.unsharp_mask_norm(clk) 
                         
             
             if not hasattr(self, 'grad_squared'):
@@ -1109,6 +1109,23 @@ class BnBgpu:
         blurred = F.conv2d(imgs_, kernel, padding=pad)
         sharpened = imgs_ + strength * (imgs_ - blurred)
         return sharpened.squeeze(1)
+    
+    def unsharp_mask_norm(imgs, kernel_size=7, strength=1.0):
+        N, H, W = imgs.shape
+        pad = kernel_size // 2
+        kernel = torch.ones(1, 1, kernel_size, kernel_size, device=imgs.device) / (kernel_size ** 2)
+    
+        imgs_ = imgs.unsqueeze(1)
+        blurred = F.conv2d(imgs_, kernel, padding=pad)
+        sharpened = imgs_ + strength * (imgs_ - blurred)
+        sharpened = sharpened.squeeze(1)
+    
+        # Normalización por clase (z-score)
+        mean = sharpened.mean(dim=(1, 2), keepdim=True)
+        std = sharpened.std(dim=(1, 2), keepdim=True) + 1e-8
+        normalized = (sharpened - mean) / std
+    
+        return normalized
 
 
     def determine_batches(self, free_memory, dim):
