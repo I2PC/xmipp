@@ -1110,7 +1110,7 @@ class BnBgpu:
         sharpened = imgs_ + strength * (imgs_ - blurred)
         return sharpened.squeeze(1)
     
-    def unsharp_mask_norm(imgs, kernel_size=7, strength=1.0):
+    def unsharp_mask_norm(self, imgs, kernel_size=7, strength=1.0):
         N, H, W = imgs.shape
         pad = kernel_size // 2
         kernel = torch.ones(1, 1, kernel_size, kernel_size, device=imgs.device) / (kernel_size ** 2)
@@ -1120,12 +1120,14 @@ class BnBgpu:
         sharpened = imgs_ + strength * (imgs_ - blurred)
         sharpened = sharpened.squeeze(1)
     
-        # Normalización por clase (z-score)
         mean = sharpened.mean(dim=(1, 2), keepdim=True)
-        std = sharpened.std(dim=(1, 2), keepdim=True) + 1e-8
-        normalized = (sharpened - mean) / std
+        std = sharpened.std(dim=(1, 2), keepdim=True)
     
-        return normalized
+        valid = std > 1e-6
+        normalized = (sharpened - mean) / (std + 1e-8)
+        output = torch.where(valid, normalized, imgs)
+    
+        return output
 
 
     def determine_batches(self, free_memory, dim):
