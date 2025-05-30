@@ -1112,6 +1112,10 @@ class BnBgpu:
     
     def unsharp_mask_norm(self, imgs, kernel_size=7, strength=1.0):
         N, H, W = imgs.shape
+        
+        mean0 = imgs.mean(dim=(1, 2), keepdim=True)
+        std0 = imgs.std(dim=(1, 2), keepdim=True)
+        
         pad = kernel_size // 2
         kernel = torch.ones(1, 1, kernel_size, kernel_size, device=imgs.device) / (kernel_size ** 2)
     
@@ -1124,7 +1128,7 @@ class BnBgpu:
         std = sharpened.std(dim=(1, 2), keepdim=True)
     
         valid = std > 1e-6
-        normalized = (sharpened - mean) / (std + 1e-8)
+        normalized = (sharpened - mean) / (std + 1e-8)*std0+mean0
         output = torch.where(valid, normalized, imgs)
     
         return output
