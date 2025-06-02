@@ -27,9 +27,5 @@ XMIPP_CONDA_ENVS = {
     "requirements": os.path.join(_REQUIREMENT_PATH, 'xmipp_DLTK_v1.0.yml'),
     "xmippEnviron": True
   },
-  
-  "xmipp_graph": {
-    "requirements": os.path.join(_REQUIREMENT_PATH, 'xmipp_graph.yml'),
-    "xmippEnviron": True
-  },
+
 }
