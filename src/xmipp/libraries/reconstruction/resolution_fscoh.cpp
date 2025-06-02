@@ -35,14 +35,14 @@
 
 
 // I/O methods ===================================================================
-void ProgStatisticalMap::readParams()
+void ProgFSCoh::readParams()
 {
     fn_mapPool = getParam("-i");
     fn_oroot = getParam("--oroot");
     sampling_rate = getDoubleParam("--sampling_rate");
 }
 
-void ProgStatisticalMap::defineParams()
+void ProgFSCoh::defineParams()
 {
 	//Usage
     addUsageLine("This algorithm calculate the Fourier Shell Coherence from a input map pool.");
@@ -53,7 +53,7 @@ void ProgStatisticalMap::defineParams()
     addParamsLine("--sampling_rate <sampling_rate=1.0>      : Sampling rate of the input of maps.");
 }
 
-void ProgStatisticalMap::show() const
+void ProgFSCoh::show() const
 {
     if (!verbose)
         return;
@@ -64,7 +64,7 @@ void ProgStatisticalMap::show() const
 
 
 // Main method ===================================================================
-void ProgStatisticalMap::run()
+void ProgFSCoh::run()
 {
 	auto t1 = std::chrono::high_resolution_clock::now();
 
@@ -82,7 +82,7 @@ void ProgStatisticalMap::run()
 
 
 // Core methods ===================================================================
-void ProgStatisticalMap::FourierShellCoherence(MetaDataVec mapPoolMD)
+void ProgFSCoh::FourierShellCoherence(MetaDataVec mapPoolMD)
 {
     std::cout << "Calculating Fourier Shell Coherence..." << std::endl;
 
