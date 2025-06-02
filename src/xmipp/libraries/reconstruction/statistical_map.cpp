@@ -318,15 +318,12 @@ void ProgStatisticalMap::processStaticalMap()
     // ft.inverseFourierTransform();
  
     // Compute avg and std for every map to normalize before statistical map calculation
-    double avg;
-    double std;
-    V().computeAvgStdev(avg, std);
+    // normalizeMap(V());
 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
         // Reuse avg and std maps for sum and sum^2 (save memory)
-        double value = (DIRECT_MULTIDIM_ELEM(V(),n) - avg) / std;
-        // double value = DIRECT_MULTIDIM_ELEM(V(),n);
+        double value = DIRECT_MULTIDIM_ELEM(V(),n);
         DIRECT_MULTIDIM_ELEM(avgVolume(),n) += value;   // sum
         DIRECT_MULTIDIM_ELEM(stdVolume(),n) += value * value;   // sum squared
     }
@@ -351,39 +348,25 @@ void ProgStatisticalMap::calculateZscoreMap()
 {
     std::cout << "    Calculating Zscore map..." << std::endl;
 
-    // Compute avg and std for every map to normalize before Z-score map calculation
-    double avg;
-    double std;
-    V().computeAvgStdev(avg, std);
+    // Normalize map before Z-score calculation
+    normalizeMap(V());
 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
         // Positive Z-score
-        double zscore  = DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n) / (DIRECT_MULTIDIM_ELEM(stdVolume(),n) / DIRECT_MULTIDIM_ELEM(avgVolume(),n));
-        // double zscore  = (((DIRECT_MULTIDIM_ELEM(V(),n) - avg) / std) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
-        // double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
+        double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
+        // double zscore  = DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n) / (DIRECT_MULTIDIM_ELEM(stdVolume(),n) / DIRECT_MULTIDIM_ELEM(avgVolume(),n));
 
         if (zscore > 0)
         {
             DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;
         }
-        // else
-        // {
-        //     DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = 0;   
-        // }
 
         // DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;
     }
 
     // Normalize Z-score map
-    // V_Zscores().computeAvgStdev(avg, std);
-
-    // std::cout << "avg " << avg << "  --  std " << std << std::endl;
-
-    // FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
-    // {
-    //     DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = (DIRECT_MULTIDIM_ELEM(V_Zscores(),n) - avg) / std;
-    // }
+    // normalizeMap(V_Zscores());
 }
 
 void ProgStatisticalMap::weightMap()
