@@ -73,7 +73,10 @@ void ProgFSCoh::run()
 
     // Calculate statistical map
     Ndim = mapPoolMD.size();
-    FourierShellCoherence(mapPoolMD);
+    fourierShellCoherence(mapPoolMD);
+
+	// Calculate FCoh threhold
+	calculateResolutionThreshold();
 
     auto t2 = std::chrono::high_resolution_clock::now();
     auto ms_int = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
@@ -173,9 +176,12 @@ void ProgFSCoh::FourierShellCoherence(MetaDataVec mapPoolMD)
 	md.write(outputMD);
 
 	std::cout << "  Fourier shell coherence written at: " << outputMD << std::endl;
+}
 
-    // Define Coherence threhold (demonstration in notebook)
-    float m = 7;  // Rosenthal and Henderson 2003. If SNR = 1/m: m=7 for FSC=0.143
+void ProgFSCohCalculateResolutionThreshold()
+{
+    // Define Coherence threhold
+    float m = 7;
     double thr = (m+Ndim)/(Ndim*(m+1));
     
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mFSC)
@@ -190,8 +196,6 @@ void ProgFSCoh::FourierShellCoherence(MetaDataVec mapPoolMD)
     std::cout << "  Frequency (normalized) thresholded at (for FSCoh > " << thr << "): " << sampling_rate*((2*(float)NZYXSIZE(mFSC))/(float)indexThr) << std::endl;
     std::cout << "  indexThr " << indexThr << std::endl;
 }
-
-
 
 // Utils methods ===================================================================
 void ProgFSCoh::composefreqMap()

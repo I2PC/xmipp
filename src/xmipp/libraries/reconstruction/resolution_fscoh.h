@@ -90,7 +90,8 @@ public:
     void run();
 
     // ----------------------- CORE METHODS ------------------------------
-    void FourierShellCoherence(MetaDataVec mapPoolMD);
+    void fourierShellCoherence(MetaDataVec mapPoolMD);
+    void calculateResolutionThreshold();
 
     // ---------------------- UTILS METHODS ------------------------------
     void composefreqMap();
