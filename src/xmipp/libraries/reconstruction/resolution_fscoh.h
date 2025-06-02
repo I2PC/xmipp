@@ -53,10 +53,6 @@ class ProgFSCoh: public XmippProgram
     FileName fn_oroot;                 // Location for saving output maps
     double sampling_rate;              // Sapling rate of input maps
 
-    // Side info variables
-    FileName fn_out_avg_map;
-    FileName fn_out_std_map;
-
     // Volume dimensions
     bool dimInitialized = false;
     size_t Xdim;
@@ -72,10 +68,6 @@ class ProgFSCoh: public XmippProgram
     MultidimArray<double> mFSC_map2;                // FSC squared map components
     FileName fn_V;                                  // Filename for each input volume from pool
     Image<double> V;                                // Each input volume from pool
-    Image<double> V_Zscores;                        // Each z-scores map from pool
-    Image<double> avgVolume;                        // Average volume
-    Image<double> stdVolume;                        // Standard deviation volume
-    Image<double> weightedMap;                      // Statistically-weighted map 
 
     // Particle metadata
     MetaDataVec mapPoolMD;

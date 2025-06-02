@@ -115,10 +115,6 @@ void ProgFSCoh::FourierShellCoherence(MetaDataVec mapPoolMD)
             << "Ndim: " << Ndim << std::endl;
             #endif
 
-            // Initialize maps
-            avgVolume().initZeros(Zdim, Ydim, Xdim);
-            stdVolume().initZeros(Zdim, Ydim, Xdim);
-
             dimInitialized = true;
         }
 
