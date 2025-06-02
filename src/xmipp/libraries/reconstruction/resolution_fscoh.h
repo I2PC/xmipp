@@ -39,12 +39,12 @@
 #define DEBUG_WRITE_OUTPUT
 #define DEBUG_OUTPUT_FILES
 
-/**@defgroup ProgStatisticalMap Calculates statistical map
+/**@defgroup ProgFSCoh Calculates statistical map
    @ingroup ReconsLibrary */
 //@{
 /** Calculate statistical map from a pool of input maps and weight input volume*/
 
-class ProgStatisticalMap: public XmippProgram
+class ProgFSCoh: public XmippProgram
 {
  public:
     // Input params
