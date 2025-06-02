@@ -113,6 +113,7 @@ public:
     // ---------------------- UTILS METHODS ------------------------------
     // Generate side info
     void generateSideInfo();
+    void normalizeMap(MultidimArray<double> &vol);
     void composefreqMap();
 
 

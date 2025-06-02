@@ -422,6 +422,20 @@ void ProgStatisticalMap::generateSideInfo()
 }
 
 
+void ProgStatisticalMap::normalizeMap(MultidimArray<double> &vol)
+{
+    // Compute avg and std
+    double avg;
+    double std;
+    V().computeAvgStdev(avg, std);
+
+    // Normalize map
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(vol)
+    {
+        DIRECT_MULTIDIM_ELEM(vol, n) = (DIRECT_MULTIDIM_ELEM(vol, n) - avg) / std;
+    }
+}
+
 
 void ProgStatisticalMap::composefreqMap()
 {
