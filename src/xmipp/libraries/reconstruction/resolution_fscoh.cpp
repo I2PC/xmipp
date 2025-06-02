@@ -68,6 +68,9 @@ void ProgFSCoh::run()
 {
 	auto t1 = std::chrono::high_resolution_clock::now();
 
+	// Compose side freq map 
+	composefreqMap();
+
     // Calculate statistical map
     Ndim = mapPoolMD.size();
     FourierShellCoherence(mapPoolMD);
@@ -115,8 +118,6 @@ void ProgFSCoh::FourierShellCoherence(MetaDataVec mapPoolMD)
             // Initialize maps
             avgVolume().initZeros(Zdim, Ydim, Xdim);
             stdVolume().initZeros(Zdim, Ydim, Xdim);
-
-            composefreqMap();
 
             dimInitialized = true;
         }
