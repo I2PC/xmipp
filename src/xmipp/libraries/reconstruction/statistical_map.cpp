@@ -35,7 +35,7 @@
 
 
 // I/O methods ===================================================================
-void ProgFSCoh::readParams()
+void ProgStatisticalMap::readParams()
 {
     fn_mapPool = getParam("-i");
     fn_mapPool_statistical = getParam("--input_mapPool");
@@ -43,7 +43,7 @@ void ProgFSCoh::readParams()
     sampling_rate = getDoubleParam("--sampling_rate");
 }
 
-void ProgFSCoh::show() const
+void ProgStatisticalMap::show() const
 {
     if (!verbose)
         return;
@@ -53,7 +53,7 @@ void ProgFSCoh::show() const
 	<< "Output location for statistical volumes:\t" << fn_oroot << std::endl;
 }
 
-void ProgFSCoh::defineParams()
+void ProgStatisticalMap::defineParams()
 {
 	//Usage
     addUsageLine("This algorithm computes a statistical map that characterize the input map pool for posterior comparison \
@@ -66,7 +66,7 @@ void ProgFSCoh::defineParams()
     addParamsLine("--sampling_rate <sampling_rate=1.0>      : Sampling rate of the input of maps.");
 }
 
-void ProgFSCoh::writeStatisticalMap() 
+void ProgStatisticalMap::writeStatisticalMap() 
 {
     avgVolume.write(fn_out_avg_map);
     stdVolume.write(fn_out_std_map);
@@ -75,7 +75,7 @@ void ProgFSCoh::writeStatisticalMap()
     #endif
 }
 
-void ProgFSCoh::writeZscoresMap(FileName fnIn) 
+void ProgStatisticalMap::writeZscoresMap(FileName fnIn) 
 {
     // Compose filename
     size_t lastSlashPos = fnIn.find_last_of("/\\");
@@ -95,7 +95,7 @@ void ProgFSCoh::writeZscoresMap(FileName fnIn)
     V_Zscores.write(fnOut);
 }
 
-void ProgFSCoh::writeWeightedMap(FileName fnIn) 
+void ProgStatisticalMap::writeWeightedMap(FileName fnIn) 
 {
     // Compose filename
     size_t lastSlashPos = fnIn.find_last_of("/\\");
@@ -117,7 +117,7 @@ void ProgFSCoh::writeWeightedMap(FileName fnIn)
 
 
 // Main method ===================================================================
-void ProgFSCoh::run()
+void ProgStatisticalMap::run()
 {
 	auto t1 = std::chrono::high_resolution_clock::now();
 
@@ -184,7 +184,7 @@ void ProgFSCoh::run()
 
 
 // Core methods ===================================================================
-void ProgFSCoh::FourierShellCoherence(MetaDataVec mapPoolMD)
+void ProgStatisticalMap::FourierShellCoherence(MetaDataVec mapPoolMD)
 {
     std::cout << "Calculating Fourier Shell Coherence..." << std::endl;
 
@@ -298,7 +298,7 @@ void ProgFSCoh::FourierShellCoherence(MetaDataVec mapPoolMD)
     std::cout << "  indexThr " << indexThr << std::endl;
 }
 
-void ProgFSCoh::processStaticalMap()
+void ProgStatisticalMap::processStaticalMap()
 { 
     std::cout << "    Processing input map for statistical map calculation..." << std::endl;
 
@@ -329,7 +329,7 @@ void ProgFSCoh::processStaticalMap()
     }
 }
 
-void ProgFSCoh::computeStatisticalMaps()
+void ProgStatisticalMap::computeStatisticalMaps()
 {
     std::cout << "Computing statisical map..." << std::endl;
 
@@ -344,7 +344,7 @@ void ProgFSCoh::computeStatisticalMaps()
     }
 }
 
-void ProgFSCoh::calculateZscoreMap()
+void ProgStatisticalMap::calculateZscoreMap()
 {
     std::cout << "    Calculating Zscore map..." << std::endl;
 
@@ -380,7 +380,7 @@ void ProgFSCoh::calculateZscoreMap()
     }
 }
 
-void ProgFSCoh::weightMap()
+void ProgStatisticalMap::weightMap()
 { 
     std::cout << "    Calculating weighted map..." << std::endl;
 
@@ -406,7 +406,7 @@ void ProgFSCoh::weightMap()
     }
 }
 
-double ProgFSCoh::t_cdf(double t, int nu) {
+double ProgStatisticalMap::t_cdf(double t, int nu) {
     // Adapted from: ACM Algorithm 395 (Hill, 1962)
     // Two-tailed probability
     double a = t / std::sqrt(nu);
@@ -424,7 +424,7 @@ double ProgFSCoh::t_cdf(double t, int nu) {
 }
 
 // Returns two-sided p-value
-double ProgFSCoh::t_p_value(double t_stat, int nu) {
+double ProgStatisticalMap::t_p_value(double t_stat, int nu) {
     double cdf = t_cdf(t_stat, nu);
     return 2 * std::min(cdf, 1.0 - cdf);
 }
@@ -432,14 +432,14 @@ double ProgFSCoh::t_p_value(double t_stat, int nu) {
 
 
 // Utils methods ===================================================================
-void ProgFSCoh::generateSideInfo()
+void ProgStatisticalMap::generateSideInfo()
 {
     fn_out_avg_map = fn_oroot + "statsMap_avg.mrc";
     fn_out_std_map = fn_oroot + "statsMap_std.mrc";
 }
 
 
-void ProgFSCoh::normalizeMap(MultidimArray<double> &vol)
+void ProgStatisticalMap::normalizeMap(MultidimArray<double> &vol)
 {
     // Compute avg and std
     double avg;
@@ -454,7 +454,7 @@ void ProgFSCoh::normalizeMap(MultidimArray<double> &vol)
 }
 
 
-void ProgFSCoh::composefreqMap()
+void ProgStatisticalMap::composefreqMap()
 {
 	// Calculate FT
 	MultidimArray<std::complex<double>> V_ft; // Volume FT
