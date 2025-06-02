@@ -116,7 +116,8 @@ public:
     void normalizeMap(MultidimArray<double> &vol);
     void composefreqMap();
 
-
+    double t_cdf(double t, int nu);
+    double t_p_value(double t_stat, int nu);
 };
 //@}
 #endif

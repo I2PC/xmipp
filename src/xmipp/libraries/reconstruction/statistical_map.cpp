@@ -349,24 +349,33 @@ void ProgStatisticalMap::calculateZscoreMap()
     std::cout << "    Calculating Zscore map..." << std::endl;
 
     // Normalize map before Z-score calculation
-    normalizeMap(V());
+    // normalizeMap(V());
 
+    // FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+    // {
+    //     // Positive Z-score
+    //     double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / (1 + (DIRECT_MULTIDIM_ELEM(stdVolume(),n)*DIRECT_MULTIDIM_ELEM(avgVolume(),n)));
+    //     // double zscore  = DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n) / (DIRECT_MULTIDIM_ELEM(stdVolume(),n) / DIRECT_MULTIDIM_ELEM(avgVolume(),n));
+
+    //     if (zscore > 0)
+    //     {
+    //         DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;
+    //     }
+
+    //     // DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;
+    // }
+    
+    // calculate t-statistc
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
-        // Positive Z-score
-        double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
-        // double zscore  = DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n) / (DIRECT_MULTIDIM_ELEM(stdVolume(),n) / DIRECT_MULTIDIM_ELEM(avgVolume(),n));
+        double tStat = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / (DIRECT_MULTIDIM_ELEM(stdVolume(),n)/sqrt(Ndim));
+        double pValue = t_p_value(tStat, Ndim-1);
 
-        if (zscore > 0)
+        if (pValue < 0.05)
         {
-            DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;
+            DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = pValue;
         }
-
-        // DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;
     }
-
-    // Normalize Z-score map
-    // normalizeMap(V_Zscores());
 }
 
 void ProgStatisticalMap::weightMap()
@@ -393,6 +402,29 @@ void ProgStatisticalMap::weightMap()
     {
         DIRECT_MULTIDIM_ELEM(V(),n) *= DIRECT_MULTIDIM_ELEM(V_Zscores(),n);
     }
+}
+
+double ProgStatisticalMap::t_cdf(double t, int nu) {
+    // Adapted from: ACM Algorithm 395 (Hill, 1962)
+    // Two-tailed probability
+    double a = t / std::sqrt(nu);
+    double b = 1.0 + (a * a);
+    double y = std::pow(b, -0.5 * (nu + 1));
+    
+    double sum = 0.0;
+    if (nu % 2 == 0) {
+        for (int i = 1; i <= nu / 2 - 1; ++i)
+            sum += std::tgamma(nu / 2.0) / (std::tgamma(i + 1.0) * std::tgamma(nu / 2.0 - i)) * std::pow(a * a / b, i);
+        return 0.5 + a * y * sum;
+    } else {
+        return 0.5 + std::asin(a / std::sqrt(b)) / M_PI;
+    }
+}
+
+// Returns two-sided p-value
+double ProgStatisticalMap::t_p_value(double t_stat, int nu) {
+    double cdf = t_cdf(t_stat, nu);
+    return 2 * std::min(cdf, 1.0 - cdf);
 }
 
 
