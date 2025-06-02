@@ -93,31 +93,12 @@ public:
     void readParams() override;
     // Show
     void show() const override;
-    // Write output statistical map
-    void writeStatisticalMap();
-    // Write Z-scores map
-    void writeZscoresMap(FileName fnIn);
-    // Write weighted map
-    void writeWeightedMap(FileName fnIn);
 
     // ----------------------- MAIN METHODS ------------------------------
     void run();
 
     // ----------------------- CORE METHODS ------------------------------
     void FourierShellCoherence(MetaDataVec mapPoolMD);
-    void processStaticalMap();
-    void computeStatisticalMaps();
-    void calculateZscoreMap();
-    void weightMap();
-
-    // ---------------------- UTILS METHODS ------------------------------
-    // Generate side info
-    void generateSideInfo();
-    void normalizeMap(MultidimArray<double> &vol);
-    void composefreqMap();
-
-    double t_cdf(double t, int nu);
-    double t_p_value(double t_stat, int nu);
 };
 //@}
 #endif
