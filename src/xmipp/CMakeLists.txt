@@ -74,7 +74,7 @@ file(
 	PARALLEL_SOURCES
 		${CMAKE_CURRENT_SOURCE_DIR}/libraries/parallel/*.cpp
 )
-fil
+file(
 	GLOB_RECURSE 
 	CUDA_SOURCES
 		${CMAKE_CURRENT_SOURCE_DIR}/libraries/reconstruction_cuda/*.cpp
@@ -204,7 +204,6 @@ endif()
 
 # Register CUDA sources
 if(${XMIPP_USE_CUDA})
-
 	set_source_files_properties(
  		${CUDA_SOURCES}
 		PROPERTIES LANGUAGE CUDA
