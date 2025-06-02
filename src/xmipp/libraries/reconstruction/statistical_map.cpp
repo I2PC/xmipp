@@ -123,6 +123,8 @@ void ProgStatisticalMap::run()
 
     generateSideInfo();
 
+    calculateFSCoh();
+
     // Calculate statistical map
     mapPoolMD.read(fn_mapPool_statistical);
     Ndim = mapPoolMD.size();
@@ -182,6 +184,26 @@ void ProgStatisticalMap::run()
 
 
 // Core methods ===================================================================
+void ProgStatisticalMap::calculateFSCoh()
+{
+	// Initialize landmark detector
+    fscoh.fn_mapPool = fn_mapPool_statistical;
+    fscoh.fn_oroot = fn_oroot;
+    fscoh.sampling_rate = sampling_rate;
+
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "----- Calculate FOCoh" << std::endl;
+	#endif
+
+	fscoh.run();
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "----- FOCoh caluclated successfully!" << std::endl;
+	#endif
+
+}
+
 void ProgStatisticalMap::processStaticalMap()
 { 
     std::cout << "    Processing input map for statistical map calculation..." << std::endl;

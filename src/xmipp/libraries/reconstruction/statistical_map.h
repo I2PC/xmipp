@@ -30,6 +30,7 @@
 #include "core/xmipp_program.h"
 #include "core/xmipp_image.h"
 #include "core/xmipp_filename.h"
+#include "reconstruction/resolution_fscoh.h"
 
 #define VERBOSE_OUTPUT
 #define DEBUG_DIM
@@ -84,6 +85,9 @@ class ProgStatisticalMap: public XmippProgram
     // Filtering variables
     int indexThr;
 
+    // FSCoh
+    ProgFSCoh fscoh;
+
 public:
 
     // ---------------------- IN/OUT METHODS -----------------------------
@@ -104,6 +108,7 @@ public:
     void run();
 
     // ----------------------- CORE METHODS ------------------------------
+    void calculateFSCoh();
     void processStaticalMap();
     void computeStatisticalMaps();
     void calculateZscoreMap();
