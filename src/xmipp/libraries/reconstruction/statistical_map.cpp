@@ -303,19 +303,19 @@ void ProgStatisticalMap::processStaticalMap()
     std::cout << "    Processing input map for statistical map calculation..." << std::endl;
 
     // Filter uncoherent frequencies
-    FourierTransformer ft;
-    MultidimArray<std::complex<double>> V_ft;
-	ft.FourierTransform(V(), V_ft, false);
+    // FourierTransformer ft;
+    // MultidimArray<std::complex<double>> V_ft;
+	// ft.FourierTransform(V(), V_ft, false);
 
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
-    {
-        if (DIRECT_MULTIDIM_ELEM(freqMap, n) > indexThr)
-        {
-            DIRECT_MULTIDIM_ELEM(V_ft,  n) = 0;
-        }
-    }
+    // FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
+    // {
+    //     if (DIRECT_MULTIDIM_ELEM(freqMap, n) > indexThr)
+    //     {
+    //         DIRECT_MULTIDIM_ELEM(V_ft,  n) = 0;
+    //     }
+    // }
 
-    ft.inverseFourierTransform();
+    // ft.inverseFourierTransform();
  
     // Compute avg and std for every map to normalize before statistical map calculation
     double avg;
@@ -359,30 +359,31 @@ void ProgStatisticalMap::calculateZscoreMap()
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
         // Positive Z-score
-        double zscore  = (((DIRECT_MULTIDIM_ELEM(V(),n) - avg) / std) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
+        double zscore  = DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n) / (DIRECT_MULTIDIM_ELEM(stdVolume(),n) / DIRECT_MULTIDIM_ELEM(avgVolume(),n));
+        // double zscore  = (((DIRECT_MULTIDIM_ELEM(V(),n) - avg) / std) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
         // double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
 
-        // if (zscore > 0)
-        // {
-        //     DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;
-        // }
+        if (zscore > 0)
+        {
+            DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;
+        }
         // else
         // {
         //     DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = 0;   
         // }
 
-        DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;
+        // DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;
     }
 
     // Normalize Z-score map
-    V_Zscores().computeAvgStdev(avg, std);
+    // V_Zscores().computeAvgStdev(avg, std);
 
-    std::cout << "avg " << avg << "  --  std " << std << std::endl;
+    // std::cout << "avg " << avg << "  --  std " << std << std::endl;
 
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
-    {
-        DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = (DIRECT_MULTIDIM_ELEM(V_Zscores(),n) - avg) / std;
-    }
+    // FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+    // {
+    //     DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = (DIRECT_MULTIDIM_ELEM(V_Zscores(),n) - avg) / std;
+    // }
 }
 
 void ProgStatisticalMap::weightMap()
@@ -390,19 +391,19 @@ void ProgStatisticalMap::weightMap()
     std::cout << "    Calculating weighted map..." << std::endl;
 
     // Filter uncoherent frequencies
-    FourierTransformer ft;
-    MultidimArray<std::complex<double>> V_ft;
-	ft.FourierTransform(V(), V_ft, false);
+    // FourierTransformer ft;
+    // MultidimArray<std::complex<double>> V_ft;
+	// ft.FourierTransform(V(), V_ft, false);
 
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
-    {
-        if (DIRECT_MULTIDIM_ELEM(freqMap, n) > indexThr)
-        {
-            DIRECT_MULTIDIM_ELEM(V_ft,  n) = 0;
-        }
-    }
+    // FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
+    // {
+    //     if (DIRECT_MULTIDIM_ELEM(freqMap, n) > indexThr)
+    //     {
+    //         DIRECT_MULTIDIM_ELEM(V_ft,  n) = 0;
+    //     }
+    // }
 
-    ft.inverseFourierTransform();
+    // ft.inverseFourierTransform();
 
     // Weight by z-scores
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
@@ -419,6 +420,7 @@ void ProgStatisticalMap::generateSideInfo()
     fn_out_avg_map = fn_oroot + "statsMap_avg.mrc";
     fn_out_std_map = fn_oroot + "statsMap_std.mrc";
 }
+
 
 
 void ProgStatisticalMap::composefreqMap()
