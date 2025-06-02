@@ -1110,7 +1110,7 @@ class BnBgpu:
         sharpened = imgs_ + strength * (imgs_ - blurred)
         return sharpened.squeeze(1)
     
-    def unsharp_mask_norm(self, imgs, kernel_size=5, strength=5.0):
+    def unsharp_mask_norm(self, imgs, kernel_size=5, strength=3.0):
         N, H, W = imgs.shape
         
         mean0 = imgs.mean(dim=(1, 2), keepdim=True)
