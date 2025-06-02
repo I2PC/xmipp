@@ -154,8 +154,8 @@ void ProgStatisticalMap::run()
             << "Ndim: " << Ndim << std::endl;
             #endif
 
-            V_Zscores().avgVolume(Zdim, Ydim, Xdim);
-            V_Zscores().stdVolume(Zdim, Ydim, Xdim);
+            avgVolume.initZeros(Zdim, Ydim, Xdim);
+            stdVolume.initZeros(Zdim, Ydim, Xdim);
 
             dimInitialized = true;
         }
