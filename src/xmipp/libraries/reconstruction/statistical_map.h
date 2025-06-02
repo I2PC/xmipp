@@ -104,7 +104,6 @@ public:
     void run();
 
     // ----------------------- CORE METHODS ------------------------------
-    void FourierShellCoherence(MetaDataVec mapPoolMD);
     void processStaticalMap();
     void computeStatisticalMaps();
     void calculateZscoreMap();
@@ -114,7 +113,6 @@ public:
     // Generate side info
     void generateSideInfo();
     void normalizeMap(MultidimArray<double> &vol);
-    void composefreqMap();
 
     double t_cdf(double t, int nu);
     double t_p_value(double t_stat, int nu);
