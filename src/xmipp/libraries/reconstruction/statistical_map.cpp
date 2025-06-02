@@ -154,8 +154,9 @@ void ProgStatisticalMap::run()
             << "Ndim: " << Ndim << std::endl;
             #endif
 
-            avgVolume.initZeros(Zdim, Ydim, Xdim);
-            stdVolume.initZeros(Zdim, Ydim, Xdim);
+            avgVolume().initZeros(Zdim, Ydim, Xdim);
+            stdVolume().initZeros(Zdim, Ydim, Xdim);
+            V_Zscores().initZeros(Zdim, Ydim, Xdim);
 
             dimInitialized = true;
         }
@@ -183,8 +184,6 @@ void ProgStatisticalMap::run()
         #endif
 
         V.read(fn_V);
-
-        V_Zscores().initZeros(Zdim, Ydim, Xdim);
 
         calculateZscoreMap();
         writeZscoresMap(fn_V);
