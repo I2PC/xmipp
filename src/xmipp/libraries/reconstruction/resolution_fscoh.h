@@ -23,8 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef _PROG_STATISTICAL_MAP
-#define _PROG_STATISTICAL_MAP
+#ifndef _PROG_FSCOH
+#define _PROG_FSCOH
 
 #include "core/metadata_vec.h"
 #include "core/xmipp_program.h"
@@ -99,6 +99,9 @@ public:
 
     // ----------------------- CORE METHODS ------------------------------
     void FourierShellCoherence(MetaDataVec mapPoolMD);
+
+    // ---------------------- UTILS METHODS ------------------------------
+    void composefreqMap();
 };
 //@}
 #endif
