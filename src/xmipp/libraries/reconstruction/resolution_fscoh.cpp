@@ -68,11 +68,10 @@ void ProgFSCoh::run()
 {
 	auto t1 = std::chrono::high_resolution_clock::now();
 
-	// Compose side freq map 
-	composefreqMap();
+    mapPoolMD.read(fn_mapPool);
+    Ndim = mapPoolMD.size();
 
     // Calculate statistical map
-    Ndim = mapPoolMD.size();
     fourierShellCoherence(mapPoolMD);
 
 	// Calculate FCoh threhold
@@ -119,6 +118,9 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
             #endif
 
             dimInitialized = true;
+
+			// Compose side freq map 
+			composefreqMap();
         }
 
         ft.FourierTransform(V(), V_ft, false);

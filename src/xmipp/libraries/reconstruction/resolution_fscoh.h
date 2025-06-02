@@ -49,7 +49,6 @@ class ProgFSCoh: public XmippProgram
  public:
     // Input params
     FileName fn_mapPool;               // Input metadata with map pool for analysis
-    FileName fn_mapPool_statistical;   // Input metadata with map pool for statistical map calculation
     FileName fn_oroot;                 // Location for saving output maps
     double sampling_rate;              // Sapling rate of input maps
 

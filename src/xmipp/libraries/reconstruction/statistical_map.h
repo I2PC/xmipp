@@ -82,9 +82,6 @@ class ProgStatisticalMap: public XmippProgram
     MetaDataVec mapPoolMD;
     MDRowVec row;
 
-    // Filtering variables
-    int indexThr;
-
     // FSCoh
     ProgFSCoh fscoh;
 

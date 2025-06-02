@@ -139,6 +139,27 @@ void ProgStatisticalMap::run()
 
         V.read(fn_V); 
 
+                if (!dimInitialized)
+        {
+            // Read dim
+            Xdim = XSIZE(V());
+            Ydim = YSIZE(V());
+            Zdim = ZSIZE(V());
+
+            #ifdef DEBUG_DIM
+            std::cout 
+            << "Xdim: " << Xdim << std::endl
+            << "Ydim: " << Ydim << std::endl
+            << "Zdim: " << Zdim << std::endl
+            << "Ndim: " << Ndim << std::endl;
+            #endif
+
+            V_Zscores().avgVolume(Zdim, Ydim, Xdim);
+            V_Zscores().stdVolume(Zdim, Ydim, Xdim);
+
+            dimInitialized = true;
+        }
+
         processStaticalMap();
     }
 
@@ -215,7 +236,7 @@ void ProgStatisticalMap::processStaticalMap()
 
     // FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
     // {
-    //     if (DIRECT_MULTIDIM_ELEM(freqMap, n) > indexThr)
+    //     if (DIRECT_MULTIDIM_ELEM(freqMap, n) > fscoh.indexThr)
     //     {
     //         DIRECT_MULTIDIM_ELEM(V_ft,  n) = 0;
     //     }
@@ -297,7 +318,7 @@ void ProgStatisticalMap::weightMap()
 
     // FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
     // {
-    //     if (DIRECT_MULTIDIM_ELEM(freqMap, n) > indexThr)
+    //     if (DIRECT_MULTIDIM_ELEM(freqMap, n) > fscoh.indexThr)
     //     {
     //         DIRECT_MULTIDIM_ELEM(V_ft,  n) = 0;
     //     }
