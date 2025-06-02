@@ -371,10 +371,12 @@ void ProgStatisticalMap::calculateZscoreMap()
         double tStat = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / (DIRECT_MULTIDIM_ELEM(stdVolume(),n)/sqrt(Ndim));
         double pValue = t_p_value(tStat, Ndim-1);
 
-        if (pValue < 0.05)
-        {
-            DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = pValue;
-        }
+        // Invert p-value scale (higher more significant)
+        DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = 1/pValue;
+        // if (pValue < 0.05)
+        // {
+        //     DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = pValue;
+        // }
     }
 }
 
