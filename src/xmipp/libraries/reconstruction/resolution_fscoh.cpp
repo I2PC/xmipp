@@ -86,7 +86,7 @@ void ProgFSCoh::run()
 
 
 // Core methods ===================================================================
-void ProgFSCoh::FourierShellCoherence(MetaDataVec mapPoolMD)
+void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
 {
     std::cout << "Calculating Fourier Shell Coherence..." << std::endl;
 
@@ -178,7 +178,7 @@ void ProgFSCoh::FourierShellCoherence(MetaDataVec mapPoolMD)
 	std::cout << "  Fourier shell coherence written at: " << outputMD << std::endl;
 }
 
-void ProgFSCohCalculateResolutionThreshold()
+void ProgFSCoh::calculateResolutionThreshold()
 {
     // Define Coherence threhold
     float m = 7;
