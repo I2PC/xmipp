@@ -6,7 +6,7 @@ channels:
   - conda-forge
 dependencies:
   - python=3.10
-  - deepemhancer#CUDA > 10 required. Drivers nvidia >= 450.80.02
+  - deepemhancer #CUDA > 10 required. Drivers nvidia >= 450.80.02
   - numba
   - pip
   - pip:
