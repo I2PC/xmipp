@@ -266,7 +266,8 @@ void ProgStatisticalMap::computeStatisticalMaps()
         double mean = sum/Ndim;
 
         DIRECT_MULTIDIM_ELEM(avgVolume(),n) = mean;
-        DIRECT_MULTIDIM_ELEM(stdVolume(),n) = sqrt(sum2/Ndim - mean*mean);
+        // DIRECT_MULTIDIM_ELEM(stdVolume(),n) = sqrt(sum2/Ndim - mean*mean);
+        DIRECT_MULTIDIM_ELEM(stdVolume(),n) = sum2/Ndim - mean*mean;
     }
 }
 
@@ -277,33 +278,33 @@ void ProgStatisticalMap::calculateZscoreMap()
     // Normalize map before Z-score calculation
     // normalizeMap(V());
 
-    // FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
-    // {
-    //     // Positive Z-score
-    //     double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / (1 + (DIRECT_MULTIDIM_ELEM(stdVolume(),n)*DIRECT_MULTIDIM_ELEM(avgVolume(),n)));
-    //     // double zscore  = DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n) / (DIRECT_MULTIDIM_ELEM(stdVolume(),n) / DIRECT_MULTIDIM_ELEM(avgVolume(),n));
-
-    //     if (zscore > 0)
-    //     {
-    //         DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;
-    //     }
-
-    //     // DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;
-    // }
-    
-    // calculate t-statistc
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
-        double tStat = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / (DIRECT_MULTIDIM_ELEM(stdVolume(),n)/sqrt(Ndim));
-        double pValue = t_p_value(tStat, Ndim-1);
+        // Positive Z-score
+        // double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / (1 + (DIRECT_MULTIDIM_ELEM(stdVolume(),n)*DIRECT_MULTIDIM_ELEM(avgVolume(),n)));
+        double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / sqrt(DIRECT_MULTIDIM_ELEM(stdVolume(),n) + 0.5);
 
-        // Invert p-value scale (higher more significant)
-        DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = 1/pValue;
-        // if (pValue < 0.05)
-        // {
-        //     DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = pValue;
-        // }
+        if (zscore > 0)
+        {
+            DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;
+        }
+
+        // DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = zscore;
     }
+    
+    // calculate t-statistc
+    // FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+    // {
+    //     double tStat = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / sqrt(DIRECT_MULTIDIM_ELEM(stdVolume(),n)/Ndim);
+    //     double pValue = t_p_value(tStat, Ndim-1);
+
+    //     // Invert p-value scale (higher more significant)
+    //     DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = 1/pValue;
+    //     // if (pValue < 0.05)
+    //     // {
+    //     //     DIRECT_MULTIDIM_ELEM(V_Zscores(),n) = pValue;
+    //     // }
+    // }
 }
 
 void ProgStatisticalMap::weightMap()
