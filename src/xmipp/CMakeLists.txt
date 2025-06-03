@@ -204,6 +204,43 @@ endif()
 
 # Register CUDA sources
 if(${XMIPP_USE_CUDA})
+
+    # Find NVML if is not defined
+    find_path(NVML_INCLUDE_DIR
+        NAMES nvml.h
+        PATHS
+            /usr/include
+            /usr/local/cuda/include
+            /usr/include/nvidia
+            $ENV{CUDA_HOME}/include
+    )
+
+    find_library(NVML_LIBRARY
+        NAMES nvidia-ml libnvidia-ml
+        PATHS
+            /usr/lib
+            /usr/lib64
+            /usr/lib/x86_64-linux-gnu
+            /usr/local/cuda/lib64
+            $ENV{CUDA_HOME}/lib64
+    )
+
+    include(FindPackageHandleStandardArgs)
+    find_package_handle_standard_args(NVML DEFAULT_MSG NVML_LIBRARY NVML_INCLUDE_DIR)
+
+	if(NVML_FOUND)
+	    message(STATUS "✅ Found NVML include at ${NVML_INCLUDE_DIR}")
+	    message(STATUS "✅ Found NVML library at ${NVML_LIBRARY}")
+	
+	    if(NOT TARGET cuda_nvml)
+	        add_library(cuda_nvml INTERFACE)
+	        target_include_directories(cuda_nvml INTERFACE ${NVML_INCLUDE_DIR})
+	        target_link_libraries(cuda_nvml INTERFACE ${NVML_LIBRARY})
+	    endif()
+	else()
+	    message(WARNING "⚠️ NVML not found. cuda_nvml target will be unavailable. Some features may not compile.")
+	endif()
+
 	set_source_files_properties(
  		${CUDA_SOURCES}
 		PROPERTIES LANGUAGE CUDA
@@ -248,7 +285,8 @@ if(${XMIPP_USE_CUDA})
 			Xmipp
 			CUDA::cudart
 			CUDA::cufft
-			CUDA::nvml
+			cuda_nvml
+			# CUDA::nvml
 	)
 
 	add_library(XmippInterfaceCuda SHARED ${CUDA_INTERFACE_SOURCES})
@@ -268,6 +306,7 @@ if(${XMIPP_USE_CUDA})
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	)
 endif()
+
 
 # Register combined MPI and CUDA sources
 if(${XMIPP_USE_CUDA} AND ${XMIPP_USE_MPI})
