@@ -517,8 +517,8 @@ class BnBgpu:
         
         if iter > 10:   
             clk = self.unsharp_mask_norm(clk) 
-            mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
-            clk = self.apply_consistency_masks_vector(clk, mask_C) 
+            # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
+            # clk = self.apply_consistency_masks_vector(clk, mask_C) 
             
         clk = clk * self.create_circular_mask(clk)
         
@@ -671,8 +671,8 @@ class BnBgpu:
             clk = self.averages(data, newCL, classes)
             
             clk = self.unsharp_mask_norm(clk) 
-            mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
-            clk = self.apply_consistency_masks_vector(clk, mask_C)
+            # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
+            # clk = self.apply_consistency_masks_vector(clk, mask_C)
                         
             
             if not hasattr(self, 'grad_squared'):
