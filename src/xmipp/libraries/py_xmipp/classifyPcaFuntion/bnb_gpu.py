@@ -481,7 +481,7 @@ class BnBgpu:
                                             )
                                         ]
                     newCL[n + num].append(non_class_images)
-                    print(class_images.shape, non_class_images.shape)
+                    
                     
             # elif iter >= 10:
             #
@@ -505,21 +505,25 @@ class BnBgpu:
                     
    
         newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
-        clk = self.averages_createClasses(mmap, iter, newCL)   
+        
+        clk = self.averages_createClasses(mmap, iter, newCL)
+        
 
         if iter in [3, 8]:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=5)
         elif 1 < iter < 10:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
 
+        
+        if iter > 10:   
+            clk = self.unsharp_mask_norm(clk) 
+            mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
+            clk = self.apply_consistency_masks_vector(clk, mask_C) 
             
         clk = clk * self.create_circular_mask(clk)
         
         if iter > 2 and iter < 11:
-            clk = self.center_by_com(clk)   
-        
-        if iter > 10:   
-            clk = self.unsharp_mask_norm(clk)                 
+            clk = self.center_by_com(clk)                  
         
         return(clk, tMatrix, batch_projExp_cpu)
     
@@ -667,6 +671,8 @@ class BnBgpu:
             clk = self.averages(data, newCL, classes)
             
             clk = self.unsharp_mask_norm(clk) 
+            mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
+            clk = self.apply_consistency_masks_vector(clk, mask_C)
                         
             
             if not hasattr(self, 'grad_squared'):
@@ -1110,7 +1116,8 @@ class BnBgpu:
         sharpened = imgs_ + strength * (imgs_ - blurred)
         return sharpened.squeeze(1)
     
-    def unsharp_mask_norm(self, imgs, kernel_size=5, strength=3.0):
+    
+    def unsharp_mask_norm(self, imgs, kernel_size=5, strength=1.0):
         N, H, W = imgs.shape
         
         mean0 = imgs.mean(dim=(1, 2), keepdim=True)
@@ -1132,6 +1139,49 @@ class BnBgpu:
         output = torch.where(valid, normalized, imgs)
     
         return output
+    
+    
+    def compute_class_consistency_masks(self, newCL, eps=1e-8):
+
+        masks = []
+        for class_images in newCL:
+            if class_images is None or class_images.shape[0] == 0:
+                
+                for ref in newCL:
+                    if ref is not None and ref.shape[0] > 0:
+                        H, W = ref.shape[1:]
+                        break
+
+                mask = torch.ones(H, W, device=class_images.device if class_images is not None else "cpu")
+                masks.append(mask)
+                continue
+    
+            fft_imgs = torch.fft.fft2(class_images)  # [N, H, W]
+            mag_sq_sum = (fft_imgs.abs() ** 2).sum(dim=0)  # [H, W]
+            complex_sum = fft_imgs.sum(dim=0)             # [H, W]
+            mag_of_sum_sq = (complex_sum.abs()) ** 2      # [H, W]
+    
+            mask = mag_of_sum_sq / (class_images.shape[0] * mag_sq_sum + eps)
+            mask = mask.clamp(min=0)
+            mask = (mask - mask.min()) / (mask.max() - mask.min() + eps)  # Normalizar entre 0 y 1
+            alpha = 0.5 #para suavizar el efecto
+            mask = alpha * torch.ones_like(mask) + (1 - alpha) * mask
+            # mask = mask ** 0.8
+            masks.append(mask)
+        
+        return masks
+    
+    
+    def apply_consistency_masks_vector(self, clk, mask_C):
+        
+        mask_C_tensor = torch.stack(mask_C)
+
+        fft_clk = torch.fft.fft2(clk)                     # (N, H, W), complejo
+        masked_fft = fft_clk * mask_C_tensor              # broadcasting: (N, H, W) * (N, H, W)
+        filtered_clk = torch.fft.ifft2(masked_fft).real   # volver al dominio espacial
+    
+        return filtered_clk
+
 
 
     def determine_batches(self, free_memory, dim):
