@@ -97,7 +97,7 @@ if __name__=="__main__":
     coef = torch.zeros(nBand, dtype=int)
     for n in range(nBand):
         coef[n] = 2*torch.sum(freq_band==n)  
-        
+           
     bnb = BnBgpu(nBand)    
     expBatchSize = 5000  
     band = [torch.zeros(nExp, coef[n], device = cuda) for n in range(nBand)]      
