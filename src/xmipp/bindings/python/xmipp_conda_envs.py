@@ -8,10 +8,10 @@ XMIPP_CONDA_ENVS = {
     "xmippEnviron": True
   },
 
-  # "xmipp_MicCleaner": {
-  #   "requirements": os.path.join(_REQUIREMENT_PATH, 'xmipp_MicCleaner.yml'),
-  #   "xmippEnviron": False
-  # },
+  "xmipp_MicCleaner": {
+    "requirements": os.path.join(_REQUIREMENT_PATH, 'xmipp_MicCleaner.yml'),
+    "xmippEnviron": False
+  },
 
   "xmipp_deepEMhancer": {
     "requirements": os.path.join(_REQUIREMENT_PATH, 'xmipp_deepEMhancer.yml'),
