@@ -3,6 +3,7 @@
 name: xmipp_pyTorch
 channels:
   - conda-forge
+  - pytorch
 dependencies:
   - python=3.10
   - numpy=1.23
@@ -13,11 +14,6 @@ dependencies:
   - pillow
   - libstdcxx-ng=14.2.0 # To be compatible with scipion env
   - pytorch-gpu=1.13.1
+  - torchvision==0.14.0
   - cudatoolkit=11.3
   - libcurl=7
-  - pip
-  - pip:
-    - --extra-index-url https://download.pytorch.org/whl/torch_stable.html
-    - numpy==1.23
-    - torch==1.13.0
-    - torchvision==0.14.0
