@@ -515,8 +515,8 @@ class BnBgpu:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
 
         
-        # if iter > 10:   
-        #     clk = self.unsharp_mask_norm(clk) 
+        if iter > 10:   
+            clk = self.unsharp_mask_norm(clk) 
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
             
@@ -1236,7 +1236,7 @@ class BnBgpu:
     
     def determine_ROTandSHIFT(self, iter, mode, dim):
         
-        maxShift = round( (dim * 25)/100 )
+        maxShift = round( (dim * 20)/100 )
         maxShift = (maxShift//4)*4
         
         if mode == "create_classes":

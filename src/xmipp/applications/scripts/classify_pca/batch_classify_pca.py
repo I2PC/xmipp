@@ -53,6 +53,7 @@ def flatGrid(freq_band, coef, nBand):
         grid_flat[n][1] = grid[1][:,:dimfreq][freq_band == n]
         
     return(grid_flat)  
+
        
 if __name__=="__main__":
       
@@ -117,7 +118,8 @@ if __name__=="__main__":
     pca = PCAgpu(nBand)
     
     # freqBn, cvecs = pca.calculatePCAbasis(self, mmap, nBand, dim, sampling, maxRes, minRes, per_eig, batchPCA)
-    freqBn, cvecs, coef = pca.calculatePCAbasis(mmap, Ntrain, nBand, dim, sampling, maxRes=30, minRes=530, per_eig=0.75, batchPCA=True)
+    freqBn, cvecs, coef = pca.calculatePCAbasis(mmap, Ntrain, nBand, dim, sampling, maxRes=20, 
+                                                minRes=530, per_eig=0.75, batchPCA=True)
     
     # freqBn = torch.load(bands) 
     # cvecs = torch.load(vecs)
@@ -194,8 +196,8 @@ if __name__=="__main__":
                 niter = 4
                 
             for iter in range(niter):
-                # print("-----Iteration %s for updating classes-------"%(iter+1))
-                           
+                # print("-----Iteration %s for updating classes-------"%(iter+1))                
+                                          
                 matches = torch.full((subset, 5), float("Inf"), device = cuda)
                 
                 vectorRot, vectorshift = bnb.determine_ROTandSHIFT(iter, mode, dim)                
@@ -221,7 +223,20 @@ if __name__=="__main__":
                         matches = bnb.match_batch(batch_projExp, batch_projRef, init, matches, rot, nShift)    
                         del(batch_projExp)
                         count+=1    
-                del(batch_projRef)    
+                del(batch_projRef)  
+                
+                if mode == "create_classes":
+                    res_map = {4: 15, 6: 12, 8: 10, 10: 8}
+                    if iter in res_map:
+                        res = res_map[iter]
+                        freqBn, cvecs, coef = pca.calculatePCAbasis(
+                            mmap, Ntrain, nBand, dim, sampling, res,
+                            minRes=530, per_eig=0.75, batchPCA=True
+                        )
+                        grid_flat = flatGrid(freqBn, coef, nBand)
+                    
+                        print(iter , res , coef)    
+ 
                 
                 #update classes        
                 classes = len(cl)

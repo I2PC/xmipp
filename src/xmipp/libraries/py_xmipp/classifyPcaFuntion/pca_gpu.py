@@ -153,7 +153,7 @@ class PCAgpu:
         return self.vecs_update
     
     
-    def error(self, eigvalue, variance, per_eig):
+    def errorVariance(self, eigvalue, variance, per_eig):
         
         self.eigs = torch.zeros(self.nBand, device=self.cuda)
         self.perc = torch.zeros(self.nBand, device=self.cuda)
@@ -226,7 +226,7 @@ class PCAgpu:
                 self.Bvals =  self.eigval
                 self.Bvecs = self.vecs_update
    
-        self.error(self.Bvals, self.Bvar, per_eig)
+        self.errorVariance(self.Bvals, self.Bvar, per_eig)
         for n in range(self.nBand):
             #Using truncation and no error
             # trunc = self.Bvecs[0].size(dim=1)*per_eig
