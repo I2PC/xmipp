@@ -75,6 +75,7 @@ class ProgStatisticalMap: public XmippProgram
     Image<double> V;                                // Each input volume from pool
     Image<double> V_Zscores;                        // Each z-scores map from pool
     Image<double> avgVolume;                        // Average volume
+    Image<double> avgDiffVolume;                    // Average difference volume
     Image<double> stdVolume;                        // Standard deviation volume
     Image<double> weightedMap;                      // Statistically-weighted map 
 
@@ -108,6 +109,7 @@ public:
     void calculateFSCoh();
     void processStaticalMap();
     void computeStatisticalMaps();
+    void calculateAvgDiffMap();
     void calculateZscoreMap();
     void weightMap();
 

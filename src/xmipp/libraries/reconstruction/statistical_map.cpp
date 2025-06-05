@@ -156,6 +156,7 @@ void ProgStatisticalMap::run()
 
             avgVolume().initZeros(Zdim, Ydim, Xdim);
             stdVolume().initZeros(Zdim, Ydim, Xdim);
+            avgDiffVolume().initZeros(Zdim, Ydim, Xdim);
             V_Zscores().initZeros(Zdim, Ydim, Xdim);
 
             dimInitialized = true;
@@ -165,6 +166,7 @@ void ProgStatisticalMap::run()
     }
 
     computeStatisticalMaps();
+    calculateAvgDiffMap();
 
     #ifdef DEBUG_STAT_MAP
     std::cout << "Statistical map succesfully calculated!" << std::endl;
@@ -271,6 +273,24 @@ void ProgStatisticalMap::computeStatisticalMaps()
     }
 }
 
+void ProgStatisticalMap::calculateAvgDiffMap()
+{
+    for (const auto& row : mapPoolMD)
+	{
+        row.getValue(MDL_IMAGE, fn_V);
+        V.read(fn_V); 
+
+        FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(avgDiffVolume())
+        {
+            DIRECT_MULTIDIM_ELEM(avgDiffVolume(),n) =  DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n);
+        }
+    }
+
+    avgDiffVolume() /= Ndim;
+
+    avgDiffVolume.write(fn_oroot + "statsMap_avgDiff.mrc");
+}
+
 void ProgStatisticalMap::calculateZscoreMap()
 {
     std::cout << "    Calculating Zscore map..." << std::endl;
@@ -281,9 +301,10 @@ void ProgStatisticalMap::calculateZscoreMap()
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
         // Positive Z-score
-        double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / (sqrt(DIRECT_MULTIDIM_ELEM(stdVolume(),n)/DIRECT_MULTIDIM_ELEM(avgVolume(),n)));
+        // double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / (sqrt(DIRECT_MULTIDIM_ELEM(stdVolume(),n)/DIRECT_MULTIDIM_ELEM(avgVolume(),n)));
         // double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / (DIRECT_MULTIDIM_ELEM(stdVolume(),n)/DIRECT_MULTIDIM_ELEM(avgVolume(),n));
         // double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / sqrt(DIRECT_MULTIDIM_ELEM(stdVolume(),n) + 0.5);
+        double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) * (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / sqrt(DIRECT_MULTIDIM_ELEM(stdVolume(),n));
 
         if (zscore > 0)
         {
