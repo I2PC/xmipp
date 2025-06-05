@@ -511,12 +511,14 @@ class BnBgpu:
 
         if iter in [3, 8]:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=5)
-        elif 1 < iter < 20:
+        elif 1 < iter < 14:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
+        # elif 14 < iter < 19:
+        #     clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
 
         
-        # if iter > 10:   
-        #     clk = self.unsharp_mask_norm(clk) 
+        if iter > 14:   
+            clk = self.unsharp_mask_norm(clk) 
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
             
@@ -670,7 +672,7 @@ class BnBgpu:
             newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
             clk = self.averages(data, newCL, classes)
             
-            # clk = self.unsharp_mask_norm(clk) 
+            clk = self.unsharp_mask_norm(clk) 
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C)
                         
@@ -1236,8 +1238,11 @@ class BnBgpu:
     
     def determine_ROTandSHIFT(self, iter, mode, dim):
         
-        maxShift = round( (dim * 20)/100 )
-        maxShift = (maxShift//4)*4
+        maxShift_20 = round( (dim * 20)/100 )
+        maxShift_20 = (maxShift//4)*4
+        
+        maxShift_15 = round( (dim * 15)/100 )
+        maxShift_15 = (maxShift//4)*4
         
         if mode == "create_classes":
             #print("---Iter %s for creating classes---"%(iter+1))
@@ -1251,10 +1256,12 @@ class BnBgpu:
             #     ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
             
             #print("---Iter %s for creating classes---"%(iter+1))
-            if iter < 10:
-                ang, shiftMove = (-180, 180, 10), (-maxShift, maxShift+4, 4)
-            if iter < 13:
-                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
+            if iter < 5:
+                ang, shiftMove = (-180, 180, 10), (-maxShift_20, maxShift_20+4, 4)
+            elif iter < 10:
+                ang, shiftMove = (-180, 180, 8), (-maxShift_15, maxShift_15+4, 4)
+            elif iter < 13:
+                ang, shiftMove = (-180, 180, 6), (-12, 16, 4)
             elif iter < 16:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
             elif iter < 19:
@@ -1286,7 +1293,7 @@ class BnBgpu:
         else:
             #print("---Iter %s for align to classes---"%(iter+1))
             if iter < 1:
-                ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
+                ang, shiftMove = (-180, 180, 6), (-maxShift_15, maxShift_15+4, 4)
             elif iter < 2:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
             elif iter < 3:
