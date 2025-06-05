@@ -228,6 +228,7 @@ if __name__=="__main__":
                 if mode == "create_classes":
                     res_map = {4: 15, 6: 12, 8: 10, 10: 8}
                     if iter in res_map:
+                        del (freqBn, coef, nBand, grid_flat)
                         res = res_map[iter]
                         freqBn, cvecs, coef = pca.calculatePCAbasis(
                             mmap, Ntrain, nBand, dim, sampling, res,
