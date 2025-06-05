@@ -118,7 +118,7 @@ if __name__=="__main__":
     pca = PCAgpu(nBand)
     
     # freqBn, cvecs = pca.calculatePCAbasis(self, mmap, nBand, dim, sampling, maxRes, minRes, per_eig, batchPCA)
-    freqBn, cvecs, coef = pca.calculatePCAbasis(mmap, Ntrain, nBand, dim, sampling, maxRes=25, 
+    freqBn, cvecs, coef = pca.calculatePCAbasis(mmap, Ntrain, nBand, dim, sampling, maxRes=8, 
                                                 minRes=530, per_eig=0.75, batchPCA=True)
     
     # freqBn = torch.load(bands) 
@@ -225,18 +225,18 @@ if __name__=="__main__":
                         count+=1    
                 del(batch_projRef)  
                 
-                if mode == "create_classes":
-                    res_map = {5: 20, 8: 15, 10: 12, 12: 10, 14: 8}
-                    if iter in res_map:
-                        del (freqBn, coef, grid_flat, cvecs)
-                        res = res_map[iter]
-                        freqBn, cvecs, coef = pca.calculatePCAbasis(
-                            mmap, Ntrain, nBand, dim, sampling, res,
-                            minRes=530, per_eig=0.75, batchPCA=True
-                        )
-                        grid_flat = flatGrid(freqBn, coef, nBand)
-                
-                        print(iter , res , coef)    
+                # if mode == "create_classes":
+                #     res_map = {5: 20, 8: 15, 10: 12, 12: 10, 14: 8}
+                #     if iter in res_map:
+                #         del (freqBn, coef, grid_flat, cvecs)
+                #         res = res_map[iter]
+                #         freqBn, cvecs, coef = pca.calculatePCAbasis(
+                #             mmap, Ntrain, nBand, dim, sampling, res,
+                #             minRes=530, per_eig=0.75, batchPCA=True
+                #         )
+                #         grid_flat = flatGrid(freqBn, coef, nBand)
+                #
+                #         print(iter , res , coef)    
  
                 
                 #update classes        

@@ -509,15 +509,15 @@ class BnBgpu:
         clk = self.averages_createClasses(mmap, iter, newCL)
         
 
-        if iter in [3, 8]:
+        if iter in [5, 8, 10]:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=5)
-        elif 1 < iter < 14:
+        elif 3 < iter < 14:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
         # elif 14 < iter < 19:
         #     clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
 
         
-        if iter > 14:   
+        if iter >= 14:   
             clk = self.unsharp_mask_norm(clk) 
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
