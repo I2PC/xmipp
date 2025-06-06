@@ -188,14 +188,14 @@ void ProgFSCoh::calculateResolutionThreshold()
     
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FSCoh)
     {
-        if (DIRECT_MULTIDIM_ELEM(FSCoh, n) < thr)
+        if (DIRECT_MULTIDIM_ELEM(FSCoh, n) < FSCoh_thr)
         {
             indexThr = n;
             break;           
         }
     }
 
-    std::cout << "  Frequency (normalized) thresholded at (for FSCoh > " << thr << "): " << sampling_rate*((2*(float)NZYXSIZE(FSCoh))/(float)indexThr) << std::endl;
+    std::cout << "  Frequency (normalized) thresholded at (for FSCoh > " << FSCoh_thr << "): " << sampling_rate*((2*(float)NZYXSIZE(FSCoh))/(float)indexThr) << std::endl;
     std::cout << "  indexThr " << indexThr << std::endl;
 }
 
