@@ -184,8 +184,7 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
 void ProgFSCoh::calculateResolutionThreshold()
 {
     // Define Coherence threhold
-    float m = 7;
-    double thr = (m+Ndim)/(Ndim*(m+1));
+    double FSCoh_thr = (Ndim + 6)/(7*Ndim);
     
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FSCoh)
     {
