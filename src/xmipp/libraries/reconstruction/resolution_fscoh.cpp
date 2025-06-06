@@ -127,35 +127,36 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
 
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
         {
-            DIRECT_MULTIDIM_ELEM(mFSC_map,  n) +=  DIRECT_MULTIDIM_ELEM(V_ft,n);
-            DIRECT_MULTIDIM_ELEM(mFSC_map2, n) += (DIRECT_MULTIDIM_ELEM(V_ft,n) * std::conj(DIRECT_MULTIDIM_ELEM(V_ft,n))).real();
+            DIRECT_MULTIDIM_ELEM(FSCoh_map,  n) +=  DIRECT_MULTIDIM_ELEM(V_ft,n);
+            DIRECT_MULTIDIM_ELEM(FSCoh_map2, n) += (DIRECT_MULTIDIM_ELEM(V_ft,n) * std::conj(DIRECT_MULTIDIM_ELEM(V_ft,n))).real();
         }
     }
 
     // Compute mFSC map
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mFSC_map2)
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FSCoh_map2)
     {
-        DIRECT_MULTIDIM_ELEM(mFSC_map2, n) = (DIRECT_MULTIDIM_ELEM(mFSC_map,n) * std::conj(DIRECT_MULTIDIM_ELEM(mFSC_map,n))).real() / (Ndim * DIRECT_MULTIDIM_ELEM(mFSC_map2, n));
+        DIRECT_MULTIDIM_ELEM(FSCoh_map_mod2, n) = (DIRECT_MULTIDIM_ELEM(FSCoh_map,n) * std::conj(DIRECT_MULTIDIM_ELEM(FSCoh_map,n))).real();
+		//    FSCoh_map.initZeros(Zdim_ft, Ydim_ft, Xdim_ft);
     }
 
     #ifdef DEBUG_OUTPUT_FILES
 	Image<double> saveImage;
     std::string debugFileFn = fn_oroot + "mFSC.mrc";
 
-	saveImage() = mFSC_map2;
+	saveImage() = FSCoh_map2;
 	saveImage.write(debugFileFn);
     #endif
 
     // Coherence per fequency
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mFSC_map2)
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FSCoh_map2)
 	{
         int freqIdx = (int)(DIRECT_MULTIDIM_ELEM(freqMap,n));
 
         // Consider only up to Nyquist (remove corners from analysis)
-        if (freqIdx < NZYXSIZE(mFSC))
+        if (freqIdx < NZYXSIZE(FSCoh))
         {
-            DIRECT_MULTIDIM_ELEM(mFSC,         freqIdx) += DIRECT_MULTIDIM_ELEM(mFSC_map2,n);
-            DIRECT_MULTIDIM_ELEM(mFSC_counter, freqIdx) += 1;
+            DIRECT_MULTIDIM_ELEM(FSCoh,         freqIdx) += DIRECT_MULTIDIM_ELEM(FSCoh_map2,n);
+            DIRECT_MULTIDIM_ELEM(FSCoh_counter, freqIdx) += 1;
         }
 	}
 
@@ -163,15 +164,15 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
 	MetaDataVec md;
 	size_t id;
 
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mFSC)
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FSCoh)
 	{
-        double value = DIRECT_MULTIDIM_ELEM(mFSC,n) / DIRECT_MULTIDIM_ELEM(mFSC_counter,n);
+        double value = DIRECT_MULTIDIM_ELEM(FSCoh,n) / DIRECT_MULTIDIM_ELEM(FSCoh_counter,n);
 
-        DIRECT_MULTIDIM_ELEM(mFSC,n) = value;
+        DIRECT_MULTIDIM_ELEM(FSCoh,n) = value;
 
 		id = md.addObject();
-		md.setValue(MDL_X, DIRECT_MULTIDIM_ELEM(mFSC,n), id);
-		md.setValue(MDL_Y, DIRECT_MULTIDIM_ELEM(mFSC_counter,n), id);
+		md.setValue(MDL_X, DIRECT_MULTIDIM_ELEM(FSCoh,n), id);
+		md.setValue(MDL_Y, DIRECT_MULTIDIM_ELEM(FSCoh_counter,n), id);
 	}
 
 	std::string outputMD = fn_oroot + "mFSC.xmd";
@@ -186,16 +187,16 @@ void ProgFSCoh::calculateResolutionThreshold()
     float m = 7;
     double thr = (m+Ndim)/(Ndim*(m+1));
     
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mFSC)
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FSCoh)
     {
-        if (DIRECT_MULTIDIM_ELEM(mFSC, n) < thr)
+        if (DIRECT_MULTIDIM_ELEM(FSCoh, n) < thr)
         {
             indexThr = n;
             break;           
         }
     }
 
-    std::cout << "  Frequency (normalized) thresholded at (for FSCoh > " << thr << "): " << sampling_rate*((2*(float)NZYXSIZE(mFSC))/(float)indexThr) << std::endl;
+    std::cout << "  Frequency (normalized) thresholded at (for FSCoh > " << thr << "): " << sampling_rate*((2*(float)NZYXSIZE(FSCoh))/(float)indexThr) << std::endl;
     std::cout << "  indexThr " << indexThr << std::endl;
 }
 
@@ -215,10 +216,11 @@ void ProgFSCoh::composefreqMap()
 	int Ndim_ft = NSIZE(V_ft);
 
     // Use this dimension to initialize mFSC auxiliary maps
-    mFSC.initZeros(std::min(Xdim_ft, std::min(Ydim_ft, Zdim_ft)));
-    mFSC_counter.initZeros(std::min(Xdim_ft, std::min(Ydim_ft, Zdim_ft)));
-    mFSC_map2.initZeros(Zdim_ft, Ydim_ft, Xdim_ft);
-    mFSC_map.initZeros(Zdim_ft, Ydim_ft, Xdim_ft);
+    FSCoh.initZeros(std::min(Xdim_ft, std::min(Ydim_ft, Zdim_ft)));
+    FSCoh_counter.initZeros(std::min(Xdim_ft, std::min(Ydim_ft, Zdim_ft)));
+    FSCoh_map2.initZeros(Zdim_ft, Ydim_ft, Xdim_ft);
+    FSCoh_map.initZeros(Zdim_ft, Ydim_ft, Xdim_ft);
+    FSCoh_map_mod2.initZeros(Zdim_ft, Ydim_ft, Xdim_ft);
 
 	if (Zdim_ft == 1)
 	{
