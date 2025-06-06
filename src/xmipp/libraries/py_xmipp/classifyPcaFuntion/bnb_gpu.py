@@ -521,7 +521,7 @@ class BnBgpu:
         # if iter in [5, 8, 10]:
         #     clk = clk * self.approximate_otsu_threshold(clk, percentile=5)
         elif 3 < iter < 14:
-            clk = clk * self.approximate_otsu_threshold(clk, percentile=30)
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
 
             
         clk = clk * self.create_circular_mask(clk)
@@ -1369,7 +1369,7 @@ class BnBgpu:
                 expBatchSize = 10000
                 expBatchSize2 = 20000
                 # numFirstBatch = 2
-                numFirstBatch = 4
+                numFirstBatch = 6
             elif dim <= 256:
                 expBatchSize = 4000 
                 expBatchSize2 = 5000
