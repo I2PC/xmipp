@@ -526,7 +526,7 @@ class BnBgpu:
             
         clk = clk * self.create_circular_mask(clk)
         
-        if iter > 2 and iter < 11:
+        if iter > 2 and iter < 15:
             clk = self.center_by_com(clk)                  
         
         return(clk, tMatrix, batch_projExp_cpu)
@@ -674,7 +674,8 @@ class BnBgpu:
             newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
             clk = self.averages(data, newCL, classes)
             
-            clk = self.unsharp_mask_norm(clk) 
+            # clk = self.unsharp_mask_norm(clk) 
+            clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C)
                         
@@ -1152,7 +1153,7 @@ class BnBgpu:
         return kernel.view(1, 1, kernel_size, kernel_size)
 
     @torch.no_grad()
-    def unsharp_mask_adaptive_gaussian(self, imgs, kernel_size=5, base_strength=2.0,
+    def unsharp_mask_adaptive_gaussian(self, imgs, kernel_size=5, base_strength=1.0,
                                         contrast_window=7, sigma=None):
         N, H, W = imgs.shape
         imgs = imgs.float()
