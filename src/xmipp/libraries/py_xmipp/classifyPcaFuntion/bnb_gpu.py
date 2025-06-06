@@ -508,7 +508,7 @@ class BnBgpu:
         
         clk = self.averages_createClasses(mmap, iter, newCL)
         
-        clk = self.filter_classes_relion_style(newCL, clk)
+        # clk = self.filter_classes_relion_style(newCL, clk)
         
 
         if iter in [5, 8, 10]:
@@ -518,8 +518,8 @@ class BnBgpu:
 
 
         
-        # if iter >= 14:   
-        #     clk = self.unsharp_mask_norm(clk) 
+        if iter >= 14 and iter < 22:   
+            clk = self.unsharp_mask_norm(clk) 
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
             
