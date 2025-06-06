@@ -518,7 +518,7 @@ class BnBgpu:
 
 
         
-        if iter >= 14 and iter < 22:   
+        if iter >= 14 and iter < 21:   
             clk = self.unsharp_mask_norm(clk) 
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
