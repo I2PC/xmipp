@@ -136,7 +136,6 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FSCoh_map2)
     {
         DIRECT_MULTIDIM_ELEM(FSCoh_map_mod2, n) = (DIRECT_MULTIDIM_ELEM(FSCoh_map,n) * std::conj(DIRECT_MULTIDIM_ELEM(FSCoh_map,n))).real();
-		//    FSCoh_map.initZeros(Zdim_ft, Ydim_ft, Xdim_ft);
     }
 
     #ifdef DEBUG_OUTPUT_FILES
@@ -148,15 +147,16 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
     #endif
 
     // Coherence per fequency
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FSCoh_map2)
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FSCoh_map)
 	{
         int freqIdx = (int)(DIRECT_MULTIDIM_ELEM(freqMap,n));
 
         // Consider only up to Nyquist (remove corners from analysis)
         if (freqIdx < NZYXSIZE(FSCoh))
         {
-            DIRECT_MULTIDIM_ELEM(FSCoh,         freqIdx) += DIRECT_MULTIDIM_ELEM(FSCoh_map2,n);
-            DIRECT_MULTIDIM_ELEM(FSCoh_counter, freqIdx) += 1;
+            DIRECT_MULTIDIM_ELEM(FSCoh_num,     freqIdx) += DIRECT_MULTIDIM_ELEM(FSCoh_map_mod2,n);
+            DIRECT_MULTIDIM_ELEM(FSCoh_den,     freqIdx) += DIRECT_MULTIDIM_ELEM(FSCoh_map2,n);
+            // DIRECT_MULTIDIM_ELEM(FSCoh_counter, freqIdx) += 1;
         }
 	}
 
@@ -166,13 +166,13 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FSCoh)
 	{
-        double value = DIRECT_MULTIDIM_ELEM(FSCoh,n) / DIRECT_MULTIDIM_ELEM(FSCoh_counter,n);
+        double value = DIRECT_MULTIDIM_ELEM(FSCoh_num,n) / DIRECT_MULTIDIM_ELEM(FSCoh_den,n);
 
-        DIRECT_MULTIDIM_ELEM(FSCoh,n) = value;
+        DIRECT_MULTIDIM_ELEM(FSCoh,n) = value / Ndim;
 
 		id = md.addObject();
 		md.setValue(MDL_X, DIRECT_MULTIDIM_ELEM(FSCoh,n), id);
-		md.setValue(MDL_Y, DIRECT_MULTIDIM_ELEM(FSCoh_counter,n), id);
+		// md.setValue(MDL_Y, DIRECT_MULTIDIM_ELEM(FSCoh_counter,n), id);
 	}
 
 	std::string outputMD = fn_oroot + "mFSC.xmd";
@@ -217,6 +217,8 @@ void ProgFSCoh::composefreqMap()
 
     // Use this dimension to initialize mFSC auxiliary maps
     FSCoh.initZeros(std::min(Xdim_ft, std::min(Ydim_ft, Zdim_ft)));
+    FSCoh_num.initZeros(std::min(Xdim_ft, std::min(Ydim_ft, Zdim_ft)));
+    FSCoh_den.initZeros(std::min(Xdim_ft, std::min(Ydim_ft, Zdim_ft)));
     FSCoh_counter.initZeros(std::min(Xdim_ft, std::min(Ydim_ft, Zdim_ft)));
     FSCoh_map2.initZeros(Zdim_ft, Ydim_ft, Xdim_ft);
     FSCoh_map.initZeros(Zdim_ft, Ydim_ft, Xdim_ft);
