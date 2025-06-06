@@ -1214,7 +1214,7 @@ class BnBgpu:
         radial /= count.clamp(min=1e-8)
         return radial  # [R]
     
-    def relion_filter_from_image_list(self, images_list, class_avg, sampling=1.274, resolution_angstrom=8, eps=1e-8):
+    def relion_filter_from_image_list(self, images_list, class_avg, sampling=1.98, resolution_angstrom=8, eps=1e-8):
         """
         Aplica el filtro radial tipo RELION a una clase promedio, limitado por resolución.
     
