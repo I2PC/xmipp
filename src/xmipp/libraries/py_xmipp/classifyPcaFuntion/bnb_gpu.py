@@ -1186,111 +1186,113 @@ class BnBgpu:
         return filtered_clk
     
     #Filtro de power spectrum segun relion
+    @torch.no_grad()
     def compute_radial_profile(self, imgs_fft):
         """
-        Calcula el perfil radial promedio del espectro de potencia.
+        Calcula perfil radial promedio del espectro de potencia (vectorizado).
         imgs_fft: [N, H, W] complejo
-        Retorna: perfil radial promedio [R]
+        Retorna: [R] promedio sobre imágenes y píxeles con igual radio
         """
         N, H, W = imgs_fft.shape
-        power = torch.abs(imgs_fft) ** 2
+        power = imgs_fft.real**2 + imgs_fft.imag**2  # más rápido que abs() ** 2
     
-        y, x = torch.meshgrid(torch.arange(H, device=imgs_fft.device),
-                              torch.arange(W, device=imgs_fft.device), indexing='ij')
-        r = torch.sqrt((x - W//2)**2 + (y - H//2)**2).long()
+        y, x = torch.meshgrid(
+            torch.arange(H, device=imgs_fft.device),
+            torch.arange(W, device=imgs_fft.device),
+            indexing='ij'
+        )
+        r = ((x - W//2)**2 + (y - H//2)**2).sqrt().long()
         max_r = min(H, W) // 2
         r = r.clamp(0, max_r - 1)
     
-        radial = torch.zeros(max_r, device=imgs_fft.device)
-        count = torch.zeros(max_r, device=imgs_fft.device)
+        # Reorganiza para usar scatter_add (más rápido que bucles)
+        r_flat = r.view(-1)
+        power_flat = power.view(N, -1)
     
-        for rad in range(max_r):
-            mask = (r == rad)
-            count[rad] = mask.sum()
-            if count[rad] > 0:
-                # Sumar la potencia en todas las imágenes y pixeles con radio == rad
-                radial[rad] = power[:, mask].sum()
+        radial = torch.zeros((N, max_r), device=imgs_fft.device)
+        radial.scatter_add_(1, r_flat.unsqueeze(0).expand(N, -1), power_flat)
     
-        radial /= count.clamp(min=1e-8)
-        return radial  # [R]
+        count = torch.bincount(r_flat, minlength=max_r).clamp(min=1e-8)
+        mean_radial = radial.sum(0) / count  # promedio sobre N
+        return mean_radial  # [R]
     
-    def relion_filter_from_image_list(self, images_list, class_avg, sampling=1.98, resolution_angstrom=8, eps=1e-8):
+    @torch.no_grad()
+    def relion_filter_from_image_list(self, images_list, class_avg,
+                                       sampling, resolution_angstrom, eps=1e-8):
         """
-        Aplica el filtro radial tipo RELION a una clase promedio, limitado por resolución.
-    
-        images_list: lista o tensor [N, H, W]
-        class_avg: tensor [H, W]
-        sampling: tamaño de pixel en Å/píxel
-        resolution_angstrom: resolución máxima deseada (opcional). Si None, se aplica el filtro completo.
+        Aplica filtro tipo RELION limitado por resolución, optimizado en memoria y velocidad.
         """
         if isinstance(images_list, torch.Tensor):
             if images_list.ndim == 2:
                 images_list = [images_list]
             elif images_list.ndim == 3:
                 images_list = list(images_list)
-        elif not isinstance(images_list, (list, tuple)):
-            raise TypeError(f"images_list debe ser lista o tensor. Tipo: {type(images_list)}")
     
         if len(images_list) == 0:
             return class_avg
     
-        images_tensor = torch.stack(images_list, dim=0)  # [N, H, W]
+        # 🔹 Prepara tensores
+        images_tensor = torch.stack(images_list).float()  # [N, H, W]
+        class_avg = class_avg.float()
         H, W = class_avg.shape
     
-        fft_imgs = torch.fft.fftshift(torch.fft.fft2(images_tensor), dim=(-2, -1))  # [N, H, W]
-        fft_avg = torch.fft.fftshift(torch.fft.fft2(class_avg.unsqueeze(0)), dim=(-2, -1))  # [1, H, W]
+        # 🔹 FFTs
+        fft_imgs = torch.fft.fft2(images_tensor)  # [N, H, W]
+        fft_avg = torch.fft.fft2(class_avg)       # [H, W]
     
-        pspec_target = self.compute_radial_profile(fft_imgs)     # [R]
-        pspec_avg = self.compute_radial_profile(fft_avg)[0]      # [R]
+        # 🔹 Perfil radial
+        pspec_target = self.compute_radial_profile(torch.fft.fftshift(fft_imgs, dim=(-2, -1)))  # [R]
+        pspec_avg = self.compute_radial_profile(torch.fft.fftshift(fft_avg[None], dim=(-2, -1)))[0]  # [R]
     
-        filt = torch.sqrt((pspec_target + eps) / (pspec_avg + eps))  # [R]
+        filt = torch.sqrt((pspec_target + eps) / (pspec_avg + eps))
     
-        # 🔹 Aplicar corte por resolución si se especifica
+        # 🔹 Aplica límite de resolución
         if resolution_angstrom is not None and resolution_angstrom > 0:
             nyquist = 1.0 / (2.0 * sampling)
             freq_cutoff = 1.0 / resolution_angstrom
             radius_cutoff = int((freq_cutoff / nyquist) * (H // 2))
             radius_cutoff = min(radius_cutoff, len(filt))
+            filt[radius_cutoff:] = 1.0  # sin cambio más allá del límite
     
-            # Zero-out sharpening above cutoff
-            filt[radius_cutoff:] = 1.0
-    
-        # 🔹 Crear mapa de filtro 2D
-        y, x = torch.meshgrid(torch.arange(H, device=class_avg.device),
-                              torch.arange(W, device=class_avg.device), indexing='ij')
-        r = torch.sqrt((x - W//2)**2 + (y - H//2)**2).long().clamp(0, len(filt)-1)
+        # 🔹 Filtro 2D
+        y, x = torch.meshgrid(
+            torch.arange(H, device=class_avg.device),
+            torch.arange(W, device=class_avg.device),
+            indexing='ij'
+        )
+        r = ((x - W//2)**2 + (y - H//2)**2).sqrt().long().clamp(0, len(filt)-1)
         filt_map = filt[r]  # [H, W]
     
-        # 🔹 Aplicar filtro a la transformada
-        mag = torch.abs(fft_avg[0])
-        phase = torch.angle(fft_avg[0])
-        fft_filtered = filt_map * mag * torch.exp(1j * phase)
+        # 🔹 Aplicar filtro en espacio de Fourier
+        fft_avg_shift = torch.fft.fftshift(fft_avg)
+        fft_filtered = filt_map * fft_avg_shift
+        fft_filtered = torch.fft.ifftshift(fft_filtered)
     
-        filtered = torch.real(torch.fft.ifft2(torch.fft.ifftshift(fft_filtered, dim=(-2, -1))))
+        filtered = torch.real(torch.fft.ifft2(fft_filtered))
     
-        # 🔹 Normalizar en espacio real para conservar media y std original
+        # 🔹 Normalización (mantener energía)
         mean_orig = class_avg.mean()
         std_orig = class_avg.std()
-    
         mean_filt = filtered.mean()
         std_filt = filtered.std()
-    
         normalized = (filtered - mean_filt) / (std_filt + eps) * std_orig + mean_orig
+        
+        del fft_imgs, fft_avg, filt_map, fft_filtered
+        torch.cuda.empty_cache()
+    
         return normalized
     
-    def filter_classes_relion_style(self, newCL, clk):
+    @torch.no_grad()
+    def filter_classes_relion_style(self, newCL, clk, sampling=1.98, resolution_angstrom=8):
         """
-        newCL: lista de clases, cada una es una lista o tensor de imágenes [H, W]
-        clk: tensor [C, H, W] con las clases promedio
-        Retorna: tensor [C, H, W] con las clases filtradas
+        Aplica relion_filter a cada clase promedio, usando listas de imágenes por clase.
         """
-        C = len(clk)
-        filtered_classes = []
-    
-        for n in range(C):
-            filtered = self.relion_filter_from_image_list(newCL[n], clk[n])
-            filtered_classes.append(filtered)
-    
+        filtered_classes = [
+            self.relion_filter_from_image_list(newCL[n], clk[n],
+                                               sampling=sampling,
+                                               resolution_angstrom=resolution_angstrom)
+            for n in range(len(clk))
+        ]
         return torch.stack(filtered_classes)
 
 
