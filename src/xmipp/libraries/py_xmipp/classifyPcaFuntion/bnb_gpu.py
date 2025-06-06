@@ -521,7 +521,7 @@ class BnBgpu:
         # if iter in [5, 8, 10]:
         #     clk = clk * self.approximate_otsu_threshold(clk, percentile=5)
         if 3 < iter < 14:
-            clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=30)
 
             
         clk = clk * self.create_circular_mask(clk)
