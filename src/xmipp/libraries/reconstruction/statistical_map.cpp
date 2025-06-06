@@ -223,8 +223,6 @@ void ProgStatisticalMap::calculateFSCoh()
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "----- FOCoh caluclated successfully!" << std::endl;
 	#endif
-
-    freqMap = fscoh.freqMap;
 }
 
 void ProgStatisticalMap::processStaticalMap()
@@ -238,7 +236,7 @@ void ProgStatisticalMap::processStaticalMap()
 
     // FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
     // {
-    //     if (DIRECT_MULTIDIM_ELEM(freqMap, n) > fscoh.indexThr)
+    //     if (DIRECT_MULTIDIM_ELEM(fscoh.freqMap, n) > fscoh.indexThr)
     //     {
     //         DIRECT_MULTIDIM_ELEM(V_ft,  n) = 0;
     //     }
@@ -341,7 +339,7 @@ void ProgStatisticalMap::weightMap()
 
     // FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
     // {
-    //     if (DIRECT_MULTIDIM_ELEM(freqMap, n) > fscoh.indexThr)
+    //     if (DIRECT_MULTIDIM_ELEM(fscoh.freqMap, n) > fscoh.indexThr)
     //     {
     //         DIRECT_MULTIDIM_ELEM(V_ft,  n) = 0;
     //     }
