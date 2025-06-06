@@ -511,17 +511,18 @@ class BnBgpu:
         # clk = self.filter_classes_relion_style(newCL, clk)
         
 
+        if iter > 3:   
+            # clk = self.unsharp_mask_norm(clk) 
+            clk = self.unsharp_mask_adaptive_gaussian(clk)
+            # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
+            # clk = self.apply_consistency_masks_vector(clk, mask_C) 
+
+
         if iter in [5, 8, 10]:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=5)
         elif 3 < iter < 14:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=20)
 
-
-        
-        if iter >= 14 and iter < 21:   
-            clk = self.unsharp_mask_norm(clk) 
-            # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
-            # clk = self.apply_consistency_masks_vector(clk, mask_C) 
             
         clk = clk * self.create_circular_mask(clk)
         
@@ -1139,6 +1140,50 @@ class BnBgpu:
     
         valid = std > 1e-6
         normalized = (sharpened - mean) / (std + 1e-8)*std0+mean0
+        output = torch.where(valid, normalized, imgs)
+    
+        return output
+    
+    def gaussian_kernel(self, kernel_size, sigma, device):
+        ax = torch.arange(kernel_size, device=device) - kernel_size // 2
+        xx, yy = torch.meshgrid(ax, ax, indexing='ij')
+        kernel = torch.exp(-(xx**2 + yy**2) / (2.0 * sigma**2))
+        kernel = kernel / kernel.sum()
+        return kernel.view(1, 1, kernel_size, kernel_size)
+
+    @torch.no_grad()
+    def unsharp_mask_adaptive_gaussian(self, imgs, kernel_size=5, base_strength=2.0,
+                                        contrast_window=7, sigma=None):
+        N, H, W = imgs.shape
+        imgs = imgs.float()
+        mean0 = imgs.mean(dim=(1, 2), keepdim=True)
+        std0 = imgs.std(dim=(1, 2), keepdim=True)
+        pad = kernel_size // 2
+        pad_c = contrast_window // 2
+        device = imgs.device
+    
+        if sigma is None:
+            sigma = 0.3 * ((kernel_size - 1) * 0.5 - 1) + 0.8
+        gkernel = self.gaussian_kernel(kernel_size, sigma, device)
+        imgs_ = imgs[:, None]
+        blurred = F.conv2d(imgs_, gkernel, padding=pad)
+    
+        mean_local = F.avg_pool2d(imgs_, kernel_size=contrast_window, stride=1, padding=pad_c)
+        mean_sq_local = F.avg_pool2d(imgs_ ** 2, kernel_size=contrast_window, stride=1, padding=pad_c)
+        local_var = (mean_sq_local - mean_local**2).clamp(min=0)
+        local_std = torch.sqrt(local_var)
+    
+        global_std = std0.view(N, 1, 1, 1)
+        strength_map = base_strength * (local_std / (global_std + 1e-8))
+        strength_map = strength_map.clamp(0.0, base_strength * 3.0)
+    
+        sharpened = imgs_ + strength_map * (imgs_ - blurred)
+        sharpened = sharpened.squeeze(1)
+    
+        mean = sharpened.mean(dim=(1, 2), keepdim=True)
+        std = sharpened.std(dim=(1, 2), keepdim=True)
+        valid = std > 1e-6
+        normalized = (sharpened - mean) / (std + 1e-8) * std0 + mean0
         output = torch.where(valid, normalized, imgs)
     
         return output
