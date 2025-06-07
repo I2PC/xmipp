@@ -511,16 +511,16 @@ class BnBgpu:
         # clk = self.filter_classes_relion_style(newCL, clk)
         
 
-        if iter > 10:   
-            # clk = self.unsharp_mask_norm(clk) 
-            clk = self.unsharp_mask_adaptive_gaussian(clk)
+        # if iter > 10:   
+        #     clk = self.unsharp_mask_norm(clk) 
+            # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
 
 
         # if iter in [5, 8, 10]:
         #     clk = clk * self.approximate_otsu_threshold(clk, percentile=5)
-        if 3 < iter < 10:
+        if 3 < iter < 20:
             # clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
             clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
                                 intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
@@ -677,7 +677,7 @@ class BnBgpu:
             clk = self.averages(data, newCL, classes)
             
             # clk = self.unsharp_mask_norm(clk) 
-            clk = self.unsharp_mask_adaptive_gaussian(clk)
+            # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C)
                         
