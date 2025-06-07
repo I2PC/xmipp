@@ -512,8 +512,8 @@ class BnBgpu:
         
 
         if iter > 3:   
-            clk = self.unsharp_mask_norm(clk) 
-            # clk = self.unsharp_mask_adaptive_gaussian(clk)
+            # clk = self.unsharp_mask_norm(clk) 
+            clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
 
@@ -521,7 +521,7 @@ class BnBgpu:
         # if iter in [5, 8, 10]:
         #     clk = clk * self.approximate_otsu_threshold(clk, percentile=5)
         if 3 < iter < 14:
-            clk = clk * self.approximate_otsu_threshold(clk, percentile=5)
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
 
             
         clk = clk * self.create_circular_mask(clk)
@@ -674,8 +674,8 @@ class BnBgpu:
             newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
             clk = self.averages(data, newCL, classes)
             
-            clk = self.unsharp_mask_norm(clk) 
-            # clk = self.unsharp_mask_adaptive_gaussian(clk)
+            # clk = self.unsharp_mask_norm(clk) 
+            clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C)
                         
