@@ -449,10 +449,16 @@ class BnBgpu:
                                                                              rotBatch[initBatch:endBatch], translations[initBatch:endBatch], centerxy)
             
             
+            # if mask:
+            #     transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+            # else:
+            #     transforIm = transforIm * self.create_circular_mask(transforIm)
+                
             if mask:
-                transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
-            else:
-                transforIm = transforIm * self.create_circular_mask(transforIm)
+                if iter < 21:
+                    transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+                else:
+                    transforIm = transforIm * self.create_circular_mask(transforIm)
                 
                     
             
@@ -511,7 +517,7 @@ class BnBgpu:
         # clk = self.filter_classes_relion_style(newCL, clk)
         
 
-        if iter > 10 and iter < 21:   
+        if iter > 10:   
             clk = self.unsharp_mask_norm(clk) 
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
@@ -639,15 +645,15 @@ class BnBgpu:
         transforIm, matrixIm = self.center_particles_inverse_save_matrix(data, tMatrix, 
                                                                          rotBatch, translations, centerxy)
         
-        if mask:
-            transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
-        else: 
-            transforIm = transforIm * self.create_circular_mask(transforIm)
         # if mask:
-        #     if iter < 3:
-        #         transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
-        #     else:
-        #         transforIm = transforIm * self.create_circular_mask(transforIm)
+        #     transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+        # else: 
+        #     transforIm = transforIm * self.create_circular_mask(transforIm)
+        if mask:
+            if iter < 3:
+                transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+            else:
+                transforIm = transforIm * self.create_circular_mask(transforIm)
                                
         
         tMatrix = matrixIm
@@ -678,7 +684,7 @@ class BnBgpu:
             newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
             clk = self.averages(data, newCL, classes)
             
-            # clk = self.unsharp_mask_norm(clk) 
+            clk = self.unsharp_mask_norm(clk) 
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C)
@@ -1149,7 +1155,7 @@ class BnBgpu:
         return sharpened.squeeze(1)
     
     
-    def unsharp_mask_norm(self, imgs, kernel_size=5, strength=1.0):
+    def unsharp_mask_norm(self, imgs, kernel_size=3, strength=1.0):
         N, H, W = imgs.shape
         
         mean0 = imgs.mean(dim=(1, 2), keepdim=True)
