@@ -511,7 +511,7 @@ class BnBgpu:
         # clk = self.filter_classes_relion_style(newCL, clk)
         
 
-        if iter > 3:   
+        if iter > 10:   
             # clk = self.unsharp_mask_norm(clk) 
             clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
@@ -520,8 +520,10 @@ class BnBgpu:
 
         # if iter in [5, 8, 10]:
         #     clk = clk * self.approximate_otsu_threshold(clk, percentile=5)
-        if 3 < iter < 14:
-            clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
+        if 3 < iter < 10:
+            # clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
+            clk = clk * self.contrast_dominant_mask(imgs, window=3, contrast_percentile=80,
+                                intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
 
             
         clk = clk * self.create_circular_mask(clk)
@@ -1063,6 +1065,29 @@ class BnBgpu:
     
         self.binary_masks = (imgs > thresholds).float()
         return self.binary_masks
+    
+    @torch.no_grad()
+    def contrast_dominant_mask(self, imgs,
+                                window=3,
+                                contrast_percentile=80,
+                                intensity_percentile=50,
+                                contrast_weight=1.5,
+                                intensity_weight=1.0):
+    
+        N, H, W = imgs.shape
+        imgs = imgs.float().unsqueeze(1)  # [N, 1, H, W]
+        
+        mean_local = F.avg_pool2d(imgs, window, stride=1, padding=window // 2)
+        mean_sq_local = F.avg_pool2d(imgs**2, window, stride=1, padding=window // 2)
+        std_local = torch.sqrt((mean_sq_local - mean_local**2).clamp(min=0))  # [N, 1, H, W]
+    
+        contrast_thresh = torch.quantile(std_local.view(N, -1), contrast_percentile / 100.0, dim=1).view(N, 1, 1, 1)
+        intensity_thresh = torch.quantile(imgs.view(N, -1), intensity_percentile / 100.0, dim=1).view(N, 1, 1, 1)
+    
+        score = (contrast_weight * std_local + intensity_weight * imgs)
+        mask = (std_local > contrast_thresh) & (imgs > intensity_thresh)
+        
+        return mask.float().squeeze(1)
     
     
     def compute_particle_radius(self, imgs, percentile: float = 100):
