@@ -449,16 +449,10 @@ class BnBgpu:
                                                                              rotBatch[initBatch:endBatch], translations[initBatch:endBatch], centerxy)
             
             
-            # if mask:
-            #     transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
-            # else:
-            #     transforIm = transforIm * self.create_circular_mask(transforIm)
-                
             if mask:
-                if iter < 21:
-                    transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
-                else:
-                    transforIm = transforIm * self.create_circular_mask(transforIm)
+                transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+            else:
+                transforIm = transforIm * self.create_circular_mask(transforIm)
                 
                     
             
@@ -645,15 +639,15 @@ class BnBgpu:
         transforIm, matrixIm = self.center_particles_inverse_save_matrix(data, tMatrix, 
                                                                          rotBatch, translations, centerxy)
         
-        # if mask:
-        #     transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
-        # else: 
-        #     transforIm = transforIm * self.create_circular_mask(transforIm)
         if mask:
-            if iter < 3:
-                transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
-            else:
-                transforIm = transforIm * self.create_circular_mask(transforIm)
+            transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+        else: 
+            transforIm = transforIm * self.create_circular_mask(transforIm)
+        # if mask:
+        #     if iter < 3:
+        #         transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
+        #     else:
+        #         transforIm = transforIm * self.create_circular_mask(transforIm)
                                
         
         tMatrix = matrixIm
