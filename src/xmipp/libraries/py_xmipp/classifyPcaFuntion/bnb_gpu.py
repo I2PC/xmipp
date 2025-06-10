@@ -396,7 +396,7 @@ class BnBgpu:
     
     
     
-    def create_classes_version00(self, mmap, tMatrix, iter, nExp, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma):
+    def create_classes_version00(self, mmap, tMatrix, iter, nExp, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling):
         
         # print("----------create-classes-------------")      
             
@@ -516,6 +516,8 @@ class BnBgpu:
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
+            
+        clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
 
 
         # if iter in [5, 8, 10]:
@@ -621,7 +623,7 @@ class BnBgpu:
     
     
     
-    def align_particles_to_classes(self, data, cl, tMatrix, iter, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma):
+    def align_particles_to_classes(self, data, cl, tMatrix, iter, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling):
         
         # print("----------align-to-classes-------------")
         
@@ -679,6 +681,7 @@ class BnBgpu:
             clk = self.averages(data, newCL, classes)
             
             clk = self.unsharp_mask_norm(clk) 
+            clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C)
@@ -947,43 +950,43 @@ class BnBgpu:
     
     def apply_leaky_relu(self, images, relu = 0.5):
         images = torch.where(images > 0, images, relu * images)
-        return images
-    
-    
-    def apply_filter_freq(self, images, noise_factor=0.1, eps=1e-8):
-        images_fft = torch.fft.fft2(images)
-        signal_power = torch.abs(images_fft) ** 2
-        noise_power = noise_factor * signal_power.mean(dim=(-2, -1), keepdim=True)
-        wiener_filter = signal_power / (signal_power + noise_power + eps)
-        filtered_fft = images_fft * wiener_filter
-        filtered_images = torch.fft.ifft2(filtered_fft).real
-        return filtered_images
-        
+        return images       
         
     
-    def apply_lowpass_filter(self, images, cutoff_frequency, sampling):
-        batch_size, height, width = images.shape
-        device = images.device
+    def gaussian_lowpass_filter_2D(self, imgs, resolution_angstrom, pixel_size, clamp_exp = 80.0):
     
-        freq_y = torch.fft.fftfreq(height, d=1/sampling, device=device)
-        freq_x = torch.fft.fftfreq(width, d=1/sampling, device=device)
+        N, H, W = imgs.shape
+        device = imgs.device
+    
+        fy = torch.fft.fftfreq(H, d=pixel_size).to(device)
+        fx = torch.fft.fftfreq(W, d=pixel_size).to(device)
         
-        wx, wy = torch.meshgrid(freq_x, freq_y, indexing='ij')
-        w = torch.sqrt(wx**2 + wy**2)
-    
-        maxFreq = 1/cutoff_frequency  
-        freq_band = (w < maxFreq).float()
-    
-        images_fft = torch.fft.fft2(images, dim=(1, 2))  
+        grid_y_centered = torch.linspace(-0.5/pixel_size, 0.5/pixel_size, H, device=device)
+        grid_x_centered = torch.linspace(-0.5/pixel_size, 0.5/pixel_size, W, device=device)
         
-        freq_band = freq_band.unsqueeze(0)  
-        freq_band = freq_band.expand(batch_size, -1, -1)  
+        freq_squared_centered = (grid_x_centered.unsqueeze(0)**2 + grid_y_centered.unsqueeze(1)**2)
     
-        images_filtered_fft = images_fft * freq_band
+        D0_freq = 1.0 / resolution_angstrom
+        sigma_freq = D0_freq / np.sqrt(2 * np.log(2))
     
-        images_filtered = torch.fft.ifft2(images_filtered_fft, dim=(1, 2)).real  
+        exponent = -freq_squared_centered / (2 * sigma_freq**2)
+        
+        exponent = exponent.clamp(max=clamp_exp)
+        filter_map_centered = torch.exp(exponent)
     
-        return images_filtered
+        filter_map = torch.fft.ifftshift(filter_map_centered)
+        
+        filter_map = torch.nan_to_num(filter_map, nan=0.0, posinf=0.0)
+    
+        fft_imgs = torch.fft.fft2(imgs)
+    
+        fft_filtered_imgs = fft_imgs * filter_map
+    
+        filtered_imgs = torch.real(torch.fft.ifft2(fft_filtered_imgs))
+        
+        filtered_imgs = torch.nan_to_num(filtered_imgs)
+    
+        return filtered_imgs
     
 
     def update_classes_rmsprop(self, cl, clk, learning_rate, decay_rate, epsilon, grad_squared):
@@ -1179,7 +1182,7 @@ class BnBgpu:
         kernel = kernel / kernel.sum()
         return kernel.view(1, 1, kernel_size, kernel_size)
 
-    @torch.no_grad()
+
     def unsharp_mask_adaptive_gaussian(self, imgs, kernel_size=5, base_strength=1.0,
                                         contrast_window=7, sigma=None):
         N, H, W = imgs.shape
