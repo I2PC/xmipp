@@ -96,6 +96,7 @@ public:
 
     // ---------------------- UTILS METHODS ------------------------------
     void composefreqMap();
+    void normalizeMap(MultidimArray<double> &vol);
 };
 //@}
 #endif

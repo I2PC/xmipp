@@ -103,7 +103,8 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
         std::cout << "  Processing volume " << fn_V << " For FSC calculation" << std::endl;
         #endif
 
-        V.read(fn_V); 
+        V.read(fn_V);
+		normalizeMap(V());
 
         if (!dimInitialized)
         {
@@ -128,6 +129,8 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
 
         ft.FourierTransform(V(), V_ft, false);
 
+		std::cout << "DIRECT_ZYX_ELEM(V_ft, 0, 0, 0) " << DIRECT_ZYX_ELEM(V_ft, 0, 0, 0) << std::endl;
+
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
         {
             DIRECT_MULTIDIM_ELEM(FSCoh_map,  n) +=  DIRECT_MULTIDIM_ELEM(V_ft,n);
@@ -135,7 +138,9 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
         }
     }
 
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FSCoh_map2)
+	std::cout << "  Calculating FSCoh... " << std::endl;
+
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FSCoh_map_mod2)
     {
         DIRECT_MULTIDIM_ELEM(FSCoh_map_mod2, n) = (DIRECT_MULTIDIM_ELEM(FSCoh_map,n) * std::conj(DIRECT_MULTIDIM_ELEM(FSCoh_map,n))).real();
     }
@@ -152,7 +157,7 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
             DIRECT_MULTIDIM_ELEM(FSCoh_den,     freqIdx) += DIRECT_MULTIDIM_ELEM(FSCoh_map2,n);
 
 			#ifdef DEBUG_OUTPUT_FILES
-			DIRECT_MULTIDIM_ELEM(FSCoh_map2,    n) 		 += DIRECT_MULTIDIM_ELEM(FSCoh_map_mod2,n) / DIRECT_MULTIDIM_ELEM(FSCoh_map2,n);
+			DIRECT_MULTIDIM_ELEM(FSCoh_map2,    n      ) += DIRECT_MULTIDIM_ELEM(FSCoh_map_mod2,n) / (Ndim * DIRECT_MULTIDIM_ELEM(FSCoh_map2,n));
 			#endif
         }
 	}
@@ -171,12 +176,15 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FSCoh)
 	{
-        double value = DIRECT_MULTIDIM_ELEM(FSCoh_num,n) / DIRECT_MULTIDIM_ELEM(FSCoh_den,n);
+        double value = DIRECT_MULTIDIM_ELEM(FSCoh_num,n) / (Ndim * DIRECT_MULTIDIM_ELEM(FSCoh_den,n));
 
-        DIRECT_MULTIDIM_ELEM(FSCoh,n) = value / Ndim;
+		std::cout << "index " << n << " num  " << DIRECT_MULTIDIM_ELEM(FSCoh_num,n) << " den " << (Ndim * DIRECT_MULTIDIM_ELEM(FSCoh_den,n)) << std::endl;
+        DIRECT_MULTIDIM_ELEM(FSCoh,n) = value;
 
 		id = md.addObject();
-		md.setValue(MDL_X, DIRECT_MULTIDIM_ELEM(FSCoh,n), id);
+		// This label vamos a querer que sea _resolutionFSCoh
+		md.setValue(MDL_X, value, id);
+		md.setValue(MDL_RESOLUTION_FREQ, (1.0 * n / (2 * NZYXSIZE(FSCoh))), id);
 	}
 
 	std::string outputMD = fn_oroot + "FSCoh.xmd";
@@ -313,4 +321,18 @@ void ProgFSCoh::composefreqMap()
 	saveImage() = freqMap;
 	saveImage.write(debugFileFn);
     #endif
+}
+
+void ProgFSCoh::normalizeMap(MultidimArray<double> &vol)
+{
+    // Compute avg and std
+    double avg;
+    double std;
+    V().computeAvgStdev(avg, std);
+
+    // Normalize map
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(vol)
+    {
+        DIRECT_MULTIDIM_ELEM(vol, n) = (DIRECT_MULTIDIM_ELEM(vol, n) - avg) / std;
+    }
 }
