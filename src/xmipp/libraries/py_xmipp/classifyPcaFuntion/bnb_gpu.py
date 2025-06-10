@@ -958,30 +958,44 @@ class BnBgpu:
         N, H, W = imgs.shape
         device = imgs.device
     
+        # Guardamos estadísticos originales
+        mean0 = imgs.mean(dim=(1, 2), keepdim=True)
+        std0 = imgs.std(dim=(1, 2), keepdim=True)
+    
+        # Malla de frecuencias
         fy = torch.fft.fftfreq(H, d=pixel_size).to(device)
         fx = torch.fft.fftfreq(W, d=pixel_size).to(device)
         grid_y, grid_x = torch.meshgrid(fy, fx, indexing='ij')
-        freq_squared = grid_x**2 + grid_y**2  # [H, W]
+        freq_squared = grid_x ** 2 + grid_y ** 2
     
+        # Filtro gaussiano en frecuencia
         D0_freq = 1.0 / resolution_angstrom
         sigma_freq = D0_freq / np.sqrt(2 * np.log(2))
-        exponent = -freq_squared / (2.0 * sigma_freq**2)
+        exponent = -freq_squared / (2.0 * sigma_freq ** 2)
         exponent = exponent.clamp(max=clamp_exp)
         filter_map = torch.exp(exponent)
     
         if hard_cut:
             filter_map[freq_squared > D0_freq**2] = 0.0
     
-        filter_map = filter_map.to(device)  # [H, W]
-        filter_map = filter_map.unsqueeze(0).expand(N, -1, -1)
+        # Broadcasting del filtro
+        filter_map = filter_map.to(device).unsqueeze(0).expand(N, -1, -1)
     
+        # FFT y filtrado
         fft_imgs = torch.fft.fft2(imgs)
         fft_filtered_imgs = fft_imgs * filter_map
         filtered_imgs = torch.fft.ifft2(fft_filtered_imgs).real
-    
         filtered_imgs = torch.nan_to_num(filtered_imgs)
     
-        return filtered_imgs
+        # 🔹 Normalización de energía y escala (como en unsharp_mask_norm)
+        mean = filtered_imgs.mean(dim=(1, 2), keepdim=True)
+        std = filtered_imgs.std(dim=(1, 2), keepdim=True)
+        valid = std > 1e-6
+    
+        normalized = (filtered_imgs - mean) / (std + 1e-8) * std0 + mean0
+        output = torch.where(valid, normalized, imgs)
+    
+        return output
     
 
     def update_classes_rmsprop(self, cl, clk, learning_rate, decay_rate, epsilon, grad_squared):
