@@ -1,5 +1,5 @@
 #Protocols ussing the enviroment: protocol_deepMicrographScreen
-
+# requires other channels apart from conda-forge to install tensorflow-gpu 1.12
 name: xmipp_MicCleaner
 channels:
   - rsanchez1369
