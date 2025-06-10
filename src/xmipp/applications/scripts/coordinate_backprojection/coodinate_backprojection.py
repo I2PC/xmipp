@@ -53,6 +53,22 @@ def _computeProjectionDeltas(references: np.ndarray,
     
     return deltas, deltas2
     
+def _normalizeLogResponsibilities(exponent: np.ndarray,
+                                  nIter: int ) -> Tuple[np.ndarray, np.ndarray]:    
+    # Apply Sinkhorn-Knopp
+    u = np.zeros((exponent.shape[0], 1))
+    v = np.zeros((1, exponent.shape[1]))
+    tmp = None
+    for _ in range(nIter):
+        tmp = np.subtract(exponent, v, out=tmp)
+        u = np.logaddexp.reduce(tmp, axis=1, keepdims=True, out=u)
+        
+        tmp = np.subtract(exponent, u, out=tmp)
+        v = np.logaddexp.reduce(tmp, axis=0, keepdims=True, out=v)
+        v = np.maximum(v, 0.0, out=v) # Don't boost unassigned components
+    
+    return u, v
+        
 def _computeGmmResponsibilities(distance2: np.ndarray,
                                 sigma2: Union[np.ndarray, float],
                                 weights: np.ndarray,
@@ -70,17 +86,16 @@ def _computeGmmResponsibilities(distance2: np.ndarray,
     logMantissa = logWeights + logCoefficient
     exponent += logMantissa
     
-    logNorm = np.logaddexp.reduce(exponent, axis=1, keepdims=True)
-    exponent -= logNorm
+    u, v = _normalizeLogResponsibilities(exponent, 16)
+    exponent -= u
+    exponent -= v
 
     gamma = np.exp(exponent, out=exponent) # Aliasing
     if returnLogLikelihood:
-        logLikelihood = np.sum(logNorm)
+        logLikelihood = np.sum(u)
         return gamma, logLikelihood
     else:
         return gamma
-
-
 
 class ScriptCoordinateBackProjection(XmippScript):
     def __init__(self):
@@ -179,7 +194,7 @@ class ScriptCoordinateBackProjection(XmippScript):
                                  boxSize: Tuple[int, int, int] ) -> Tuple[np.ndarray, np.ndarray]:
         EPS = 1e-12
         TOL = 1e-2
-        D = 3
+        D = 2
         
         boundary = np.array(boxSize) / 2
         positions = np.random.uniform(
@@ -214,15 +229,17 @@ class ScriptCoordinateBackProjection(XmippScript):
                     returnLogLikelihood=True,
                     out=distances2 # Aliasing
                 )
-                backprojectedDeltas *= responsibilities[:,:,None]
                 
+                backprojectedDeltas *= responsibilities[:,:,None]
+   
                 n += np.sum(responsibilities, axis=0)
                 gradient += np.sum(backprojectedDeltas, axis=0)
                 count += len(responsibilities)
                 logLikelihoods[i] = logLikelihood
+  
             
-            n = np.maximum(n, EPS)
-            positions += gradient / n[:,None]
+            gradient /= np.maximum(n[:,None], EPS)
+            positions += gradient
             positions = np.clip(positions, -boundary, boundary)
             
             weights = n / count
