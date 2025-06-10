@@ -953,37 +953,32 @@ class BnBgpu:
         return images       
         
     
-    def gaussian_lowpass_filter_2D(self, imgs, resolution_angstrom, pixel_size, clamp_exp = 80.0):
+    def gaussian_lowpass_filter_2D(self, imgs, resolution_angstrom, pixel_size, clamp_exp = 80.0, hard_cut: bool = False):
     
         N, H, W = imgs.shape
         device = imgs.device
     
         fy = torch.fft.fftfreq(H, d=pixel_size).to(device)
         fx = torch.fft.fftfreq(W, d=pixel_size).to(device)
-        
-        grid_y_centered = torch.linspace(-0.5/pixel_size, 0.5/pixel_size, H, device=device)
-        grid_x_centered = torch.linspace(-0.5/pixel_size, 0.5/pixel_size, W, device=device)
-        
-        freq_squared_centered = (grid_x_centered.unsqueeze(0)**2 + grid_y_centered.unsqueeze(1)**2)
+        grid_y, grid_x = torch.meshgrid(fy, fx, indexing='ij')
+        freq_squared = grid_x**2 + grid_y**2  # [H, W]
     
         D0_freq = 1.0 / resolution_angstrom
         sigma_freq = D0_freq / np.sqrt(2 * np.log(2))
-    
-        exponent = -freq_squared_centered / (2 * sigma_freq**2)
-        
+        exponent = -freq_squared / (2.0 * sigma_freq**2)
         exponent = exponent.clamp(max=clamp_exp)
-        filter_map_centered = torch.exp(exponent)
+        filter_map = torch.exp(exponent)
     
-        filter_map = torch.fft.ifftshift(filter_map_centered)
-        
-        filter_map = torch.nan_to_num(filter_map, nan=0.0, posinf=0.0)
+        if hard_cut:
+            filter_map[freq_squared > D0_freq**2] = 0.0
+    
+        filter_map = filter_map.to(device)  # [H, W]
+        filter_map = filter_map.unsqueeze(0).expand(N, -1, -1)
     
         fft_imgs = torch.fft.fft2(imgs)
-    
         fft_filtered_imgs = fft_imgs * filter_map
+        filtered_imgs = torch.fft.ifft2(fft_filtered_imgs).real
     
-        filtered_imgs = torch.real(torch.fft.ifft2(fft_filtered_imgs))
-        
         filtered_imgs = torch.nan_to_num(filtered_imgs)
     
         return filtered_imgs
