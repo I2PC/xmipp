@@ -9,4 +9,6 @@ dependencies:
   - deepemhancer #CUDA > 10 required. Drivers nvidia >= 450.80.02
   - numba
   - h5py
+  - libstdcxx-ng=14.2.0 # To be compatible with scipion env
+
 

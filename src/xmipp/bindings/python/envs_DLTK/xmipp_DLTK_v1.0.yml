@@ -6,6 +6,7 @@ channels:
   - conda-forge
 dependencies:
   - python=3.8
+  - libstdcxx-ng=14.2.0 # To be compatible with scipion env
   - pip
   - pip:
       - tensorflow==2.7

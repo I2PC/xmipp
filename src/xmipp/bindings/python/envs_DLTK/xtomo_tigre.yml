@@ -9,4 +9,6 @@ dependencies:
   - mrcfile
   - numpy
   - tigre
+  - libstdcxx-ng=14.2.0 # To be compatible with scipion env
+
 
