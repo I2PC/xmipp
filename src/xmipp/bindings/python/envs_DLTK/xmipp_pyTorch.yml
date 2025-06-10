@@ -12,8 +12,8 @@ dependencies:
   - requests=2
   - libstdcxx-ng=14.2.0 # To be compatible with scipion env
   - libcurl=7
+  - pytorch=1.13.1
+  - torchvision=0.14.0
   - pip
   - pip:
       - numpy==1.23
-      - torch==1.13.0
-      - torchvision==0.14.0
