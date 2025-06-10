@@ -116,9 +116,10 @@ if __name__=="__main__":
     #PCA function
     nBand = 1
     pca = PCAgpu(nBand)
+    maxRes = 8.0
     
     # freqBn, cvecs = pca.calculatePCAbasis(self, mmap, nBand, dim, sampling, maxRes, minRes, per_eig, batchPCA)
-    freqBn, cvecs, coef = pca.calculatePCAbasis(mmap, Ntrain, nBand, dim, sampling, maxRes=8, 
+    freqBn, cvecs, coef = pca.calculatePCAbasis(mmap, Ntrain, nBand, dim, sampling, maxRes, 
                                                 minRes=530, per_eig=0.75, batchPCA=True)
     
     # freqBn = torch.load(bands) 
