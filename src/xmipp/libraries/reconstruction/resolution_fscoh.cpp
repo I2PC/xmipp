@@ -40,6 +40,9 @@ void ProgFSCoh::readParams()
     fn_mapPool = getParam("-i");
     fn_oroot = getParam("--oroot");
     sampling_rate = getDoubleParam("--sampling_rate");
+
+	if (!fn_oroot.empty() && fn_oroot.back() != '/')
+		fn_oroot += '/';
 }
 
 void ProgFSCoh::defineParams()
