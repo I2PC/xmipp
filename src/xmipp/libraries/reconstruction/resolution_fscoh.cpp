@@ -135,19 +135,10 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
         }
     }
 
-    // Compute mFSC map
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FSCoh_map2)
     {
         DIRECT_MULTIDIM_ELEM(FSCoh_map_mod2, n) = (DIRECT_MULTIDIM_ELEM(FSCoh_map,n) * std::conj(DIRECT_MULTIDIM_ELEM(FSCoh_map,n))).real();
     }
-
-    #ifdef DEBUG_OUTPUT_FILES
-	Image<double> saveImage;
-    std::string debugFileFn = fn_oroot + "FSCoh.mrc";
-
-	saveImage() = FSCoh_map2;
-	saveImage.write(debugFileFn);
-    #endif
 
     // Coherence per fequency
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FSCoh_map)
@@ -159,9 +150,20 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
         {
             DIRECT_MULTIDIM_ELEM(FSCoh_num,     freqIdx) += DIRECT_MULTIDIM_ELEM(FSCoh_map_mod2,n);
             DIRECT_MULTIDIM_ELEM(FSCoh_den,     freqIdx) += DIRECT_MULTIDIM_ELEM(FSCoh_map2,n);
-            // DIRECT_MULTIDIM_ELEM(FSCoh_counter, freqIdx) += 1;
+
+			#ifdef DEBUG_OUTPUT_FILES
+			DIRECT_MULTIDIM_ELEM(FSCoh_map2,    n) 		 += DIRECT_MULTIDIM_ELEM(FSCoh_map_mod2,n) / DIRECT_MULTIDIM_ELEM(FSCoh_map2,n);
+			#endif
         }
 	}
+
+    #ifdef DEBUG_OUTPUT_FILES
+	Image<double> saveImage;
+    std::string debugFileFn = fn_oroot + "FSCoh.mrc";
+
+	saveImage() = FSCoh_map2;
+	saveImage.write(debugFileFn);
+    #endif
 
     // Save output metadata
 	MetaDataVec md;
@@ -175,7 +177,6 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
 
 		id = md.addObject();
 		md.setValue(MDL_X, DIRECT_MULTIDIM_ELEM(FSCoh,n), id);
-		// md.setValue(MDL_Y, DIRECT_MULTIDIM_ELEM(FSCoh_counter,n), id);
 	}
 
 	std::string outputMD = fn_oroot + "FSCoh.xmd";
@@ -221,7 +222,6 @@ void ProgFSCoh::composefreqMap()
     FSCoh.initZeros(std::min(Xdim_ft, std::min(Ydim_ft, Zdim_ft)));
     FSCoh_num.initZeros(std::min(Xdim_ft, std::min(Ydim_ft, Zdim_ft)));
     FSCoh_den.initZeros(std::min(Xdim_ft, std::min(Ydim_ft, Zdim_ft)));
-    FSCoh_counter.initZeros(std::min(Xdim_ft, std::min(Ydim_ft, Zdim_ft)));
     FSCoh_map2.initZeros(Zdim_ft, Ydim_ft, Xdim_ft);
     FSCoh_map.initZeros(Zdim_ft, Ydim_ft, Xdim_ft);
     FSCoh_map_mod2.initZeros(Zdim_ft, Ydim_ft, Xdim_ft);

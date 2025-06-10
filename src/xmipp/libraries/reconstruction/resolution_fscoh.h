@@ -62,12 +62,11 @@ class ProgFSCoh: public XmippProgram
     // Data variables
     MultidimArray<double> freqMap;                      // Frequency mapping in Fourier space
     MultidimArray<double> FSCoh;                        // Fourier Shell Coherence
-    MultidimArray<double> FSCoh_num;                    // Fourier Shell Coherence
-    MultidimArray<double> FSCoh_den;                    // Fourier Shell Coherence
-    MultidimArray<double> FSCoh_counter;                // Fourier Shell Coherence counter (denominator)
-    MultidimArray<std::complex<double>> FSCoh_map;      // FSC map components
-    MultidimArray<double> FSCoh_map_mod2;               // FSC map module components squared
-    MultidimArray<double> FSCoh_map2;                   // FSC squared map components
+    MultidimArray<double> FSCoh_num;                    // Fourier Shell Coherence numerator
+    MultidimArray<double> FSCoh_den;                    // Fourier Shell Coherence denominator
+    MultidimArray<std::complex<double>> FSCoh_map;      // Complex map components
+    MultidimArray<double> FSCoh_map_mod2;               // Map module components squared
+    MultidimArray<double> FSCoh_map2;                   // Squared map components
     FileName fn_V;                                      // Filename for each input volume from pool
     Image<double> V;                                    // Each input volume from pool
 
