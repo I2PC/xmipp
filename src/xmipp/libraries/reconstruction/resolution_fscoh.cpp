@@ -143,7 +143,7 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
 
     #ifdef DEBUG_OUTPUT_FILES
 	Image<double> saveImage;
-    std::string debugFileFn = fn_oroot + "mFSC.mrc";
+    std::string debugFileFn = fn_oroot + "FSCoh.mrc";
 
 	saveImage() = FSCoh_map2;
 	saveImage.write(debugFileFn);
@@ -178,7 +178,7 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
 		// md.setValue(MDL_Y, DIRECT_MULTIDIM_ELEM(FSCoh_counter,n), id);
 	}
 
-	std::string outputMD = fn_oroot + "mFSC.xmd";
+	std::string outputMD = fn_oroot + "FSCoh.xmd";
 	md.write(outputMD);
 
 	std::cout << "  Fourier shell coherence written at: " << outputMD << std::endl;
@@ -309,7 +309,7 @@ void ProgFSCoh::composefreqMap()
 
     #ifdef DEBUG_OUTPUT_FILES
 	Image<double> saveImage;
-	std::string debugFileFn = fn_oroot + "freqMap.mrc";
+	std::string debugFileFn = fn_oroot + "FSCoh_freqMap.mrc";
 	saveImage() = freqMap;
 	saveImage.write(debugFileFn);
     #endif
