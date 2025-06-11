@@ -99,7 +99,7 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
 	{
         row.getValue(MDL_IMAGE, fn_V);
 
-        #ifdef DEBUG_STAT_MAP
+        #ifdef VERBOSE_OUTPUT
         std::cout << "  Processing volume " << fn_V << " For FSC calculation" << std::endl;
         #endif
 
