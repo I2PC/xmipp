@@ -498,15 +498,15 @@ class BnBgpu:
       
                 for n in range(num):
                     class_images = transforIm[matches[initBatch:endBatch, 1] == n]
+                    print(n)
                     print(class_images.shape[0])
                     newCL[n].append(class_images)
-                    print(newCL[n].shape[0])
                     print("HOLA 0000")
             
             print("HOLA 1111")
-            # conteos_por_sublista = [len(sublista) for sublista in newCL]
-            conteos_por_sublista = [subtensor.shape[0] for subtensor in newCL]
-            print(conteos_por_sublista)    
+            # conteos_por_sublista = [subtensor.shape[0] for subtensor in newCL]
+            total_imgs_n = sum(t.shape[0] for t in newCL[n])
+            print(total_imgs_n)    
             del(transforIm)    
                     
    
