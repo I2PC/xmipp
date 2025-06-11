@@ -499,6 +499,7 @@ class BnBgpu:
                 for n in range(num):
                     class_images = transforIm[matches[initBatch:endBatch, 1] == n]
                     newCL[n].append(class_images)
+                    print(newCL[n])
 
                 
             del(transforIm)    
