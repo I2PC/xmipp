@@ -502,7 +502,8 @@ class BnBgpu:
                     print("HOLA 0000")
             
             print("HOLA 1111")
-            conteos_por_sublista = [len(sublista) for sublista in newCL]
+            # conteos_por_sublista = [len(sublista) for sublista in newCL]
+            conteos_por_sublista = [subtensor.shape[0] for subtensor in newCL]
             print(conteos_por_sublista)    
             del(transforIm)    
                     
