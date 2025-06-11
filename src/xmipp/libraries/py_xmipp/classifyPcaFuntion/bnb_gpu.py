@@ -498,7 +498,9 @@ class BnBgpu:
       
                 for n in range(num):
                     class_images = transforIm[matches[initBatch:endBatch, 1] == n]
+                    print(class_images.shape[0])
                     newCL[n].append(class_images)
+                    print(newCL[n].shape[0])
                     print("HOLA 0000")
             
             print("HOLA 1111")
