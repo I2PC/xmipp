@@ -499,15 +499,13 @@ class BnBgpu:
                 for n in range(num):
                     class_images = transforIm[matches[initBatch:endBatch, 1] == n]
                     newCL[n].append(class_images)
-                    print(iter, newCL[n].shape)
 
                 
             del(transforIm)    
                     
-        print("HOLAAAAA  -1")
-
+   
         newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
-        print("HOLAAAAA  0000")
+        
         clk = self.averages_createClasses(mmap, iter, newCL)
         
         # clk = self.filter_classes_relion_style(newCL, clk)
@@ -518,10 +516,9 @@ class BnBgpu:
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
-        
-        print("HOLAAAAA  1111")   
+           
         clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
-        print("HOLAAAAA  2222") 
+
 
         # if iter in [5, 8, 10]:
         if iter in [13, 16]:
