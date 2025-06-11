@@ -10,7 +10,7 @@ dependencies:
   - kornia=0.6.8  # Última con formato *.bz2
   - starfile=0.4.11  # Última con formato *.bz2
   - requests=2
-  - libstdcxx-ng=14.2.0 # To be compatible with scipion env
+  - libstdcxx-ng # To be compatible with scipion env
   - libcurl=7
   - pytorch=1.13.1
   - torchvision=0.14.0

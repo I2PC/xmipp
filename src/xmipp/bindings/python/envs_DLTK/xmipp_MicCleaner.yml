@@ -7,7 +7,7 @@ channels:
 dependencies:
   - python=3.6
   - micrograph-cleaner-em=0.35
-  - libstdcxx-ng=14.2.0 # To be compatible with scipion env
+  - libstdcxx-ng # To be compatible with scipion env
   - pip
   - pip:
     - absl-py<0.12

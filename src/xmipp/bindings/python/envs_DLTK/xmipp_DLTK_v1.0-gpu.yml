@@ -8,7 +8,7 @@ dependencies:
   - python=3.8
   - cudnn=8.1
   - cudatoolkit=11.2
-  - libstdcxx-ng=14.2.0 # To be compatible with scipion env
+  - libstdcxx-ng # To be compatible with scipion env
   - pip
   - pip:
       - tensorflow==2.7

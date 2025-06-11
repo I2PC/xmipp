@@ -104,7 +104,6 @@ class VolumeManager(Sequence):
                 self.y = boxDim2
                 self.z+=1
                 if self.z==self.Zdim-boxDim2:
-                    #self.z = boxDim2
                     return False
          return True
 
