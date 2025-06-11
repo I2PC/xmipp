@@ -503,9 +503,10 @@ class BnBgpu:
                 
             del(transforIm)    
                     
-   
+        print("HOLAAAAA  -1")
+
         newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
-        
+        print("HOLAAAAA  0000")
         clk = self.averages_createClasses(mmap, iter, newCL)
         
         # clk = self.filter_classes_relion_style(newCL, clk)
