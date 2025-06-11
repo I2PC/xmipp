@@ -122,7 +122,6 @@ if __name__=="__main__":
     freqBn, cvecs, coef = pca.calculatePCAbasis(mmap, Ntrain, nBand, dim, sampling, maxRes, 
                                                 minRes=530, per_eig=0.75, batchPCA=True)
     
-    print("creo base")
     
     # freqBn = torch.load(bands) 
     # cvecs = torch.load(vecs)

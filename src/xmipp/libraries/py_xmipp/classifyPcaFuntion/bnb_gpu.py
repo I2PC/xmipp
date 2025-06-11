@@ -517,7 +517,7 @@ class BnBgpu:
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
            
-        # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
+        clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
 
 
         # if iter in [5, 8, 10]:
