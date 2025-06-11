@@ -516,9 +516,10 @@ class BnBgpu:
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
-           
+        
+        print("HOLAAAAA  1111")   
         clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
-
+        print("HOLAAAAA  2222") 
 
         # if iter in [5, 8, 10]:
         if iter in [13, 16]:

@@ -246,7 +246,6 @@ if __name__=="__main__":
         
                 if mode == "create_classes":
                     # if iter < 5:
-                    print("HOLAAAAAAAA")
                     cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version00(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling)
                     # else:
                         # cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, mask, sigma)
