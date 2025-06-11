@@ -129,8 +129,6 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
 
         ft.FourierTransform(V(), V_ft, false);
 
-		std::cout << "DIRECT_ZYX_ELEM(V_ft, 0, 0, 0) " << DIRECT_ZYX_ELEM(V_ft, 0, 0, 0) << std::endl;
-
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
         {
             DIRECT_MULTIDIM_ELEM(FSCoh_map,  n) +=  DIRECT_MULTIDIM_ELEM(V_ft,n);
@@ -178,8 +176,15 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
 	{
         double value = DIRECT_MULTIDIM_ELEM(FSCoh_num,n) / (Ndim * DIRECT_MULTIDIM_ELEM(FSCoh_den,n));
 
-		std::cout << "index " << n << " num  " << DIRECT_MULTIDIM_ELEM(FSCoh_num,n) << " den " << (Ndim * DIRECT_MULTIDIM_ELEM(FSCoh_den,n)) << std::endl;
-        DIRECT_MULTIDIM_ELEM(FSCoh,n) = value;
+		// Fix unstability at f=0
+		if (n>0)
+		{
+			DIRECT_MULTIDIM_ELEM(FSCoh,n) = value;
+		}
+		else
+		{
+			DIRECT_MULTIDIM_ELEM(FSCoh,n) = 1;
+		}      
 
 		id = md.addObject();
 		// This label vamos a querer que sea _resolutionFSCoh
