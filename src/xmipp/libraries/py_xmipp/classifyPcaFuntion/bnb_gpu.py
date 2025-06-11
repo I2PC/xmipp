@@ -516,8 +516,8 @@ class BnBgpu:
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
-            
-        clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
+        if iter > 1:   
+            clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
 
 
         # if iter in [5, 8, 10]:
@@ -987,7 +987,6 @@ class BnBgpu:
         filtered_imgs = torch.fft.ifft2(fft_filtered_imgs).real
         filtered_imgs = torch.nan_to_num(filtered_imgs)
     
-        # 🔹 Normalización de energía y escala (como en unsharp_mask_norm)
         mean = filtered_imgs.mean(dim=(1, 2), keepdim=True)
         std = filtered_imgs.std(dim=(1, 2), keepdim=True)
         valid = std > 1e-6
