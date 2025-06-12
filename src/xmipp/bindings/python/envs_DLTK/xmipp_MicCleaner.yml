@@ -2,8 +2,8 @@
 # requires other channels apart from conda-forge to install tensorflow-gpu 1.12
 name: xmipp_MicCleaner
 channels:
-  - rsanchez1369
   - conda-forge
+  - rsanchez1369
 dependencies:
   - python=3.6
   - micrograph-cleaner-em=0.35
