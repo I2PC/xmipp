@@ -17,3 +17,6 @@ dependencies:
   - torchvision=0.14.0
   - cudatoolkit=11.3
   - libcurl=7
+  - pip
+  - pip:
+      - numpy==1.23
