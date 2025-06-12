@@ -2,8 +2,8 @@
 
 name: xmipp_deepEMhancer
 channels:
-  - rsanchez1369
   - conda-forge
+  - rsanchez1369
 dependencies:
   - python=3.10
   - deepemhancer #CUDA > 10 required. Drivers nvidia >= 450.80.02
