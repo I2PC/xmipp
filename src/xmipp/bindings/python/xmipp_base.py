@@ -286,7 +286,12 @@ class CondaEnvManager(object):
     @staticmethod
     def yieldInstallAllCmds(useGpu):
         for name, env in CondaEnvManager.XMIPP_CONDA_ENVS.items():
-            yield CondaEnvManager.installEnvironCmd(name, env['requirements'], gpu=useGpu)
+            yield CondaEnvManager.installEnvironCmd(
+                name=name, 
+                versionId=env.get('versionId', None), 
+                requirementsFn=env['requirements'], 
+                gpu=useGpu
+            )
 
     @staticmethod
     def getCurInstalledDep(dependency, defaultVersion=None, environ=None):
@@ -309,7 +314,7 @@ class CondaEnvManager(object):
         return dependency+'=='+defaultVersion if defaultVersion else dependency
 
     @staticmethod
-    def installEnvironCmd(name: str, requirementsFn: str, gpu=False):
+    def installEnvironCmd(name: str,requirementsFn: str,  versionId: int = None, gpu=False):
         # Consider the gpu version if requested
         if gpu:
             root, ext = os.path.splitext(requirementsFn)
@@ -318,7 +323,11 @@ class CondaEnvManager(object):
             if os.path.exists(gpuRequirementsFn):
                 requirementsFn = gpuRequirementsFn
         
-        target = name + '.yml'
+        if versionId is not None:
+            target = f'{name}-{versionId}.yml'
+        else:
+            target = f'{name}.yml'
+
         commands = [] 
         commands.append('conda env create -f %s || conda env update -f %s' % (requirementsFn, requirementsFn))
         commands.append('conda env export -f %s' % target)
