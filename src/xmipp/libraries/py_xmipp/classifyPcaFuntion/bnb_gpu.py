@@ -1335,7 +1335,7 @@ class BnBgpu:
                 expBatchSize = 10000
                 expBatchSize2 = 20000
                 # numFirstBatch = 2
-                numFirstBatch = 6
+                numFirstBatch = 8
             elif dim <= 256:
                 expBatchSize = 4000 
                 expBatchSize2 = 5000
