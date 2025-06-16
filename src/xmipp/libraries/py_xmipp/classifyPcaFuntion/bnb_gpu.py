@@ -1435,7 +1435,7 @@ class BnBgpu:
     def determine_ROTandSHIFT(self, iter, mode, dim):
         
         maxShift_20 = round( (dim * 20)/100 )
-        maxShift_20 = (maxShift_20//4)*4
+        maxShift_20 = (maxShift_20//5)*5
         
         maxShift_15 = round( (dim * 15)/100 )
         maxShift_15 = (maxShift_15//4)*4
@@ -1453,7 +1453,7 @@ class BnBgpu:
             
             #print("---Iter %s for creating classes---"%(iter+1))
             if iter < 5:
-                ang, shiftMove = (-180, 180, 10), (-maxShift_20, maxShift_20+4, 4)
+                ang, shiftMove = (-180, 180, 10), (-maxShift_20, maxShift_20+5, 5)
             elif iter < 10:
                 ang, shiftMove = (-180, 180, 8), (-maxShift_15, maxShift_15+4, 4)
             elif iter < 13:
