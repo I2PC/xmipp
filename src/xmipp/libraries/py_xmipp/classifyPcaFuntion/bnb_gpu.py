@@ -498,7 +498,9 @@ class BnBgpu:
       
                 for n in range(num):
                     class_images = transforIm[matches[initBatch:endBatch, 1] == n]
+                    print(n)
                     newCL[n].append(class_images)
+                    print(n)
                     
         
         newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
