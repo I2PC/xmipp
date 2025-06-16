@@ -1089,7 +1089,7 @@ class BnBgpu:
         return masks
     
     
-    def unsharp_mask_norm(self, imgs, kernel_size=3, strength=2.0):
+    def unsharp_mask_norm(self, imgs, kernel_size=3, strength=3.0):
         N, H, W = imgs.shape
         
         mean0 = imgs.mean(dim=(1, 2), keepdim=True)
