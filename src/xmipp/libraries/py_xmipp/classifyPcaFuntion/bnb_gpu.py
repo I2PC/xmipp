@@ -498,19 +498,11 @@ class BnBgpu:
       
                 for n in range(num):
                     class_images = transforIm[matches[initBatch:endBatch, 1] == n]
-                    print(n)
-                    print(class_images.shape[0])
                     newCL[n].append(class_images)
-                    print("HOLA 0000")
-            
-            print("HOLA 1111")
-            # conteos_por_sublista = [subtensor.shape[0] for subtensor in newCL]
-            total_imgs_n = sum(t.shape[0] for t in newCL[n])
-            print(total_imgs_n)    
-            del(transforIm)    
                     
-   
+        
         newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
+        print("HOLAAAAAAA 222222")
         
         clk = self.averages_createClasses(mmap, iter, newCL)
         
@@ -522,7 +514,8 @@ class BnBgpu:
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
-           
+        
+        print("HOLAAAAAAA 333333")  
         clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
 
 

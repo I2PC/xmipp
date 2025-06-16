@@ -197,6 +197,7 @@ if __name__=="__main__":
             if mode == "align_classes":
                 niter = 4
                 
+                
             for iter in range(niter):
                 # print("-----Iteration %s for updating classes-------"%(iter+1))                
                                           
