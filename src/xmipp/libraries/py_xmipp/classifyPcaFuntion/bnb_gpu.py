@@ -396,7 +396,7 @@ class BnBgpu:
     
     
     
-    def create_classes_version00(self, mmap, tMatrix, iter, nExp, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma): #, maxRes, sampling):
+    def create_classes_version00(self, mmap, tMatrix, iter, nExp, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling):
         
         # print("----------create-classes-------------")      
             
@@ -516,7 +516,7 @@ class BnBgpu:
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
         
-        # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
+        clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
 
 
         # if iter in [5, 8, 10]:
@@ -1335,7 +1335,7 @@ class BnBgpu:
                 expBatchSize = 10000
                 expBatchSize2 = 20000
                 # numFirstBatch = 2
-                numFirstBatch = 6
+                numFirstBatch = 5
             elif dim <= 256:
                 expBatchSize = 4000 
                 expBatchSize2 = 5000
