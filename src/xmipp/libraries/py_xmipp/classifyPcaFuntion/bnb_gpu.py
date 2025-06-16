@@ -699,68 +699,7 @@ class BnBgpu:
             del(transforIm)
             clk = cl  
             
-        return (clk, tMatrix, batch_projExp_cpu)
-    
-    
-    
-    
-    def center_particles_inverse_save_matrix2(self, data, tMatrix, rot, shifts, centerxy):
-        
-        N, H, W = data.shape 
- 
-        device = torch.device("cuda") if self.cuda else torch.device("cpu")
-        
-        centerxy = centerxy.expand(N, 2)
-        rot_rad = rot.reshape(-1) * (torch.pi / 180)  
-    
-        cos_theta = torch.cos(rot_rad)
-        sin_theta = torch.sin(rot_rad)
-    
-        rotation_matrix = torch.eye(3, device=device).repeat(N, 1, 1)
-        rotation_matrix[:, 0, 0] = cos_theta
-        rotation_matrix[:, 0, 1] = -sin_theta
-        rotation_matrix[:, 1, 0] = sin_theta
-        rotation_matrix[:, 1, 1] = cos_theta
-        
-        
-        shifts[:, 0] = (2.0 * shifts[:, 0]) / (W)  # Normalizar en X
-        shifts[:, 1] = (2.0 * -shifts[:, 1]) / (H)  # Normalizar en Y
-    
-        shifts = shifts.view(N, 2, 1)   
-        translation_matrix = torch.eye(3, device=device).unsqueeze(0).repeat(N, 1, 1)
-        translation_matrix[:, :2, 2] = shifts.squeeze(-1)
-        
-        M = torch.matmul(rotation_matrix, translation_matrix)  
-        # print(M[1])
-        
-    
-        if tMatrix.shape[-2:] == (2, 3):
-            tMatrix_hom = torch.cat((tMatrix, torch.zeros((N, 1, 3), device=device)), dim=1)
-            tMatrix_hom[:, 2, 2] = 1.0  
-        else:
-            raise ValueError(f"tMatrix debe tener forma (N, 2, 3), pero tiene {tMatrix.shape}")
-    
-        M = torch.matmul(M, tMatrix_hom)
-        M = M[:, :2, :]  
-
-        M_grid = M.clone()
-        
-    
-        grid = F.affine_grid(M_grid, (N, 1, H, W), align_corners=False)
-    
-        Texp = torch.from_numpy(data.astype(np.float32)).to(device).unsqueeze(1)
-        transforIm = F.grid_sample(Texp, grid, mode='bilinear', padding_mode='zeros', align_corners=False)
-        del(Texp)
-        
-        # print(M)
-        # exit()
-        
-        return transforIm.squeeze(1), M
-    
-    
-    
-    
-    
+        return (clk, tMatrix, batch_projExp_cpu) 
            
     
     def center_particles_inverse_save_matrix(self, data, tMatrix, update_rot, update_shifts, centerxy):
@@ -885,8 +824,7 @@ class BnBgpu:
     def averages(self, data, newCL, classes): 
         
         # element = list(map(len, newCL))
-        # print(element)
-        
+        # print(element)      
         clk = []
         for n in range(classes):
             if len(newCL[n]) > 0:
@@ -1080,7 +1018,6 @@ class BnBgpu:
         self.binary_masks = (imgs > thresholds).float()
         return self.binary_masks
     
-    @torch.no_grad()
     def contrast_dominant_mask(self, imgs,
                                 window=3,
                                 contrast_percentile=80,
@@ -1149,16 +1086,6 @@ class BnBgpu:
         center_val = masks[:, center, center].clone().view(-1, 1, 1)
         masks = masks / center_val
         return masks
-    
-    def unsharp_mask(self, imgs, kernel_size=5, strength=2.0):
-        N, H, W = imgs.shape
-        pad = kernel_size // 2
-        kernel = torch.ones(1, 1, kernel_size, kernel_size, device=imgs.device) / (kernel_size ** 2)
-    
-        imgs_ = imgs.unsqueeze(1)
-        blurred = F.conv2d(imgs_, kernel, padding=pad)
-        sharpened = imgs_ + strength * (imgs_ - blurred)
-        return sharpened.squeeze(1)
     
     
     def unsharp_mask_norm(self, imgs, kernel_size=3, strength=2.0):
@@ -1271,7 +1198,6 @@ class BnBgpu:
         return filtered_clk
     
     #Filtro de power spectrum segun relion
-    @torch.no_grad()
     def compute_radial_profile(self, imgs_fft):
         """
         Calcula perfil radial promedio del espectro de potencia (vectorizado).
@@ -1301,7 +1227,7 @@ class BnBgpu:
         mean_radial = radial.sum(0) / count  # promedio sobre N
         return mean_radial  # [R]
     
-    @torch.no_grad()
+
     def relion_filter_from_image_list(self, images_list, class_avg,
                                        sampling, resolution_angstrom, eps=1e-8):
         """
@@ -1408,7 +1334,7 @@ class BnBgpu:
                 expBatchSize = 10000
                 expBatchSize2 = 20000
                 # numFirstBatch = 2
-                numFirstBatch = 6
+                numFirstBatch = 5
             elif dim <= 256:
                 expBatchSize = 4000 
                 expBatchSize2 = 5000
@@ -1453,8 +1379,8 @@ class BnBgpu:
             
             #print("---Iter %s for creating classes---"%(iter+1))
             if iter < 5:
-                # ang, shiftMove = (-180, 180, 10), (-maxShift_20, maxShift_20+5, 5)
-                ang, shiftMove = (-180, 180, 10), (-maxShift_15, maxShift_15+4, 4)
+                ang, shiftMove = (-180, 180, 10), (-maxShift_20, maxShift_20+5, 5)
+                # ang, shiftMove = (-180, 180, 10), (-maxShift_15, maxShift_15+4, 4)
             elif iter < 10:
                 ang, shiftMove = (-180, 180, 8), (-maxShift_15, maxShift_15+4, 4)
             elif iter < 13:
