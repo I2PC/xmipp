@@ -12,7 +12,7 @@ import sys, os
 import numpy as np
 import torch
 from xmippPyModules.classifyPcaFuntion.bnb_gpu import BnBgpu
-from xmippPyModules.classifyPcaFuntion.pca_gpu import PCAgpu
+# from xmippPyModules.classifyPcaFuntion.pca_gpu import PCAgpu
 from xmippPyModules.classifyPcaFuntion.assessment import evaluation
 
 
@@ -62,9 +62,9 @@ if __name__=="__main__":
     parser.add_argument("-s", "--sampling", help="pixel size of the images", required=True)
     parser.add_argument("-c", "--classes", help="number of 2D classes", required=True)
     parser.add_argument("-r", "--ref", help="2D classes of external method")   
-    # parser.add_argument("-b", "--bands", help="file with frequency bands", required=True)
-    # parser.add_argument("-v", "--vecs", help="file with pretrain eigenvectors", required=True)
-    parser.add_argument("-t", "--training", help="number of image for training", required=True)
+    parser.add_argument("-b", "--bands", help="file with frequency bands", required=True)
+    parser.add_argument("-v", "--vecs", help="file with pretrain eigenvectors", required=True)
+    # parser.add_argument("-t", "--training", help="number of image for training", required=True)
     parser.add_argument("--mask",  action="store_true", help="A Gaussian mask is used.")
     parser.add_argument("--sigma", type=float, help="value of sigma for the Gaussian mask. "
                                                     "It is only used if the --mask option is applied.")
@@ -80,9 +80,9 @@ if __name__=="__main__":
     final_classes = classes  
     refImages = args.ref
     niter = 22
-    Ntrain = int(args.training)
-    # bands = args.bands
-    # vecs = args.vecs
+    # Ntrain = int(args.training)
+    bands = args.bands
+    vecs = args.vecs
     mask = args.mask
     sigma = args.sigma
     output = args.output
@@ -114,22 +114,22 @@ if __name__=="__main__":
     angles_deg = np.zeros(nExp)
     
     #PCA function
-    maxRes = 8.0
-    nBand = 1
-    pca = PCAgpu(nBand)
+    # maxRes = 8.0
+    # nBand = 1
+    # pca = PCAgpu(nBand)
     
     # freqBn, cvecs = pca.calculatePCAbasis(self, mmap, nBand, dim, sampling, maxRes, minRes, per_eig, batchPCA)
-    freqBn, cvecs, coef = pca.calculatePCAbasis(mmap, Ntrain, nBand, dim, sampling, maxRes, 
-                                                minRes=530, per_eig=0.75, batchPCA=True)
+    # freqBn, cvecs, coef = pca.calculatePCAbasis(mmap, Ntrain, nBand, dim, sampling, maxRes, 
+    #                                             minRes=530, per_eig=0.75, batchPCA=True)
     
     
-    # freqBn = torch.load(bands) 
-    # cvecs = torch.load(vecs)
-    # nBand = freqBn.unique().size(dim=0) - 1
+    freqBn = torch.load(bands) 
+    cvecs = torch.load(vecs)
+    nBand = freqBn.unique().size(dim=0) - 1
     
-    # coef = torch.zeros(nBand, dtype=int)
-    # for n in range(nBand):
-    #     coef[n] = 2*torch.sum(freqBn==n)
+    coef = torch.zeros(nBand, dtype=int)
+    for n in range(nBand):
+        coef[n] = 2*torch.sum(freqBn==n)
 
     grid_flat = flatGrid(freqBn, coef, nBand)
 
@@ -246,11 +246,11 @@ if __name__=="__main__":
         
                 if mode == "create_classes":
                     # if iter < 5:
-                    cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version00(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling)
+                    cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version00(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)#, maxRes, sampling)
                     # else:
                         # cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, mask, sigma)
                 else:
-                    cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(expImages, cl, tMatrix, iter, subset, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling)
+                    cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(expImages, cl, tMatrix, iter, subset, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)#, maxRes, sampling)
 
                 # save classes
                 file = output+"_%s_%s.mrcs"%(initBatch,iter+1)
