@@ -114,7 +114,7 @@ if __name__=="__main__":
     angles_deg = np.zeros(nExp)
     
     #PCA function
-    # maxRes = 8.0
+    maxRes = 8.0
     # nBand = 1
     # pca = PCAgpu(nBand)
     
@@ -246,11 +246,11 @@ if __name__=="__main__":
         
                 if mode == "create_classes":
                     # if iter < 5:
-                    cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version00(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)#, maxRes, sampling)
+                    cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version00(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling)
                     # else:
                         # cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, mask, sigma)
                 else:
-                    cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(expImages, cl, tMatrix, iter, subset, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma)#, maxRes, sampling)
+                    cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(expImages, cl, tMatrix, iter, subset, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling)
 
                 # save classes
                 file = output+"_%s_%s.mrcs"%(initBatch,iter+1)

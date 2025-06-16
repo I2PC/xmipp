@@ -396,7 +396,7 @@ class BnBgpu:
     
     
     
-    def create_classes_version00(self, mmap, tMatrix, iter, nExp, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma):#, maxRes, sampling):
+    def create_classes_version00(self, mmap, tMatrix, iter, nExp, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling):
         
         # print("----------create-classes-------------")      
             
@@ -516,7 +516,7 @@ class BnBgpu:
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
         
-        # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
+        clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
 
 
         # if iter in [5, 8, 10]:
@@ -622,7 +622,7 @@ class BnBgpu:
     
     
     
-    def align_particles_to_classes(self, data, cl, tMatrix, iter, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma):#, maxRes, sampling):
+    def align_particles_to_classes(self, data, cl, tMatrix, iter, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling):
         
         # print("----------align-to-classes-------------")
         
@@ -680,7 +680,7 @@ class BnBgpu:
             clk = self.averages(data, newCL, classes)
             
             clk = self.unsharp_mask_norm(clk) 
-            # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
+            clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C)
