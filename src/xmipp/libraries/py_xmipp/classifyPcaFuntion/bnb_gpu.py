@@ -498,13 +498,12 @@ class BnBgpu:
       
                 for n in range(num):
                     class_images = transforIm[matches[initBatch:endBatch, 1] == n]
-                    print(n)
                     newCL[n].append(class_images)
-                    print(n)
+                    
+            del(transforIm)
                     
         
         newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
-        print("HOLAAAAAAA 222222")
         
         clk = self.averages_createClasses(mmap, iter, newCL)
         
@@ -517,7 +516,6 @@ class BnBgpu:
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
         
-        print("HOLAAAAAAA 333333")  
         clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
 
 
@@ -716,8 +714,10 @@ class BnBgpu:
         translation_matrix[:, :2, 2] = translations.squeeze(-1)
 
         rotation_matrix = kornia.geometry.get_rotation_matrix2d(centerxy.expand(batchsize, -1), rotBatch, scale)
+        del(scale)
         
-        M = torch.matmul(rotation_matrix, translation_matrix)       
+        M = torch.matmul(rotation_matrix, translation_matrix)
+        del(rotation_matrix, translation_matrix)       
         
         M = torch.cat((M, torch.zeros((batchsize, 1, 3), device=self.cuda)), dim=1)
         M[:, 2, 2] = 1.0      
@@ -728,7 +728,8 @@ class BnBgpu:
         tMatrixLocal[:, 2, 2] = 1.0
         
         M = torch.matmul(M, tMatrixLocal)
-        M = M[:, :2, :]   
+        M = M[:, :2, :] 
+        del(tMatrixLocal)  
     
         Texp = torch.from_numpy(data.astype(np.float32)).to(self.cuda).unsqueeze(1)
 
@@ -1334,7 +1335,7 @@ class BnBgpu:
                 expBatchSize = 10000
                 expBatchSize2 = 20000
                 # numFirstBatch = 2
-                numFirstBatch = 5
+                numFirstBatch = 6
             elif dim <= 256:
                 expBatchSize = 4000 
                 expBatchSize2 = 5000
