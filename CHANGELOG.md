@@ -1,18 +1,28 @@
-## Release 3.24.X - 
+## Release 3.25.06.0 - 
    ### Xmipp Programs 
    - New programs
       - continuous_create_residuals: Make better residuals by continuous assignment updates to projections
+      -New program to detect landmarks in tilt series (TS)
+      - New program to calculate residuals in TS
+      - New program to detect misalignment from residuals in TS
+      - Python script to calculate statistical metrics from a set of residuals
+      - New program (legacy) for calculating relative shifts between tilt images, as a prealignment strategy
 
    - Programs updated
-      - 
-
+      - Particle subtraction: now generates a single stack + includes noise power estimation
+      - classify_pca: allows setting CUDA_DEVICE for NVIDIA drivers ≤ 470
+        
    - Programs fixed
-      - 
-
+      - Fixed missing b in angular_continuous_assign2_gpu
+      - CUDAFFT test fixed
+      - Minor compatibility fixes for CUDA 12.6
+      - DT_SChar added to micrographs
    ### Installation and user guide
-   - 
+   - Fixed broken links in documentation
+   - Enhanced data collection steps (context suggests improvements in reproducibility or logging)
      
    ### More Xmipp  
+   - DLTK environments: channels limited to conda-forge and pip + updated deepEMhancer version and models
 
 ## Release 3.24.12.0 - Poseidon
    ### Xmipp Programs 
