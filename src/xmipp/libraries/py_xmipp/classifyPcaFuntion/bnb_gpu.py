@@ -510,23 +510,25 @@ class BnBgpu:
         # clk = self.filter_classes_relion_style(newCL, clk)
         
 
-        if iter > 10:   
-            clk = self.unsharp_mask_norm(clk) 
+        # if iter > 10:   
+        #     clk = self.unsharp_mask_norm(clk) 
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
         
+        clk = self.filter_classes_relion_style(newCL, clk, sampling, maxRes)
         clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
 
 
-        # if iter in [5, 8, 10]:
+
         if iter in [13, 16]:
-            clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
-                                intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
+            # clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
+            #                     intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
         if 3 < iter < 10:
-            # clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
-            clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
-                                intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
+            # clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
+            #                     intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
 
             
         clk = clk * self.create_circular_mask(clk)
@@ -679,8 +681,12 @@ class BnBgpu:
             newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
             clk = self.averages(data, newCL, classes)
             
-            clk = self.unsharp_mask_norm(clk) 
+            # clk = self.unsharp_mask_norm(clk) 
+            # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
+            
+            clk = self.filter_classes_relion_style(newCL, clk, sampling, maxRes)
             clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
+            
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C)
@@ -1232,79 +1238,104 @@ class BnBgpu:
     def relion_filter_from_image_list(self, images_list, class_avg,
                                        sampling, resolution_angstrom, eps=1e-8):
         """
-        Aplica filtro tipo RELION limitado por resolución, optimizado en memoria y velocidad.
+        Aplica un filtro tipo RELION a class_avg en Fourier, adaptado al espectro
+        radial de las imágenes en images_list, con límite de resolución.
         """
         if isinstance(images_list, torch.Tensor):
             if images_list.ndim == 2:
-                images_list = [images_list]
+                images_list = images_list[None]  # [1, H, W]
             elif images_list.ndim == 3:
-                images_list = list(images_list)
+                pass
+            else:
+                raise ValueError("images_list tiene dimensiones no válidas.")
+        elif isinstance(images_list, list):
+            images_list = torch.stack(images_list)
+        else:
+            raise TypeError("images_list debe ser lista o tensor")
     
-        if len(images_list) == 0:
+        if images_list.numel() == 0:
             return class_avg
     
-        # 🔹 Prepara tensores
-        images_tensor = torch.stack(images_list).float()  # [N, H, W]
-        class_avg = class_avg.float()
+        device = class_avg.device
+        images_tensor = images_list.float().to(device)
+        class_avg = class_avg.float().to(device)
+    
         H, W = class_avg.shape
     
-        # 🔹 FFTs
+        # FFTs sin shift
         fft_imgs = torch.fft.fft2(images_tensor)  # [N, H, W]
         fft_avg = torch.fft.fft2(class_avg)       # [H, W]
     
-        # 🔹 Perfil radial
-        pspec_target = self.compute_radial_profile(torch.fft.fftshift(fft_imgs, dim=(-2, -1)))  # [R]
-        pspec_avg = self.compute_radial_profile(torch.fft.fftshift(fft_avg[None], dim=(-2, -1)))[0]  # [R]
+        # Magnitudes al cuadrado (espectro de potencia)
+        pspec_imgs = torch.abs(fft_imgs) ** 2
+        pspec_avg = torch.abs(fft_avg) ** 2
     
-        filt = torch.sqrt((pspec_target + eps) / (pspec_avg + eps))
+        # Crea mapa radial solo una vez
+        y = torch.arange(H, device=device) - H // 2
+        x = torch.arange(W, device=device) - W // 2
+        r = torch.sqrt((x[None, :]**2 + y[:, None]**2))
+        r = r.long().clamp(0, H // 2)
     
-        # 🔹 Aplica límite de resolución
-        if resolution_angstrom is not None and resolution_angstrom > 0:
+        # Perfil radial eficiente (sin shift): acumula por anillos
+        def radial_profile(pspec):
+            radial_sum = torch.zeros(H // 2 + 1, device=device)
+            radial_count = torch.zeros(H // 2 + 1, device=device)
+            for i in range(pspec.shape[0]):
+                flat_r = r.flatten()
+                flat_val = pspec[i].flatten() if pspec.ndim == 3 else pspec.flatten()
+                radial_sum.index_add_(0, flat_r, flat_val)
+                radial_count.index_add_(0, flat_r, torch.ones_like(flat_val))
+            return radial_sum / (radial_count + eps)
+    
+        pspec_target = radial_profile(pspec_imgs)
+        pspec_avg_1 = radial_profile(pspec_avg[None])
+    
+        filt = torch.sqrt((pspec_target + eps) / (pspec_avg_1 + eps))
+    
+        # Límite de resolución
+        if resolution_angstrom and resolution_angstrom > 0:
             nyquist = 1.0 / (2.0 * sampling)
             freq_cutoff = 1.0 / resolution_angstrom
             radius_cutoff = int((freq_cutoff / nyquist) * (H // 2))
             radius_cutoff = min(radius_cutoff, len(filt))
-            filt[radius_cutoff:] = 1.0  # sin cambio más allá del límite
+            filt[radius_cutoff:] = 1.0
     
-        # 🔹 Filtro 2D
-        y, x = torch.meshgrid(
-            torch.arange(H, device=class_avg.device),
-            torch.arange(W, device=class_avg.device),
-            indexing='ij'
-        )
-        r = ((x - W//2)**2 + (y - H//2)**2).sqrt().long().clamp(0, len(filt)-1)
-        filt_map = filt[r]  # [H, W]
+        # Crear mapa 2D del filtro (solo una vez)
+        filt_map = filt[r.clamp(0, len(filt)-1)]
     
-        # 🔹 Aplicar filtro en espacio de Fourier
+        # Aplicar filtro en Fourier
         fft_avg_shift = torch.fft.fftshift(fft_avg)
         fft_filtered = filt_map * fft_avg_shift
         fft_filtered = torch.fft.ifftshift(fft_filtered)
     
-        filtered = torch.real(torch.fft.ifft2(fft_filtered))
+        filtered = torch.fft.ifft2(fft_filtered).real
     
-        # 🔹 Normalización (mantener energía)
-        mean_orig = class_avg.mean()
-        std_orig = class_avg.std()
-        mean_filt = filtered.mean()
-        std_filt = filtered.std()
+        # Normalización
+        mean_orig, std_orig = class_avg.mean(), class_avg.std()
+        mean_filt, std_filt = filtered.mean(), filtered.std()
         normalized = (filtered - mean_filt) / (std_filt + eps) * std_orig + mean_orig
-        
-        del fft_imgs, fft_avg, filt_map, fft_filtered
+    
+        # Limpieza explícita
+        del fft_imgs, pspec_imgs, fft_avg, pspec_avg, fft_filtered
         torch.cuda.empty_cache()
     
         return normalized
     
     @torch.no_grad()
-    def filter_classes_relion_style(self, newCL, clk, sampling=1.98, resolution_angstrom=8):
+    def filter_classes_relion_style(self, newCL, clk, sampling, resolution_angstrom):
         """
-        Aplica relion_filter a cada clase promedio, usando listas de imágenes por clase.
+        Aplica filtro RELION-like a cada clase usando imágenes que la componen.
         """
-        filtered_classes = [
-            self.relion_filter_from_image_list(newCL[n], clk[n],
-                                               sampling=sampling,
-                                               resolution_angstrom=resolution_angstrom)
-            for n in range(len(clk))
-        ]
+        filtered_classes = []
+        for class_imgs, class_avg in zip(newCL, clk):
+            filtered = self.relion_filter_from_image_list(
+                class_imgs, class_avg,
+                sampling=sampling,
+                resolution_angstrom=resolution_angstrom
+            )
+            filtered_classes.append(filtered)
+            torch.cuda.empty_cache()  # Asegura limpieza entre iteraciones
+    
         return torch.stack(filtered_classes)
 
 
