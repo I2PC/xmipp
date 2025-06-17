@@ -111,9 +111,9 @@ PyObject * getFunctionRef(const std::string &moduleName, const std::string &func
 template<typename T>
 PyObject* convertToNumpy(const MultidimArray<T> &array) {
     npy_intp dim[3];
-    dim[0]=XSIZE(array);
+    dim[0]=ZSIZE(array);
     dim[1]=YSIZE(array);
-    dim[2]=ZSIZE(array);
+    dim[2]=XSIZE(array);
     if (std::is_same<T, int>::value) {
         return PyArray_SimpleNewFromData(3, dim, NPY_INT, array.data);
     } else if (std::is_same<T, double>::value){

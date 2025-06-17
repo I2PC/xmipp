@@ -40,6 +40,7 @@
  * The first argument is the pointer to the FRM python function. You may obtain it with
  * getPointerToPythonFRMFunction()
  *
+ * IrefMask is a mask in Fourier space for Iref
  * Imask is a mask in Fourier space for I
  * Maxshift is in pixels.
  * MaxFreq is in digital frequency.
@@ -48,7 +49,7 @@
  *
  * If apply is set, then I is substituted with the aligned volume.
  */
-void alignVolumesFRM(PyObject *pFunc, const MultidimArray<double> &Iref, MultidimArray<double> &I,
+void alignVolumesFRM(PyObject *pFunc, const MultidimArray<double> &Iref, PyObject *IrefMask, MultidimArray<double> &I,
 		PyObject *Imask,
 		double &rot, double &tilt, double &psi, double &x, double &y, double &z, double &score,
 		Matrix2D<double> &A,

@@ -344,7 +344,7 @@ void CL3DClass::fitBasic(MultidimArray<double> &I, CL3DAssignment &result)
     if (!prmCL3Dprog->dontAlign)
     {
         constructFourierMaskFRM();
-		alignVolumesFRM(prmCL3Dprog->frmFunc, P, I, pyIfourierMaskFRM, result.rot, result.tilt, result.psi, result.shiftx, result.shifty, result.shiftz,
+		alignVolumesFRM(prmCL3Dprog->frmFunc, P, Py_None, I, pyIfourierMaskFRM, result.rot, result.tilt, result.psi, result.shiftx, result.shifty, result.shiftz,
 				frmScore,A,prmCL3Dprog->maxShift, prmCL3Dprog->maxFreq);
     }
     else

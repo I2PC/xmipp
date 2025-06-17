@@ -623,7 +623,7 @@ void FourierFilter::generateMask(MultidimArray<double> &v)
 
         if (FilterShape==WEDGE || FilterShape==CONE || FilterShape==WEDGE_RC)
         {
-            maskFourier.initZeros(Fourier);
+            maskFourier.initZeros(ZSIZE(Fourier), YSIZE(Fourier), (XSIZE(Fourier)-1)*2);
             maskFourier.setXmippOrigin();
             switch (FilterShape)
             {
@@ -645,6 +645,8 @@ void FourierFilter::generateMask(MultidimArray<double> &v)
                 BinaryConeMask(maskFourier, 90. - fabs(t1),INNER_MASK,true);
                 break;
             }
+
+            maskFourier.resize(Fourier);
         }
         else if (FilterShape==BINARYFILE)
         {

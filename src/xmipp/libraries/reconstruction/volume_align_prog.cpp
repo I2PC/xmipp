@@ -418,14 +418,14 @@ public:
     			PyObject * arglist = Py_BuildValue("(ii)", starting_tilt , ending_tilt);
     			PyObject * SingleTiltWedgeMask = PyObject_CallObject(pSTMMclass, arglist);
     			// The order of volumes has to be flipped in order to compensate for a single tilt missing wedge. For those who are not using this mask, no changes in results will happen.
-    			alignVolumesFRM(pFunc, params.V2(), params.V1(), SingleTiltWedgeMask, rot,tilt,psi,x,y,z,score,A,maxShift,maxFreq,params.mask_ptr);
+    			alignVolumesFRM(pFunc, params.V2(), Py_None, params.V1(), SingleTiltWedgeMask, rot,tilt,psi,x,y,z,score,A,maxShift,maxFreq,params.mask_ptr);
     			std::cout<<"If you intend to apply transform using xmipp_transform_geometry, use --inverse flag (if it was not present before), or remove it (if it was present before)"<<std::endl;
     			Py_DECREF(SingleTiltWedgeMask);
     			Py_DECREF(arglist);
     			Py_DECREF(pSTMMclass);
     		}
     		else{
-    			alignVolumesFRM(pFunc, params.V1(), params.V2(), Py_None, rot,tilt,psi,x,y,z,score,A,maxShift,maxFreq,params.mask_ptr);
+    			alignVolumesFRM(pFunc, params.V1(), Py_None, params.V2(), Py_None, rot,tilt,psi,x,y,z,score,A,maxShift,maxFreq,params.mask_ptr);
     		}
     		best_align.initZeros(9);
     		best_align(0)=1; // Gray scale

@@ -32,8 +32,8 @@
 #ifdef DEBUG
 #include <core/xmipp_image.h>
 #endif
-void alignVolumesFRM(PyObject *pFunc, const MultidimArray<double> &Iref, MultidimArray<double> &I,
-		PyObject *Imask,
+void alignVolumesFRM(PyObject *pFunc, const MultidimArray<double> &Iref, PyObject *IrefMask, 
+		MultidimArray<double> &I, PyObject *Imask,
 		double &rot, double &tilt, double &psi, double &x, double &y, double &z, double &score,
 		Matrix2D<double> &A,
 		int maxshift, double maxFreq, const MultidimArray<int> *mask)
@@ -60,7 +60,7 @@ void alignVolumesFRM(PyObject *pFunc, const MultidimArray<double> &Iref, Multidi
 	int bandWidthSphericalHarmonics0=4;
 	int bandWidthSphericalHarmonicsF=64;
 	auto frequencyPixels=(int)(XSIZE(Iref)*maxFreq);
-	PyObject *arglistfrm = Py_BuildValue("OOOO(ii)iiO", pyI, Imask, pyIref, Py_None,
+	PyObject *arglistfrm = Py_BuildValue("OOOO(ii)iiO", pyI, Imask, pyIref, IrefMask,
 			bandWidthSphericalHarmonics0, bandWidthSphericalHarmonicsF, frequencyPixels, maxshift, pyMask);
 	PyObject *resultfrm = PyObject_CallObject(pFunc, arglistfrm);
 	Py_DECREF(arglistfrm);
