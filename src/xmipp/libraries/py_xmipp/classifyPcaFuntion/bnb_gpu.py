@@ -510,13 +510,14 @@ class BnBgpu:
         # clk = self.filter_classes_relion_style(newCL, clk)
         
 
-        # if iter > 10:   
+        if iter > 10:  
+            clk = self.enhance_averages_butterworth(clk, sampling=sampling, 
+                                    low_res_angstrom=25.0, high_res_angstrom=4.0) 
         #     clk = self.unsharp_mask_norm(clk) 
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
         
-        clk = self.filter_classes_relion_style(newCL, clk, sampling, maxRes)
         clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
 
 
@@ -684,7 +685,8 @@ class BnBgpu:
             # clk = self.unsharp_mask_norm(clk) 
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
             
-            clk = self.filter_classes_relion_style(newCL, clk, sampling, maxRes)
+            clk = self.enhance_averages_butterworth(clk, sampling=sampling, 
+                                    low_res_angstrom=25.0, high_res_angstrom=4.0)
             clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
             
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
@@ -1337,6 +1339,71 @@ class BnBgpu:
             torch.cuda.empty_cache()  # Asegura limpieza entre iteraciones
     
         return torch.stack(filtered_classes)
+    
+    def enhance_averages_butterworth(self, 
+        averages,
+        sampling=1.5,
+        low_res_angstrom=20.0,
+        high_res_angstrom=8.0,
+        order=4,
+        blend_factor=0.5,
+        normalize=True
+    ):
+        """
+        Realza altas frecuencias en imágenes promedio usando filtro Butterworth pasa-banda.
+        
+        Args:
+            averages (Tensor): [B, H, W] tensor de clases promedio.
+            sampling (float): tamaño del píxel (Å/píxel).
+            low_res_angstrom (float): resolución baja (filtro corta debajo de esta).
+            high_res_angstrom (float): resolución alta (filtro corta arriba de esta).
+            order (int): orden del filtro Butterworth (mayor = transición más dura).
+            blend_factor (float): entre 0.0 (solo filtro) y 1.0 (solo original).
+            normalize (bool): si True, conserva media y desviación estándar original.
+    
+        Returns:
+            Tensor: clases promedio mejoradas [B, H, W]
+        """
+        device = averages.device
+        B, H, W = averages.shape
+        eps = 1e-8
+    
+        # 1. Construcción del filtro pasa-banda
+        nyquist = 1.0 / (2.0 * sampling)
+        low_cutoff = (1.0 / low_res_angstrom) / nyquist / 2
+        high_cutoff = (1.0 / high_res_angstrom) / nyquist / 2
+    
+        y, x = torch.meshgrid(
+            torch.arange(H, device=device),
+            torch.arange(W, device=device),
+            indexing='ij'
+        )
+        r = torch.sqrt((x - W//2)**2 + (y - H//2)**2)
+        r_norm = r / r.max()
+    
+        low = 1.0 / (1.0 + (r_norm / (low_cutoff + eps))**(2 * order))
+        high = 1.0 / (1.0 + (high_cutoff / (r_norm + eps))**(2 * order))
+        bp_filter = low * high  # pasa-banda
+    
+        # 2. Aplicar en espacio de Fourier
+        fft_avg = torch.fft.fft2(averages)
+        fft_shift = torch.fft.fftshift(fft_avg, dim=(-2, -1))
+        fft_filtered = fft_shift * bp_filter  # aplica el filtro
+        fft_unshift = torch.fft.ifftshift(fft_filtered, dim=(-2, -1))
+        filtered = torch.fft.ifft2(fft_unshift).real
+    
+        # 3. Normalización para mantener contraste
+        if normalize:
+            mean_orig = averages.mean(dim=(-2, -1), keepdim=True)
+            std_orig = averages.std(dim=(-2, -1), keepdim=True)
+            mean_filt = filtered.mean(dim=(-2, -1), keepdim=True)
+            std_filt = filtered.std(dim=(-2, -1), keepdim=True)
+            filtered = (filtered - mean_filt) / (std_filt + eps) * std_orig + mean_orig
+    
+        # 4. Fusión con original (mezcla controlada)
+        enhanced = blend_factor * averages + (1.0 - blend_factor) * filtered
+    
+        return enhanced
 
 
 
