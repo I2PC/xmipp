@@ -226,7 +226,7 @@ if __name__=="__main__":
                 del(batch_projRef)  
                 
                 if mode == "create_classes":
-                    res_map = {5: 16, 8: 14, 11: 12, 14: 10, 17: 8}
+                    res_map = {5: 15, 8: 12, 15: 8}
                     if iter in res_map:
                         del (freqBn, coef, grid_flat, cvecs)
                         maxRes = res_map[iter]
