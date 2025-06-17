@@ -114,11 +114,10 @@ if __name__=="__main__":
     angles_deg = np.zeros(nExp)
     
     #PCA function
-    maxRes = 8.0
+    maxRes = 20.0
     nBand = 1
     pca = PCAgpu(nBand)
     
-    # freqBn, cvecs = pca.calculatePCAbasis(self, mmap, nBand, dim, sampling, maxRes, minRes, per_eig, batchPCA)
     freqBn, cvecs, coef = pca.calculatePCAbasis(mmap, Ntrain, nBand, dim, sampling, maxRes, 
                                                 minRes=530, per_eig=0.75, batchPCA=True)
     
@@ -226,18 +225,18 @@ if __name__=="__main__":
                         count+=1    
                 del(batch_projRef)  
                 
-                # if mode == "create_classes":
-                #     res_map = {5: 20, 8: 15, 10: 12, 12: 10, 14: 8}
-                #     if iter in res_map:
-                #         del (freqBn, coef, grid_flat, cvecs)
-                #         res = res_map[iter]
-                #         freqBn, cvecs, coef = pca.calculatePCAbasis(
-                #             mmap, Ntrain, nBand, dim, sampling, res,
-                #             minRes=530, per_eig=0.75, batchPCA=True
-                #         )
-                #         grid_flat = flatGrid(freqBn, coef, nBand)
-                #
-                #         print(iter , res , coef)    
+                if mode == "create_classes":
+                    res_map = {5: 16, 8: 14, 11: 12, 14: 10, 17: 8}
+                    if iter in res_map:
+                        del (freqBn, coef, grid_flat, cvecs)
+                        maxRes = res_map[iter]
+                        freqBn, cvecs, coef = pca.calculatePCAbasis(
+                            mmap, Ntrain, nBand, dim, sampling, maxRes,
+                            minRes=530, per_eig=0.75, batchPCA=True
+                        )
+                        grid_flat = flatGrid(freqBn, coef, nBand)
+                
+                        print(iter , maxRes , coef)    
  
                 
                 #update classes        
