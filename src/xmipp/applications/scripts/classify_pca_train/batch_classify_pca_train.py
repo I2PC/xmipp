@@ -125,9 +125,11 @@ if __name__=="__main__":
         
     #Training PCA 
     pca = PCAgpu(nBand)    
-    mean, vals, vecs = pca.trainingPCAonline(band, coef, per_eig, batchPCA) 
-    torch.save(mean, output + "_mean.pt")
-    torch.save(vals, output + "_vals.pt")
+    # mean, vals, vecs = pca.trainingPCAonline(band, coef, per_eig, batchPCA) 
+    vecs = pca.trainingPCAonline(band, coef, per_eig, batchPCA) 
+
+    # torch.save(mean, output + "_mean.pt")
+    # torch.save(vals, output + "_vals.pt")
     torch.save(vecs, output + "_vecs.pt")        
             
  

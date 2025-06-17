@@ -8,7 +8,7 @@
 import numpy as np
 import torch
 from torch.nn.functional import normalize
-import time
+import gc
 from xmippPyModules.classifyPcaFuntion.bnb_gpu import BnBgpu
 
 
@@ -36,7 +36,8 @@ class PCAgpu:
         
         self.firstCenter = firstBands - self.mean.repeat(firstSet,1)
         self.var = torch.square(self.firstCenter)
-        self.var = torch.sum(self.var , 0)/firstSet  
+        self.var = torch.sum(self.var , 0)/firstSet 
+        del(self.firstCenter) 
 
         return(self.mean, self.var)   
     
@@ -47,7 +48,7 @@ class PCAgpu:
 
         self.covariance = torch.zeros(self.mean.size(dim=0), self.mean.size(dim=0), device = self.cuda)
         
-        self.covariance =torch.cov(firstBands.T)
+        self.covariance = torch.cov(firstBands.T)
 
         return self.covariance, self.mean, self.var
     
@@ -180,7 +181,7 @@ class PCAgpu:
         self.Bvecs = [torch.zeros((coef[n], coef[n]), device = self.cuda)for n in range(self.nBand)]
                   
         for n in range(self.nBand):
-            
+
             self.first_eigenvector(band[n][:firstSet], firstSet)  
             self.Bmean[n], self.Bvar[n], self.Bvals[n], self.Bvecs[n] = self.mean, self.var,  self.vals, self.vecs
 
@@ -236,8 +237,14 @@ class PCAgpu:
             print("eigenvector %s ---- percentage %s" %(int(self.eigs[n]+1), "{:.2f}".format(self.perc[n])))
             self.Bvecs[n] = self.Bvecs[n][:,:(int(self.eigs[n]+1))]
             print(self.Bvecs[n].shape)
-
-        return(self.Bmean, self.Bvals, self.Bvecs)
+        del (band)
+    
+        del self.Bmean, self.Bvar, self.Bvals, self.covariance, self.mean
+        torch.cuda.empty_cache()
+        
+        
+        # return(self.Bmean, self.Bvals, self.Bvecs)
+        return(self.Bvecs)
     
     
     def precalculateBands(self, nBand, dim, sampling, maxRes, minRes):
@@ -297,11 +304,16 @@ class PCAgpu:
             del(ft)
             for n in range(nBand):
                 band[n][initBatch:endBatch] = bandBatch[n]
+            
             del(bandBatch)
-        
-        
-        mean, vals, vecs = self.trainingPCAonline(band, coef, per_eig, batchPCA)
-        
+
+        # mean, vals, vecs = self.trainingPCAonline(band, coef, per_eig, batchPCA)
+        vecs = self.trainingPCAonline(band, coef, per_eig, batchPCA)
+     
+        del(band)
+        torch.cuda.empty_cache()
+        # del(mean, vals)
+            
         return (freq_band, vecs, coef)
     
     
