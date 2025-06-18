@@ -512,7 +512,7 @@ class BnBgpu:
 
         if iter > 10:  
             clk = self.enhance_averages_butterworth(clk, sampling=sampling) 
-            # clk = self.unsharp_mask_norm(clk) 
+            clk = self.unsharp_mask_norm(clk) 
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
@@ -681,8 +681,8 @@ class BnBgpu:
             newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
             clk = self.averages(data, newCL, classes)
             
-            # clk = self.unsharp_mask_norm(clk) 
             clk = self.enhance_averages_butterworth(clk, sampling=sampling)
+            clk = self.unsharp_mask_norm(clk) 
             clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
         
             
@@ -1094,7 +1094,7 @@ class BnBgpu:
         return masks
     
     
-    def unsharp_mask_norm(self, imgs, kernel_size=3, strength=3.0):
+    def unsharp_mask_norm(self, imgs, kernel_size=3, strength=1.0):
         N, H, W = imgs.shape
         
         mean0 = imgs.mean(dim=(1, 2), keepdim=True)
@@ -1340,8 +1340,8 @@ class BnBgpu:
     def enhance_averages_butterworth(self, 
         averages,
         sampling=1.5,
-        low_res_angstrom=25.0,
-        high_res_angstrom=4.0,
+        low_res_angstrom=30.0,
+        high_res_angstrom=6.0,
         order=4,
         blend_factor=0.5,
         normalize=True
