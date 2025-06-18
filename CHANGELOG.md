@@ -1,4 +1,4 @@
-## Release 3.25.06.0 - 
+## Release 3.25.06.0 - Rhea
    ### Xmipp Programs 
    - New programs
       - continuous_create_residuals: Make better residuals by continuous assignment updates to projections
