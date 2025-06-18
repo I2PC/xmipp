@@ -1388,17 +1388,17 @@ class BnBgpu:
         fft_filtered = fft_shift * bp_filter  # aplica el filtro
         fft_unshift = torch.fft.ifftshift(fft_filtered, dim=(-2, -1))
         filtered = torch.fft.ifft2(fft_unshift).real
-        
-        # 3. Fusión con original (mezcla controlada)
-        filtered = blend_factor * averages + (1.0 - blend_factor) * filtered
     
-        # 4. Normalización para mantener contraste
+        # 3. Normalización para mantener contraste
         if normalize:
             mean_orig = averages.mean(dim=(-2, -1), keepdim=True)
             std_orig = averages.std(dim=(-2, -1), keepdim=True)
             mean_filt = filtered.mean(dim=(-2, -1), keepdim=True)
             std_filt = filtered.std(dim=(-2, -1), keepdim=True)
             filtered = (filtered - mean_filt) / (std_filt + eps) * std_orig + mean_orig
+            
+        # 4. Fusión con original (mezcla controlada)
+        filtered = blend_factor * averages + (1.0 - blend_factor) * filtered
     
         return filtered
 
