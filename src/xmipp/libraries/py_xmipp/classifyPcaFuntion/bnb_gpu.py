@@ -512,7 +512,7 @@ class BnBgpu:
 
         if iter > 10:  
             clk = self.enhance_averages_butterworth(clk, sampling=sampling, 
-                                    low_res_angstrom=25.0, high_res_angstrom=4.0) 
+                                    low_res_angstrom=25.0, high_res_angstrom=8.0) 
         #     clk = self.unsharp_mask_norm(clk) 
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
@@ -523,13 +523,13 @@ class BnBgpu:
 
 
         if iter in [13, 16]:
-            clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
-            # clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
-            #                     intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
+            # clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
+            clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
+                                intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
         if 3 < iter < 10:
-            clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
-            # clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
-            #                     intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
+            # clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
+            clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
+                                intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
 
             
         clk = clk * self.create_circular_mask(clk)
@@ -686,7 +686,7 @@ class BnBgpu:
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
             
             clk = self.enhance_averages_butterworth(clk, sampling=sampling, 
-                                    low_res_angstrom=25.0, high_res_angstrom=4.0)
+                                    low_res_angstrom=25.0, high_res_angstrom=8.0)
             clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
             
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
@@ -1391,8 +1391,11 @@ class BnBgpu:
         fft_filtered = fft_shift * bp_filter  # aplica el filtro
         fft_unshift = torch.fft.ifftshift(fft_filtered, dim=(-2, -1))
         filtered = torch.fft.ifft2(fft_unshift).real
+        
+        # 3. Fusión con original (mezcla controlada)
+        filtered = blend_factor * averages + (1.0 - blend_factor) * filtered
     
-        # 3. Normalización para mantener contraste
+        # 4. Normalización para mantener contraste
         if normalize:
             mean_orig = averages.mean(dim=(-2, -1), keepdim=True)
             std_orig = averages.std(dim=(-2, -1), keepdim=True)
@@ -1400,10 +1403,7 @@ class BnBgpu:
             std_filt = filtered.std(dim=(-2, -1), keepdim=True)
             filtered = (filtered - mean_filt) / (std_filt + eps) * std_orig + mean_orig
     
-        # 4. Fusión con original (mezcla controlada)
-        enhanced = blend_factor * averages + (1.0 - blend_factor) * filtered
-    
-        return enhanced
+        return filtered
 
 
 
