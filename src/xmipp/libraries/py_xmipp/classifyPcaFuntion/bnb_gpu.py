@@ -1340,10 +1340,10 @@ class BnBgpu:
     def enhance_averages_butterworth(self, 
         averages,
         sampling=1.5,
-        low_res_angstrom=15.0,
+        low_res_angstrom=20.0,
         high_res_angstrom=6.0,
         order=4,
-        blend_factor=0.4,
+        blend_factor=0.5,
         normalize=True
     ):
         """
