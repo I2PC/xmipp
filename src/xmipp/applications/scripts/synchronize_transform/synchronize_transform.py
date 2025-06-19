@@ -30,6 +30,7 @@ import xmippLib
 import itertools
 import numpy as np
 import scipy.sparse
+import matplotlib.pyplot as plt
     
 
 
@@ -135,7 +136,15 @@ class ScriptSynchronizeTransform(XmippScript):
             result[:,:,2] *= sign[:,None]
             
             lastObjective = objective
-            
+        
+        errors = []
+        for (index0, index1), rotation in zip(indices, rotations):
+            delta = result[index0].T @ rotation @ result[index1]
+            angle = np.degrees(np.arccos((np.trace(delta) - 1) / 2))
+            errors.append(angle)
+
+        plt.hist(errors)
+        plt.show()
         
         return result
 
