@@ -47,12 +47,12 @@ class ScriptSynchronizeTransform(XmippScript):
         outputFn = self.getParam('-o')
 
         inputMd = xmippLib.MetaData(inputFn)
-        pairs, rotations, shifts = self._readPairwiseAlignments(inputMd)
+        pairs, rotations, shifts, correlations = self._readPairwiseAlignments(inputMd)
         ids, indices = np.unique(pairs, return_inverse=True)
         indices = indices.reshape(pairs.shape)
         
         n = inputMd.size()
-        synchronizedRotations = self._synchronizeRotations(indices, n, rotations)
+        synchronizedRotations = self._synchronizeRotations(indices, n, rotations, correlations)
         synchronizedShifts, _ = self._synchronizeShifts(indices, n, synchronizedRotations, shifts)
             
         outputMd = self._writeAlignments(ids, synchronizedRotations, synchronizedShifts)
@@ -63,6 +63,7 @@ class ScriptSynchronizeTransform(XmippScript):
         ids = np.empty((n, 2), dtype=np.int64)
         rotations = np.empty((n, 3, 3))
         shifts = np.empty((n, 3))
+        correlations = np.empty(n)
         
         for i, objId in enumerate(md):
             id0 = md.getValue(xmippLib.MDL_REF, objId)
@@ -73,6 +74,7 @@ class ScriptSynchronizeTransform(XmippScript):
             x = md.getValue(xmippLib.MDL_SHIFT_X, objId)
             y = md.getValue(xmippLib.MDL_SHIFT_Y, objId)
             z = md.getValue(xmippLib.MDL_SHIFT_Z, objId)
+            corr = md.getValue(xmippLib.MDL_CORRELATION_IDX, objId)
             
             rotation = xmippLib.Euler_angles2matrix(rot, tilt, psi)
             shift =  -(rotation.T @ np.array([x, y, z])) # Determine why
@@ -80,8 +82,9 @@ class ScriptSynchronizeTransform(XmippScript):
             ids[i] = (id0, id1)
             rotations[i] = rotation
             shifts[i] = shift
+            correlations[i] = corr
     
-        return ids, rotations, shifts
+        return ids, rotations, shifts, correlations
     
     def _writeAlignments(self, ids: np.ndarray, rotations: np.ndarray, shifts: np.ndarray) -> xmippLib.MetaData:
         md = xmippLib.MetaData()
@@ -101,14 +104,15 @@ class ScriptSynchronizeTransform(XmippScript):
             
         return md
     
-    def _synchronizeRotations(self, indices: np.ndarray, n: int, rotations: np.ndarray) -> np.ndarray:
+    def _synchronizeRotations(self, indices: np.ndarray, n: int, rotations: np.ndarray, correlations: np.ndarray) -> np.ndarray:
         pairwise = scipy.sparse.lil_array((3*n, )*2)
-        for (index0, index1), rotation in zip(indices, rotations):
+        for (index0, index1), rotation, correlation in zip(indices, rotations, correlations):
             start0 = 3*index0
             end0 = start0 + 3
             start1 = 3*index1
             end1 = start1 + 3
             
+            rotation = correlation*rotation
             pairwise[start0:end0, start1:end1] = rotation
             pairwise[start1:end1, start0:end0] = rotation.T
         pairwise = pairwise.tocsr()
@@ -140,10 +144,10 @@ class ScriptSynchronizeTransform(XmippScript):
         errors = []
         for (index0, index1), rotation in zip(indices, rotations):
             delta = result[index0].T @ rotation @ result[index1]
-            angle = np.degrees(np.arccos((np.trace(delta) - 1) / 2))
-            errors.append(angle)
+            error = np.degrees(np.arccos((np.trace(delta) - 1) / 2))
+            errors.append(error)
 
-        plt.hist(errors)
+        plt.scatter(correlations, errors)
         plt.show()
         
         return result
