@@ -449,7 +449,7 @@ class BnBgpu:
                                                                              rotBatch[initBatch:endBatch], translations[initBatch:endBatch], centerxy)
             
             
-            if mask and iter < 9:
+            if mask and iter < 20:
                 transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
             else:
                 transforIm = transforIm * self.create_circular_mask(transforIm)
