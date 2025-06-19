@@ -30,7 +30,6 @@ import xmippLib
 import itertools
 import numpy as np
 import scipy.sparse
-import matplotlib.pyplot as plt
     
 
 
@@ -132,7 +131,7 @@ class ScriptSynchronizeTransform(XmippScript):
         result = u @ vt
         x = result.reshape(n*D, D2)
 
-        MAX_ITER = 1024
+        MAX_ITER = 16384
         EPS = 1e-6
         lastObjective = -np.inf
         for _ in range(MAX_ITER):
@@ -168,12 +167,6 @@ class ScriptSynchronizeTransform(XmippScript):
             error = np.degrees(np.arccos((np.trace(delta) - 1) / 2))
             errors.append(error)
 
-        plt.scatter(correlations, errors)
-        plt.show()
-        
-        plt.hist(correlations)
-        plt.show()
-        
         return result
 
     def _synchronizeShifts(self, indices: np.ndarray, n: int, synchronizedRotations: np.ndarray, shifts: np.ndarray) -> np.ndarray:
