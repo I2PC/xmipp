@@ -122,7 +122,7 @@ class ScriptSynchronizeTransform(XmippScript):
         for _ in range(MAX_ITER):
             x = result.reshape(-1, 3)
             y = pairwise @ x
-            objective = np.sum(x*y) # tr(x.T @ y)
+            objective = np.dot(x.ravel(), y.ravel()) # tr(x.T @ y)
             print(objective, flush=True)
             
             improvement = objective - lastObjective
