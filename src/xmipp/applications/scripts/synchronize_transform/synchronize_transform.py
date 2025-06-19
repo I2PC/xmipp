@@ -112,19 +112,31 @@ class ScriptSynchronizeTransform(XmippScript):
             pairwise[start1:end1, start0:end0] = rotation.T
         pairwise = pairwise.tocsr()
 
-        MAX_ITER = 2**16
         result = np.random.randn(n*3, 3)
         result, _ = np.linalg.qr(result, mode='reduced')
         result = result.reshape(n, 3, 3)
+
+        MAX_ITER = 4096
+        EPS = 1e-6
+        lastObjective = -np.inf
         for _ in range(MAX_ITER):
             x = result.reshape(-1, 3)
             y = pairwise @ x
+            objective = np.sum(x*y) # tr(x.T @ y)
+            print(objective, flush=True)
             
+            improvement = objective - lastObjective
+            if improvement < EPS:
+                break
+
             u, _, vt = np.linalg.svd(y.reshape(result.shape), full_matrices=False)
             result = u @ vt
             
             sign = np.linalg.det(result)
             result[:,:,2] *= sign[:,None]
+            
+            lastObjective = objective
+            
         
         return result
 
