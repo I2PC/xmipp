@@ -150,7 +150,7 @@ class ScriptSynchronizeTransform(XmippScript):
         plt.scatter(correlations, errors)
         plt.show()
         
-        plt.hist(correlation)
+        plt.hist(correlations)
         plt.show()
         
         return result
