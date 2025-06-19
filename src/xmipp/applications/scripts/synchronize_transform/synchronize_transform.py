@@ -150,6 +150,9 @@ class ScriptSynchronizeTransform(XmippScript):
         plt.scatter(correlations, errors)
         plt.show()
         
+        plt.hist(correlation)
+        plt.show()
+        
         return result
 
     def _synchronizeShifts(self, indices: np.ndarray, n: int, synchronizedRotations: np.ndarray, shifts: np.ndarray) -> np.ndarray:
