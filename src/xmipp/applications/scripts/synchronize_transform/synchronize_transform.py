@@ -105,27 +105,30 @@ class ScriptSynchronizeTransform(XmippScript):
         return md
     
     def _synchronizeRotations(self, indices: np.ndarray, n: int, rotations: np.ndarray, correlations: np.ndarray) -> np.ndarray:
+        D = 3
+        
         pairwise = scipy.sparse.lil_array((3*n, )*2)
         for (index0, index1), rotation, correlation in zip(indices, rotations, correlations):
-            start0 = 3*index0
-            end0 = start0 + 3
-            start1 = 3*index1
-            end1 = start1 + 3
+            start0 = D*index0
+            end0 = start0 + D
+            start1 = D*index1
+            end1 = start1 + D
             
             rotation = correlation*rotation
             pairwise[start0:end0, start1:end1] = rotation
             pairwise[start1:end1, start0:end0] = rotation.T
         pairwise = pairwise.tocsr()
 
-        result = np.random.randn(n*3, 3)
-        result, _ = np.linalg.qr(result, mode='reduced')
-        result = result.reshape(n, 3, 3)
+        D2 = 2*D
+        result = np.random.randn(n, D, D2)
+        u, _, vt = np.linalg.svd(result, full_matrices=False)
+        result = u @ vt
+        x = result.reshape(n*D, D2)
 
         MAX_ITER = 1024
         EPS = 1e-6
         lastObjective = -np.inf
         for _ in range(MAX_ITER):
-            x = result.reshape(-1, 3)
             y = pairwise @ x
             objective = np.dot(x.ravel(), y.ravel()) # tr(x.T @ y)
             
@@ -133,14 +136,25 @@ class ScriptSynchronizeTransform(XmippScript):
             if improvement < EPS:
                 break
 
-            u, _, vt = np.linalg.svd(y.reshape(result.shape), full_matrices=False)
+            u, _, vt = np.linalg.svd(y.reshape(n, D, D2), full_matrices=False)
             result = u @ vt
-            
-            sign = np.linalg.det(result)
-            result[:,:,2] *= sign[:,None]
+            x = result.reshape(n*D, D2)
             
             lastObjective = objective
         
+        u, s, _ = np.linalg.svd(x, full_matrices=False)
+        w = np.square(s)
+        w = w[:3]
+        x = u[:,:3]
+        
+        result = x.reshape(n, D, D)
+
+        u, _, vt = np.linalg.svd(result, full_matrices=False)
+        result = u @ vt
+        
+        sign = np.linalg.det(result)
+        result[:,:,2] *= sign[:,None]
+            
         errors = []
         for (index0, index1), rotation in zip(indices, rotations):
             delta = result[index0].T @ rotation @ result[index1]
