@@ -517,7 +517,7 @@ class BnBgpu:
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
         
-        clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
+        # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
 
 
 
@@ -683,7 +683,7 @@ class BnBgpu:
             
             clk = self.enhance_averages_butterworth(clk, sampling=sampling)
             clk = self.unsharp_mask_norm(clk) 
-            clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
+            # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
         
             
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
