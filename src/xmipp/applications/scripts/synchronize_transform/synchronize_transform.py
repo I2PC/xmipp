@@ -107,7 +107,7 @@ class ScriptSynchronizeTransform(XmippScript):
     def _synchronizeRotations(self, indices: np.ndarray, n: int, rotations: np.ndarray, correlations: np.ndarray) -> np.ndarray:
         D = 3
         
-        pairwise = scipy.sparse.lil_array((3*n, )*2)
+        pairwise = scipy.sparse.lil_array((D*n, )*2)
         for (index0, index1), rotation, correlation in zip(indices, rotations, correlations):
             start0 = D*index0
             end0 = start0 + D
@@ -119,6 +119,12 @@ class ScriptSynchronizeTransform(XmippScript):
             pairwise[start1:end1, start0:end0] = rotation.T
         pairwise = pairwise.tocsr()
 
+        EYE = np.eye(D)
+        for i in range(n):
+            start = D*i
+            end = start + D
+            pairwise[start:end, start:end] = EYE
+        
         D2 = 2*D
         result = np.random.randn(n, D, D2)
         u, _, vt = np.linalg.svd(result, full_matrices=False)
