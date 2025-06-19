@@ -117,13 +117,14 @@ class ScriptSynchronizeTransform(XmippScript):
             rotation = correlation*rotation
             pairwise[start0:end0, start1:end1] = rotation
             pairwise[start1:end1, start0:end0] = rotation.T
-        pairwise = pairwise.tocsr()
 
         EYE = np.eye(D)
         for i in range(n):
             start = D*i
             end = start + D
             pairwise[start:end, start:end] = EYE
+
+        pairwise = pairwise.tocsr()
         
         D2 = 2*D+1
         result = np.random.randn(n, D, D2)
