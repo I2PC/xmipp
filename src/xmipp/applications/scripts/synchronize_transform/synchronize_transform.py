@@ -125,7 +125,7 @@ class ScriptSynchronizeTransform(XmippScript):
             end = start + D
             pairwise[start:end, start:end] = EYE
         
-        D2 = 2*D
+        D2 = 2*D+1
         result = np.random.randn(n, D, D2)
         u, _, vt = np.linalg.svd(result, full_matrices=False)
         result = u @ vt
