@@ -116,14 +116,13 @@ class ScriptSynchronizeTransform(XmippScript):
         result, _ = np.linalg.qr(result, mode='reduced')
         result = result.reshape(n, 3, 3)
 
-        MAX_ITER = 4096
+        MAX_ITER = 1024
         EPS = 1e-6
         lastObjective = -np.inf
         for _ in range(MAX_ITER):
             x = result.reshape(-1, 3)
             y = pairwise @ x
             objective = np.dot(x.ravel(), y.ravel()) # tr(x.T @ y)
-            print(objective, flush=True)
             
             improvement = objective - lastObjective
             if improvement < EPS:
