@@ -51,7 +51,7 @@ class ScriptSynchronizeTransform(XmippScript):
         ids, indices = np.unique(pairs, return_inverse=True)
         indices = indices.reshape(pairs.shape)
         
-        n = inputMd.size()
+        n = len(ids)
         synchronizedRotations = self._synchronizeRotations(indices, n, rotations, correlations)
         synchronizedShifts, _ = self._synchronizeShifts(indices, n, synchronizedRotations, shifts)
             
