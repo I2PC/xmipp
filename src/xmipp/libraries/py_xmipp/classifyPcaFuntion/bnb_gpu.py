@@ -1094,7 +1094,7 @@ class BnBgpu:
         return masks
     
     
-    def unsharp_mask_norm(self, imgs, kernel_size=3, strength=1.0):
+    def unsharp_mask_norm(self, imgs, kernel_size=3, strength=2.0):
         N, H, W = imgs.shape
         
         mean0 = imgs.mean(dim=(1, 2), keepdim=True)
@@ -1340,9 +1340,9 @@ class BnBgpu:
     def enhance_averages_butterworth(self, 
         averages,
         sampling=1.5,
-        low_res_angstrom=30.0,
-        high_res_angstrom=6.0,
-        order=4,
+        low_res_angstrom=25.0,
+        high_res_angstrom=4.0,
+        order=2,
         blend_factor=0.5,
         normalize=True
     ):
