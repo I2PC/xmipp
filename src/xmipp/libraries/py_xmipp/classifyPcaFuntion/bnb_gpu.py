@@ -449,7 +449,7 @@ class BnBgpu:
                                                                              rotBatch[initBatch:endBatch], translations[initBatch:endBatch], centerxy)
             
             
-            if mask and iter < 20:
+            if mask:
                 transforIm = transforIm * self.create_gaussian_mask(transforIm, sigma)
             else:
                 transforIm = transforIm * self.create_circular_mask(transforIm)
@@ -510,7 +510,8 @@ class BnBgpu:
         # clk = self.filter_classes_relion_style(newCL, clk)
         
 
-        if iter > 10:  
+        # if iter > 10:  
+        if iter > 8:
             clk = self.enhance_averages_butterworth(clk, sampling=sampling) 
             clk = self.unsharp_mask_norm(clk) 
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
