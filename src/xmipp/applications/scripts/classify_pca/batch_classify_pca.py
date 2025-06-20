@@ -79,7 +79,7 @@ if __name__=="__main__":
     classes = int(args.classes)
     final_classes = classes  
     refImages = args.ref
-    niter = 22
+    niter = 50
     Ntrain = int(args.training)
     # bands = args.bands
     # vecs = args.vecs
@@ -114,12 +114,12 @@ if __name__=="__main__":
     angles_deg = np.zeros(nExp)
     
     #PCA function
-    maxRes = 20.0
+    maxRes = 6.0
     nBand = 1
     pca = PCAgpu(nBand)
     
     freqBn, cvecs, coef = pca.calculatePCAbasis(mmap, Ntrain, nBand, dim, sampling, maxRes, 
-                                                minRes=530, per_eig=0.75, batchPCA=True)
+                                                minRes=530, per_eig=0.99, batchPCA=True)
     
     # freqBn = torch.load(bands) 
     # cvecs = torch.load(vecs)
@@ -225,18 +225,18 @@ if __name__=="__main__":
                         count+=1    
                 del(batch_projRef)  
                 
-                if mode == "create_classes":
-                    res_map = {5: 15, 8: 12, 15: 8}
-                    if iter in res_map:
-                        del (freqBn, coef, grid_flat, cvecs)
-                        maxRes = res_map[iter]
-                        freqBn, cvecs, coef = pca.calculatePCAbasis(
-                            mmap, Ntrain, nBand, dim, sampling, maxRes,
-                            minRes=530, per_eig=0.75, batchPCA=True
-                        )
-                        grid_flat = flatGrid(freqBn, coef, nBand)
-                
-                        print(iter , maxRes , coef)    
+                # if mode == "create_classes":
+                #     res_map = {5: 15, 8: 12, 15: 8}
+                #     if iter in res_map:
+                #         del (freqBn, coef, grid_flat, cvecs)
+                #         maxRes = res_map[iter]
+                #         freqBn, cvecs, coef = pca.calculatePCAbasis(
+                #             mmap, Ntrain, nBand, dim, sampling, maxRes,
+                #             minRes=530, per_eig=0.75, batchPCA=True
+                #         )
+                #         grid_flat = flatGrid(freqBn, coef, nBand)
+                #
+                #         print(iter , maxRes , coef)    
  
                 
                 #update classes        
@@ -255,7 +255,7 @@ if __name__=="__main__":
                 save_images(cl.cpu().detach().numpy(), sampling, file)
 
 
-                if mode == "create_classes" and iter == 21:
+                if mode == "create_classes" and iter == niter-1:
                     
                     refClas[:endBatch] = matches[:, 1]
                     dist[:endBatch] = matches[:, 2].cpu()

@@ -404,7 +404,7 @@ class BnBgpu:
         if iter > 3 and iter < 10:
             # thr = self.split_classes_for_range(classes, matches)
             print("--------", iter, "-----------")
-            thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=1.0)
+            thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
         # elif iter >= 10:
         #     print("--------", iter, "-----------")
         #     thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
@@ -513,29 +513,33 @@ class BnBgpu:
         # if iter > 10:  
         if iter > 8:
             clk = self.enhance_averages_butterworth(clk, sampling=sampling) 
-            clk = self.unsharp_mask_norm(clk) 
+            # clk = self.unsharp_mask_norm(clk) 
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
         
-        # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
+        clk = self.gaussian_lowpass_filter_2D(clk, 6, sampling)
 
 
 
-        if iter in [13, 16]:
-            # clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
-            clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
-                                intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
-        if 3 < iter < 10:
-            # clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
-            clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
-                                intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
+        # if iter in [13, 16]:
+        #     clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
+            # clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
+            #                     intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
+        # if 3 < iter < 10:
+        if 3 < iter < 20 and iter % 3 == 1:
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
+            # clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
+            #                     intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
+        # if 20 < iter < 40:
+        if 20 <= iter < 40 and iter % 3 == 1:
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=5)
 
             
         clk = clk * self.create_circular_mask(clk)
         
-        if iter > 2 and iter < 15:
-            clk = self.center_by_com(clk)                  
+        # if iter > 2 and iter < 15:
+        #     clk = self.center_by_com(clk)                  
         
         return(clk, tMatrix, batch_projExp_cpu)
     
@@ -1095,7 +1099,7 @@ class BnBgpu:
         return masks
     
     
-    def unsharp_mask_norm(self, imgs, kernel_size=3, strength=1.0):
+    def unsharp_mask_norm(self, imgs, kernel_size=3, strength=5.0):
         N, H, W = imgs.shape
         
         mean0 = imgs.mean(dim=(1, 2), keepdim=True)
@@ -1341,9 +1345,9 @@ class BnBgpu:
     def enhance_averages_butterworth(self, 
         averages,
         sampling=1.5,
-        low_res_angstrom=30.0,
-        high_res_angstrom=6.0,
-        order=2,
+        low_res_angstrom=15.0,
+        high_res_angstrom=4.0,
+        order=4,
         blend_factor=0.5,
         normalize=True
     ):
@@ -1480,13 +1484,18 @@ class BnBgpu:
                 # ang, shiftMove = (-180, 180, 10), (-maxShift_15, maxShift_15+4, 4)
             elif iter < 10:
                 ang, shiftMove = (-180, 180, 8), (-maxShift_15, maxShift_15+4, 4)
-            elif iter < 13:
+            # elif iter < 13:
+            elif iter < 20:
                 ang, shiftMove = (-180, 180, 6), (-12, 16, 4)
-            elif iter < 16:
+            # elif iter < 16:
+            elif iter < 30:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            elif iter < 19:
-                ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
-            elif iter < 22:
+            # elif iter < 19:
+            elif iter < 40:
+                # ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
+                ang, shiftMove = (-180, 182, 2), (-6, 8, 2)
+            # elif iter < 22:
+            elif iter < 50:
                 ang, shiftMove = (-30, 31, 1), (-3, 4, 1)            
             
             # if iter < 1:
