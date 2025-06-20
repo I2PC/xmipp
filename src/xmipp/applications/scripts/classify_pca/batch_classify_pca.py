@@ -114,12 +114,12 @@ if __name__=="__main__":
     angles_deg = np.zeros(nExp)
     
     #PCA function
-    maxRes = 6.0
+    maxRes = 8.0
     nBand = 1
     pca = PCAgpu(nBand)
     
     freqBn, cvecs, coef = pca.calculatePCAbasis(mmap, Ntrain, nBand, dim, sampling, maxRes, 
-                                                minRes=530, per_eig=0.99, batchPCA=True)
+                                                minRes=530, per_eig=0.85, batchPCA=True)
     
     # freqBn = torch.load(bands) 
     # cvecs = torch.load(vecs)
