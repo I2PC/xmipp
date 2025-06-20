@@ -688,7 +688,7 @@ class BnBgpu:
             clk = self.averages(data, newCL, classes)
             
             clk = self.enhance_averages_butterworth(clk, sampling=sampling)
-            clk = self.unsharp_mask_norm(clk) 
+            # clk = self.unsharp_mask_norm(clk) 
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
         
             
