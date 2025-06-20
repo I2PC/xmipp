@@ -518,7 +518,7 @@ class BnBgpu:
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
         
-        clk = self.gaussian_lowpass_filter_2D(clk, 6, sampling)
+        clk = self.gaussian_lowpass_filter_2D(clk, 8, sampling)
 
 
 
@@ -527,13 +527,14 @@ class BnBgpu:
             # clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
             #                     intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
         # if 3 < iter < 10:
-        if 3 < iter < 20 and iter % 3 == 1:
+        if 3 < iter < 40 and iter % 2 == 1:
             clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
             # clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
             #                     intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
         # if 20 < iter < 40:
-        if 20 <= iter < 40 and iter % 3 == 1:
-            clk = clk * self.approximate_otsu_threshold(clk, percentile=5)
+        if 40 <= iter < 45 and iter % 2 == 1:
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=85)
+            
 
             
         clk = clk * self.create_circular_mask(clk)
@@ -1099,7 +1100,7 @@ class BnBgpu:
         return masks
     
     
-    def unsharp_mask_norm(self, imgs, kernel_size=3, strength=5.0):
+    def unsharp_mask_norm(self, imgs, kernel_size=3, strength=3.0):
         N, H, W = imgs.shape
         
         mean0 = imgs.mean(dim=(1, 2), keepdim=True)
@@ -1345,7 +1346,7 @@ class BnBgpu:
     def enhance_averages_butterworth(self, 
         averages,
         sampling=1.5,
-        low_res_angstrom=25.0,
+        low_res_angstrom=20.0,
         high_res_angstrom=4.0,
         order=4,
         blend_factor=0.5,
