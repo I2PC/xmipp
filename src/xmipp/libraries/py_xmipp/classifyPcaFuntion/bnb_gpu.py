@@ -404,7 +404,7 @@ class BnBgpu:
         if iter > 3 and iter < 10:
             # thr = self.split_classes_for_range(classes, matches)
             print("--------", iter, "-----------")
-            thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
+            thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=1.0)
         # elif iter >= 10:
         #     print("--------", iter, "-----------")
         #     thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
@@ -1345,9 +1345,9 @@ class BnBgpu:
     def enhance_averages_butterworth(self, 
         averages,
         sampling=1.5,
-        low_res_angstrom=25.0,
+        low_res_angstrom=20.0,
         high_res_angstrom=4.0,
-        order=6,
+        order=2,
         blend_factor=0.5,
         normalize=True
     ):
