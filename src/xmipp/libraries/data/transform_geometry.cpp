@@ -228,8 +228,16 @@ void ProgTransformGeometry::processImage(const FileName &fnImg,
 
     if (apply_geo || mdVol || applyTransform)
         geo2TransformationMatrix(rowOut, B);
-
-      T = A * B;
+        
+        if (inverse)
+        {
+            B = B.inv();
+            T = B * A; // (A @ B)^-1 = B^-1 @ A^-1
+        }
+        else
+        {
+            T = A * B;
+        }
     }
 
     if (checkParam("--write_matrix"))
