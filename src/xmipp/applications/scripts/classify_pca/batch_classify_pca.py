@@ -79,7 +79,7 @@ if __name__=="__main__":
     classes = int(args.classes)
     final_classes = classes  
     refImages = args.ref
-    niter = 50
+    niter = 22
     Ntrain = int(args.training)
     # bands = args.bands
     # vecs = args.vecs
@@ -119,7 +119,7 @@ if __name__=="__main__":
     pca = PCAgpu(nBand)
     
     freqBn, cvecs, coef = pca.calculatePCAbasis(mmap, Ntrain, nBand, dim, sampling, maxRes, 
-                                                minRes=530, per_eig=0.85, batchPCA=True)
+                                                minRes=530, per_eig=0.75, batchPCA=True)
     
     # freqBn = torch.load(bands) 
     # cvecs = torch.load(vecs)
@@ -154,157 +154,172 @@ if __name__=="__main__":
         num_batches = min(int(np.ceil(nExp / expBatchSize)), 
                           int(numFirstBatch + np.ceil( (nExp - (numFirstBatch * expBatchSize))/(expBatchSize2) )))
     
-    batch_projExp_cpu = []
-    endBatch = 0
-    for i in range(num_batches):
-        mode = False
-        
-        if i < initStep:
-            initBatch = i * expBatchSize
-            endBatch =  min( (i+1) * expBatchSize, nExp)       
+    # batch_projExp_cpu = []
+    # endBatch = 0
+    
+    
+    ### Start initial cycles
+    num_cycles = 3 
+    for cycles in range (num_cycles):
+        batch_projExp_cpu = []
+        endBatch = 0
+        if cycles < num_cycles-1:
+            num_batches_in_iter = initStep 
         else:
-            initBatch = endBatch
-            endBatch = min( endBatch + expBatchSize2, nExp)
-        
-        expImages = mmap.data[initBatch:endBatch].astype(np.float32)
-        Texp = torch.from_numpy(expImages).float().to(cuda)
-        # Texp = Texp * bnb.create_circular_mask(Texp)
-              
-        if i < initStep:          
-            batch_projExp_cpu.append( bnb.batchExpToCpu(Texp, freqBn, coef, cvecs) )           
-            if i == initStep-1:
-                mode = "create_classes"
-        
-        else:            
-            batch_projExp_cpu = bnb.create_batchExp(Texp, freqBn, coef, cvecs)
-            mode = "align_classes"
-        
-        if mode:
-            # print(mode)
-
-      
-            #Initialization Transformation Matrix
-            if mode == "create_classes":
-                subset = endBatch
+            num_batches_in_iter = num_batches
+            
+        ### Start iterations per batches
+        for i in range(num_batches_in_iter):
+    
+            mode = False
+            
+            if i < initStep:
+                initBatch = i * expBatchSize
+                endBatch =  min( (i+1) * expBatchSize, nExp)       
             else:
-                subset = endBatch - initBatch
-
-                 
-            tMatrix = torch.eye(2, 3, device = cuda).repeat(subset, 1, 1)
+                initBatch = endBatch
+                endBatch = min( endBatch + expBatchSize2, nExp)
             
-            if mode == "align_classes":
-                niter = 4
-                
-            for iter in range(niter):
-                # print("-----Iteration %s for updating classes-------"%(iter+1))                
-                                          
-                matches = torch.full((subset, 5), float("Inf"), device = cuda)
-                
-                vectorRot, vectorshift = bnb.determine_ROTandSHIFT(iter, mode, dim)                
-                nShift = len(vectorshift)  
-        
-                for rot in vectorRot:            
-        
-                    # print("---Precomputing the projections of the reference images---")          
-                    batch_projRef = bnb.precalculate_projection(cl, freqBn, grid_flat, coef, cvecs, float(rot), vectorshift)
+            expImages = mmap.data[initBatch:endBatch].astype(np.float32)
+            Texp = torch.from_numpy(expImages).float().to(cuda)
+            # Texp = Texp * bnb.create_circular_mask(Texp)
+                  
+            if i < initStep:          
+                batch_projExp_cpu.append( bnb.batchExpToCpu(Texp, freqBn, coef, cvecs) )           
+                if i == initStep-1:
+                    mode = "create_classes"
             
-                    count = 0  
-                    steps = initStep if mode == "create_classes" else 1 
-                                
-                    for i in range(steps):
+            else:            
+                batch_projExp_cpu = bnb.create_batchExp(Texp, freqBn, coef, cvecs)
+                mode = "align_classes"
+            del(Texp)
             
-                        if mode == "create_classes":
-                            init = i*expBatchSize
-                            batch_projExp = batch_projExp_cpu[count].to('cuda', non_blocking=True)
-                        else:
-                            init = 0
-                            batch_projExp = batch_projExp_cpu
-                            
-                        matches = bnb.match_batch(batch_projExp, batch_projRef, init, matches, rot, nShift)    
-                        del(batch_projExp)
-                        count+=1    
-                del(batch_projRef)  
-                
-                # if mode == "create_classes":
-                #     res_map = {5: 15, 8: 12, 15: 8}
-                #     if iter in res_map:
-                #         del (freqBn, coef, grid_flat, cvecs)
-                #         maxRes = res_map[iter]
-                #         freqBn, cvecs, coef = pca.calculatePCAbasis(
-                #             mmap, Ntrain, nBand, dim, sampling, maxRes,
-                #             minRes=530, per_eig=0.75, batchPCA=True
-                #         )
-                #         grid_flat = flatGrid(freqBn, coef, nBand)
-                #
-                #         print(iter , maxRes , coef)    
- 
-                
-                #update classes        
-                classes = len(cl)
-        
+            if mode:
+                # print(mode)
+    
+          
+                #Initialization Transformation Matrix
                 if mode == "create_classes":
-                    # if iter < 5:
-                    cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version00(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling)
-                    # else:
-                        # cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, mask, sigma)
+                    subset = endBatch
                 else:
-                    cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(expImages, cl, tMatrix, iter, subset, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling)
-
-                # save classes
-                file = output+"_%s_%s.mrcs"%(initBatch,iter+1)
-                save_images(cl.cpu().detach().numpy(), sampling, file)
-
-
-                if mode == "create_classes" and iter == niter-1:
+                    subset = endBatch - initBatch
+    
+                     
+                tMatrix = torch.eye(2, 3, device = cuda).repeat(subset, 1, 1)
+                
+                if mode == "align_classes":
+                    niter = 4
                     
-                    refClas[:endBatch] = matches[:, 1]
-                    dist[:endBatch] = matches[:, 2].cpu()
-                                                          
-                    #Applying TMT(inv). 
-                    #This is done because the rotation is performed from the center of the image.
-                    initial_shift = torch.tensor([[1.0, 0.0, -dim/2],
-                                                  [0.0, 1.0, -dim/2],
-                                                  [0.0, 0.0, 1.0]], device = tMatrix.device)
-                    initial_shift = initial_shift.unsqueeze(0).expand(tMatrix.size(0), -1, -1)
-
-                    tMatrix = torch.cat((tMatrix, torch.zeros((tMatrix.size(0), 1, 3), device=tMatrix.device)), dim=1)
-                    tMatrix[:, 2, 2] = 1.0
-                    tMatrix = torch.matmul(initial_shift, tMatrix)
-                    tMatrix = torch.matmul(tMatrix, torch.inverse(initial_shift))
+                for iter in range(niter):
+                    # print("-----Iteration %s for updating classes-------"%(iter+1))                
+                                              
+                    matches = torch.full((subset, 5), float("Inf"), device = cuda)
                     
-                    #extract final angular and shift transformations
-                    rotation_matrix = tMatrix[:, :2, :2]
-                    translation_vector[:endBatch] = tMatrix[:, :2, 2]
-                    angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
-                    angles_deg[:endBatch] = np.degrees(angles_rad.cpu().numpy())
+                    vectorRot, vectorshift = bnb.determine_ROTandSHIFT(iter, mode, dim)                
+                    nShift = len(vectorshift)  
+            
+                    for rot in vectorRot:            
+            
+                        # print("---Precomputing the projections of the reference images---")          
+                        batch_projRef = bnb.precalculate_projection(cl, freqBn, grid_flat, coef, cvecs, float(rot), vectorshift)
+                
+                        count = 0  
+                        steps = initStep if mode == "create_classes" else 1 
+                                    
+                        for i in range(steps):
+                
+                            if mode == "create_classes":
+                                init = i*expBatchSize
+                                batch_projExp = batch_projExp_cpu[count].to('cuda', non_blocking=True)
+                            else:
+                                init = 0
+                                batch_projExp = batch_projExp_cpu
+                                
+                            matches = bnb.match_batch(batch_projExp, batch_projRef, init, matches, rot, nShift)    
+                            del(batch_projExp)
+                            count+=1    
+                    del(batch_projRef)  
                     
-                elif mode == "align_classes" and iter == 3:
+                    # if mode == "create_classes":
+                    #     res_map = {5: 15, 8: 12, 15: 8}
+                    #     if iter in res_map:
+                    #         del (freqBn, coef, grid_flat, cvecs)
+                    #         maxRes = res_map[iter]
+                    #         freqBn, cvecs, coef = pca.calculatePCAbasis(
+                    #             mmap, Ntrain, nBand, dim, sampling, maxRes,
+                    #             minRes=530, per_eig=0.75, batchPCA=True
+                    #         )
+                    #         grid_flat = flatGrid(freqBn, coef, nBand)
+                    #
+                    #         print(iter , maxRes , coef)    
+     
                     
-                    refClas[initBatch:endBatch] = matches[:, 1]
-                    dist[initBatch:endBatch] = matches[:, 2].cpu()
-                    
-                    initial_shift = torch.tensor([[1.0, 0.0, -dim/2],
-                                                  [0.0, 1.0, -dim/2],
-                                                  [0.0, 0.0, 1.0]], device = tMatrix.device)
-                    initial_shift = initial_shift.unsqueeze(0).expand(tMatrix.size(0), -1, -1)
-
-                    tMatrix = torch.cat((tMatrix, torch.zeros((tMatrix.size(0), 1, 3), device=tMatrix.device)), dim=1)
-                    tMatrix[:, 2, 2] = 1.0
-                    tMatrix = torch.matmul(initial_shift, tMatrix)
-                    tMatrix = torch.matmul(tMatrix, torch.inverse(initial_shift))
-                    
-                    rotation_matrix = tMatrix[:, :2, :2]
-                    translation_vector[initBatch:endBatch] = tMatrix[:, :2, 2]
-                    angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
-                    angles_deg[initBatch:endBatch] = np.degrees(angles_rad.cpu().numpy())
-        del(expImages)
+                    #update classes        
+                    classes = len(cl)
+            
+                    if mode == "create_classes":
+                        # if iter < 5:
+                        cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version00(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling, cycles)
+                        # else:
+                            # cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, mask, sigma)
+                    else:
+                        cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(expImages, cl, tMatrix, iter, subset, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling)
+    
+                    # save classes
+                    file = output+"_%s_%s_%s.mrcs"%(initBatch,iter+1,cycles)
+                    save_images(cl.cpu().detach().numpy(), sampling, file)
+    
+    
+                    if cycles == num_cycles-1 and mode == "create_classes" and iter == niter-1:
+                        
+                        refClas[:endBatch] = matches[:, 1]
+                        dist[:endBatch] = matches[:, 2].cpu()
+                                                              
+                        #Applying TMT(inv). 
+                        #This is done because the rotation is performed from the center of the image.
+                        initial_shift = torch.tensor([[1.0, 0.0, -dim/2],
+                                                      [0.0, 1.0, -dim/2],
+                                                      [0.0, 0.0, 1.0]], device = tMatrix.device)
+                        initial_shift = initial_shift.unsqueeze(0).expand(tMatrix.size(0), -1, -1)
+    
+                        tMatrix = torch.cat((tMatrix, torch.zeros((tMatrix.size(0), 1, 3), device=tMatrix.device)), dim=1)
+                        tMatrix[:, 2, 2] = 1.0
+                        tMatrix = torch.matmul(initial_shift, tMatrix)
+                        tMatrix = torch.matmul(tMatrix, torch.inverse(initial_shift))
+                        
+                        #extract final angular and shift transformations
+                        rotation_matrix = tMatrix[:, :2, :2]
+                        translation_vector[:endBatch] = tMatrix[:, :2, 2]
+                        angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
+                        angles_deg[:endBatch] = np.degrees(angles_rad.cpu().numpy())
+                        
+                    elif mode == "align_classes" and iter == 3:
+                        
+                        refClas[initBatch:endBatch] = matches[:, 1]
+                        dist[initBatch:endBatch] = matches[:, 2].cpu()
+                        
+                        initial_shift = torch.tensor([[1.0, 0.0, -dim/2],
+                                                      [0.0, 1.0, -dim/2],
+                                                      [0.0, 0.0, 1.0]], device = tMatrix.device)
+                        initial_shift = initial_shift.unsqueeze(0).expand(tMatrix.size(0), -1, -1)
+    
+                        tMatrix = torch.cat((tMatrix, torch.zeros((tMatrix.size(0), 1, 3), device=tMatrix.device)), dim=1)
+                        tMatrix[:, 2, 2] = 1.0
+                        tMatrix = torch.matmul(initial_shift, tMatrix)
+                        tMatrix = torch.matmul(tMatrix, torch.inverse(initial_shift))
+                        
+                        rotation_matrix = tMatrix[:, :2, :2]
+                        translation_vector[initBatch:endBatch] = tMatrix[:, :2, 2]
+                        angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
+                        angles_deg[initBatch:endBatch] = np.degrees(angles_rad.cpu().numpy())
+            del(expImages)
         
         
     counts = torch.bincount(refClas.to(torch.int64), minlength=classes)
     
         #save classes        
-    file = output+".mrcs"
-    save_images(cl.cpu().detach().numpy(), sampling, file)
+    file_final = output+".mrcs"
+    save_images(cl.cpu().detach().numpy(), sampling, file_final)
     
     print("Adjust contrast")
     # cl = bnb.increase_contrast_sigmoid(cl, 8, 0.6)
@@ -319,7 +334,7 @@ if __name__=="__main__":
     
     assess = evaluation()
     assess.updateExpStar(expStar, refClas, -angles_deg, translation_vector, output, dist)
-    assess.createClassesStar(classes, file, counts, output)
+    assess.createClassesStar(classes, file_final, counts, output)
     assess.createClassesStar(classes, file_contrast, counts, output+"_contrast")
 
 

@@ -396,12 +396,12 @@ class BnBgpu:
     
     
     
-    def create_classes_version00(self, mmap, tMatrix, iter, nExp, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling):
+    def create_classes_version00(self, mmap, tMatrix, iter, nExp, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling, cycles):
         
         # print("----------create-classes-------------")      
             
         
-        if iter > 3 and iter < 10:
+        if iter > 3 and iter < 10 and cycles == 0:
             # thr = self.split_classes_for_range(classes, matches)
             print("--------", iter, "-----------")
             thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=1.0)
@@ -410,7 +410,7 @@ class BnBgpu:
         #     thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
             
 
-        if iter > 3 and iter < 10:
+        if iter > 3 and iter < 10 and cycles == 0:
             num = int(classes/2)
             newCL = [[] for i in range(classes)]
         else:
@@ -462,7 +462,7 @@ class BnBgpu:
             count+=1
 
             
-            if iter > 3 and iter < 10:
+            if iter > 3 and iter < 10 and cycles == 0:
                 
                 for n in range(num):
                     
@@ -510,31 +510,25 @@ class BnBgpu:
         # clk = self.filter_classes_relion_style(newCL, clk)
         
 
-        # if iter > 10:  
-        if iter > 8:
+        if iter > 10:  
             clk = self.enhance_averages_butterworth(clk, sampling=sampling) 
             # clk = self.unsharp_mask_norm(clk) 
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
         
-        # clk = self.gaussian_lowpass_filter_2D(clk, 6, sampling)
+        clk = self.gaussian_lowpass_filter_2D(clk, 6.0, sampling)
 
 
 
-        # if iter in [13, 16]:
-        #     clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
+        if iter in [12, 15, 18]:
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
             # clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
             #                     intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
-        # if 3 < iter < 10:
-        if 3 < iter < 40 and iter % 3 == 1:
-            # clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
-            clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
-                                intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
-        # if 20 < iter < 40:
-        if 40 <= iter < 45 and iter % 3 == 1:
-            clk = clk * self.approximate_otsu_threshold(clk, percentile=85)
-            
+        if 3 < iter < 10:
+            clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
+            # clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
+            #                     intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
 
             
         clk = clk * self.create_circular_mask(clk)
@@ -687,9 +681,9 @@ class BnBgpu:
             newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
             clk = self.averages(data, newCL, classes)
             
-            clk = self.enhance_averages_butterworth(clk, sampling=sampling)
             # clk = self.unsharp_mask_norm(clk) 
-            # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
+            clk = self.enhance_averages_butterworth(clk, sampling=sampling)
+            clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
         
             
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
@@ -1100,7 +1094,7 @@ class BnBgpu:
         return masks
     
     
-    def unsharp_mask_norm(self, imgs, kernel_size=3, strength=3.0):
+    def unsharp_mask_norm(self, imgs, kernel_size=3, strength=1.0):
         N, H, W = imgs.shape
         
         mean0 = imgs.mean(dim=(1, 2), keepdim=True)
@@ -1346,7 +1340,7 @@ class BnBgpu:
     def enhance_averages_butterworth(self, 
         averages,
         sampling=1.5,
-        low_res_angstrom=30.0,
+        low_res_angstrom=25.0,
         high_res_angstrom=6.0,
         order=4,
         blend_factor=0.5,
@@ -1436,7 +1430,7 @@ class BnBgpu:
                 expBatchSize = 10000
                 expBatchSize2 = 20000
                 # numFirstBatch = 2
-                numFirstBatch = 2
+                numFirstBatch = 8
             elif dim <= 256:
                 expBatchSize = 4000 
                 expBatchSize2 = 5000
@@ -1485,18 +1479,13 @@ class BnBgpu:
                 # ang, shiftMove = (-180, 180, 10), (-maxShift_15, maxShift_15+4, 4)
             elif iter < 10:
                 ang, shiftMove = (-180, 180, 8), (-maxShift_15, maxShift_15+4, 4)
-            # elif iter < 13:
-            elif iter < 20:
+            elif iter < 13:
                 ang, shiftMove = (-180, 180, 6), (-12, 16, 4)
-            # elif iter < 16:
-            elif iter < 30:
+            elif iter < 16:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            # elif iter < 19:
-            elif iter < 40:
-                # ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
-                ang, shiftMove = (-180, 182, 2), (-6, 8, 2)
-            # elif iter < 22:
-            elif iter < 50:
+            elif iter < 19:
+                ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
+            elif iter < 22:
                 ang, shiftMove = (-30, 31, 1), (-3, 4, 1)            
             
             # if iter < 1:
