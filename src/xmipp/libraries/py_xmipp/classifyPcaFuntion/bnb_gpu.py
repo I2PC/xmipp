@@ -522,13 +522,15 @@ class BnBgpu:
 
 
         if iter in [13, 16]:
-            clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
+            # clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
             # clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
             #                     intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
+            clk = clk * self.contrast_dominant_mask_multi(clk)
         if 3 < iter < 10:
-            clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
+            # clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
             # clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
             #                     intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
+            clk = clk * self.contrast_dominant_mask_multi(clk)
 
             
         clk = clk * self.create_circular_mask(clk)
@@ -1045,6 +1047,61 @@ class BnBgpu:
         mask = (std_local > contrast_thresh) & (imgs > intensity_thresh)
         
         return mask.float().squeeze(1)
+    
+    
+    def contrast_dominant_mask_multi(self, 
+        imgs: torch.Tensor,                       # [N,H,W] o [N,1,H,W]
+        window_sizes: Sequence[int] = (3, 5),
+        alpha: float = 0.5,
+        percentile: float = 95.0,
+        soft: bool = False
+    ) -> torch.Tensor:                            # → [N,H,W]
+        # ---------- 1. Garantizar forma [N,1,H,W] ----------
+        if imgs.ndim == 3:                        # [N,H,W]
+            imgs1 = imgs[:, None, :, :]
+        elif imgs.ndim == 4 and imgs.shape[1] == 1:
+            imgs1 = imgs                         # [N,1,H,W]
+        else:
+            raise ValueError("El tensor debe ser [N,H,W] o [N,1,H,W]")
+    
+        N, _, H, W = imgs1.shape
+        device = imgs1.device
+    
+        # ---------- 2. Contraste local multi‑escala ---------
+        z_scores = []
+        for k in window_sizes:
+            k = min(k, H, W)                     # evita kernels > tamaño imagen
+            pad  = k // 2
+            mean = F.avg_pool2d(imgs1, k, 1, pad)
+            var  = F.avg_pool2d(imgs1**2, k, 1, pad) - mean**2
+            std  = torch.sqrt(var.clamp_min(0.0))
+    
+            mu   = std.mean(dim=(2,3), keepdim=True)
+            sig  = std.std (dim=(2,3), keepdim=True) + 1e-6
+            z_scores.append((std - mu) / sig)    # z‑score por escala
+    
+        z_std_max = torch.stack(z_scores).amax(0)          # [N,1,H,W]
+    
+        # ---------- 3. Intensidad normalizada ---------------
+        mu_img  = imgs1.mean(dim=(2,3), keepdim=True)
+        sig_img = imgs1.std (dim=(2,3), keepdim=True) + 1e-6
+        z_int   = (imgs1 - mu_img) / sig_img
+    
+        score   = alpha*z_std_max + (1-alpha)*z_int        # [N,1,H,W]
+    
+        # ---------- 4. Umbral por percentil -----------------
+        thr = torch.quantile(score.view(N, -1),
+                             percentile/100.0,
+                             dim=1
+                            ).view(N,1,1,1)
+    
+        mask = (score > thr)
+        if soft:
+            mask = torch.sigmoid(10*(score-thr))
+    
+        # ---------- 5. Limpieza morfológica -----------------
+        # mask = F.max_pool2d(mask.float(), kernel_size=3, stride=1, padding=1)
+        return mask.squeeze(1) 
     
     
     def compute_particle_radius(self, imgs, percentile: float = 100):
