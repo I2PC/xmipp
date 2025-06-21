@@ -13,6 +13,7 @@ import torchvision.transforms.functional as T
 import torch.nn.functional as F
 import kornia
 import mrcfile
+from typing import Sequence
 
 
 class BnBgpu:
