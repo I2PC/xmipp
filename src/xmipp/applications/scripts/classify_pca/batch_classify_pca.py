@@ -108,7 +108,7 @@ if __name__=="__main__":
         sigma = dim/3
     
 
-    initSubset = min(30000, nExp)
+    initSubset = min(100000, nExp)
     refClas = torch.zeros(nExp)
     dist = torch.zeros(nExp)
     translation_vector = torch.zeros(nExp, 2)
@@ -160,7 +160,7 @@ if __name__=="__main__":
     
     
     ### Start initial cycles
-    num_cycles = 2 
+    num_cycles = 1 
     for cycles in range (num_cycles):
         batch_projExp_cpu = []
         endBatch = 0
