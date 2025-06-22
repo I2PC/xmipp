@@ -401,16 +401,16 @@ class BnBgpu:
         # print("----------create-classes-------------")      
             
         
-        if iter > 3 and iter < 10 and cycles == 0:
+        if iter > 3 and iter < 10: # and cycles == 0:
             # thr = self.split_classes_for_range(classes, matches)
             print("--------", iter, "-----------")
-            thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=1.0)
+            thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
         # elif iter >= 10:
         #     print("--------", iter, "-----------")
         #     thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
             
 
-        if iter > 3 and iter < 10 and cycles == 0:
+        if iter > 3 and iter < 10: # and cycles == 0:
             num = int(classes/2)
             newCL = [[] for i in range(classes)]
         else:
@@ -462,7 +462,7 @@ class BnBgpu:
             count+=1
 
             
-            if iter > 3 and iter < 10 and cycles == 0:
+            if iter > 3 and iter < 10:# and cycles == 0:
                 
                 for n in range(num):
                     
