@@ -513,6 +513,7 @@ class BnBgpu:
         if iter > 10: 
             res_classes = self.frc_resolution_tensor(newCL, sampling) 
             clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
+            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
 
             # clk = self.enhance_averages_butterworth(clk, sampling=sampling) 
         #     clk = self.unsharp_mask_norm(clk) 
@@ -521,6 +522,7 @@ class BnBgpu:
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
         
         # clk = self.gaussian_lowpass_filter_2D(clk, 6.0, sampling)
+        
 
 
 
@@ -689,6 +691,7 @@ class BnBgpu:
             clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
             # clk = self.enhance_averages_butterworth(clk, sampling=sampling)
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
+            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
         
             
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
@@ -916,7 +919,7 @@ class BnBgpu:
         fy = torch.fft.fftfreq(H, d=pixel_size).to(device)
         fx = torch.fft.fftfreq(W, d=pixel_size).to(device)
         grid_y, grid_x = torch.meshgrid(fy, fx, indexing='ij')
-        freq_squared = grid_x ** 2 + grid_y ** 2
+        freq_squared = grid_x ** 2 + grid_y ** 2   
     
         # Filtro gaussiano en frecuencia
         D0_freq = 1.0 / resolution_angstrom
@@ -945,6 +948,57 @@ class BnBgpu:
         output = torch.where(valid, normalized, imgs)
     
         return output
+    
+    
+    @torch.no_grad()
+    def gaussian_lowpass_filter_2D_adaptive(self, imgs, res_angstrom, pixel_size,
+                                            floor_res=25.0, clamp_exp=80.0,
+                                            hard_cut=True):
+        B, H, W = imgs.shape
+        device, eps = imgs.device, 1e-8
+    
+        # ---------- resoluciones efectivas -----------------
+        res_eff = torch.nan_to_num(res_angstrom, nan=floor_res,
+                                   posinf=floor_res, neginf=floor_res)
+        res_eff = torch.minimum(res_eff, torch.full_like(res_eff, floor_res))
+        res_eff = torch.clamp(res_eff, min=1e-3)
+    
+        # ---------- estadísticos ---------------------------
+        mean0 = imgs.mean((1,2), keepdim=True)
+        std0  = imgs.std ((1,2), keepdim=True)
+    
+        # ---------- malla de frecuencias ------------------
+        fy, fx = (torch.fft.fftfreq(H, d=pixel_size, device=device),
+                  torch.fft.fftfreq(W, d=pixel_size, device=device))
+        gy, gx = torch.meshgrid(fy, fx, indexing='ij')
+        freq2  = (gx**2 + gy**2).unsqueeze(0)             # [1,H,W]
+    
+        # ---------- filtro gaussiano ----------------------
+        ln2    = torch.log(torch.tensor(2.0, device=device))
+        D0     = 1.0 / res_eff                            # [B]
+        sigma2 = (D0 / torch.sqrt(2*ln2))**2              # varianza
+        D0, sigma2 = D0.view(B,1,1), sigma2.view(B,1,1)
+    
+        exponent = (-freq2) / (2*sigma2 + eps)
+        filt     = torch.exp(exponent.clamp(max=clamp_exp))
+    
+        if hard_cut:
+            filt = torch.where(freq2 > D0**2, 0.0, filt)
+    
+        # ---------- FFT y filtrado ------------------------
+        img_filt = torch.fft.ifft2(torch.fft.fft2(imgs) * filt).real
+        img_filt = torch.nan_to_num(img_filt)
+    
+        # ---------- normalización robusta ----------------
+        mean_f = img_filt.mean((1,2), keepdim=True)
+        std_f  = img_filt.std ((1,2), keepdim=True)
+        valid  = std_f > 1e-6
+        img_filt = torch.where(valid,
+                               (img_filt - mean_f)/(std_f+eps)*std0 + mean0,
+                               imgs)
+    
+        return img_filt
+
     
 
     def update_classes_rmsprop(self, cl, clk, learning_rate, decay_rate, epsilon, grad_squared):
@@ -1478,7 +1532,7 @@ class BnBgpu:
         averages,       
         frc_res,        
         sampling = 1.5,       # Å/px
-        low_res_floor = 25.0,      # no filtrar si resolución >= esto
+        low_res_floor = 20.0,      # no filtrar si resolución >= esto
         order = 4,
         blend_factor = 0.5,
         normalize = True
