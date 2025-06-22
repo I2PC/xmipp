@@ -510,8 +510,11 @@ class BnBgpu:
         # clk = self.filter_classes_relion_style(newCL, clk, sampling, 6.0)
         
 
-        if iter > 10:  
-            clk = self.enhance_averages_butterworth(clk, sampling=sampling) 
+        if iter > 10: 
+            res_classes = self.frc_resolution_tensor(newCL, sampling) 
+            clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
+
+            # clk = self.enhance_averages_butterworth(clk, sampling=sampling) 
         #     clk = self.unsharp_mask_norm(clk) 
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
@@ -682,7 +685,8 @@ class BnBgpu:
             clk = self.averages(data, newCL, classes)
             
             # clk = self.unsharp_mask_norm(clk) 
-            clk = self.enhance_averages_butterworth(clk, sampling=sampling)
+            clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
+            # clk = self.enhance_averages_butterworth(clk, sampling=sampling)
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
         
             
@@ -1339,6 +1343,69 @@ class BnBgpu:
     
         return torch.stack(filtered_classes)
     
+    
+    @torch.no_grad()
+    def frc_resolution_tensor(
+            self,
+            newCL,                       # lista de tensores [N_i,H,W]
+            pixel_size: float,           # Å/px
+            frc_threshold: float = 0.143,
+            fallback_res: float = 40.0
+    ) -> torch.Tensor:
+        """Devuelve tensor [n_classes] con la resolución FRC por clase (Å)."""
+        n_classes = len(newCL)
+        device    = newCL[0].device
+        res_out   = torch.full((n_classes,), float('nan'), device=device)
+    
+        for c, imgs in enumerate(newCL):
+            n, h, w = imgs.shape
+            if n < 2:
+                continue  # no se puede partir en mitades
+    
+            # ---------------- half maps -----------------
+            perm          = torch.randperm(n, device=device)
+            half1, half2  = torch.chunk(imgs[perm], 2, dim=0)
+            avg1, avg2    = half1.mean(0), half2.mean(0)
+    
+            # ---------------- FRC -----------------------
+            fft1 = torch.fft.fftshift(torch.fft.fft2(avg1))
+            fft2 = torch.fft.fftshift(torch.fft.fft2(avg2))
+    
+            p1   = (fft1.real**2 + fft1.imag**2)
+            p2   = (fft2.real**2 + fft2.imag**2)
+            prod = (fft1 * fft2.conj()).real
+    
+            y, x = torch.meshgrid(torch.arange(h, device=device),
+                                  torch.arange(w, device=device),
+                                  indexing='ij')
+            r     = ((x - w//2)**2 + (y - h//2)**2).sqrt().long()
+            Rmax  = min(h, w) // 2
+            r.clamp_(0, Rmax-1)
+            r_flat = r.view(-1)
+    
+            frc_num = torch.zeros(Rmax, device=device).scatter_add_(0, r_flat, prod.view(-1))
+            frc_d1  = torch.zeros(Rmax, device=device).scatter_add_(0, r_flat, p1.view(-1))
+            frc_d2  = torch.zeros(Rmax, device=device).scatter_add_(0, r_flat, p2.view(-1))
+            frc     = frc_num / (torch.sqrt(frc_d1*frc_d2) + 1e-12)
+    
+            freqs   = torch.linspace(0, 0.5/pixel_size, Rmax, device=device)
+            idx     = torch.where(frc < frc_threshold)[0]
+    
+            if len(idx) and idx[0] > 0:                # evita f_cut=0
+                f_cut        = freqs[idx[0]]
+                res_out[c]   = 1.0 / f_cut
+    
+        # ---------- sustituye NaN e Inf una sola vez ------------
+        res_out = torch.nan_to_num(res_out,
+                                   nan   = fallback_res,
+                                   posinf= fallback_res,
+                                   neginf= fallback_res)
+        return res_out
+
+    
+    
+    
+    
     def enhance_averages_butterworth(self, 
         averages,
         sampling=1.5,
@@ -1403,6 +1470,88 @@ class BnBgpu:
         filtered = blend_factor * averages + (1.0 - blend_factor) * filtered
     
         return filtered
+    
+    
+    @torch.no_grad()
+    def enhance_averages_butterworth_adaptive(self, 
+        averages,       
+        frc_res,        
+        sampling = 1.5,       # Å/px
+        low_res_floor = 25.0,      # no filtrar si resolución >= esto
+        order = 4,
+        blend_factor = 0.5,
+        normalize = True
+    ):
+        """
+        Aplica filtro Butterworth adaptativo por clase según resolución FRC.
+        Vectorizado para mayor eficiencia.
+        """
+        device = averages.device
+        B, H, W = averages.shape
+        eps = 1e-8
+        nyquist = 1.0 / (2.0 * sampling)
+    
+        # Distancia radial normalizada
+        y, x = torch.meshgrid(
+            torch.arange(H, device=device),
+            torch.arange(W, device=device),
+            indexing='ij'
+        )
+        r_norm = torch.sqrt((x - W//2)**2 + (y - H//2)**2) / (min(H, W)/2)  # [H,W]
+    
+        # Expande r_norm para broadcasting: [B,H,W]
+        r_norm = r_norm.unsqueeze(0).expand(B, -1, -1)
+    
+        # Resuelve condiciones: no filtrar si FRC >= low_res_floor
+        apply_mask = (frc_res < low_res_floor) & torch.isfinite(frc_res) & (frc_res > 0)
+        if not apply_mask.any():
+            return averages.clone()
+    
+        # Creamos low y high cutoffs por clase
+        high_res = frc_res.clone()
+        low_res  = torch.clamp(2.0 * frc_res, min=low_res_floor)
+    
+        # Filtra solo las clases válidas
+        high_res[~apply_mask] = 1.0  # dummy valores para evitar división por cero
+        low_res[~apply_mask]  = 1.0
+    
+        # Cálculo de cortes normalizados
+        f_low  = (1.0 / low_res)  / nyquist / 2.0  # [B]
+        f_high = (1.0 / high_res) / nyquist / 2.0  # [B]
+    
+        # Expande para broadcasting
+        f_low  = f_low.view(B, 1, 1)
+        f_high = f_high.view(B, 1, 1)
+    
+        # Filtro pasa-banda por clase
+        low  = 1.0 / (1.0 + (r_norm / (f_low  + eps))**(2*order))
+        high = 1.0 / (1.0 + (f_high / (r_norm + eps))**(2*order))
+        bp   = low * high  # [B,H,W]
+    
+        # FFT por lote
+        fft = torch.fft.fft2(averages)                           # [B,H,W]
+        fft_shifted = torch.fft.fftshift(fft, dim=(-2,-1))       # [B,H,W]
+    
+        # Aplica filtro
+        filtered_fft = fft_shifted * bp                          # [B,H,W]
+        fft_unshifted = torch.fft.ifftshift(filtered_fft, dim=(-2,-1))
+        filtered = torch.fft.ifft2(fft_unshifted).real           # [B,H,W]
+    
+        if normalize:
+            mean_orig = averages.mean(dim=(-2,-1), keepdim=True) # [B,1,1]
+            std_orig  = averages.std(dim=(-2,-1), keepdim=True)
+            mean_filt = filtered.mean(dim=(-2,-1), keepdim=True)
+            std_filt  = filtered.std(dim=(-2,-1), keepdim=True)
+            filtered  = (filtered - mean_filt) / (std_filt + eps) * std_orig + mean_orig
+    
+        # Fusión: solo mezcla clases aplicadas, las otras las dejamos intactas
+        output = averages.clone()
+        output[apply_mask] = (
+            blend_factor * averages[apply_mask] +
+            (1.0 - blend_factor) * filtered[apply_mask]
+        )
+    
+        return output
 
 
 
