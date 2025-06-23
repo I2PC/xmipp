@@ -277,6 +277,7 @@ if __name__=="__main__":
                                          freqBn, coef, cvecs, mask, sigma, maxRes, sampling)
     
                     # save classes
+                    cl = bnb.normalize_particles_global(cl)
                     file = output+"_%s_%s_%s.mrcs"%(initBatch,iter+1,cycles)
                     save_images(cl.cpu().detach().numpy(), sampling, file)
     
