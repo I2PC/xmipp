@@ -41,10 +41,15 @@ class ScriptSynchronizeTransform(XmippScript):
     def defineParams(self):
         self.addParamsLine(' -i <pairwise>          : Pairwise alignment metadata')
         self.addParamsLine(' -o <alignment>         : Output alignment metadata')
+        self.addParamsLine(' [--error <error>]      : Output error metadata (optional)')
 
     def run(self):
         inputFn = self.getParam('-i')
         outputFn = self.getParam('-o')
+        if self.checkParam('--error'):
+            errorFn = self.getParam('--error')
+        else:
+            errorFn = None
 
         inputMd = xmippLib.MetaData(inputFn)
         pairs, rotations, shifts, correlations = self._readPairwiseAlignments(inputMd)
@@ -54,12 +59,11 @@ class ScriptSynchronizeTransform(XmippScript):
         n = len(ids)
         synchronizedRotations, rotErrors = self._synchronizeRotations(indices, n, rotations, correlations)
         synchronizedShifts, shiftErrors = self._synchronizeShifts(indices, n, synchronizedRotations, shifts)
-            
-        fig, (ax1, ax2, ax3) = plt.subplots(3)
-        ax1.hist(rotErrors, bins=128)
-        ax2.hist(shiftErrors, bins=128)
-        ax3.scatter(rotErrors, shiftErrors)
-        plt.show()
+        
+        if errorFn is not None:
+            inputMd.setColumnValues(xmippLib.MDL_ANGLE_DIFF, rotErrors)
+            inputMd.setColumnValues(xmippLib.MDL_SHIFT_DIFF, shiftErrors)
+            inputMd.write(errorFn)
             
         outputMd = self._writeAlignments(ids, synchronizedRotations, synchronizedShifts)
         outputMd.write(outputFn)
