@@ -30,7 +30,8 @@ import xmippLib
 import itertools
 import numpy as np
 import scipy.sparse
-    
+
+import matplotlib.pyplot as plt
 
 
 class ScriptSynchronizeTransform(XmippScript):
@@ -51,8 +52,14 @@ class ScriptSynchronizeTransform(XmippScript):
         indices = indices.reshape(pairs.shape)
         
         n = len(ids)
-        synchronizedRotations = self._synchronizeRotations(indices, n, rotations, correlations)
-        synchronizedShifts, _ = self._synchronizeShifts(indices, n, synchronizedRotations, shifts)
+        synchronizedRotations, rotErrors = self._synchronizeRotations(indices, n, rotations, correlations)
+        synchronizedShifts, shiftErrors = self._synchronizeShifts(indices, n, synchronizedRotations, shifts)
+            
+        fig, (ax1, ax2, ax3) = plt.subplots(3)
+        ax1.hist(rotErrors, bins=128)
+        ax2.hist(shiftErrors, bins=128)
+        ax3.scatter(rotErrors, shiftErrors)
+        plt.show()
             
         outputMd = self._writeAlignments(ids, synchronizedRotations, synchronizedShifts)
         outputMd.write(outputFn)
@@ -161,13 +168,13 @@ class ScriptSynchronizeTransform(XmippScript):
         sign = np.linalg.det(result)
         result[:,:,2] *= sign[:,None]
             
-        errors = []
-        for (index0, index1), rotation in zip(indices, rotations):
+        errors = np.empty(len(indices))
+        for i, (index0, index1), rotation in zip(itertools.count(), indices, rotations):
             delta = result[index0].T @ rotation @ result[index1]
             error = np.degrees(np.arccos((np.trace(delta) - 1) / 2))
-            errors.append(error)
-
-        return result
+            errors[i] = error
+        
+        return result, errors
 
     def _synchronizeShifts(self, indices: np.ndarray, n: int, synchronizedRotations: np.ndarray, shifts: np.ndarray) -> np.ndarray:
         nCols = 3*n
@@ -190,9 +197,13 @@ class ScriptSynchronizeTransform(XmippScript):
         
         solution = scipy.sparse.linalg.lsqr(desing, y)
         x = solution[0].reshape((n, 3))
-        err = solution[3] / n
         
-        return x, (err / n)
+        predicted = desing @ solution[0]
+        deltas = predicted - y
+        deltas = deltas.reshape(len(indices), 3)
+        errors = np.square(deltas).sum(axis=1)
+        
+        return x, errors
     
 if __name__ == '__main__':
     ScriptSynchronizeTransform().tryRun()
