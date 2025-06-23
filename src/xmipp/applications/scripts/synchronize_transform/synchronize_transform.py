@@ -61,8 +61,8 @@ class ScriptSynchronizeTransform(XmippScript):
         synchronizedShifts, shiftErrors = self._synchronizeShifts(indices, n, synchronizedRotations, shifts)
         
         if errorFn is not None:
-            inputMd.setColumnValues(xmippLib.MDL_ANGLE_DIFF, rotErrors)
-            inputMd.setColumnValues(xmippLib.MDL_SHIFT_DIFF, shiftErrors)
+            inputMd.setColumnValues(xmippLib.MDL_ANGLE_DIFF, rotErrors.tolist())
+            inputMd.setColumnValues(xmippLib.MDL_SHIFT_DIFF, shiftErrors.tolist())
             inputMd.write(errorFn)
             
         outputMd = self._writeAlignments(ids, synchronizedRotations, synchronizedShifts)
