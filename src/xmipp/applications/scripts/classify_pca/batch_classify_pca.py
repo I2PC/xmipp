@@ -90,7 +90,7 @@ if __name__=="__main__":
     output = args.output
     expStar = args.starExp
     Ntrain = int(args.training)
-    maxRes = float(args.highres)
+    highRes = float(args.highres)
     per_eig_value = float(args.perc)
            
     torch.cuda.is_available()
@@ -124,7 +124,7 @@ if __name__=="__main__":
     nBand = 1
     pca = PCAgpu(nBand)
     
-    freqBn, cvecs, coef = pca.calculatePCAbasis(mmap, Ntrain, nBand, dim, sampling, maxRes, 
+    freqBn, cvecs, coef = pca.calculatePCAbasis(mmap, Ntrain, nBand, dim, sampling, maxRes=20.0, 
                                                 minRes=530, per_eig=per_eig_value, batchPCA=True)
     
     # freqBn = torch.load(bands) 
@@ -247,18 +247,18 @@ if __name__=="__main__":
                             count+=1    
                     del(batch_projRef)  
                     
-                    # if mode == "create_classes":
-                    #     res_map = {5: 15, 8: 12, 15: 8}
-                    #     if iter in res_map:
-                    #         del (freqBn, coef, grid_flat, cvecs)
-                    #         maxRes = res_map[iter]
-                    #         freqBn, cvecs, coef = pca.calculatePCAbasis(
-                    #             mmap, Ntrain, nBand, dim, sampling, maxRes,
-                    #             minRes=530, per_eig=0.75, batchPCA=True
-                    #         )
-                    #         grid_flat = flatGrid(freqBn, coef, nBand)
-                    #
-                    #         print(iter , maxRes , coef)    
+                    if mode == "create_classes":
+                        res_map = {5: 15, 8: 12, 15: highRes}
+                        if iter in res_map:
+                            del (freqBn, coef, grid_flat, cvecs)
+                            maxRes = res_map[iter]
+                            freqBn, cvecs, coef = pca.calculatePCAbasis(
+                                mmap, Ntrain, nBand, dim, sampling, maxRes,
+                                minRes=530, per_eig=per_eig_value, batchPCA=True
+                            )
+                            grid_flat = flatGrid(freqBn, coef, nBand)
+                    
+                            print(iter , maxRes , coef)    
      
                     
                     #update classes        
@@ -268,16 +268,15 @@ if __name__=="__main__":
                         # if iter < 5:
                         cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version00(
                             mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, 
-                            classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling, cycles)
+                            classes, freqBn, coef, cvecs, mask, sigma, sampling, cycles)
                         # else:
                             # cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, mask, sigma)
                     else:
                         cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(expImages, 
                                         cl, tMatrix, iter, subset, matches, vectorshift, classes,
-                                         freqBn, coef, cvecs, mask, sigma, maxRes, sampling)
+                                         freqBn, coef, cvecs, mask, sigma, sampling)
     
                     # save classes
-                    cl = bnb.normalize_particles_global(cl)
                     file = output+"_%s_%s_%s.mrcs"%(initBatch,iter+1,cycles)
                     save_images(cl.cpu().detach().numpy(), sampling, file)
     

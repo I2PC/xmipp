@@ -396,7 +396,7 @@ class BnBgpu:
     
     
     
-    def create_classes_version00(self, mmap, tMatrix, iter, nExp, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling, cycles):
+    def create_classes_version00(self, mmap, tMatrix, iter, nExp, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, sampling, cycles):
         
         # print("----------create-classes-------------")      
             
@@ -630,7 +630,7 @@ class BnBgpu:
     
     
     
-    def align_particles_to_classes(self, data, cl, tMatrix, iter, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling):
+    def align_particles_to_classes(self, data, cl, tMatrix, iter, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, sampling):
         
         # print("----------align-to-classes-------------")
         
