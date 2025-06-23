@@ -64,12 +64,15 @@ if __name__=="__main__":
     parser.add_argument("-r", "--ref", help="2D classes of external method")   
     # parser.add_argument("-b", "--bands", help="file with frequency bands", required=True)
     # parser.add_argument("-v", "--vecs", help="file with pretrain eigenvectors", required=True)
-    parser.add_argument("-t", "--training", help="number of image for training", required=True)
     parser.add_argument("--mask",  action="store_true", help="A Gaussian mask is used.")
     parser.add_argument("--sigma", type=float, help="value of sigma for the Gaussian mask. "
                                                     "It is only used if the --mask option is applied.")
     parser.add_argument("-o", "--output", help="Root directory for the output files", required=True)
     parser.add_argument("-stExp", "--starExp", help="star file for images")
+    #For training
+    parser.add_argument("-t", "--training", help="number of image for training", required=True)
+    parser.add_argument("-hr", "--highres", help="highest resolution to consider", required=True)
+    parser.add_argument("-p", "--perc", help="PCA percentage (between 0-1)", required=True)
 
     
     args = parser.parse_args()
@@ -80,13 +83,15 @@ if __name__=="__main__":
     final_classes = classes  
     refImages = args.ref
     niter = 22
-    Ntrain = int(args.training)
     # bands = args.bands
     # vecs = args.vecs
     mask = args.mask
     sigma = args.sigma
     output = args.output
     expStar = args.starExp
+    Ntrain = int(args.training)
+    maxRes = float(args.highres)
+    per_eig_value = float(args.perc)
            
     torch.cuda.is_available()
     torch.cuda.current_device()
@@ -115,12 +120,12 @@ if __name__=="__main__":
     angles_deg = np.zeros(nExp)
     
     #PCA function
-    maxRes = 8.0
+    # maxRes = 8.0
     nBand = 1
     pca = PCAgpu(nBand)
     
     freqBn, cvecs, coef = pca.calculatePCAbasis(mmap, Ntrain, nBand, dim, sampling, maxRes, 
-                                                minRes=530, per_eig=0.75, batchPCA=True)
+                                                minRes=530, per_eig=per_eig_value, batchPCA=True)
     
     # freqBn = torch.load(bands) 
     # cvecs = torch.load(vecs)
@@ -222,7 +227,8 @@ if __name__=="__main__":
                     for rot in vectorRot:            
             
                         # print("---Precomputing the projections of the reference images---")          
-                        batch_projRef = bnb.precalculate_projection(cl, freqBn, grid_flat, coef, cvecs, float(rot), vectorshift)
+                        batch_projRef = bnb.precalculate_projection(cl, freqBn, grid_flat, 
+                                                            coef, cvecs, float(rot), vectorshift)
                 
                         count = 0  
                         steps = initStep if mode == "create_classes" else 1 
@@ -260,11 +266,15 @@ if __name__=="__main__":
             
                     if mode == "create_classes":
                         # if iter < 5:
-                        cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version00(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling, cycles)
+                        cl, tMatrix, batch_projExp_cpu = bnb.create_classes_version00(
+                            mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, 
+                            classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling, cycles)
                         # else:
                             # cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, final_classes, freqBn, coef, cvecs, mask, sigma)
                     else:
-                        cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(expImages, cl, tMatrix, iter, subset, matches, vectorshift, classes, freqBn, coef, cvecs, mask, sigma, maxRes, sampling)
+                        cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(expImages, 
+                                        cl, tMatrix, iter, subset, matches, vectorshift, classes,
+                                         freqBn, coef, cvecs, mask, sigma, maxRes, sampling)
     
                     # save classes
                     file = output+"_%s_%s_%s.mrcs"%(initBatch,iter+1,cycles)
@@ -324,7 +334,7 @@ if __name__=="__main__":
     
     print("Adjust contrast")
     # cl = bnb.increase_contrast_sigmoid(cl, 8, 0.6)
-    # cl = bnb.normalize_particles_global(cl)
+    cl = bnb.normalize_particles_global(cl)
     # cl = bnb.process_images_iteratively(cl, 10)
     # cl = bnb.center_by_com(cl)
 
