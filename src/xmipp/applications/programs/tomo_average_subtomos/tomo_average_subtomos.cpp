@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * Authors: Federico P. de Isidro Gomez			  fp.deisidro@cnb.csic.es
  * Authors:     J.L. Vilas
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC

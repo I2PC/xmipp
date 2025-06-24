@@ -92,10 +92,14 @@ void Micrograph::open_micrograph(const FileName &_fn_micrograph)
     int result;
     switch (datatype)
     {
-        case DT_UHalfByte:
+    case DT_UHalfByte:
     case DT_UChar:
         result = IUChar.readMapped(fn_micrograph, FIRST_IMAGE);
         pixelDesvFilter(IUChar.data, stdevFilter);
+        break;
+    case DT_SChar:
+        result = ISChar.readMapped(fn_micrograph, FIRST_IMAGE);
+        pixelDesvFilter(ISChar.data, stdevFilter);
         break;
     case DT_UShort:
         result = IUShort.readMapped(fn_micrograph, FIRST_IMAGE);

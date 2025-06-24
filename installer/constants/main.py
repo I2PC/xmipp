@@ -64,7 +64,7 @@ API_URL = 'https://xmipp.i2pc.es/api/attempts/'
 DOCUMENTATION_URL = 'https://i2pc.github.io/docs/'
 
 # External URLs
-CMAKE_INSTALL_DOCS_URL = 'https://i2pc.github.io/docs/Installation/InstallationNotes/index.html#cmake'
+CMAKE_INSTALL_DOCS_URL = 'https://i2pc.github.io/docs/Installation/Requirements/index.html#requirements'
 MODELS_URL = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
 SCIPION_FILES_REMOTE_PATH = "scipionfiles/downloads/scipion/software/em"
 SCIPION_TESTS_URLS = "http://scipion.cnb.csic.es/downloads/scipion/data/tests"
@@ -73,7 +73,7 @@ SCIPION_SOFTWARE_EM = "scipionfiles/downloads/scipion/software/em"
 # Other variables
 TAB_SIZE = 4
 SECTION_MESSAGE_LEN = 60
-TAG_BRANCH_NAME = 'v3.24.12.0-Poseidon'
+TAG_BRANCH_NAME = 'v3.25.06.0-Rhea'
 
 # File names
 CONFIG_FILE = 'xmipp.conf'

@@ -28,6 +28,7 @@ JOTON = 'joton'
 DISCONTINUED = 'nobody'
 JMOTA = 'javimota'
 EFG = 'estrellafg'
+JMK = 'jamesmkrieger'
 
 # import math
 import os
@@ -1414,3 +1415,33 @@ class ProjSubtraction(XmippProgramTest):
                      "--padding 2.0 --sigma 3 --limit_freq 0 --cirmaskrad -1 "
                      "--save input/projectionSubtraction --oroot %o/subtracted_part",
                      outputs=["output_particles.xmd"], errorthreshold=1)
+
+class ContinuousCreateResiduals(XmippProgramTest):
+    _owner = JMK
+    @classmethod
+    def getProgram(cls):
+        return 'xmipp_continuous_create_residuals'
+
+    def test_case1(self):
+        "Test all 3 outputs"
+        self.runCase("-i input/aFewProjections.sel -o %o/output.xmd --ref input/phantomBacteriorhodopsin.vol --oresiduals %o/residuals.stk --oprojections %o/projections.stk",
+                preruns=["xmipp_angular_project_library -i input/phantomBacteriorhodopsin.vol -o %o/reference.stk --sampling_rate 10" ],
+                outputs=["output.xmd", "residuals.stk", "projections.stk"])
+
+    def test_case2(self):
+        "Test output xmd and residuals only"
+        self.runCase("-i input/aFewProjections.sel -o %o/output.xmd --ref input/phantomBacteriorhodopsin.vol --oresiduals %o/residuals.stk",
+                preruns=["xmipp_angular_project_library -i input/phantomBacteriorhodopsin.vol -o %o/reference.stk --sampling_rate 10" ],
+                outputs=["output.xmd", "residuals.stk"])
+
+    def test_case3(self):
+        "Test output xmd and projections only"
+        self.runCase("-i input/aFewProjections.sel -o %o/output.xmd --ref input/phantomBacteriorhodopsin.vol --oprojections %o/projections.stk",
+                preruns=["xmipp_angular_project_library -i input/phantomBacteriorhodopsin.vol -o %o/reference.stk --sampling_rate 10" ],
+                outputs=["output.xmd", "projections.stk"])
+
+    def test_case4(self):
+        "Test output xmd only"
+        self.runCase("-i input/aFewProjections.sel -o %o/output.xmd --ref input/phantomBacteriorhodopsin.vol",
+                preruns=["xmipp_angular_project_library -i input/phantomBacteriorhodopsin.vol -o %o/reference.stk --sampling_rate 10" ],
+                outputs=["output.xmd"])

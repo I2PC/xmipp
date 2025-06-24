@@ -509,7 +509,7 @@ double cuda_tranformImage(ProgCudaAngularContinuousAssign2 *prm, double rot, dou
 
 
     if (prm->contCost == CONTCOST_L1) {
-        FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(mP)cost += fabs((DIRECT_A2D_ELEM(mP, i, j)-DIRECT_A2D_ELEM(mIfilteredp, i, j))*DIRECT_A2D_ELEM(prm->mask2D, i, j));
+        FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(mP)cost += fabs((a*DIRECT_A2D_ELEM(mP, i, j)+b-DIRECT_A2D_ELEM(mIfilteredp, i, j))*DIRECT_A2D_ELEM(prm->mask2D, i, j));
         cost *= prm->iMask2Dsum;
     } else {
         cost = -correlationIndex(mIfilteredp, mP, &(prm->mask2D));

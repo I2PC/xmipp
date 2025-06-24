@@ -1,3 +1,31 @@
+## Release 3.25.06.0 - Rhea
+   ### Xmipp Programs 
+   - New programs
+      - continuous_create_residuals: Make better residuals by continuous assignment updates to projections
+      - tomo_detect_landmarks: to detect landmarks in tilt series (TS)
+      - tomo_calculate_landmark_residuals: to calculate residuals in TS
+      - tomo_detect_misalignment_residuals: to detect misalignment from residuals in TS
+      - batch_tomo_misalignment_resid_statistics: Python script to calculate statistical metrics from a set of residuals
+      - tomo_tiltseries_detect_misalignment_corr: (legacy) for calculating relative shifts between tilt images, as a prealignment strategy
+
+   - Programs updated
+      - Particle subtraction: now generates a single stack + includes noise power estimation
+      - classify_pca: allows setting CUDA_DEVICE for NVIDIA drivers ≤ 470
+        
+   - Programs fixed
+      - Fixed missing b in angular_continuous_assign2_gpu
+      - CUDAFFT test fixed
+      - Minor compatibility fixes for CUDA 12.6
+      - DT_SChar added to micrographs
+        
+   ### Installation and user guide
+   - Fixed broken links in documentation
+   - Enhanced data collection steps (context suggests improvements in reproducibility or logging)
+     
+   ### More Xmipp  
+   - DLTK environments: channels limited to conda-forge and pip. Updated deepEMhancer version and models
+   - Allowing to skip sorting in metadata_vec::split
+
 ## Release 3.24.12.0 - Poseidon
    ### Xmipp Programs 
    - New programs
