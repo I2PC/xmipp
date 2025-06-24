@@ -511,9 +511,10 @@ class BnBgpu:
         
 
         if iter > 10: 
-            res_classes = self.frc_resolution_tensor(newCL, sampling) 
+            res_classes = self.frc_resolution_tensor(newCL, sampling)
+            print(res_classes) 
             # clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
-            clk = self.enhance_averages_butterworth(clk, sampling=sampling)
+            clk = self.enhance_averages_butterworth(clk, sampling)
             clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
 
             # clk = self.enhance_averages_butterworth(clk, sampling=sampling) 
@@ -690,7 +691,7 @@ class BnBgpu:
             # clk = self.unsharp_mask_norm(clk) 
             res_classes = self.frc_resolution_tensor(newCL, sampling)
             # clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
-            clk = self.enhance_averages_butterworth(clk, sampling=sampling)
+            clk = self.enhance_averages_butterworth(clk, sampling)
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
             clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
         
@@ -958,26 +959,22 @@ class BnBgpu:
         B, H, W = imgs.shape
         device, eps = imgs.device, 1e-8
     
-        # ---------- resoluciones efectivas -----------------
         res_eff = torch.nan_to_num(res_angstrom, nan=floor_res,
                                    posinf=floor_res, neginf=floor_res)
         res_eff = torch.minimum(res_eff, torch.full_like(res_eff, floor_res))
         res_eff = torch.clamp(res_eff, min=1e-3)
     
-        # ---------- estadísticos ---------------------------
         mean0 = imgs.mean((1,2), keepdim=True)
         std0  = imgs.std ((1,2), keepdim=True)
     
-        # ---------- malla de frecuencias ------------------
         fy, fx = (torch.fft.fftfreq(H, d=pixel_size, device=device),
                   torch.fft.fftfreq(W, d=pixel_size, device=device))
         gy, gx = torch.meshgrid(fy, fx, indexing='ij')
-        freq2  = (gx**2 + gy**2).unsqueeze(0)             # [1,H,W]
+        freq2  = (gx**2 + gy**2).unsqueeze(0)           
     
-        # ---------- filtro gaussiano ----------------------
         ln2    = torch.log(torch.tensor(2.0, device=device))
-        D0     = 1.0 / res_eff                            # [B]
-        sigma2 = (D0 / torch.sqrt(2*ln2))**2              # varianza
+        D0     = 1.0 / res_eff                            
+        sigma2 = (D0 / torch.sqrt(2*ln2))**2             
         D0, sigma2 = D0.view(B,1,1), sigma2.view(B,1,1)
     
         exponent = (-freq2) / (2*sigma2 + eps)
@@ -986,11 +983,9 @@ class BnBgpu:
         if hard_cut:
             filt = torch.where(freq2 > D0**2, 0.0, filt)
     
-        # ---------- FFT y filtrado ------------------------
         img_filt = torch.fft.ifft2(torch.fft.fft2(imgs) * filt).real
         img_filt = torch.nan_to_num(img_filt)
     
-        # ---------- normalización robusta ----------------
         mean_f = img_filt.mean((1,2), keepdim=True)
         std_f  = img_filt.std ((1,2), keepdim=True)
         valid  = std_f > 1e-6
@@ -1464,9 +1459,9 @@ class BnBgpu:
     
     def enhance_averages_butterworth(self, 
         averages,
-        sampling=1.5,
-        low_res_angstrom=25.0,
-        high_res_angstrom=4.0,
+        pixel_size,
+        # high_res_angstrom=4,
+        # low_res_angstrom=20,
         order=4,
         blend_factor=0.5,
         normalize=True
@@ -1486,12 +1481,17 @@ class BnBgpu:
         Returns:
             Tensor: clases promedio mejoradas [B, H, W]
         """
+        high_res_angstrom = 2 * pixel_size
+        low_res_angstrom = 10 * pixel_size
+        # low_res_angstrom = 20.0
+        print(high_res_angstrom, low_res_angstrom)
+        
         device = averages.device
         B, H, W = averages.shape
         eps = 1e-8
     
         # 1. Construcción del filtro pasa-banda
-        nyquist = 1.0 / (2.0 * sampling)
+        nyquist = 1.0 / (2.0 * pixel_size)
         low_cutoff = (1.0 / low_res_angstrom) / nyquist / 2
         high_cutoff = (1.0 / high_res_angstrom) / nyquist / 2
     
