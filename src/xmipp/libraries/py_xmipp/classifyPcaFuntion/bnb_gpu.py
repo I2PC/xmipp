@@ -1481,7 +1481,7 @@ class BnBgpu:
         Returns:
             Tensor: clases promedio mejoradas [B, H, W]
         """
-        high_res_angstrom = 2 * pixel_size
+        high_res_angstrom = (2 * pixel_size) / 0.95
         low_res_angstrom = 10 * pixel_size
         # low_res_angstrom = 20.0
         print(high_res_angstrom, low_res_angstrom)
