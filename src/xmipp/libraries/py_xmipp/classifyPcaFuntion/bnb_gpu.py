@@ -1556,8 +1556,8 @@ class BnBgpu:
             indexing='ij'
         )
         r = torch.sqrt((x - W // 2) ** 2 + (y - H // 2) ** 2)
-        # r_norm = r / r.max()  # [H, W] en [0, 1]
-        r_norm = r / (min(H, W) / 2.0)
+        r_norm = r / r.max()  # [H, W] en [0, 1]
+        # r_norm = r / (min(H, W) / 2.0)
         r_norm = r_norm.unsqueeze(0).expand(B, -1, -1)  # [B, H, W]
     
         # === 2. Máscara de clases a procesar: sólo si FRC < low_res_floor
@@ -1574,8 +1574,8 @@ class BnBgpu:
         low_res[~apply_mask] = 1.0
     
         # === 4. Frecuencias normalizadas respecto al Nyquist (∈ [0, 0.5])
-        f_low = (1.0 / low_res) / nyquist# / 2.0
-        f_high = (1.0 / high_res) / nyquist# / 2.0
+        f_low = (1.0 / low_res) / nyquist / 2.0
+        f_high = (1.0 / high_res) / nyquist / 2.0
         f_low  = torch.clamp(f_low,  min=0.0, max=0.5)
         f_high = torch.clamp(f_high, min=0.0, max=0.5)
         f_low = f_low.view(B, 1, 1)
