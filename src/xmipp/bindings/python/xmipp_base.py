@@ -258,7 +258,8 @@ class CondaEnvManager(object):
     def getCondaEnvTargetFilename(self, name):
         env = CondaEnvManager.XMIPP_CONDA_ENVS[name]
         versionId = env.get('versionId', None),
-
+        if isinstance(versionId, tuple):
+            versionId = versionId[0]
         if versionId is not None:
             target = f'{name}-{versionId}.yml'
         else:
