@@ -955,7 +955,7 @@ class BnBgpu:
     
     @torch.no_grad()
     def gaussian_lowpass_filter_2D_adaptive(self, imgs, res_angstrom, pixel_size,
-                                            floor_res=25.0, clamp_exp=80.0,
+                                            floor_res=30.0, clamp_exp=80.0,
                                             hard_cut=False):
         B, H, W = imgs.shape
         device, eps = imgs.device, 1e-8
