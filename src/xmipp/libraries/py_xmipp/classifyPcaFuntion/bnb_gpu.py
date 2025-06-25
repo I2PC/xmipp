@@ -516,7 +516,7 @@ class BnBgpu:
             clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
             # clk = self.unsharp_mask_norm(clk)
             # clk = self.enhance_averages_butterworth(clk, sampling)
-            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
+            # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
 
             # clk = self.enhance_averages_butterworth(clk, sampling=sampling) 
         #     clk = self.unsharp_mask_norm(clk) 
