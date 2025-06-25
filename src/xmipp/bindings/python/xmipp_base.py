@@ -284,10 +284,10 @@ class CondaEnvManager(object):
         return condaActCmd
 
     @staticmethod
-    def yieldInstallAllCmds(useGpu, folderInstallation):
+    def yieldInstallAllCmds(useGpu, pathInstallation):
         for name, env in CondaEnvManager.XMIPP_CONDA_ENVS.items():
             yield CondaEnvManager.installEnvironCmd(
-	            folderInstallation=folderInstallation,
+	            pathInstallation=pathInstallation,
                 name=name, 
                 versionId=env.get('versionId', None), 
                 requirementsFn=env['requirements'], 
