@@ -513,8 +513,9 @@ class BnBgpu:
         if iter > 10: 
             res_classes = self.frc_resolution_tensor(newCL, sampling)
             print(res_classes) 
-            # clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
-            clk = self.enhance_averages_butterworth(clk, sampling)
+            clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
+            # clk = self.unsharp_mask_norm(clk)
+            # clk = self.enhance_averages_butterworth(clk, sampling)
             clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
 
             # clk = self.enhance_averages_butterworth(clk, sampling=sampling) 
@@ -690,8 +691,8 @@ class BnBgpu:
             
             # clk = self.unsharp_mask_norm(clk) 
             res_classes = self.frc_resolution_tensor(newCL, sampling)
-            # clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
-            clk = self.enhance_averages_butterworth(clk, sampling)
+            clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
+            # clk = self.enhance_averages_butterworth(clk, sampling)
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
             clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
         
@@ -1481,10 +1482,10 @@ class BnBgpu:
         Returns:
             Tensor: clases promedio mejoradas [B, H, W]
         """
-        high_res_angstrom = (2 * pixel_size) / 0.95
-        low_res_angstrom = 10 * pixel_size
-        # low_res_angstrom = 20.0
-        print(high_res_angstrom, low_res_angstrom)
+        # high_res_angstrom = (2 * pixel_size) / 0.95
+        # low_res_angstrom = 10 * pixel_size
+        high_res_angstrom = 4
+        low_res_angstrom = 20.0
         
         device = averages.device
         B, H, W = averages.shape
@@ -1505,6 +1506,7 @@ class BnBgpu:
     
         low = 1.0 / (1.0 + (r_norm / (low_cutoff + eps))**(2 * order))
         high = 1.0 / (1.0 + (high_cutoff / (r_norm + eps))**(2 * order))
+ 
         bp_filter = low * high  # pasa-banda
     
         # 2. Aplicar en espacio de Fourier
@@ -1532,75 +1534,71 @@ class BnBgpu:
     def enhance_averages_butterworth_adaptive(self, 
         averages,       
         frc_res,        
-        sampling = 1.5,       # Å/px
-        low_res_floor = 20.0,      # no filtrar si resolución >= esto
+        pixel_size,       # Å/pix
+        low_res_floor = 20.0,
         order = 4,
         blend_factor = 0.5,
         normalize = True
     ):
         """
         Aplica filtro Butterworth adaptativo por clase según resolución FRC.
-        Vectorizado para mayor eficiencia.
+        Si la resolución FRC es ≥ low_res_floor, no se aplica filtrado.
         """
         device = averages.device
         B, H, W = averages.shape
         eps = 1e-8
-        nyquist = 1.0 / (2.0 * sampling)
+        nyquist = 1.0 / (2.0 * pixel_size)
     
-        # Distancia radial normalizada
+        # === 1. Coordenadas radiales normalizadas en [0, 1]
         y, x = torch.meshgrid(
             torch.arange(H, device=device),
             torch.arange(W, device=device),
             indexing='ij'
         )
-        r_norm = torch.sqrt((x - W//2)**2 + (y - H//2)**2) / (min(H, W)/2)  # [H,W]
+        r = torch.sqrt((x - W // 2) ** 2 + (y - H // 2) ** 2)
+        r_norm = r / r.max()  # [H, W] en [0, 1]
+        r_norm = r_norm.unsqueeze(0).expand(B, -1, -1)  # [B, H, W]
     
-        # Expande r_norm para broadcasting: [B,H,W]
-        r_norm = r_norm.unsqueeze(0).expand(B, -1, -1)
-    
-        # Resuelve condiciones: no filtrar si FRC >= low_res_floor
+        # === 2. Máscara de clases a procesar: sólo si FRC < low_res_floor
         apply_mask = (frc_res < low_res_floor) & torch.isfinite(frc_res) & (frc_res > 0)
         if not apply_mask.any():
             return averages.clone()
     
-        # Creamos low y high cutoffs por clase
+        # === 3. Configura las resoluciones de corte
         high_res = frc_res.clone()
-        low_res  = torch.clamp(2.0 * frc_res, min=low_res_floor)
+        low_res = torch.full_like(high_res, low_res_floor)  # fijo en 20 Å
     
-        # Filtra solo las clases válidas
-        high_res[~apply_mask] = 1.0  # dummy valores para evitar división por cero
-        low_res[~apply_mask]  = 1.0
+        # Para clases que no se procesan, valores dummy
+        high_res[~apply_mask] = 1.0
+        low_res[~apply_mask] = 1.0
     
-        # Cálculo de cortes normalizados
-        f_low  = (1.0 / low_res)  / nyquist / 2.0  # [B]
-        f_high = (1.0 / high_res) / nyquist / 2.0  # [B]
-    
-        # Expande para broadcasting
-        f_low  = f_low.view(B, 1, 1)
+        # === 4. Frecuencias normalizadas respecto al Nyquist (∈ [0, 0.5])
+        f_low = (1.0 / low_res) / nyquist / 2.0
+        f_high = (1.0 / high_res) / nyquist / 2.0
+        f_low = f_low.view(B, 1, 1)
         f_high = f_high.view(B, 1, 1)
     
-        # Filtro pasa-banda por clase
-        low  = 1.0 / (1.0 + (r_norm / (f_low  + eps))**(2*order))
-        high = 1.0 / (1.0 + (f_high / (r_norm + eps))**(2*order))
-        bp   = low * high  # [B,H,W]
+        # === 5. Filtro Butterworth pasa banda
+        low = 1.0 / (1.0 + (r_norm / (f_low + eps)) ** (2 * order))
+        high = 1.0 / (1.0 + (f_high / (r_norm + eps)) ** (2 * order))
+        bp = low * high  # [B, H, W]
     
-        # FFT por lote
-        fft = torch.fft.fft2(averages)                           # [B,H,W]
-        fft_shifted = torch.fft.fftshift(fft, dim=(-2,-1))       # [B,H,W]
+        # === 6. FFT y aplicación de filtro
+        fft = torch.fft.fft2(averages)
+        fft_shifted = torch.fft.fftshift(fft, dim=(-2, -1))
+        filtered_fft = fft_shifted * bp
+        fft_unshifted = torch.fft.ifftshift(filtered_fft, dim=(-2, -1))
+        filtered = torch.fft.ifft2(fft_unshifted).real
     
-        # Aplica filtro
-        filtered_fft = fft_shifted * bp                          # [B,H,W]
-        fft_unshifted = torch.fft.ifftshift(filtered_fft, dim=(-2,-1))
-        filtered = torch.fft.ifft2(fft_unshifted).real           # [B,H,W]
-    
+        # === 7. Normalización de contraste
         if normalize:
-            mean_orig = averages.mean(dim=(-2,-1), keepdim=True) # [B,1,1]
-            std_orig  = averages.std(dim=(-2,-1), keepdim=True)
-            mean_filt = filtered.mean(dim=(-2,-1), keepdim=True)
-            std_filt  = filtered.std(dim=(-2,-1), keepdim=True)
-            filtered  = (filtered - mean_filt) / (std_filt + eps) * std_orig + mean_orig
+            mean_orig = averages.mean(dim=(-2, -1), keepdim=True)
+            std_orig = averages.std(dim=(-2, -1), keepdim=True)
+            mean_filt = filtered.mean(dim=(-2, -1), keepdim=True)
+            std_filt = filtered.std(dim=(-2, -1), keepdim=True)
+            filtered = (filtered - mean_filt) / (std_filt + eps) * std_orig + mean_orig
     
-        # Fusión: solo mezcla clases aplicadas, las otras las dejamos intactas
+        # === 8. Fusión: sólo en clases seleccionadas
         output = averages.clone()
         output[apply_mask] = (
             blend_factor * averages[apply_mask] +
