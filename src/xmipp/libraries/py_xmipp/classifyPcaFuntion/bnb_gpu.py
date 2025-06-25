@@ -516,7 +516,7 @@ class BnBgpu:
             clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
             # clk = self.unsharp_mask_norm(clk)
             # clk = self.enhance_averages_butterworth(clk, sampling)
-            # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
+            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
 
             # clk = self.enhance_averages_butterworth(clk, sampling=sampling) 
         #     clk = self.unsharp_mask_norm(clk) 
@@ -694,7 +694,7 @@ class BnBgpu:
             clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
             # clk = self.enhance_averages_butterworth(clk, sampling)
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
-            # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
+            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
         
             
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
@@ -1535,7 +1535,7 @@ class BnBgpu:
         averages,       
         frc_res,        
         pixel_size,       # Å/pix
-        low_res_floor = 20.0,
+        low_res_floor = 24.0,
         order = 4,
         blend_factor = 0.5,
         normalize = True
