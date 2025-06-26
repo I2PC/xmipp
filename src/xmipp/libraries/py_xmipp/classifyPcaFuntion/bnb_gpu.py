@@ -516,7 +516,7 @@ class BnBgpu:
             clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
             # clk = self.unsharp_mask_norm(clk)
             # clk = self.enhance_averages_butterworth(clk, sampling)
-            # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
+            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
 
             # clk = self.enhance_averages_butterworth(clk, sampling=sampling) 
         #     clk = self.unsharp_mask_norm(clk) 
@@ -694,7 +694,7 @@ class BnBgpu:
             clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
             # clk = self.enhance_averages_butterworth(clk, sampling)
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
-            # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
+            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
         
             
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
@@ -955,27 +955,34 @@ class BnBgpu:
     
     @torch.no_grad()
     def gaussian_lowpass_filter_2D_adaptive(self, imgs, res_angstrom, pixel_size,
-                                            floor_res=30.0, clamp_exp=80.0,
-                                            hard_cut=False):
+                                            floor_res=25.0, clamp_exp=80.0,
+                                            hard_cut=False, nyquist_margin=0.95):
         B, H, W = imgs.shape
         device, eps = imgs.device, 1e-8
+    
+        # === 1. Limitar resolución efectiva según Nyquist
+        nyquist_res = 2.0 * pixel_size           # resolución mínima permitida (Nyquist)
+        safe_res = nyquist_res / nyquist_margin  # con margen de seguridad (ej. 95%)
     
         res_eff = torch.nan_to_num(res_angstrom, nan=floor_res,
                                    posinf=floor_res, neginf=floor_res)
         res_eff = torch.minimum(res_eff, torch.full_like(res_eff, floor_res))
-        res_eff = torch.clamp(res_eff, min=1e-3)
+        res_eff = torch.clamp(res_eff, min=safe_res)  # Prevenimos aliasing
     
+        # === 2. Estadísticas originales
         mean0 = imgs.mean((1,2), keepdim=True)
         std0  = imgs.std ((1,2), keepdim=True)
     
+        # === 3. Coordenadas de frecuencia
         fy, fx = (torch.fft.fftfreq(H, d=pixel_size, device=device),
                   torch.fft.fftfreq(W, d=pixel_size, device=device))
         gy, gx = torch.meshgrid(fy, fx, indexing='ij')
-        freq2  = (gx**2 + gy**2).unsqueeze(0)           
+        freq2  = (gx**2 + gy**2).unsqueeze(0)  # [1, H, W]
     
+        # === 4. Filtro Gaussiano adaptativo
         ln2    = torch.log(torch.tensor(2.0, device=device))
-        D0     = 1.0 / res_eff                            
-        sigma2 = (D0 / torch.sqrt(2*ln2))**2             
+        D0     = 1.0 / res_eff                            # frecuencia de corte (1/Å)
+        sigma2 = (D0 / torch.sqrt(2*ln2))**2              # varianza del Gaussiano
         D0, sigma2 = D0.view(B,1,1), sigma2.view(B,1,1)
     
         exponent = (-freq2) / (2*sigma2 + eps)
@@ -984,9 +991,11 @@ class BnBgpu:
         if hard_cut:
             filt = torch.where(freq2 > D0**2, 0.0, filt)
     
+        # === 5. Aplicar filtro y transformar inversa
         img_filt = torch.fft.ifft2(torch.fft.fft2(imgs) * filt).real
         img_filt = torch.nan_to_num(img_filt)
     
+        # === 6. Restaurar contraste original
         mean_f = img_filt.mean((1,2), keepdim=True)
         std_f  = img_filt.std ((1,2), keepdim=True)
         valid  = std_f > 1e-6
