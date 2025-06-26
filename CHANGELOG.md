@@ -6,7 +6,7 @@
       - tomo_calculate_landmark_residuals: to calculate residuals in TS
       - tomo_detect_misalignment_residuals: to detect misalignment from residuals in TS
       - batch_tomo_misalignment_resid_statistics: Python script to calculate statistical metrics from a set of residuals
-      - tomo_tiltseries_detect_misalignment_corr: (legacy) for calculating relative shifts between tilt images, as a prealignment strategy
+      - tomo_tiltseries_detect_misalignment_corr: (to legacy) for calculating relative shifts between tilt images, as a prealignment strategy
 
    - Programs updated
       - Particle subtraction: now generates a single stack + includes noise power estimation
