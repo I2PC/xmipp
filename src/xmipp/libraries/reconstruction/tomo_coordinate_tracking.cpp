@@ -29,7 +29,7 @@
 #include "core/matrix1d.h"
 #include "core/matrix2d.h"
 #include "core/linear_system_helper.h"
-#include "hungarian.h"  // Hungarian algorithm library
+// #include "hungarian.h"  // Hungarian algorithm library
 
 
 void ProgCoordTracking::readParams()
