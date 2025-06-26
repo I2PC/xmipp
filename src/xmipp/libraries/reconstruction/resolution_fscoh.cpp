@@ -205,7 +205,7 @@ void ProgFSCoh::calculateResolutionThreshold()
     
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FSCoh)
     {
-        if (DIRECT_MULTIDIM_ELEM(FSCoh, n) < FSCoh_thr)
+        if (DIRECT_MULTIDIM_ELEM(FSCoh, n) < FSCoh_thr && n > 0)
         {
             indexThr = n;
             break;           
