@@ -513,9 +513,9 @@ class BnBgpu:
         if iter > 10: 
             res_classes = self.frc_resolution_tensor(newCL, sampling)
             print(res_classes) 
-            # clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
+            clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
             # clk = self.unsharp_mask_norm(clk)
-            clk = self.enhance_averages_butterworth(clk, sampling)
+            # clk = self.enhance_averages_butterworth(clk, sampling)
             # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
 
             # clk = self.enhance_averages_butterworth(clk, sampling=sampling) 
@@ -691,8 +691,8 @@ class BnBgpu:
             
             # clk = self.unsharp_mask_norm(clk) 
             res_classes = self.frc_resolution_tensor(newCL, sampling)
-            # clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
-            clk = self.enhance_averages_butterworth(clk, sampling)
+            clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
+            # clk = self.enhance_averages_butterworth(clk, sampling)
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
             # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
         
@@ -1495,12 +1495,9 @@ class BnBgpu:
         nyquist = 1.0 / (2.0 * pixel_size)
         low_cutoff = (1.0 / low_res_angstrom) / nyquist / 2
         high_cutoff = (1.0 / high_res_angstrom) / nyquist / 2
-        print(low_cutoff, high_cutoff)
         MAX_CUTOFF = 0.475
         low_cutoff = max(0.0, min(low_cutoff, MAX_CUTOFF))
         high_cutoff = max(0.0, min(high_cutoff, MAX_CUTOFF))
-        print("--------------------")
-        print(low_cutoff, high_cutoff)
     
         y, x = torch.meshgrid(
             torch.arange(H, device=device),
@@ -1541,7 +1538,7 @@ class BnBgpu:
         averages,       
         frc_res,        
         pixel_size,       # Å/pix
-        low_res_floor = 24.0,
+        low_res_floor = 25.0,
         order = 4,
         blend_factor = 0.5,
         normalize = True
@@ -1582,8 +1579,12 @@ class BnBgpu:
         # === 4. Frecuencias normalizadas respecto al Nyquist (∈ [0, 0.5])
         f_low = (1.0 / low_res) / nyquist / 2.0
         f_high = (1.0 / high_res) / nyquist / 2.0
-        f_low  = torch.clamp(f_low,  min=0.0, max=0.5)
-        f_high = torch.clamp(f_high, min=0.0, max=0.5)
+        print(f_high)
+        MAX_CUTOFF = 0.475
+        f_low  = torch.clamp(f_low,  min=0.0, max=MAX_CUTOFF)
+        f_high = torch.clamp(f_high, min=0.0, max=MAX_CUTOFF)
+        print("---------------")
+        print(f_high)
         f_low = f_low.view(B, 1, 1)
         f_high = f_high.view(B, 1, 1)
     
