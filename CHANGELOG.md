@@ -1,4 +1,67 @@
-   ## Release 3.24.06 - O...
+## Release 3.25.06.0 - Rhea
+   ### Xmipp Programs 
+   - New programs
+      - continuous_create_residuals: Make better residuals by continuous assignment updates to projections
+      - tomo_detect_landmarks: to detect landmarks in tilt series (TS)
+      - tomo_calculate_landmark_residuals: to calculate residuals in TS
+      - tomo_detect_misalignment_residuals: to detect misalignment from residuals in TS
+      - batch_tomo_misalignment_resid_statistics: Python script to calculate statistical metrics from a set of residuals
+      - tomo_tiltseries_detect_misalignment_corr: (legacy) for calculating relative shifts between tilt images, as a prealignment strategy
+
+   - Programs updated
+      - Particle subtraction: now generates a single stack + includes noise power estimation
+      - classify_pca: allows setting CUDA_DEVICE for NVIDIA drivers ≤ 470
+        
+   - Programs fixed
+      - Fixed missing b in angular_continuous_assign2_gpu
+      - CUDAFFT test fixed
+      - Minor compatibility fixes for CUDA 12.6
+      - DT_SChar added to micrographs
+        
+   ### Installation and user guide
+   - Fixed broken links in documentation
+   - Enhanced data collection steps (context suggests improvements in reproducibility or logging)
+     
+   ### More Xmipp  
+   - DLTK environments: channels limited to conda-forge and pip. Updated deepEMhancer version and models, update all enviroments
+   - Allowing to skip sorting in metadata_vec::split
+
+## Release 3.24.12.0 - Poseidon
+   ### Xmipp Programs 
+   - New programs
+        - tomo_average_subtomos: This method carries out a subtomogram averaging. It means, given a set of subtomogram the program will estimate the average map
+        - denoising_tv: The program will make denoising using total variation
+        - tomo_ctf_wiener2d_correction: This method performs a CTF correction of a tilt series
+        - angular_continuous_assign2_gpu: Make a continuous angular assignment with GPU
+        - cuda_fourier_projection
+        - predict_deep_center
+        - cl2d_clustering.py
+
+   - Programs updated
+      - tomogram_reconstruction:  averaging with gold standard, tigre with internal interpolation, enviroment of tigre updated
+      - mpi_subtract_projection / subtract_projection: Improvements on projection subtraction a particle boosting both in MPI and single thread version
+
+   - Programs fixed
+      - resolution_directional
+      - ctf_estimate_from_psd: Bug fix with no defocus
+      - mpi_subtract_projection / subtract_projection: subtraction a particle boosting both in MPI and single thread version
+      - volume_halves_restoration_gpu: Fixed failure when using masks
+
+   ### Installation and user guide
+   - Total new installer based on CMake. More robust and simplified
+   - New posting of statistics about installations
+   - Allow re-compilation without internet
+   - Added next generation of libstdcxx to DLTKv0.3 env to enhance compatibility
+   - Forcing to compile Xmipp with the libstdc++ availabe in the scipion3 env if exist
+     
+   ### More Xmipp  
+   - Added support for reading EER
+   - Handling .gain files correctly
+   - Added MADV_HUGEPAGE support check
+   - Fix for rare axis orderings in MRC/MAP files
+   - Local average label added (used to measure the intensity of the particles in the original micrographs)
+ 
+## Release 3.24.06 - Oceanus
    ### Xmipp Programs 
    - New programs
       - xtomo tigre reconstruction: This program provides a variety of algorithms to reconstruct tomogram from a set of tilt series
@@ -37,7 +100,7 @@
    - Adding fixed extension to tomo
 
   
- ## Release 3.23.11 - Nereus
+## Release 3.23.11 - Nereus
    ### Xmipp Programs 
    
    - New programs
@@ -116,7 +179,7 @@
 
 
    
-   ## Release 3.23.03 - Kratos
+## Release 3.23.03 - Kratos
    ### Xmipp Programs 
    
   - New programs: tomo_confidence_map, tomo_extract_particlestacks, tomo_extract_subtomograms, tomo_tiltseries_dose_filter, psd_estimatator

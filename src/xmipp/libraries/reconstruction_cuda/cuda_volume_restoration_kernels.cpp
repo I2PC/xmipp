@@ -172,7 +172,7 @@ void VolumeRestorationKernels<T>::restorationSigmaCostError(T& error, const std:
 	const vec2_type<T>* __restrict__ d_fV1 = (vec2_type<T>*)_d_fV1;
 	const vec2_type<T>* __restrict__ d_fV2 = (vec2_type<T>*)_d_fV2;
 
-	auto error_func = [=] __device__ (int n) {
+	auto error_func = [=] __device__ (int n) -> T {
 		const T R2n = d_R2[n];
 		if (R2n <= 0.25) {
 			const T H1 = exp(K1 * R2n);
@@ -222,7 +222,7 @@ template< typename T >
 std::pair<T, T> VolumeRestorationKernels<T>::computeAvgStd(const T* __restrict__ d_N, size_t volume_size) {
 	const T avg = thrust::reduce(thrust::device, d_N, d_N + volume_size);
 
-	auto square_kernel = [=] __device__ (T x) {
+	auto square_kernel = [=] __device__ (T x) -> T {
 		return x * x;
 	};
 
@@ -233,7 +233,7 @@ std::pair<T, T> VolumeRestorationKernels<T>::computeAvgStd(const T* __restrict__
 
 template< typename T >
 std::pair<T, T> VolumeRestorationKernels<T>::computeAvgStdWithMask(const T* __restrict__ d_N, const int* __restrict__ d_mask, size_t mask_size, size_t volume_size) {
-	auto masked_k = [=] __device__ (int n) {
+	auto masked_k = [=] __device__ (int n) -> T {
 		if (d_mask[n]) {
 			return d_N[n];
 		} else {
@@ -244,7 +244,7 @@ std::pair<T, T> VolumeRestorationKernels<T>::computeAvgStdWithMask(const T* __re
 	const T avg = thrust::transform_reduce(thrust::device, thrust::counting_iterator<int>(0), thrust::counting_iterator<int>(volume_size), masked_k,
 										static_cast<T>(0), thrust::plus<T>());
 
-	auto masked_square_k = [=] __device__ (int n) {
+	auto masked_square_k = [=] __device__ (int n) -> T {
 		if (d_mask[n]) {
 			return d_N[n] * d_N[n];
 		} else {

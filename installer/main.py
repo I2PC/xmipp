@@ -30,18 +30,18 @@ import os, sys
 from typing import Tuple, Optional
 
 # Module imports
-from .utils import runJob, getCurrentBranch, isProductionMode
+from .utils import runJob, getCurrentBranch, isProductionMode, getCurrentName
 from .logger import logger, yellow, green, bold
 from .constants import (REPOSITORIES, XMIPP_SOURCES, SOURCES_PATH, MASTER_BRANCHNAME,
 	SOURCE_CLONE_ERROR, TAG_BRANCH_NAME, INTERRUPTED_ERROR, VERSION_FILE, RELEASE_DATE,
 	XMIPP_VERSIONS, XMIPP, VERSION_KEY, SECTION_MESSAGE_LEN, VERNAME_KEY, MODE_GET_SOURCES,
-	MODE_CONFIG_BUILD, CONFIG_FILE)
+	MODE_CONFIG_BUILD, CONFIG_FILE, XMIPP_PLUGIN)
 from .api import sendApiPOST, getOSReleaseName
 from .cmake import parseCmakeVersions
 from .config import getConfigDate
 
 ####################### COMMAND FUNCTIONS #######################
-def getSources(branch: str=None):
+def getSources(branch: str=None, production: bool=False):
 	"""
 	### This function fetches the sources needed for Xmipp to compile.
 	
@@ -51,10 +51,13 @@ def getSources(branch: str=None):
 	# Clone or download internal sources
 	logger(getSectionMessage("Getting Xmipp sources"), forceConsoleOutput=True)
 	for source in XMIPP_SOURCES:
-		logger(f"Cloning {source}...", forceConsoleOutput=True)
-		retCode, output = __cloneSourceRepo(REPOSITORIES[source][0], path=SOURCES_PATH, branch=branch)
-		message = output if retCode else ''
-		handleRetCode(retCode, predefinedErrorCode=SOURCE_CLONE_ERROR, message=message, sendAPI=False)
+		if source == XMIPP_PLUGIN and production:
+			pass
+		else:
+			logger(f"Cloning {source}...", forceConsoleOutput=True)
+			retCode, output = __cloneSourceRepo(REPOSITORIES[source][0], path=SOURCES_PATH, branch=branch)
+			message = output if retCode else ''
+			handleRetCode(retCode, predefinedErrorCode=SOURCE_CLONE_ERROR, message=message, sendAPI=False)
 
 def exitXmipp(retCode: int=0):
 	"""
@@ -80,7 +83,8 @@ def handleRetCode(realRetCode: int, predefinedErrorCode: int=0, message: str='',
 		resultCode = __getPredefinedError(realRetCode=realRetCode, desiredRetCode=predefinedErrorCode)
 		message = message if resultCode != realRetCode else ''
 		logger.logError(message, retCode=resultCode, addPortalLink=resultCode != realRetCode)
-		if sendAPI and os.path.exists(VERSION_FILE) and resultCode != INTERRUPTED_ERROR:
+		
+		if sendAPI and resultCode != INTERRUPTED_ERROR:
 			sendApiPOST(resultCode)
 		exitXmipp(retCode=resultCode)
 	else:
@@ -97,7 +101,7 @@ def getSuccessMessage() -> str:
 	- (str): Success message.
 	"""
 	# Getting release name
-	branchName = getCurrentBranch()
+	branchName = getCurrentName()
 	releaseName = branchName
 	if branchName is None or branchName == MASTER_BRANCHNAME:
 		releaseName = XMIPP_VERSIONS[XMIPP][VERSION_KEY]
