@@ -1495,8 +1495,11 @@ class BnBgpu:
         nyquist = 1.0 / (2.0 * pixel_size)
         low_cutoff = (1.0 / low_res_angstrom) / nyquist / 2
         high_cutoff = (1.0 / high_res_angstrom) / nyquist / 2
-        low_cutoff  = torch.clamp(low_cutoff,  min=0.0, max=0.5)
-        high_cutoff = torch.clamp(high_cutoff, min=0.0, max=0.5)
+        print(low_cutoff, high_cutoff)
+        low_cutoff = max(0.0, min(low_cutoff, 0.5))
+        high_cutoff = max(0.0, min(high_cutoff, 0.5))
+        print("--------------------")
+        print(low_cutoff, high_cutoff)
     
         y, x = torch.meshgrid(
             torch.arange(H, device=device),
