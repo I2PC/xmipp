@@ -23,7 +23,7 @@
    - Enhanced data collection steps (context suggests improvements in reproducibility or logging)
      
    ### More Xmipp  
-   - DLTK environments: channels limited to conda-forge and pip. Updated deepEMhancer version and models
+   - DLTK environments: channels limited to conda-forge and pip. Updated deepEMhancer version and models, update all enviroments
    - Allowing to skip sorting in metadata_vec::split
 
 ## Release 3.24.12.0 - Poseidon
