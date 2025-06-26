@@ -23,7 +23,7 @@
    - Enhanced data collection steps (context suggests improvements in reproducibility or logging)
      
    ### More Xmipp  
-   - DLTK environments: channels limited to conda-forge and pip. Updated deepEMhancer version and models
+   - DLTK environments: channels limited to conda-forge and pip. Updated deepEMhancer version and models, update all enviroments
    - Allowing to skip sorting in metadata_vec::split
 
 ## Release 3.24.12.0 - Poseidon
@@ -35,7 +35,7 @@
         - angular_continuous_assign2_gpu: Make a continuous angular assignment with GPU
         - cuda_fourier_projection
         - predict_deep_center
-        - cl2d_clustering.py
+        - cl2d_clustering
 
    - Programs updated
       - tomogram_reconstruction:  averaging with gold standard, tigre with internal interpolation, enviroment of tigre updated
