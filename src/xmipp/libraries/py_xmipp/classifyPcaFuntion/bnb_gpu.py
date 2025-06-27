@@ -538,7 +538,7 @@ class BnBgpu:
             
         clk = clk * self.create_circular_mask(clk)
         
-        if iter > 2 and iter < 15:
+        if iter > 2 and iter < 15: 
             clk = self.center_by_com(clk)                  
         
         return(clk, tMatrix, batch_projExp_cpu)
