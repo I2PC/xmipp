@@ -513,7 +513,7 @@ class BnBgpu:
         if iter > 10: 
             res_classes = self.frc_resolution_tensor(newCL, sampling)
             print(res_classes) 
-            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
+            # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
             clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
             # clk = self.unsharp_mask_norm(clk)
             # clk = self.enhance_averages_butterworth(clk, sampling)
@@ -691,7 +691,7 @@ class BnBgpu:
             
             # clk = self.unsharp_mask_norm(clk) 
             res_classes = self.frc_resolution_tensor(newCL, sampling)
-            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
+            # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
             clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
             # clk = self.enhance_averages_butterworth(clk, sampling)
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
