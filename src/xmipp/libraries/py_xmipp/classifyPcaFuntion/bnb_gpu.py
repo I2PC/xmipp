@@ -515,7 +515,7 @@ class BnBgpu:
             print(res_classes) 
             # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
             clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
-            # clk = self.unsharp_mask_norm(clk)
+            clk = self.unsharp_mask_norm(clk)
             # clk = self.enhance_averages_butterworth(clk, sampling)
 
             # clk = self.enhance_averages_butterworth(clk, sampling=sampling) 
@@ -689,10 +689,10 @@ class BnBgpu:
             newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
             clk = self.averages(data, newCL, classes)
             
-            # clk = self.unsharp_mask_norm(clk) 
             res_classes = self.frc_resolution_tensor(newCL, sampling)
             # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
             clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
+            clk = self.unsharp_mask_norm(clk) 
             # clk = self.enhance_averages_butterworth(clk, sampling)
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
         
@@ -1547,8 +1547,8 @@ class BnBgpu:
         averages,       
         frc_res,        
         pixel_size,       # Å/pix
-        low_res_floor = 20.0,
-        order = 4,
+        low_res_floor = 25.0,
+        order = 2,
         blend_factor = 0.5,
         normalize = True
     ):
