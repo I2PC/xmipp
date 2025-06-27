@@ -1547,7 +1547,7 @@ class BnBgpu:
         averages,       
         frc_res,        
         pixel_size,       # Å/pix
-        low_res_floor = 22.0,
+        low_res_floor = 20.0,
         order = 4,
         blend_factor = 0.5,
         normalize = True
