@@ -526,8 +526,6 @@ class BnBgpu:
         # clk = self.gaussian_lowpass_filter_2D(clk, 6.0, sampling)
         
 
-
-
         if iter in [13, 16]:
             # clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
             clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
