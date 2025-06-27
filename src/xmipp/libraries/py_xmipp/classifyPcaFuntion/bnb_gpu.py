@@ -513,8 +513,8 @@ class BnBgpu:
         if iter > 10: 
             res_classes = self.frc_resolution_tensor(newCL, sampling)
             clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
-            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
-            # clk = self.unsharp_mask_norm(clk)
+            # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
+            clk = self.unsharp_mask_norm(clk)
             # clk = self.enhance_averages_butterworth(clk, sampling)
 
             # clk = self.enhance_averages_butterworth(clk, sampling=sampling) 
@@ -526,7 +526,7 @@ class BnBgpu:
         # clk = self.gaussian_lowpass_filter_2D(clk, 6.0, sampling)
         
 
-        if iter in [13]:#, 16]:
+        if iter in [13, 16]:
             # clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
             clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
                                 intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
@@ -538,7 +538,7 @@ class BnBgpu:
             
         clk = clk * self.create_circular_mask(clk)
         
-        if iter > 2 and iter < 15: 
+        if iter > 2 and iter < 15:
             clk = self.center_by_com(clk)                  
         
         return(clk, tMatrix, batch_projExp_cpu)
@@ -688,8 +688,8 @@ class BnBgpu:
             
             res_classes = self.frc_resolution_tensor(newCL, sampling)
             clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
-            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
-            # clk = self.unsharp_mask_norm(clk) 
+            # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
+            clk = self.unsharp_mask_norm(clk) 
             # clk = self.enhance_averages_butterworth(clk, sampling)
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
         
@@ -1544,7 +1544,7 @@ class BnBgpu:
         averages,       
         frc_res,        
         pixel_size,       # Å/pix
-        low_res_floor = 20.0,
+        low_res_floor = 30.0,
         order = 2,
         blend_factor = 0.5,
         normalize = True
