@@ -264,8 +264,8 @@ class BnBgpu:
                 
                 vmin = torch.min(matches[matches[:, 1] == n, 2])
                 vmax = torch.max(matches[matches[:, 1] == n, 2])
-                print("dist", vmin, vmax)
-                print("thr",   thr_low[n], thr_high[n])
+                # print("dist", vmin, vmax)
+                # print("thr",   thr_low[n], thr_high[n])
     
         return thr_low, thr_high
     
@@ -512,13 +512,12 @@ class BnBgpu:
 
         if iter > 10: 
             res_classes = self.frc_resolution_tensor(newCL, sampling)
-            clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
-            # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
-            clk = self.unsharp_mask_norm(clk)
-            # clk = self.enhance_averages_butterworth(clk, sampling)
+            clk = self.enhance_averages_butterworth(clk, sampling)
+            # clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
+            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
+            # clk = self.unsharp_mask_norm(clk)
+    
 
-            # clk = self.enhance_averages_butterworth(clk, sampling=sampling) 
-        #     clk = self.unsharp_mask_norm(clk) 
             # clk = self.unsharp_mask_adaptive_gaussian(clk)
             # mask_C = self.compute_class_consistency_masks(newCL) #Apply consistency mask           
             # clk = self.apply_consistency_masks_vector(clk, mask_C) 
@@ -687,10 +686,10 @@ class BnBgpu:
             clk = self.averages(data, newCL, classes)
             
             res_classes = self.frc_resolution_tensor(newCL, sampling)
-            clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
-            # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
-            clk = self.unsharp_mask_norm(clk) 
-            # clk = self.enhance_averages_butterworth(clk, sampling)
+            clk = self.enhance_averages_butterworth(clk, sampling)
+            # clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
+            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
+            # clk = self.unsharp_mask_norm(clk) 
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
         
             
@@ -1488,9 +1487,9 @@ class BnBgpu:
         Returns:
             Tensor: clases promedio mejoradas [B, H, W]
         """
-        # high_res_angstrom = (2 * pixel_size) / 0.95
+        high_res_angstrom = (2 * pixel_size) / 0.95
         # low_res_angstrom = 10 * pixel_size
-        high_res_angstrom = 4
+        # high_res_angstrom = 4
         low_res_angstrom = 25.0
         
         device = averages.device
