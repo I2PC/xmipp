@@ -512,9 +512,9 @@ class BnBgpu:
 
         if iter > 10: 
             res_classes = self.frc_resolution_tensor(newCL, sampling)
-            # clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
-            clk = self.enhance_averages_butterworth(clk, sampling)
-            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
+            clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
+            # clk = self.enhance_averages_butterworth(clk, sampling)
+            # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
             # clk = self.unsharp_mask_norm(clk)
             # clk = self.enhance_averages_butterworth_general(clk, res_classes, sampling, mode="highpass")
             # clk = self.enhance_averages_butterworth_general(clk, res_classes, sampling, mode="lowpass")
@@ -688,9 +688,9 @@ class BnBgpu:
             clk = self.averages(data, newCL, classes)
             
             res_classes = self.frc_resolution_tensor(newCL, sampling)
-            clk = self.enhance_averages_butterworth(clk, sampling)
-            # clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
-            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
+            # clk = self.enhance_averages_butterworth(clk, sampling)
+            clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
+            # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
             # clk = self.unsharp_mask_norm(clk) 
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
             # clk = self.enhance_averages_butterworth_general(clk, res_classes, sampling, mode="highpass")
@@ -1619,7 +1619,7 @@ class BnBgpu:
         averages,       
         frc_res,        
         pixel_size,       # Å/pix
-        low_res_floor = 30.0,
+        low_res_floor = 25.0,
         order = 2,
         blend_factor = 0.5,
         normalize = True
