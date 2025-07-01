@@ -1486,17 +1486,14 @@ class BnBgpu:
         bin_idx = torch.bucketize(freq_r_flat, freq_linspace)
     
         amplitude_flat = amplitude.view(N, -1)
-    
         radial_profile = torch.zeros(N, num_bins, device=device)
     
-        # Calcular mediana para robustez
         for b in range(N):
             for i_bin in range(num_bins):
                 mask_bin = (bin_idx == i_bin)
                 if mask_bin.any():
                     radial_profile[b, i_bin] = torch.median(amplitude_flat[b, mask_bin])
     
-        # Procesar res_cutoff
         if torch.is_tensor(res_cutoff):
             if res_cutoff.numel() == 1:
                 cutoff_freq = (1.0 / res_cutoff).repeat(N)
@@ -1507,13 +1504,11 @@ class BnBgpu:
         else:
             cutoff_freq = torch.full((N,), 1.0 / float(res_cutoff), device=device)
     
-        freq_centers = (freq_linspace[:-1] + freq_linspace[1:]) / 2  # [num_bins]
+        freq_centers = (freq_linspace[:-1] + freq_linspace[1:]) / 2
         freq_centers_exp = freq_centers.unsqueeze(0).expand(N, -1)
         cutoff_freq_exp = cutoff_freq.unsqueeze(1).expand(-1, freq_centers.size(0))
     
         valid_mask = (freq_centers_exp > freq_min) & (freq_centers_exp <= cutoff_freq_exp)
-    
-        # Filtrar valores con amplitud muy baja para evitar log(0)
         amplitude_threshold = 1e-6
         valid_mask &= (radial_profile > amplitude_threshold)
     
@@ -1526,53 +1521,50 @@ class BnBgpu:
             xi = x[i][valid_mask[i]]
             yi = y[i][valid_mask[i]]
     
+            if xi.numel() < min_points or torch.any(torch.isnan(yi)) or torch.any(torch.isinf(yi)):
+                continue
+    
             mean_x = xi.mean()
             mean_y = yi.mean()
             mean_xy = (xi * yi).mean()
             mean_x2 = (xi ** 2).mean()
     
-            denom = mean_x2 - mean_x ** 2    
-            slope = (mean_xy - mean_x * mean_y) / denom
+            denom = mean_x2 - mean_x ** 2
+            if abs(denom) < 1e-12:
+                continue
     
+            slope = (mean_xy - mean_x * mean_y) / denom
             b_factors[i] = -4 * slope
     
-        b_factors = torch.nan_to_num(b_factors, nan=0.0)
-    
+        b_factors = torch.nan_to_num(b_factors, nan=0.0, posinf=0.0, neginf=0.0)
         return b_factors
-    
+
     
     def sharpen_averages_batch(self, averages, pixel_size, B_factors, res_cutoffs):
-        """
-        averages: [N, H, W] tensor
-        B_factors: [N] tensor
-        res_cutoffs: [N] tensor
-        
-        Retorna: tensor [N, H, W] con imágenes sharpened
-        """
         N, H, W = averages.shape
         device = averages.device
-        
+    
+        B_factors = torch.nan_to_num(B_factors, nan=0.0, posinf=0.0, neginf=0.0)
+        B_exp = B_factors.unsqueeze(1).unsqueeze(2)
+        B_exp = B_exp.clamp(min=-300.0, max=50.0)
+    
         fft = torch.fft.fft2(averages)
-        
+    
         fy = torch.fft.fftfreq(H, d=pixel_size).to(device)
         fx = torch.fft.fftfreq(W, d=pixel_size).to(device)
         gy, gx = torch.meshgrid(fy, fx, indexing='ij')
-        freq_r = torch.sqrt(gx**2 + gy**2)  # [H, W]
-        
-        freq_r = freq_r.unsqueeze(0).expand(N, -1, -1)  # [N, H, W]
-        
-        cutoff_freq = (1.0 / res_cutoffs).unsqueeze(1).unsqueeze(2)  # [N,1,1]
+        freq_r = torch.sqrt(gx**2 + gy**2)
+        freq_r = freq_r.unsqueeze(0).expand(N, -1, -1)
+    
+        cutoff_freq = (1.0 / res_cutoffs).unsqueeze(1).unsqueeze(2)
         mask = (freq_r <= cutoff_freq).float()
-        
-        B_exp = B_factors.unsqueeze(1).unsqueeze(2)  # [N,1,1]
-        
-        filt = torch.exp((B_exp / 4) * (freq_r ** 2)) * mask  # [N, H, W]
-        
+    
+        filt = torch.exp((B_exp / 4) * (freq_r ** 2)) * mask
         fft_sharp = fft * filt
-        
         sharp_imgs = torch.fft.ifft2(fft_sharp).real
-        
+    
         return sharp_imgs
+
 
     
 
