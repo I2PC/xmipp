@@ -512,10 +512,10 @@ class BnBgpu:
 
         if iter > 10: 
             res_classes = self.frc_resolution_tensor(newCL, sampling)
-            clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
-            # clk = self.enhance_averages_butterworth(clk, sampling)
-            # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
-            # clk = self.unsharp_mask_norm(clk)
+            # clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
+            clk = self.enhance_averages_butterworth(clk, sampling)
+            clk = self.unsharp_mask_norm(clk)
+            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
             # clk = self.enhance_averages_butterworth_general(clk, res_classes, sampling, mode="highpass")
             # clk = self.enhance_averages_butterworth_general(clk, res_classes, sampling, mode="lowpass")
     
@@ -688,10 +688,10 @@ class BnBgpu:
             clk = self.averages(data, newCL, classes)
             
             res_classes = self.frc_resolution_tensor(newCL, sampling)
-            # clk = self.enhance_averages_butterworth(clk, sampling)
-            clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
-            # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
-            # clk = self.unsharp_mask_norm(clk) 
+            clk = self.enhance_averages_butterworth(clk, sampling)
+            clk = self.unsharp_mask_norm(clk)
+            # clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
+            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling) 
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
             # clk = self.enhance_averages_butterworth_general(clk, res_classes, sampling, mode="highpass")
             # clk = self.enhance_averages_butterworth_general(clk, res_classes, sampling, mode="lowpass")
@@ -1047,10 +1047,10 @@ class BnBgpu:
         return adjusted_images
     
     
-    def normalize_particles_batch(self, images):
+    def normalize_particles_batch(self, images,  eps: float = 1e-8):
         
         mean = images.mean(dim=(1, 2), keepdim=True)  
-        std = images.std(dim=(1, 2), keepdim=True)   
+        std = images.std(dim=(1, 2), keepdim=True) + eps  
         
         normalized_batch = (images - mean) / std
         
@@ -1161,7 +1161,7 @@ class BnBgpu:
         return masks
     
     
-    def unsharp_mask_norm(self, imgs, kernel_size=3, strength=1.0):
+    def unsharp_mask_norm(self, imgs, kernel_size=5, strength=1.0):
         N, H, W = imgs.shape
         
         mean0 = imgs.mean(dim=(1, 2), keepdim=True)
@@ -1544,7 +1544,7 @@ class BnBgpu:
         averages,
         pixel_size,
         # high_res_angstrom=4,
-        low_res_angstrom=20,
+        low_res_angstrom=25,
         order=2,
         blend_factor=0.5,
         normalize=True
