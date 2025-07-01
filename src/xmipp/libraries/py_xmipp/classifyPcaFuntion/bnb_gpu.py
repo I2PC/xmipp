@@ -518,7 +518,7 @@ class BnBgpu:
             clk = self.sharpen_averages_batch(clk, sampling, bfactor, res_classes)
             # clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
             # clk = self.enhance_averages_butterworth(clk, sampling)
-            # clk = self.unsharp_mask_norm(clk)
+            clk = self.unsharp_mask_norm(clk)
             # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
             # clk = self.enhance_averages_butterworth_general(clk, res_classes, sampling, mode="highpass")
             # clk = self.enhance_averages_butterworth_general(clk, res_classes, sampling, mode="lowpass")
@@ -695,7 +695,7 @@ class BnBgpu:
             bfactor = self.estimate_bfactor_batch(clk, sampling, res_classes)
             clk = self.sharpen_averages_batch(clk, sampling, bfactor, res_classes)
             # clk = self.enhance_averages_butterworth(clk, sampling)
-            # clk = self.unsharp_mask_norm(clk)
+            clk = self.unsharp_mask_norm(clk)
             # clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
             # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling) 
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
@@ -1564,6 +1564,15 @@ class BnBgpu:
         filt = torch.exp((B_exp / 4) * (freq_r ** 2)) * mask
         fft_sharp = fft * filt
         sharp_imgs = torch.fft.ifft2(fft_sharp).real
+    
+        # Igualar escala con imágenes originales
+        eps = 1e-8
+        mean_orig = averages.mean(dim=(-2, -1), keepdim=True)
+        std_orig = averages.std(dim=(-2, -1), keepdim=True)
+        mean_filt = sharp_imgs.mean(dim=(-2, -1), keepdim=True)
+        std_filt = sharp_imgs.std(dim=(-2, -1), keepdim=True)
+    
+        sharp_imgs = (sharp_imgs - mean_filt) / (std_filt + eps) * std_orig + mean_orig
     
         return sharp_imgs
 
