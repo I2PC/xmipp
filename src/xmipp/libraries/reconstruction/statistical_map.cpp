@@ -139,7 +139,7 @@ void ProgStatisticalMap::run()
 
         V.read(fn_V); 
 
-                if (!dimInitialized)
+        if (!dimInitialized)
         {
             // Read dim
             Xdim = XSIZE(V());
@@ -162,6 +162,7 @@ void ProgStatisticalMap::run()
             dimInitialized = true;
         }
 
+        preprocessMap();
         processStaticalMap();
     }
 
@@ -187,6 +188,8 @@ void ProgStatisticalMap::run()
 
         V.read(fn_V);
 
+        preprocessMap();
+
         calculateZscoreMap();
         writeZscoresMap(fn_V);
 
@@ -208,7 +211,7 @@ void ProgStatisticalMap::run()
 // Core methods ===================================================================
 void ProgStatisticalMap::calculateFSCoh()
 {
-	// Initialize landmark detector
+	// Initialize FSCoh detector
     fscoh.fn_mapPool = fn_mapPool_statistical;
     fscoh.fn_oroot = fn_oroot;
     fscoh.sampling_rate = sampling_rate;
@@ -225,11 +228,19 @@ void ProgStatisticalMap::calculateFSCoh()
 	#endif
 }
 
-void ProgStatisticalMap::processStaticalMap()
-{ 
-    std::cout << "    Processing input map for statistical map calculation..." << std::endl;
+void ProgStatisticalMap::preprocessMap()
+{
+    // Normalize map: mean=0, std=1
+    double avg;
+    double std;
+    V().computeAvgStdev(avg, std);
 
-    // Filter uncoherent frequencies
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+    {
+        DIRECT_MULTIDIM_ELEM(V(), n) = (DIRECT_MULTIDIM_ELEM(V(), n) - avg) / std;
+    }
+
+    // LPF map up to coherent resolution threshold (remove uncoherent frequencies)
     // FourierTransformer ft;
     // MultidimArray<std::complex<double>> V_ft;
 	// ft.FourierTransform(V(), V_ft, false);
@@ -243,9 +254,11 @@ void ProgStatisticalMap::processStaticalMap()
     // }
 
     // ft.inverseFourierTransform();
- 
-    // Compute avg and std for every map to normalize before statistical map calculation
-    // normalizeMap(V());
+}
+
+void ProgStatisticalMap::processStaticalMap()
+{ 
+    std::cout << "    Processing input map for statistical map calculation..." << std::endl;
 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
@@ -294,16 +307,13 @@ void ProgStatisticalMap::calculateZscoreMap()
 {
     std::cout << "    Calculating Zscore map..." << std::endl;
 
-    // Normalize map before Z-score calculation
-    // normalizeMap(V());
-
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     {
         // Classic Z-score
-        // double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
+        double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
 
         // Average-normalized Z-score
-        double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) * DIRECT_MULTIDIM_ELEM(avgVolume(),n) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
+        // double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) * DIRECT_MULTIDIM_ELEM(avgVolume(),n) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
 
         // double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / (sqrt(DIRECT_MULTIDIM_ELEM(stdVolume(),n)/DIRECT_MULTIDIM_ELEM(avgVolume(),n)));
         // double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / sqrt(DIRECT_MULTIDIM_ELEM(stdVolume(),n) + 0.5);
@@ -390,19 +400,4 @@ void ProgStatisticalMap::generateSideInfo()
 {
     fn_out_avg_map = fn_oroot + "statsMap_avg.mrc";
     fn_out_std_map = fn_oroot + "statsMap_std.mrc";
-}
-
-
-void ProgStatisticalMap::normalizeMap(MultidimArray<double> &vol)
-{
-    // Compute avg and std
-    double avg;
-    double std;
-    V().computeAvgStdev(avg, std);
-
-    // Normalize map
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(vol)
-    {
-        DIRECT_MULTIDIM_ELEM(vol, n) = (DIRECT_MULTIDIM_ELEM(vol, n) - avg) / std;
-    }
 }

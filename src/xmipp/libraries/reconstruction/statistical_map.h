@@ -102,6 +102,7 @@ public:
 
     // ----------------------- CORE METHODS ------------------------------
     void calculateFSCoh();
+    void preprocessMap();
     void processStaticalMap();
     void computeStatisticalMaps();
     void calculateAvgDiffMap();
@@ -111,7 +112,6 @@ public:
     // ---------------------- UTILS METHODS ------------------------------
     // Generate side info
     void generateSideInfo();
-    void normalizeMap(MultidimArray<double> &vol);
 
     double t_cdf(double t, int nu);
     double t_p_value(double t_stat, int nu);
