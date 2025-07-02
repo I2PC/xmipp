@@ -230,15 +230,17 @@ void ProgStatisticalMap::calculateFSCoh()
 
 void ProgStatisticalMap::preprocessMap()
 {
-    // Normalize map: mean=0, std=1
-    double avg;
-    double std;
-    V().computeAvgStdev(avg, std);
+    std::cout << "    Preprocessing input map..." << std::endl;
 
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
-    {
-        DIRECT_MULTIDIM_ELEM(V(), n) = (DIRECT_MULTIDIM_ELEM(V(), n) - avg) / std;
-    }
+    // Normalize map: mean=0, std=1
+    // double avg;
+    // double std;
+    // V().computeAvgStdev(avg, std);
+
+    // FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+    // {
+    //     DIRECT_MULTIDIM_ELEM(V(), n) = (DIRECT_MULTIDIM_ELEM(V(), n) - avg) / std;
+    // }
 
     // LPF map up to coherent resolution threshold (remove uncoherent frequencies)
     // FourierTransformer ft;
