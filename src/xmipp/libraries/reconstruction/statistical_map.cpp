@@ -233,14 +233,7 @@ void ProgStatisticalMap::preprocessMap()
     std::cout << "    Preprocessing input map..." << std::endl;
 
     // Normalize map: mean=0, std=1
-    // double avg;
-    // double std;
-    // V().computeAvgStdev(avg, std);
-
-    // FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
-    // {
-    //     DIRECT_MULTIDIM_ELEM(V(), n) = (DIRECT_MULTIDIM_ELEM(V(), n) - avg) / std;
-    // }
+    // double axmip 
 
     // LPF map up to coherent resolution threshold (remove uncoherent frequencies)
     // FourierTransformer ft;
@@ -282,8 +275,8 @@ void ProgStatisticalMap::computeStatisticalMaps()
         double mean = sum/Ndim;
 
         DIRECT_MULTIDIM_ELEM(avgVolume(),n) = mean;
-        // DIRECT_MULTIDIM_ELEM(stdVolume(),n) = sqrt(sum2/Ndim - mean*mean);
-        DIRECT_MULTIDIM_ELEM(stdVolume(),n) = sum2/Ndim - mean*mean;
+        DIRECT_MULTIDIM_ELEM(stdVolume(),n) = sqrt(sum2/Ndim - mean*mean);
+        // DIRECT_MULTIDIM_ELEM(stdVolume(),n) = sum2/Ndim - mean*mean;
     }
 }
 
