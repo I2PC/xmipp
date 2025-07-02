@@ -510,8 +510,7 @@ class BnBgpu:
         # clk = self.filter_classes_relion_style(newCL, clk, sampling, 6.0)
         
 
-        # if iter > 10: 
-        if iter > 6: 
+        if iter > 10: 
             res_classes = self.frc_resolution_tensor(newCL, sampling)
             print(res_classes)
             bfactor = self.estimate_bfactor_batch(clk, sampling, res_classes)
