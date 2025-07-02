@@ -817,12 +817,12 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 			// {
 			
 			// Consider all frequencies
-			if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
-			{
+			// if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) / Xdim <= 0.5)
+			// {
 
 			// Consider only "mount Fuji" frequencies (in Halo but not in APO)
-			// if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) > 50 && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) < 150)
-			// {
+			if (DIRECT_MULTIDIM_ELEM(particleFreqMap,n) > 50 && DIRECT_MULTIDIM_ELEM(particleFreqMap,n) < 150)
+			{
 				
 				ll_I_it     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / (DIRECT_MULTIDIM_ELEM(powerNoise(), n));
 				ll_IsubP_it += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / (DIRECT_MULTIDIM_ELEM(powerNoise(), n));
