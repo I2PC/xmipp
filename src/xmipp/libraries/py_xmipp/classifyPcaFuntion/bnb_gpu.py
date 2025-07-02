@@ -518,7 +518,7 @@ class BnBgpu:
             clk = self.sharpen_averages_batch(clk, sampling, bfactor, res_classes)
             # clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
             # clk = self.enhance_averages_butterworth(clk, sampling)
-            # clk = self.unsharp_mask_norm(clk)
+            clk = self.unsharp_mask_norm(clk)
             # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
             # clk = self.enhance_averages_butterworth_general(clk, res_classes, sampling, mode="highpass")
             # clk = self.enhance_averages_butterworth_general(clk, res_classes, sampling, mode="lowpass")
@@ -695,7 +695,7 @@ class BnBgpu:
             bfactor = self.estimate_bfactor_batch(clk, sampling, res_classes)
             clk = self.sharpen_averages_batch(clk, sampling, bfactor, res_classes)
             # clk = self.enhance_averages_butterworth(clk, sampling)
-            # clk = self.unsharp_mask_norm(clk)
+            clk = self.unsharp_mask_norm(clk)
             # clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
             # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling) 
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
@@ -1167,7 +1167,7 @@ class BnBgpu:
         return masks
     
     
-    def unsharp_mask_norm(self, imgs, kernel_size=5, strength=1.0):
+    def unsharp_mask_norm(self, imgs, kernel_size=5, strength=2.0):
         N, H, W = imgs.shape
         
         mean0 = imgs.mean(dim=(1, 2), keepdim=True)
