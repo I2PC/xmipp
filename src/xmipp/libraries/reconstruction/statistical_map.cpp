@@ -233,29 +233,29 @@ void ProgStatisticalMap::preprocessMap()
     std::cout << "    Preprocessing input map..." << std::endl;
 
     // Normalize map: mean=0, std=1
-    double avg;
-    double std;
-    V().computeAvgStdev(avg, std);
+    // double avg;
+    // double std;
+    // V().computeAvgStdev(avg, std);
 
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
-    {
-        DIRECT_MULTIDIM_ELEM(V(), n) = (DIRECT_MULTIDIM_ELEM(V(), n) - avg) / std;
-    }
-
-    // LPF map up to coherent resolution threshold (remove uncoherent frequencies)
-    // FourierTransformer ft;
-    // MultidimArray<std::complex<double>> V_ft;
-	// ft.FourierTransform(V(), V_ft, false);
-
-    // FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
+    // FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
     // {
-    //     if (DIRECT_MULTIDIM_ELEM(fscoh.freqMap, n) > fscoh.indexThr)
-    //     {
-    //         DIRECT_MULTIDIM_ELEM(V_ft,  n) = 0;
-    //     }
+    //     DIRECT_MULTIDIM_ELEM(V(), n) = (DIRECT_MULTIDIM_ELEM(V(), n) - avg) / std;
     // }
 
-    // ft.inverseFourierTransform();
+    // LPF map up to coherent resolution threshold (remove uncoherent frequencies)
+    FourierTransformer ft;
+    MultidimArray<std::complex<double>> V_ft;
+	ft.FourierTransform(V(), V_ft, false);
+
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_ft)
+    {
+        if (DIRECT_MULTIDIM_ELEM(fscoh.freqMap, n) > fscoh.indexThr)
+        {
+            DIRECT_MULTIDIM_ELEM(V_ft,  n) = 0;
+        }
+    }
+
+    ft.inverseFourierTransform();
 }
 
 void ProgStatisticalMap::processStaticalMap()
@@ -317,9 +317,10 @@ void ProgStatisticalMap::calculateZscoreMap()
         // Average-normalized Z-score
         // double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) * DIRECT_MULTIDIM_ELEM(avgVolume(),n) / DIRECT_MULTIDIM_ELEM(stdVolume(),n);
 
-        // double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / (sqrt(DIRECT_MULTIDIM_ELEM(stdVolume(),n)/DIRECT_MULTIDIM_ELEM(avgVolume(),n)));
+        // Add constant to denominator
         // double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / sqrt(DIRECT_MULTIDIM_ELEM(stdVolume(),n) + 0.5);
-        // double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) * (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) / sqrt(DIRECT_MULTIDIM_ELEM(stdVolume(),n));
+
+        // Multiply by the 
         // double zscore  = (DIRECT_MULTIDIM_ELEM(V(),n) - DIRECT_MULTIDIM_ELEM(avgVolume(),n)) * DIRECT_MULTIDIM_ELEM(avgDiffVolume(),n) / sqrt(DIRECT_MULTIDIM_ELEM(stdVolume(),n));
 
         // Take only positive Z-score (densities that appear in the test map that are not present in the pool)
