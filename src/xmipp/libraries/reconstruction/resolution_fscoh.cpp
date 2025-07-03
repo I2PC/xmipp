@@ -174,17 +174,19 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FSCoh)
 	{
-        double value = DIRECT_MULTIDIM_ELEM(FSCoh_num,n) / (Ndim * DIRECT_MULTIDIM_ELEM(FSCoh_den,n));
+        double value;
 
 		// Fix unstability at f=0
 		if (n>0)
 		{
-			DIRECT_MULTIDIM_ELEM(FSCoh,n) = value;
+			value = DIRECT_MULTIDIM_ELEM(FSCoh_num,n) / (Ndim * DIRECT_MULTIDIM_ELEM(FSCoh_den,n));
 		}
 		else
 		{
-			DIRECT_MULTIDIM_ELEM(FSCoh,n) = 1;
-		}      
+			value = 1;
+		}
+
+		DIRECT_MULTIDIM_ELEM(FSCoh,n) = value;
 
 		id = md.addObject();
 		// This label vamos a querer que sea _resolutionFSCoh
