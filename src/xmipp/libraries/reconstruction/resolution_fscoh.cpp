@@ -104,7 +104,7 @@ void ProgFSCoh::fourierShellCoherence(MetaDataVec mapPoolMD)
         #endif
 
         V.read(fn_V);
-		normalizeMap(V());
+		// normalizeMap(V());
 
         if (!dimInitialized)
         {
