@@ -513,13 +513,13 @@ class BnBgpu:
         if iter > 10: 
             res_classes = self.frc_resolution_tensor(newCL, sampling)
             print(res_classes)
-            bfactor = self.estimate_bfactor_batch(clk, sampling, res_classes)
-            print(bfactor)
-            clk = self.sharpen_averages_batch(clk, sampling, bfactor, res_classes)
+            # bfactor = self.estimate_bfactor_batch(clk, sampling, res_classes)
+            # print(bfactor)
+            # clk = self.sharpen_averages_batch(clk, sampling, bfactor, res_classes)
             # clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
-            # clk = self.enhance_averages_butterworth(clk, sampling)
-            # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
-            clk = self.unsharp_mask_norm(clk)
+            clk = self.enhance_averages_butterworth(clk, sampling)
+            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
+            # clk = self.unsharp_mask_norm(clk)
             # clk = self.enhance_averages_butterworth_general(clk, res_classes, sampling, mode="highpass")
             # clk = self.enhance_averages_butterworth_general(clk, res_classes, sampling, mode="lowpass")
     
@@ -692,11 +692,11 @@ class BnBgpu:
             clk = self.averages(data, newCL, classes)
             
             res_classes = self.frc_resolution_tensor(newCL, sampling)
-            bfactor = self.estimate_bfactor_batch(clk, sampling, res_classes)
-            clk = self.sharpen_averages_batch(clk, sampling, bfactor, res_classes)
-            # clk = self.enhance_averages_butterworth(clk, sampling)
-            # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling) 
-            clk = self.unsharp_mask_norm(clk)
+            # bfactor = self.estimate_bfactor_batch(clk, sampling, res_classes)
+            # clk = self.sharpen_averages_batch(clk, sampling, bfactor, res_classes)
+            clk = self.enhance_averages_butterworth(clk, sampling)
+            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling) 
+            # clk = self.unsharp_mask_norm(clk)
             # clk = self.enhance_averages_butterworth_adaptive(clk, res_classes, sampling)
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
             # clk = self.enhance_averages_butterworth_general(clk, res_classes, sampling, mode="highpass")
@@ -1667,7 +1667,7 @@ class BnBgpu:
         averages,
         pixel_size,
         # high_res_angstrom=4,
-        low_res_angstrom=25,
+        low_res_angstrom=24,
         order=2,
         blend_factor=0.5,
         normalize=True
