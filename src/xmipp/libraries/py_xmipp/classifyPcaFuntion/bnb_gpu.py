@@ -402,13 +402,16 @@ class BnBgpu:
             
         
         # if iter > 3 and iter < 10: # and cycles == 0:
-        if iter > 1 and iter < 6: # and cycles == 0:
+        if iter > 3 and iter < 7: # and cycles == 0:
             print("--------", iter, "-----------")
             thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
+        # elif iter >= 10:
+        #     print("--------", iter, "-----------")
+        #     thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
             
 
         # if iter > 3 and iter < 10: # and cycles == 0:
-        if iter > 1 and iter < 6: # and cycles == 0:
+        if iter > 3 and iter < 7: # and cycles == 0:
             num = int(classes/2)
             newCL = [[] for i in range(classes)]
         else:
@@ -450,7 +453,7 @@ class BnBgpu:
 
             
             # if iter > 3 and iter < 10:# and cycles == 0:
-            if iter > 1 and iter < 6:# and cycles == 0:
+            if iter > 3 and iter < 7:# and cycles == 0:
                 
                 for n in range(num):
                     
@@ -470,6 +473,7 @@ class BnBgpu:
                                         ]
                     newCL[n + num].append(non_class_images)
 
+
             else:  
       
                 for n in range(num):
@@ -486,7 +490,8 @@ class BnBgpu:
         # clk = self.filter_classes_relion_style(newCL, clk, sampling, 6.0)
         
 
-        if iter > 6: 
+        # if iter > 10: 
+        if iter > 7:
             res_classes = self.frc_resolution_tensor(newCL, sampling)
             print(res_classes)
             # bfactor = self.estimate_bfactor_batch(clk, sampling, res_classes)
@@ -508,11 +513,12 @@ class BnBgpu:
         
 
         # if iter in [13, 16]:
-        if iter in [9]:
+        if iter in [10, 13]:
             # clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
             clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
                                 intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
-        if 1 < iter < 6 and iter % 2 == 0:
+        # if 3 < iter < 10 and iter % 2 == 0:
+        if 3 < iter < 7 and iter % 2 == 0:
             # clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
             clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
                                 intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
@@ -521,7 +527,7 @@ class BnBgpu:
         clk = clk * self.create_circular_mask(clk)
         
         # if iter > 2 and iter < 15:
-        if iter > 1 and iter < 8:
+        if iter > 2 and iter < 12:
             clk = self.center_by_com(clk)                  
         
         return(clk, tMatrix, batch_projExp_cpu)
@@ -1858,18 +1864,19 @@ class BnBgpu:
         
         if mode == "create_classes":
             #print("---Iter %s for creating classes---"%(iter+1))
-            if iter < 7:
-                ang, shiftMove = (-180, 180, 6), (-maxShift_15, maxShift_15+4, 4)
-            elif iter < 10:
-                ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            elif iter < 13:
-                ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
-            elif iter < 16:
-                ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
+            # if iter < 5:
+            #     ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
+            # elif iter < 8:
+            #     ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
+            # elif iter < 11:
+            #     ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
+            # elif iter < 14:
+            #     ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
             
             #print("---Iter %s for creating classes---"%(iter+1))
             # if iter < 5:
             #     ang, shiftMove = (-180, 180, 10), (-maxShift_20, maxShift_20+5, 5)
+            #     # ang, shiftMove = (-180, 180, 10), (-maxShift_15, maxShift_15+4, 4)
             # elif iter < 10:
             #     ang, shiftMove = (-180, 180, 8), (-maxShift_15, maxShift_15+4, 4)
             # elif iter < 13:
@@ -1879,7 +1886,20 @@ class BnBgpu:
             # elif iter < 19:
             #     ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
             # elif iter < 22:
-            #     ang, shiftMove = (-30, 31, 1), (-3, 4, 1)            
+            #     ang, shiftMove = (-30, 31, 1), (-3, 4, 1)   
+            
+            if iter < 4:
+                ang, shiftMove = (-180, 180, 10), (-maxShift_20, maxShift_20+5, 5)
+            elif iter < 7:
+                ang, shiftMove = (-180, 180, 8), (-maxShift_15, maxShift_15+4, 4)
+            elif iter < 10:
+                ang, shiftMove = (-180, 180, 6), (-12, 16, 4)
+            elif iter < 13:
+                ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
+            elif iter < 16:
+                ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
+            elif iter < 19:
+                ang, shiftMove = (-30, 31, 1), (-3, 4, 1)           
                 
         else:
             #print("---Iter %s for align to classes---"%(iter+1))

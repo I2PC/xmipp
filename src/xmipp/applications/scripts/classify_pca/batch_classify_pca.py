@@ -82,7 +82,7 @@ if __name__=="__main__":
     classes = int(args.classes)
     final_classes = classes  
     refImages = args.ref
-    niter = 16
+    niter = 19
     # bands = args.bands
     # vecs = args.vecs
     mask = args.mask
@@ -123,7 +123,7 @@ if __name__=="__main__":
     nBand = 1
     pca = PCAgpu(nBand)
     
-    freqBn, cvecs, coef = pca.calculatePCAbasis(mmap, Ntrain, nBand, dim, sampling, maxRes=15.0, 
+    freqBn, cvecs, coef = pca.calculatePCAbasis(mmap, Ntrain, nBand, dim, sampling, maxRes=18.0, 
                                                 minRes=530, per_eig=per_eig_value, batchPCA=True)
     
     # freqBn = torch.load(bands) 
@@ -248,7 +248,7 @@ if __name__=="__main__":
                     
                     if mode == "create_classes":
                         # res_map = {5: 15, 8: 12, 15: highRes}
-                        res_map = {5: 12, 9: highRes}
+                        res_map = {5: 15, 6: 12, 12: highRes}
                         if iter in res_map:
                             del (freqBn, coef, grid_flat, cvecs)
                             maxRes = res_map[iter]
