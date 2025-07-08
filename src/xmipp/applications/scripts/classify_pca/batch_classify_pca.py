@@ -248,7 +248,7 @@ if __name__=="__main__":
                     
                     if mode == "create_classes":
                         # res_map = {5: 15, 8: 12, 15: highRes}
-                        res_map = {5: 15, 6: 12, 12: highRes}
+                        res_map = {4: 15, 7: 12, 10: 10, 13: highRes}
                         if iter in res_map:
                             del (freqBn, coef, grid_flat, cvecs)
                             maxRes = res_map[iter]
