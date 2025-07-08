@@ -402,13 +402,13 @@ class BnBgpu:
             
         
         # if iter > 3 and iter < 10: # and cycles == 0:
-        if iter > 1 and iter < 5: # and cycles == 0:
+        if iter > 1 and iter < 6: # and cycles == 0:
             print("--------", iter, "-----------")
             thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
             
 
         # if iter > 3 and iter < 10: # and cycles == 0:
-        if iter > 1 and iter < 5: # and cycles == 0:
+        if iter > 1 and iter < 6: # and cycles == 0:
             num = int(classes/2)
             newCL = [[] for i in range(classes)]
         else:
@@ -450,7 +450,7 @@ class BnBgpu:
 
             
             # if iter > 3 and iter < 10:# and cycles == 0:
-            if iter > 1 and iter < 5:# and cycles == 0:
+            if iter > 1 and iter < 6:# and cycles == 0:
                 
                 for n in range(num):
                     
@@ -486,7 +486,7 @@ class BnBgpu:
         # clk = self.filter_classes_relion_style(newCL, clk, sampling, 6.0)
         
 
-        if iter > 5: 
+        if iter > 6: 
             res_classes = self.frc_resolution_tensor(newCL, sampling)
             print(res_classes)
             # bfactor = self.estimate_bfactor_batch(clk, sampling, res_classes)
@@ -512,7 +512,7 @@ class BnBgpu:
             # clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
             clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
                                 intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
-        if 1 < iter < 5 and iter % 2 == 0:
+        if 1 < iter < 6 and iter % 2 == 0:
             # clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
             clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
                                 intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
@@ -1820,11 +1820,11 @@ class BnBgpu:
                 expBatchSize2 = 50000
                 numFirstBatch = 1
             elif dim <= 128:
-                # expBatchSize = 15000 
-                expBatchSize = 10000
+                expBatchSize = 15000 
+                # expBatchSize = 10000
                 expBatchSize2 = 20000
                 # numFirstBatch = 2
-                numFirstBatch = 8
+                numFirstBatch = 4
             elif dim <= 256:
                 expBatchSize = 4000 
                 expBatchSize2 = 5000
@@ -1858,13 +1858,13 @@ class BnBgpu:
         
         if mode == "create_classes":
             #print("---Iter %s for creating classes---"%(iter+1))
-            if iter < 6:
+            if iter < 7:
                 ang, shiftMove = (-180, 180, 6), (-maxShift_15, maxShift_15+4, 4)
-            elif iter < 9:
+            elif iter < 10:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            elif iter < 12:
+            elif iter < 13:
                 ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
-            elif iter < 15:
+            elif iter < 16:
                 ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
             
             #print("---Iter %s for creating classes---"%(iter+1))
