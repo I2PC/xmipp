@@ -401,32 +401,19 @@ class BnBgpu:
         # print("----------create-classes-------------")      
             
         
-        if iter > 3 and iter < 10: # and cycles == 0:
-            # thr = self.split_classes_for_range(classes, matches)
+        # if iter > 3 and iter < 10: # and cycles == 0:
+        if iter > 1 and iter < 5: # and cycles == 0:
             print("--------", iter, "-----------")
             thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
-        # elif iter >= 10:
-        #     print("--------", iter, "-----------")
-        #     thr_low, thr_high = self.get_robust_zscore_thresholds(classes, matches, threshold=2.0)
             
 
-        if iter > 3 and iter < 10: # and cycles == 0:
+        # if iter > 3 and iter < 10: # and cycles == 0:
+        if iter > 1 and iter < 5: # and cycles == 0:
             num = int(classes/2)
             newCL = [[] for i in range(classes)]
         else:
             num = classes
             newCL = [[] for i in range(classes)]
-        
-        # if iter > 0 and iter < 4:
-        #     num = classes // 2
-        #     newCL = [[] for _ in range(2 * num)]
-        # elif iter == 4:
-        #     num = classes // 2
-        #     newCL = [[] for _ in range(num)]
-        # else:
-        #     num = classes
-        #     newCL = [[] for _ in range(num)]
-
 
 
         step = int(np.ceil(nExp/expBatchSize))
@@ -462,7 +449,8 @@ class BnBgpu:
             count+=1
 
             
-            if iter > 3 and iter < 10:# and cycles == 0:
+            # if iter > 3 and iter < 10:# and cycles == 0:
+            if iter > 1 and iter < 5:# and cycles == 0:
                 
                 for n in range(num):
                     
@@ -481,18 +469,6 @@ class BnBgpu:
                                             )
                                         ]
                     newCL[n + num].append(non_class_images)
-                    
-                    
-            # elif iter >= 10:
-            #
-            #     for n in range(num):
-            #
-            #         class_images = transforIm[
-            #                                 (matches[initBatch:endBatch, 1] == n) &
-            #                                 (matches[initBatch:endBatch, 2] > thr_low[n]) &
-            #                                 (matches[initBatch:endBatch, 2] < thr_high[n])
-            #                             ]
-            #         newCL[n].append(class_images)
 
             else:  
       
@@ -510,7 +486,7 @@ class BnBgpu:
         # clk = self.filter_classes_relion_style(newCL, clk, sampling, 6.0)
         
 
-        if iter > 10: 
+        if iter > 5: 
             res_classes = self.frc_resolution_tensor(newCL, sampling)
             print(res_classes)
             # bfactor = self.estimate_bfactor_batch(clk, sampling, res_classes)
@@ -531,11 +507,12 @@ class BnBgpu:
         # clk = self.gaussian_lowpass_filter_2D(clk, 6.0, sampling)
         
 
-        if iter in [13, 16]:
+        # if iter in [13, 16]:
+        if iter in [9]:
             # clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
             clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
                                 intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
-        if 3 < iter < 10 and iter % 2 == 0:
+        if 1 < iter < 5 and iter % 2 == 0:
             # clk = clk * self.approximate_otsu_threshold(clk, percentile=10)
             clk = clk * self.contrast_dominant_mask(clk, window=3, contrast_percentile=80,
                                 intensity_percentile=50, contrast_weight=1.5, intensity_weight=1.0)
@@ -543,7 +520,8 @@ class BnBgpu:
             
         clk = clk * self.create_circular_mask(clk)
         
-        if iter > 2 and iter < 15:
+        # if iter > 2 and iter < 15:
+        if iter > 1 and iter < 8:
             clk = self.center_by_com(clk)                  
         
         return(clk, tMatrix, batch_projExp_cpu)
@@ -1880,50 +1858,28 @@ class BnBgpu:
         
         if mode == "create_classes":
             #print("---Iter %s for creating classes---"%(iter+1))
-            # if iter < 5:
-            #     ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            # elif iter < 8:
-            #     ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            # elif iter < 11:
-            #     ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
-            # elif iter < 14:
-            #     ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
+            if iter < 6:
+                ang, shiftMove = (-180, 180, 6), (-maxShift_15, maxShift_15+4, 4)
+            elif iter < 9:
+                ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
+            elif iter < 12:
+                ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
+            elif iter < 15:
+                ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
             
             #print("---Iter %s for creating classes---"%(iter+1))
-            if iter < 5:
-                ang, shiftMove = (-180, 180, 10), (-maxShift_20, maxShift_20+5, 5)
-                # ang, shiftMove = (-180, 180, 10), (-maxShift_15, maxShift_15+4, 4)
-            elif iter < 10:
-                ang, shiftMove = (-180, 180, 8), (-maxShift_15, maxShift_15+4, 4)
-            elif iter < 13:
-                ang, shiftMove = (-180, 180, 6), (-12, 16, 4)
-            elif iter < 16:
-                ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            elif iter < 19:
-                ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
-            elif iter < 22:
-                ang, shiftMove = (-30, 31, 1), (-3, 4, 1)            
-            
-            # if iter < 1:
-            #     ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            # elif iter < 2:
-            #     ang, shiftMove = (-180, 180, 7), (-maxShift, maxShift+4, 4)
-            # elif iter < 3:
-            #     ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            # elif iter < 4:
-            #     ang, shiftMove = (-180, 180, 7), (-maxShift, maxShift+4, 4)
-            # elif iter < 5:
-            #     ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-            # elif iter < 6:
+            # if iter < 5:
+            #     ang, shiftMove = (-180, 180, 10), (-maxShift_20, maxShift_20+5, 5)
+            # elif iter < 10:
+            #     ang, shiftMove = (-180, 180, 8), (-maxShift_15, maxShift_15+4, 4)
+            # elif iter < 13:
+            #     ang, shiftMove = (-180, 180, 6), (-12, 16, 4)
+            # elif iter < 16:
             #     ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            # elif iter < 7:
-            #     ang, shiftMove = (-180, 180, 5), (-8, 10, 2)
-            # elif iter < 8:
-            #     ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            # elif iter < 11:
+            # elif iter < 19:
             #     ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
-            # elif iter < 14:
-            #     ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
+            # elif iter < 22:
+            #     ang, shiftMove = (-30, 31, 1), (-3, 4, 1)            
                 
         else:
             #print("---Iter %s for align to classes---"%(iter+1))
