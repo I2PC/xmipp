@@ -651,7 +651,8 @@ class BnBgpu:
         
         batch_projExp_cpu = self.create_batchExp(transforIm, freqBn, coef, cvecs)
         
-        if iter == 3:
+        # if iter == 3:
+        if iter == 2:
             newCL = [[] for i in range(classes)]              
                     
             for n in range(classes):
@@ -1830,7 +1831,7 @@ class BnBgpu:
                 # expBatchSize = 10000
                 expBatchSize2 = 20000
                 # numFirstBatch = 2
-                numFirstBatch = 1
+                numFirstBatch = 4
             elif dim <= 256:
                 expBatchSize = 4000 
                 expBatchSize2 = 5000
@@ -1896,10 +1897,10 @@ class BnBgpu:
                 ang, shiftMove = (-180, 180, 6), (-12, 16, 4)
             elif iter < 13:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            elif iter < 16:
+            elif iter < 17:
                 ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
-            elif iter < 19:
-                ang, shiftMove = (-30, 31, 1), (-3, 4, 1)           
+            # elif iter < 19:
+            #     ang, shiftMove = (-30, 31, 1), (-3, 4, 1)           
                 
         else:
             #print("---Iter %s for align to classes---"%(iter+1))
@@ -1909,10 +1910,8 @@ class BnBgpu:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
             elif iter < 3:
                 ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
-                # ang, shiftMove = (-180, 180, 2), (-6, 8, 2)
-            elif iter < 4:
-                ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
-                # ang, shiftMove = (-180, 180, 1), (-3, 4, 1)
+            # elif iter < 4:
+            #     ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
            
         vectorRot, vectorshift = self.setRotAndShift(ang, shiftMove)
         return (vectorRot, vectorshift)

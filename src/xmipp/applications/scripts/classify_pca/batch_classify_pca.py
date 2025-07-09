@@ -164,7 +164,7 @@ if __name__=="__main__":
     
     
     ### Start initial cycles
-    num_cycles = 4 
+    num_cycles = 1 
     for cycles in range (num_cycles):
         batch_projExp_cpu = []
         endBatch = 0
@@ -304,7 +304,7 @@ if __name__=="__main__":
                         angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
                         angles_deg[:endBatch] = np.degrees(angles_rad.cpu().numpy())
                         
-                    elif mode == "align_classes" and iter == 3:
+                    elif mode == "align_classes" and iter == 2:
                         
                         refClas[initBatch:endBatch] = matches[:, 1]
                         dist[initBatch:endBatch] = matches[:, 2].cpu()
