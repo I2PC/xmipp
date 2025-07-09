@@ -82,7 +82,7 @@ if __name__=="__main__":
     classes = int(args.classes)
     final_classes = classes  
     refImages = args.ref
-    niter = 19
+    niter = 17
     # bands = args.bands
     # vecs = args.vecs
     mask = args.mask
