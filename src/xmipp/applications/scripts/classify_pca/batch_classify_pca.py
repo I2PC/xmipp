@@ -120,7 +120,7 @@ if __name__=="__main__":
     angles_deg = np.zeros(nExp)
     
     #PCA function
-    nBand = 4
+    nBand = 1
     pca = PCAgpu(nBand)
     
     freqBn, cvecs, coef = pca.calculatePCAbasis(mmap, Ntrain, nBand, dim, sampling, maxRes=18.0, 
@@ -164,7 +164,7 @@ if __name__=="__main__":
     
     
     ### Start initial cycles
-    num_cycles = 1 
+    num_cycles = 4 
     for cycles in range (num_cycles):
         batch_projExp_cpu = []
         endBatch = 0
