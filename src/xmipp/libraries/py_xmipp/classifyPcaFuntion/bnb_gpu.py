@@ -1395,7 +1395,7 @@ class BnBgpu:
     
     
     @torch.no_grad()
-    def frc_resolution_tensor(
+    def frc_resolution_tensor2(
             self,
             newCL,                       # lista de tensores [N_i,H,W]
             pixel_size: float,           # Å/px
@@ -1454,7 +1454,7 @@ class BnBgpu:
     
   
     @torch.no_grad()
-    def frc_resolution_tensor2(
+    def frc_resolution_tensor(
             self,
             newCL,                       # lista de tensores [N_i,H,W]
             pixel_size: float,           # Å/px
@@ -1956,7 +1956,7 @@ class BnBgpu:
                 ang, shiftMove = (-180, 180, 6), (-12, 16, 4)
             elif iter < 13:
                 ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-            elif iter < 17:
+            elif iter < 18:
                 ang, shiftMove = (-90, 92, 2), (-6, 8, 2)
             # elif iter < 19:
             #     ang, shiftMove = (-30, 31, 1), (-3, 4, 1)           
