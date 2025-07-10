@@ -1109,8 +1109,9 @@ void ProgClassifyPartialOccupancy::calculateBoundingBox(MultidimArray<double> Pm
 }
 
 
-Image<double> ProgClassifyPartialOccupancy::calculateRadialAverage(const MultidimArray<std::complex<double>> &particleFT, 
-																   MultidimArray<double> &radialAvg_FT) 
+void ProgClassifyPartialOccupancy::calculateRadialAverage(const MultidimArray<std::complex<double>> &particleFT, 
+														  MultidimArray<double> &radialAvg_FT,
+														  bool normalize) 
 {
 	std::vector<double> radialCounter_FT;
 
@@ -1133,6 +1134,22 @@ Image<double> ProgClassifyPartialOccupancy::calculateRadialAverage(const Multidi
 	{
 		radialAvg_FT[i] /= radialCounter_FT[i];
 	}
+
+	if (normalize)
+	{
+		double sumPower = 0;
+
+		for(size_t i = 0; i < radialAvg_FT.size(); i++)
+		{
+			sumPower += radialAvg_FT[i];
+		}	
+
+		for(size_t i = 0; i < radialAvg_FT.size(); i++)
+		{
+			radialAvg_FT[i] /= sumPower;
+		}
+	}
+	
 }
 
 
