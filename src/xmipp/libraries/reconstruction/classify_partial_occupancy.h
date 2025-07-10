@@ -190,6 +190,9 @@ public:
                               std::vector<int> &maxX, 
                               std::vector<int> &maxY, 
                               int numLig);
+    
+    void ProgClassifyPartialOccupancy::calculateRadialAverage(const MultidimArray<std::complex<double>> &particleFT, 
+															  MultidimArray<double> &radialAvg_FT);
 
     // ----------------------- CLASS METHODS ------------------------------
     // Empty constructor

@@ -343,8 +343,8 @@ void ProgClassifyPartialOccupancy::frequencyCharacterization()
 
 	#ifdef DEBUG_FREQUENCY_PROFILE
 	std::cout << "FFT map dimensions: " << std::endl;  
-	std::cout << "FT xSize " << Xdim_ft << std::endl;
-	std::cout << "FT ySize " << Ydim_ft << std::endl;
+	std::cout << "FT Xdim " << Xdim_ft << std::endl;
+	std::cout << "FT Ydim " << Ydim_ft << std::endl;
 	std::cout << "FT zSize " << Zdim_ft << std::endl;
 	std::cout << "FT nSize " << Ndim_ft << std::endl;
 	std::cout << "maxRadius " << maxRadius << std::endl;
@@ -806,7 +806,7 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 		transformerI.FourierTransform(centeredLigand, fftI, false);
 		transformerIsubP.FourierTransform(centeredLigandSubP, fftIsubP, false);
 
-		// Calculate likelyhood for each region
+		// Calculate likelihood for each region
 		double ll_I_it = 0;
 		double ll_IsubP_it = 0;
 
@@ -838,7 +838,7 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 		ll_I	 += ll_I_it;
 		ll_IsubP += ll_IsubP_it;
 
-		// Normalize likelyhood by number of pixels of the crop and take logarithms
+		// Normalize likelihood by number of pixels of the crop and take logarithms
 		// ll_I	    += std::log10(ll_I_it 	  / numberOfPx);
 		// ll_IsubP += std::log10(ll_IsubP_it / numberOfPx);
 
@@ -924,6 +924,33 @@ void ProgClassifyPartialOccupancy::calculateBoundingBox(MultidimArray<double> Pm
         minY[k] = std::max(0, minY[k]);
         maxY[k] = std::min(static_cast<int>(Ydim - 1), maxY[k]);
     }
+}
+
+
+Image<double> ProgClassifyPartialOccupancy::calculateRadialAverage(const MultidimArray<std::complex<double>> &particleFT, 
+																   MultidimArray<double> &radialAvg_FT) 
+{
+	std::vector<double> radialCounter_FT;
+
+	radialAvg_FT.resize(xDim, 0);
+	radialCounter_FT.resize(xDim, 0);
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(particleFreqMap)
+	{
+		// Limit analysis to Nyquist
+		if(DIRECT_MULTIDIM_ELEM(particleFreqMap,n) < xDim)
+		{
+			double value_mod  = (DIRECT_MULTIDIM_ELEM(particleFT,n) * std::conj(DIRECT_MULTIDIM_ELEM(particleFT,n)).real());		
+
+			radialAvg_FT[(int)(DIRECT_MULTIDIM_ELEM(particleFreqMap,n))]  += value_mod;
+			radialCounter_FT[(int)(DIRECT_MULTIDIM_ELEM(particleFreqMap,n))] += 1;
+		}
+	}
+
+	for(size_t i = 0; i < radialCounter_FT.size(); i++)
+	{
+		radialAvg_FT[i] /= radialCounter_FT[i];
+	}
 }
 
 
