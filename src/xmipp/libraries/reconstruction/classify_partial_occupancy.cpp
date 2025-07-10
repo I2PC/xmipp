@@ -992,8 +992,8 @@ void ProgClassifyPartialOccupancy::entropy(double &ll_I, double &ll_IsubP, const
 		MultidimArray<double> fftI_RA;
 		MultidimArray<double> fftIsubP_RA;
 
-		calculateRadialAverage(fftI, fftI_RA);
-		calculateRadialAverage(fftIsubP, fftIsubP_RA);
+		calculateRadialAverage(fftI, fftI_RA, true);
+		calculateRadialAverage(fftIsubP, fftIsubP_RA, true);
 
 		// Calculate entropy for each region
 		double entropy_I_it = 0;
@@ -1008,21 +1008,14 @@ void ProgClassifyPartialOccupancy::entropy(double &ll_I, double &ll_IsubP, const
 			// Consider only "mount Fuji" frequencies (in Halo but not in APO)
 			// if (n > 50 && n < 150)
 			// {
-				
-				ll_I_it     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / (DIRECT_MULTIDIM_ELEM(powerNoise(), n));
-				ll_IsubP_it += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / (DIRECT_MULTIDIM_ELEM(powerNoise(), n));
-
-
+				entropy_I_it     -= DIRECT_MULTIDIM_ELEM(fftI_RA,n)     * std::log2(DIRECT_MULTIDIM_ELEM(fftI_RA,n));
+				entropy_IsubP_it -= DIRECT_MULTIDIM_ELEM(fftIsubP_RA,n) * std::log2(DIRECT_MULTIDIM_ELEM(fftIsubP_RA,n));
 			}
 		}
 
 		// Do not noralize
-		ll_I	 += ll_I_it;
-		ll_IsubP += ll_IsubP_it;
-
-		// Normalize likelihood by number of pixels of the crop and take logarithms
-		// ll_I	    += std::log10(ll_I_it 	  / numberOfPx);
-		// ll_IsubP += std::log10(ll_IsubP_it / numberOfPx);
+		ll_I	 += entropy_I_it;
+		ll_IsubP += entropy_IsubP_it;
 
 		#ifdef DEBUG_LOG_LIKELIHOOD
 		std::cout << "ll_I_it for interation "     << value << " : " << ll_I_it     << ". Number of pixels: " << numberOfPx << std::endl;
