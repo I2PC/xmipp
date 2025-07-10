@@ -1455,71 +1455,65 @@ class BnBgpu:
                                    neginf= fallback_res)
         return res_out
     
-    
+  
     @torch.no_grad()
     def frc_resolution_tensor(
             self,
-            newCL,                     # lista de tensores [N_i,H,W]
-            pixel_size: float,
+            newCL,                       # lista de tensores [N_i,H,W]
+            pixel_size: float,           # Å/px
             frc_threshold: float = 0.143,
             fallback_res: float = 40.0
     ) -> torch.Tensor:
+        """Devuelve tensor [n_classes] con la resolución FRC por clase (Å)."""
         n_classes = len(newCL)
         device    = newCL[0].device
-        H, W      = newCL[0].shape[1:]
-    
-        # === Precalcular el mapa de radios (sin centrar) ===
-        yy, xx = torch.meshgrid(torch.arange(H, device=device),
-                                torch.arange(W, device=device),
-                                indexing='ij')
-        r_map = (xx**2 + yy**2).sqrt().long()
-        Rmax  = min(H, W) // 2
-        r_map = r_map.clamp(0, Rmax - 1).view(-1).contiguous()
-    
-        # === Inicializar salida con fallback
-        res_out = torch.full((n_classes,), fallback_res, device=device)
+        res_out   = torch.full((n_classes,), float('nan'), device=device)
+        
+        y, x = torch.meshgrid(torch.arange(h, device=device),
+                              torch.arange(w, device=device),
+                              indexing='ij')
+        r     = ((x - w//2)**2 + (y - h//2)**2).sqrt().long()
+        Rmax  = min(h, w) // 2
+        r.clamp_(0, Rmax-1)
+        r_flat = r.view(-1)
     
         for c, imgs in enumerate(newCL):
             n, h, w = imgs.shape
             if n < 2:
-                continue
+                continue  # no se puede partir en mitades
     
-            # --- Half maps ---
-            perm         = torch.randperm(n, device=device)
-            half1, half2 = torch.chunk(imgs[perm], 2, dim=0)
-            avg1, avg2   = half1.mean(0), half2.mean(0)
+            # ---------------- half maps -----------------
+            perm          = torch.randperm(n, device=device)
+            half1, half2  = torch.chunk(imgs[perm], 2, dim=0)
+            avg1, avg2    = half1.mean(0), half2.mean(0)
     
-            # --- FFT sin shift ---
-            fft1 = torch.fft.fft2(avg1)
-            fft2 = torch.fft.fft2(avg2)
+            # ---------------- FRC -----------------------
+            fft1 = torch.fft.fftshift(torch.fft.fft2(avg1))
+            fft2 = torch.fft.fftshift(torch.fft.fft2(avg2))
     
-            # --- Magnitudes y productos cruzados ---
-            prod = (fft1 * fft2.conj()).real
             p1   = (fft1.real**2 + fft1.imag**2)
             p2   = (fft2.real**2 + fft2.imag**2)
+            prod = (fft1 * fft2.conj()).real
     
-            # --- Flatten y acumulación radial ---
-            frc_num = torch.bincount(r_map, weights=prod.flatten(), minlength=Rmax)
-            frc_d1  = torch.bincount(r_map, weights=p1.flatten(), minlength=Rmax)
-            frc_d2  = torch.bincount(r_map, weights=p2.flatten(), minlength=Rmax)
+            frc_num = torch.zeros(Rmax, device=device).scatter_add_(0, r_flat, prod.view(-1))
+            frc_d1  = torch.zeros(Rmax, device=device).scatter_add_(0, r_flat, p1.view(-1))
+            frc_d2  = torch.zeros(Rmax, device=device).scatter_add_(0, r_flat, p2.view(-1))
+            frc     = frc_num / (torch.sqrt(frc_d1*frc_d2) + 1e-12)
     
-            frc = frc_num / (torch.sqrt(frc_d1 * frc_d2) + 1e-12)
+            freqs   = torch.linspace(0, 0.5/pixel_size, Rmax, device=device)
+            idx     = torch.where(frc < frc_threshold)[0]
     
-            # --- Buscar cruce con umbral ---
-            freqs = torch.linspace(0, 0.5 / pixel_size, Rmax, device=device)
-            idx   = torch.where(frc < frc_threshold)[0]
+            if len(idx) and idx[0] > 0:                # evita f_cut=0
+                f_cut        = freqs[idx[0]]
+                res_out[c]   = 1.0 / f_cut
     
-            if len(idx) > 0 and idx[0] > 0:
-                res_out[c] = 1.0 / freqs[idx[0]]
-                
-                # ---------- sustituye NaN e Inf una sola vez ------------
+        # ---------- sustituye NaN e Inf una sola vez ------------
         res_out = torch.nan_to_num(res_out,
                                    nan   = fallback_res,
                                    posinf= fallback_res,
                                    neginf= fallback_res)
-    
-        return res_out
-    
+        return res_out  
+
     
     def estimate_bfactor_batch(self, averages, pixel_size, res_cutoff, freq_min=0.05, min_points=5):
         N, H, W = averages.shape
