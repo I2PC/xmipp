@@ -1466,6 +1466,7 @@ class BnBgpu:
     ) -> torch.Tensor:
         """Devuelve tensor [n_classes] con la resolución FRC por clase (Å)."""
         n_classes = len(newCL)
+        h, w = newCL[0][0].shape
         device    = newCL[0].device
         res_out   = torch.full((n_classes,), float('nan'), device=device)
         
