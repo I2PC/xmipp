@@ -989,8 +989,8 @@ void ProgClassifyPartialOccupancy::entropy(double &ll_I, double &ll_IsubP, const
 		transformerIsubP.FourierTransform(centeredLigandSubP, fftIsubP, false);
 
 		// Take radial average for each FT
-		MultidimArray<double> fftI_RA;
-		MultidimArray<double> fftIsubP_RA;
+		std::vector<double> fftI_RA;
+		std::vector<double> fftIsubP_RA;
 
 		calculateRadialAverage(fftI, fftI_RA, true);
 		calculateRadialAverage(fftIsubP, fftIsubP_RA, true);
@@ -999,7 +999,7 @@ void ProgClassifyPartialOccupancy::entropy(double &ll_I, double &ll_IsubP, const
 		double entropy_I_it = 0;
 		double entropy_IsubP_it = 0;
 
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI_RA)
+		for(size_t n = 0; n < fftI_RA.size(); n++)
 		{		
 			// Consider all frequencies
 			if (true)
@@ -1008,8 +1008,8 @@ void ProgClassifyPartialOccupancy::entropy(double &ll_I, double &ll_IsubP, const
 			// Consider only "mount Fuji" frequencies (in Halo but not in APO)
 			// if (n > 50 && n < 150)
 			// {
-				entropy_I_it     -= DIRECT_MULTIDIM_ELEM(fftI_RA,n)     * std::log2(DIRECT_MULTIDIM_ELEM(fftI_RA,n));
-				entropy_IsubP_it -= DIRECT_MULTIDIM_ELEM(fftIsubP_RA,n) * std::log2(DIRECT_MULTIDIM_ELEM(fftIsubP_RA,n));
+				entropy_I_it     -= fftI_RA[n]     * std::log2(fftI_RA[n]);
+				entropy_IsubP_it -= fftIsubP_RA[n] * std::log2(fftIsubP_RA[n]);
 			}
 		}
 
@@ -1103,27 +1103,27 @@ void ProgClassifyPartialOccupancy::calculateBoundingBox(MultidimArray<double> Pm
 
 
 void ProgClassifyPartialOccupancy::calculateRadialAverage(const MultidimArray<std::complex<double>> &particleFT, 
-														  MultidimArray<double> &radialAvg_FT,
+														  std::vector<double> &radialAvgFT,
 														  bool normalize) 
 {
 	std::vector<double> radialCounter_FT;
 
-	radialAvg_FT.resize(xDim, 0);
-	radialCounter_FT.resize(xDim, 0);
+	radialAvgFT.resize(Xdim, 0);
+	radialCounter_FT.resize(Xdim, 0);
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(particleFreqMap)
 	{
 		// Limit analysis to Nyquist
-		if(DIRECT_MULTIDIM_ELEM(particleFreqMap,n) < xDim)
+		if(DIRECT_MULTIDIM_ELEM(particleFreqMap,n) < Xdim)
 		{
-			double value_mod  = (DIRECT_MULTIDIM_ELEM(particleFT,n) * std::conj(DIRECT_MULTIDIM_ELEM(particleFT,n)).real());		
+			double value_mod  = (DIRECT_MULTIDIM_ELEM(particleFT,n) * std::conj(DIRECT_MULTIDIM_ELEM(particleFT,n))).real();		
 
 			radialAvg_FT[(int)(DIRECT_MULTIDIM_ELEM(particleFreqMap,n))]  += value_mod;
 			radialCounter_FT[(int)(DIRECT_MULTIDIM_ELEM(particleFreqMap,n))] += 1;
 		}
 	}
 
-	for(size_t i = 0; i < radialCounter_FT.size(); i++)
+	for(size_t i = 0; i <  radialCounter_FT.size(); i++)
 	{
 		radialAvg_FT[i] /= radialCounter_FT[i];
 	}
@@ -1142,7 +1142,6 @@ void ProgClassifyPartialOccupancy::calculateRadialAverage(const MultidimArray<st
 			radialAvg_FT[i] /= sumPower;
 		}
 	}
-	
 }
 
 

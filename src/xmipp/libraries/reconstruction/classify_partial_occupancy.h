@@ -180,6 +180,7 @@ public:
     void frequencyCharacterization();
     void noiseEstimation();
     void logLikelihood(double &ll_I, double &ll_IsubP, const FileName &fnImgOut);
+    void entropy(double &ll_I, double &ll_IsubP, const FileName &fnImgOut);
 
     // ---------------------- UTILS METHODS ------------------------------
     Image<double> binarizeMask(Projection &) const;
@@ -192,7 +193,7 @@ public:
                               int numLig);
     
     void calculateRadialAverage(const MultidimArray<std::complex<double>> &particleFT, 
-								MultidimArray<double> &radialAvg_FT,
+								std::vector<double> &radialAvg_FT,
                                 bool normalize);
 
     // ----------------------- CLASS METHODS ------------------------------
