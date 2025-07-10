@@ -861,6 +861,188 @@ void ProgClassifyPartialOccupancy::logLikelihood(double &ll_I, double &ll_IsubP,
 	#endif
 }
 
+void ProgClassifyPartialOccupancy::entropy(double &ll_I, double &ll_IsubP, const FileName &fnImgOut)
+{	
+	// -- Detect ligand regions
+	binarizeMask(PmaskRoi);
+	MultidimArray<double> PmaskRoiLabel;
+	PmaskRoiLabel.resizeNoCopy(PmaskRoi());
+	int numLig = labelImage2D(PmaskRoi(), PmaskRoiLabel, 8);
+
+	#ifdef DEBUG_OUTPUT_FILES
+	size_t dotPos = fnImgOut.find_last_of('.');
+	Image<double> saveImage;
+
+	saveImage = PmaskRoi;
+	saveImage.write(fnImgOut.substr(0, dotPos) + "_PmaskRoiBinarize.mrcs");
+
+	saveImage() = PmaskRoiLabel;
+	saveImage.write(fnImgOut.substr(0, dotPos) + "_PmaskRoiLabel.mrcs");
+	#endif
+
+	// Calculate bounding box for each ligand region
+	std::vector<int> minX(numLig, std::numeric_limits<int>::max());
+	std::vector<int> minY(numLig, std::numeric_limits<int>::max());
+	std::vector<int> maxX(numLig, 0);
+	std::vector<int> maxY(numLig, 0);
+
+	calculateBoundingBox(PmaskRoiLabel, minX, minY, maxX, maxY, numLig);
+
+	// -- Calculate likelihood for each region
+	MultidimArray<double> centeredLigand;
+	MultidimArray<double> centeredLigandSubP;
+	MultidimArray< std::complex<double> > fftI;
+	MultidimArray< std::complex<double> > fftIsubP;
+
+	// Subtract proyected weight volume to particle
+
+	// Por ahora solo consideramos ajuste de orden 0. 
+	// Si queremos considerar el del orden 1 hay que que comprobar que b1 > 0
+	// y ajustar por frecuencia
+	IsubP() = (I() - adjustParams.b) - (P() * adjustParams.b0);
+
+	#ifdef DEBUG_OUTPUT_FILES
+	saveImage = IsubP;
+	saveImage.write(fnImgOut.substr(0, dotPos) + "_IsubP.mrcs");
+	#endif
+
+	std::cout << "--------------------------------------------------------------------- " 	<< std::endl;
+	std::cout << fnImgI << std::endl;
+
+	// Analyze each ligand region independently
+	for (size_t value = 0; value < numLig; ++value) 
+	{
+		#ifdef DEBUG_LOG_LIKELIHOOD
+		std::cout << "Analyzign ligand region " << int(value +1) << std::endl;
+		#endif
+		// Cropping regions
+		int width = maxX[value] - minX[value] + 1;
+		int height = maxY[value] - minY[value] + 1;
+		int centerX = Xdim / 2;
+		int centerY = Ydim / 2;
+		int numberOfPx = 0;
+
+		#ifdef DEBUG_LOG_LIKELIHOOD
+		std::cout << "minX[value] " << minX[value] << std::endl;
+		std::cout << "maxX[value] " << maxX[value] << std::endl;
+		std::cout << "minY[value] " << minY[value] << std::endl;
+		std::cout << "maxY[value] " << maxY[value] << std::endl;
+		std::cout << "width " 		<< width << std::endl;
+		std::cout << "height " 		<< height << std::endl;
+		std::cout << "numberOfPx " 	<< numberOfPx << std::endl;
+		#endif
+
+		// Initialize new images for cropping
+		centeredLigand.initZeros(Ydim, Xdim);
+		centeredLigandSubP.initZeros(Ydim, Xdim);
+
+		// Copy the region to the center of the new image
+		for (int i = minY[value]; i <= maxY[value]; ++i) 
+		{
+			for (int j = minX[value]; j <= maxX[value]; ++j) 
+			{
+				int newI = centerY - height / 2 + (i - minY[value]);
+				int newJ = centerX - width / 2 + (j - minX[value]);
+				
+				if (DIRECT_A2D_ELEM(PmaskRoiLabel, i, j) > 0)
+				{
+					DIRECT_A2D_ELEM(centeredLigand, newI, newJ) = DIRECT_A2D_ELEM(I(), i, j);
+					DIRECT_A2D_ELEM(centeredLigandSubP, newI, newJ) = DIRECT_A2D_ELEM(IsubP(), i, j);
+					
+					numberOfPx++;
+				}
+			}
+		}
+
+		// Fix scale previous to FT
+		double scallignFactor = (Xdim * Ydim) / (numberOfPx);
+
+		for (int i = minY[value]; i <= maxY[value]; ++i) 
+		{
+			for (int j = minX[value]; j <= maxX[value]; ++j) 
+			{
+				int newI = centerY - height / 2 + (i - minY[value]);
+				int newJ = centerX - width / 2 + (j - minX[value]);
+				
+				if (DIRECT_A2D_ELEM(PmaskRoiLabel, i, j) > 0)
+				{
+					DIRECT_A2D_ELEM(centeredLigand, newI, newJ) *= scallignFactor;
+					DIRECT_A2D_ELEM(centeredLigandSubP, newI, newJ) *= scallignFactor;
+				}
+			}
+		}
+
+		#ifdef DEBUG_OUTPUT_FILES
+		size_t lastindex = fnImgOut.find_last_of(".");
+
+		std::string debugFileFn = fnImgOut.substr(0, lastindex) + "_centeredLigand_" + std::to_string(value) + ".mrcs";
+		saveImage() = centeredLigand;
+		saveImage.write(debugFileFn);
+
+		debugFileFn = fnImgOut.substr(0, lastindex) + "_centeredLigandSubP_" + std::to_string(value) + ".mrcs";
+		saveImage() = centeredLigandSubP;
+		saveImage.write(debugFileFn);
+		#endif
+
+		// Calculate FT for each cropping
+		transformerI.FourierTransform(centeredLigand, fftI, false);
+		transformerIsubP.FourierTransform(centeredLigandSubP, fftIsubP, false);
+
+		// Take radial average for each FT
+		MultidimArray<double> fftI_RA;
+		MultidimArray<double> fftIsubP_RA;
+
+		calculateRadialAverage(fftI, fftI_RA);
+		calculateRadialAverage(fftIsubP, fftIsubP_RA);
+
+		// Calculate entropy for each region
+		double entropy_I_it = 0;
+		double entropy_IsubP_it = 0;
+
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftI_RA)
+		{		
+			// Consider all frequencies
+			if (true)
+			{
+
+			// Consider only "mount Fuji" frequencies (in Halo but not in APO)
+			// if (n > 50 && n < 150)
+			// {
+				
+				ll_I_it     += (DIRECT_MULTIDIM_ELEM(fftI,n)     * std::conj(DIRECT_MULTIDIM_ELEM(fftI,n))).real()     / (DIRECT_MULTIDIM_ELEM(powerNoise(), n));
+				ll_IsubP_it += (DIRECT_MULTIDIM_ELEM(fftIsubP,n) * std::conj(DIRECT_MULTIDIM_ELEM(fftIsubP,n))).real() / (DIRECT_MULTIDIM_ELEM(powerNoise(), n));
+
+
+			}
+		}
+
+		// Do not noralize
+		ll_I	 += ll_I_it;
+		ll_IsubP += ll_IsubP_it;
+
+		// Normalize likelihood by number of pixels of the crop and take logarithms
+		// ll_I	    += std::log10(ll_I_it 	  / numberOfPx);
+		// ll_IsubP += std::log10(ll_IsubP_it / numberOfPx);
+
+		#ifdef DEBUG_LOG_LIKELIHOOD
+		std::cout << "ll_I_it for interation "     << value << " : " << ll_I_it     << ". Number of pixels: " << numberOfPx << std::endl;
+		std::cout << "ll_IsubP_it for interation " << value << " : " << ll_IsubP_it << ". Number of pixels: " << numberOfPx << std::endl;
+		#endif
+	}
+
+	std::cout << "Final ll_I: " << ll_I << std::endl;
+	std::cout << "Final ll_IsubP: " << ll_IsubP << std::endl;
+	std::cout << "Final diff ll_I - ll_IsubP: " << ll_I - ll_IsubP << std::endl;
+
+	std::cout << "--------------------------------------------------------------------- " 	<< std::endl;
+
+
+	#ifdef DEBUG_LOG_LIKELIHOOD
+	std::cout << "Final ll_I: " << ll_I << std::endl;
+	std::cout << "Final ll_IsubP: " << ll_IsubP << std::endl;
+	#endif
+}
+
 
 // Utils methods ===================================================================
 Image<double> ProgClassifyPartialOccupancy::binarizeMask(Projection &m) const 
