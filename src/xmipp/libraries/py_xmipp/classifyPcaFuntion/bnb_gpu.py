@@ -500,7 +500,8 @@ class BnBgpu:
             # clk = self.sharpen_averages_batch(clk, sampling, bfactor, res_classes)
             # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
             # clk = self.enhance_averages_butterworth(clk, sampling)
-            clk = self.enhance_averages_butterworth_combined(clk, res_classes, sampling)
+            # clk = self.enhance_averages_butterworth_combined(clk, res_classes, sampling)
+            clk = self.enhance_averages_attenuate_lowfrequencies(clk, res_classes, sampling)
             # clk = self.unsharp_mask_norm(clk)
     
 
@@ -681,7 +682,8 @@ class BnBgpu:
             # clk = self.sharpen_averages_batch(clk, sampling, bfactor, res_classes)
             # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
             # clk = self.enhance_averages_butterworth(clk, sampling) 
-            clk = self.enhance_averages_butterworth_combined(clk, res_classes, sampling)
+            # clk = self.enhance_averages_butterworth_combined(clk, res_classes, sampling)
+            clk = self.enhance_averages_attenuate_lowfrequencies(clk, res_classes, sampling)
             # clk = self.unsharp_mask_norm(clk)
             # clk = self.gaussian_lowpass_filter_2D(clk, maxRes, sampling)
         
@@ -1627,7 +1629,7 @@ class BnBgpu:
     
         return sharp_imgs
     
-
+    @torch.no_grad()
     def enhance_averages_butterworth_combined(
         self,
         averages: torch.Tensor,            # [B, H, W]
@@ -1706,7 +1708,78 @@ class BnBgpu:
     
         return output    
     
+    @torch.no_grad()
+    def enhance_averages_attenuate_lowfrequencies(
+        self,
+        averages: torch.Tensor,            # [B, H, W]
+        resolutions: torch.Tensor,         # [B] resoluciones FRC por clase
+        pixel_size: float,                 # Å/pixel
+        low_res_angstrom: float = 20.0,    # corte para bajas frecuencias a atenuar
+        order: int = 4,                    # orden del filtro
+        blend_factor: float = 0.5,         # mezcla con original
+        normalize: bool = True             # conservar contraste
+    ) -> torch.Tensor:
+        """
+        1. Aplica paso bajo según FRC (limitado a 25 Å).
+        2. Atenúa bajas frecuencias (<20 Å) restando componente filtrado.
+        """
+        device = averages.device
+        B, H, W = averages.shape
+        eps = 1e-8
     
+        # Malla radial normalizada
+        yy, xx = torch.meshgrid(
+            torch.arange(H, device=device),
+            torch.arange(W, device=device),
+            indexing='ij'
+        )
+        r = torch.sqrt((xx - W // 2) ** 2 + (yy - H // 2) ** 2)
+        r_norm = r / r.max()                          # [H, W]
+        r_norm_exp = r_norm.unsqueeze(0)              # [1, H, W]
+    
+        # --- Frecuencia de Nyquist ---
+        nyquist = 1.0 / (2.0 * pixel_size)
+        MAX_CUTOFF = 0.475
+    
+        # === Paso 1: Filtro pasa-bajo por clase (FRC) ===
+        res_clamped = torch.clamp(resolutions, max=25.0)  # [B]
+        frc_cutoffs = (1.0 / res_clamped.clamp(min=1e-3)) / nyquist / 2  # [B]
+        frc_cutoffs = torch.clamp(frc_cutoffs, 0.0, MAX_CUTOFF).view(B, 1, 1)
+        lp_filter = 1.0 / (1.0 + (r_norm_exp / (frc_cutoffs + eps)) ** (2 * order))  # [B, H, W]
+    
+        # FFT y aplicar paso bajo (por clase)
+        fft_avg = torch.fft.fft2(averages)
+        fft_shift = torch.fft.fftshift(fft_avg, dim=(-2, -1))
+        fft_lp = fft_shift * lp_filter
+        fft_lp_unshift = torch.fft.ifftshift(fft_lp, dim=(-2, -1))
+        filtered_lp = torch.fft.ifft2(fft_lp_unshift).real  # [B, H, W]
+    
+        # === Paso 2: Atenuar bajas frecuencias (por debajo de 20 Å) ===
+        low_cutoff = (1.0 / low_res_angstrom) / nyquist / 2
+        low_cutoff = min(low_cutoff, MAX_CUTOFF)
+        low_filter = 1.0 / (1.0 + (r_norm / (low_cutoff + eps)) ** (2 * order))  # [H, W]
+        low_filter = low_filter.unsqueeze(0)  # [1, H, W]
+    
+        fft_lp2 = torch.fft.fft2(filtered_lp)
+        fft_lp2_shift = torch.fft.fftshift(fft_lp2, dim=(-2, -1))
+        fft_lowfreq = fft_lp2_shift * low_filter
+        fft_lowfreq_unshift = torch.fft.ifftshift(fft_lowfreq, dim=(-2, -1))
+        low_component = torch.fft.ifft2(fft_lowfreq_unshift).real  # [B, H, W]
+    
+        # === Sustraer bajas frecuencias suavemente ===
+        filtered = filtered_lp - blend_factor * low_component
+    
+        # === Normalización (opcional) ===
+        if normalize:
+            mean_orig = averages.mean(dim=(-2, -1), keepdim=True)
+            std_orig  = averages.std(dim=(-2, -1), keepdim=True)
+            mean_filt = filtered.mean(dim=(-2, -1), keepdim=True)
+            std_filt  = filtered.std(dim=(-2, -1), keepdim=True)
+            filtered  = (filtered - mean_filt) / (std_filt + eps) * std_orig + mean_orig
+    
+        return filtered
+    
+    @torch.no_grad()
     def enhance_averages_butterworth(self, 
         averages,
         pixel_size,
