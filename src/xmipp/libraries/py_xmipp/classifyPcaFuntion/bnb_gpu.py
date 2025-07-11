@@ -1635,7 +1635,7 @@ class BnBgpu:
         averages: torch.Tensor,            # [B, H, W]
         resolutions: torch.Tensor,         # [B] resoluciones FRC por clase
         pixel_size: float,                 # Å/pixel
-        low_res_angstrom: float = 15.0,    # corte para altas frecuencias
+        low_res_angstrom: float = 20.0,    # corte para altas frecuencias
         order: int = 4,                    # orden del filtro
         blend_factor: float = 0.5,         # mezcla con original
         normalize: bool = True             # conservar contraste
