@@ -888,7 +888,7 @@ void ProgClassifyPartialOccupancy::entropy(double &ll_I, double &ll_IsubP, const
 
 	calculateBoundingBox(PmaskRoiLabel, minX, minY, maxX, maxY, numLig);
 
-	// -- Calculate likelihood for each region
+	// -- Calculate entropy for each region
 	MultidimArray<double> centeredLigand;
 	MultidimArray<double> centeredLigandSubP;
 	MultidimArray< std::complex<double> > fftI;
@@ -912,7 +912,7 @@ void ProgClassifyPartialOccupancy::entropy(double &ll_I, double &ll_IsubP, const
 	// Analyze each ligand region independently
 	for (size_t value = 0; value < numLig; ++value) 
 	{
-		#ifdef DEBUG_LOG_LIKELIHOOD
+		#ifdef DEBUG_ENTROPY
 		std::cout << "Analyzign ligand region " << int(value +1) << std::endl;
 		#endif
 		// Cropping regions
@@ -922,7 +922,7 @@ void ProgClassifyPartialOccupancy::entropy(double &ll_I, double &ll_IsubP, const
 		int centerY = Ydim / 2;
 		int numberOfPx = 0;
 
-		#ifdef DEBUG_LOG_LIKELIHOOD
+		#ifdef DEBUG_ENTROPY
 		std::cout << "minX[value] " << minX[value] << std::endl;
 		std::cout << "maxX[value] " << maxX[value] << std::endl;
 		std::cout << "minY[value] " << minY[value] << std::endl;
@@ -1017,7 +1017,7 @@ void ProgClassifyPartialOccupancy::entropy(double &ll_I, double &ll_IsubP, const
 		ll_I	 += entropy_I_it;
 		ll_IsubP += entropy_IsubP_it;
 
-		#ifdef DEBUG_LOG_LIKELIHOOD
+		#ifdef DEBUG_ENTROPY
 		std::cout << "ll_I_it for interation "     << value << " : " << ll_I_it     << ". Number of pixels: " << numberOfPx << std::endl;
 		std::cout << "ll_IsubP_it for interation " << value << " : " << ll_IsubP_it << ". Number of pixels: " << numberOfPx << std::endl;
 		#endif
@@ -1030,7 +1030,7 @@ void ProgClassifyPartialOccupancy::entropy(double &ll_I, double &ll_IsubP, const
 	std::cout << "--------------------------------------------------------------------- " 	<< std::endl;
 
 
-	#ifdef DEBUG_LOG_LIKELIHOOD
+	#ifdef DEBUG_ENTROPY
 	std::cout << "Final ll_I: " << ll_I << std::endl;
 	std::cout << "Final ll_IsubP: " << ll_IsubP << std::endl;
 	#endif
