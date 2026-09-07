@@ -356,6 +356,9 @@ def process_class(
                 gmm_weights_by_id
             ).to_numpy()
 
+        # We also write the group id to the output metadata, the weights are kind of meaningless without this
+        write_metadata.loc[class_mask, group_by_column] = group_by_value
+
     if estimator_type == "fourier_irls":
         images_fourier = torch.fft.rfft2(images)
         fourier_unmasked_average = weighted_average(images_fourier, weights)
@@ -408,6 +411,12 @@ def main() -> None:
         # any weights
         for column in ESTIMATOR_WEIGHT_COLUMNS[args.estimator_type]:
             write_metadata[column] = np.nan
+
+        # Initialize the group by column as well
+        write_metadata[args.group_by_column] = -1
+        write_metadata[args.group_by_column] = write_metadata[
+            args.group_by_column
+        ].astype(int)
 
     stack_name = str(metadata_df["image"].to_numpy()[0]).split("@", maxsplit=1)[1]
     stack_path = Path(stack_name)
