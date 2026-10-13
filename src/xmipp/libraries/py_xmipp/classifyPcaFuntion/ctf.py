@@ -177,7 +177,8 @@ class ctfClass:
             defV = self.defocus_v_gpu
             angle_val = self.defocus_angle_gpu
 
-
+        angle = angle.to(device=device)[particle_indices]
+        
         astig_angle_deg = angle_val - angle
 
         defU = defU[:, None, None]
