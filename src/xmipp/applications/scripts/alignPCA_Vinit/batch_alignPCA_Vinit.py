@@ -165,6 +165,7 @@ if __name__=="__main__":
             zeroVol = R.reconstruct_volume_sym(mmap, sym, 60, sampling, dim, random_angles, posit=positivity)
             # zeroVol = (zeroVol - zeroVol.mean()) / (zeroVol.std() + 1e-8)
             zeroVol = R.filter_3d(zeroVol, sampling, 60.0)
+            zeroVol = R.mask_otsu(zeroVol, sigma=4.0, noise_level=0.0)
             # zeroVol = zeroVol * R.contrast_dominant_mask_3d(zeroVol, window=3, contrast_percentile=90,
             #                          intensity_percentile=70, smooth_sigma=1.0)
             zeroVol = R.apply_spherical_mask(zeroVol, radius)
@@ -360,8 +361,8 @@ if __name__=="__main__":
             if posit:
                 vol = torch.relu(vol)
                 
-            # if current_iter < 7:
-            if current_iter > 1 and current_iter < 8:
+            if current_iter < 18:
+            # if current_iter > 1 and current_iter < 8:
                 vol = R.mask_otsu(vol, sigma=4.0, noise_level=0.0)
                 
             vol = R.apply_spherical_mask(vol, radius)
