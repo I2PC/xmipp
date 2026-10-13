@@ -433,16 +433,14 @@ if __name__=="__main__":
         
     counts = torch.bincount(refClas.to(torch.int64), minlength=classes)
     
-    
-    # cl = bnb.darken_particle_background(cl, dilation_size=13, halo_sigma=8.0, dark_strength=0.60)
-    
-    numerador = torch.stack(numerador_list, dim=0)
-    del numerador_list
-    denominador = torch.stack(denominador_list, dim=0)
-    del denominador_list
-    regularizer = (1e-2 * denominador.max())
-    avg_fft = numerador / (denominador + regularizer)
-    cl = torch.real(torch.fft.ifft2(avg_fft, norm="forward"))
+        
+    # numerador = torch.stack(numerador_list, dim=0)
+    # del numerador_list
+    # denominador = torch.stack(denominador_list, dim=0)
+    # del denominador_list
+    # regularizer = (1e-2 * denominador.max())
+    # avg_fft = numerador / (denominador + regularizer)
+    # cl = torch.real(torch.fft.ifft2(avg_fft, norm="forward"))
     
         #save classes        
     file_final = output+".mrcs"
