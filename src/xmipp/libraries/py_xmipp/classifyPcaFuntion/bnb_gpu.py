@@ -319,6 +319,8 @@ class BnBgpu:
         
         #rotate and translations
         rotBatch = -matches[:,3].view(nExp,1)
+        print(rotBatch)
+        print("----------------------")
         translations = list(map(lambda i: vectorshift[i], matches[:, 4].int()))
         translations = torch.tensor(translations, device = self.cuda).view(nExp,2)
         
@@ -449,6 +451,10 @@ class BnBgpu:
         # # =============================================================
         # CTF-CORRECTED CLASS AVERAGES
         # =============================================================
+        angle = self.extract_angle(tMatrix, H)
+        print(angle)
+        exit()
+        
         clk_list = []
         numerador_list = []
         denominador_list = []
@@ -1209,215 +1215,36 @@ class BnBgpu:
     
     def normalize_images(self, img_tensor):
 
-            H, W = img_tensor.shape[-2:]
-            pixel_count = H * W
-            
-            mean = img_tensor.sum(dim=(-2, -1), keepdim=True) / pixel_count
-            centered = img_tensor - mean        
-            
-            var = (centered ** 2).sum(dim=(-2, -1), keepdim=True) / pixel_count
-            std = torch.sqrt(var + 1e-8)
-            
-            normalized = centered / std
-            return normalized
+        H, W = img_tensor.shape[-2:]
+        pixel_count = H * W
         
-    def darken_particle_background(self, 
-        images,
-        sigma=5.0,
-        threshold_factor=1.5,
-        dilation_size=11,
-        halo_sigma=7.0,
-        dark_strength=0.55,
-    ):
-        """
-        Oscurece automáticamente el fondo alrededor de una partícula
-        manteniendo la partícula prácticamente intacta.
-    
-        images:
-            [B, 1, H, W] o [B, H, W]
-    
-        Returns:
-            images_out con la misma forma que images
-        """
-    
-        original_shape = images.shape
-    
-        if images.dim() == 3:
-            images = images[:, None]
-    
-        x = images.float()
-    
-        B, C, H, W = x.shape
-    
-        # ---------------------------------------------------------
-        # 1. Gaussian kernel
-        # ---------------------------------------------------------
-    
-        k = int(6 * sigma + 1)
-    
-        if k % 2 == 0:
-            k += 1
-    
-        coords = torch.arange(
-            k,
-            device=x.device,
-            dtype=x.dtype
-        ) - k // 2
-    
-        g = torch.exp(
-            -(coords ** 2) / (2 * sigma ** 2)
-        )
-    
-        g = g / g.sum()
-    
-        kernel = g[:, None] @ g[None, :]
-        kernel = kernel[None, None]
-    
-        # ---------------------------------------------------------
-        # 2. Fondo local
-        # ---------------------------------------------------------
-    
-        pad = k // 2
-    
-        background = F.conv2d(
-            F.pad(
-                x,
-                (pad, pad, pad, pad),
-                mode="reflect"
-            ),
-            kernel,
-            groups=1
-        )
-    
-        # ---------------------------------------------------------
-        # 3. Señal de partícula
-        # ---------------------------------------------------------
-    
-        signal = x - background
-    
-        # ---------------------------------------------------------
-        # 4. Estimar ruido del fondo
-        # ---------------------------------------------------------
-    
-        yy, xx = torch.meshgrid(
-            torch.arange(H, device=x.device),
-            torch.arange(W, device=x.device),
-            indexing="ij"
-        )
-    
-        cx = (W - 1) / 2
-        cy = (H - 1) / 2
-    
-        radius = torch.sqrt(
-            (xx - cx) ** 2 +
-            (yy - cy) ** 2
-        )
-    
-        # zona exterior para estimar ruido
-        outer = radius > min(H, W) * 0.33
-    
-        outer_signal = signal[:, 0][..., outer]
-    
-        noise_std = outer_signal.std(
-            dim=-1,
-            keepdim=True
-        )
-    
-        threshold = threshold_factor * noise_std
-    
-        # ---------------------------------------------------------
-        # 5. Máscara de la partícula
-        # ---------------------------------------------------------
-    
-        particle_mask = (
-            signal[:, 0] > threshold[:, :, None]
-        )
-    
-        # Solo buscamos la partícula alrededor del centro
-        particle_mask &= (
-            radius < min(H, W) * 0.30
-        )
-    
-        particle_mask = particle_mask.float()[:, None]
-    
-        # ---------------------------------------------------------
-        # 6. Dilatamos para NO tocar el borde de la partícula
-        # ---------------------------------------------------------
-    
-        d = dilation_size
-    
-        if d % 2 == 0:
-            d += 1
-    
-        particle_mask = F.max_pool2d(
-            particle_mask,
-            kernel_size=d,
-            stride=1,
-            padding=d // 2
-        )
-    
-        # ---------------------------------------------------------
-        # 7. Gaussian blur de la máscara
-        #    crea una transición suave del halo
-        # ---------------------------------------------------------
-    
-        hk = int(6 * halo_sigma + 1)
-    
-        if hk % 2 == 0:
-            hk += 1
-    
-        coords = torch.arange(
-            hk,
-            device=x.device,
-            dtype=x.dtype
-        ) - hk // 2
-    
-        g = torch.exp(
-            -(coords ** 2) /
-            (2 * halo_sigma ** 2)
-        )
-    
-        g = g / g.sum()
-    
-        halo_kernel = g[:, None] @ g[None, :]
-        halo_kernel = halo_kernel[None, None]
-    
-        hp = hk // 2
-    
-        soft_mask = F.conv2d(
-            F.pad(
-                particle_mask,
-                (hp, hp, hp, hp),
-                mode="reflect"
-            ),
-            halo_kernel
-        )
-    
-        # ---------------------------------------------------------
-        # 8. Oscurecimiento del fondo
-        # ---------------------------------------------------------
-    
-        factor = 1.0 - dark_strength * (
-            1.0 - soft_mask
-        )
-    
-        # Dentro de la partícula: NO modificar
-        factor = torch.where(
-            particle_mask > 0.5,
-            torch.ones_like(factor),
-            factor
-        )
-    
-        result = x * factor
-    
-        # ---------------------------------------------------------
-        # 9. Recuperar shape original
-        # ---------------------------------------------------------
-    
-        if len(original_shape) == 3:
-            result = result[:, 0]
-    
-        return result
+        mean = img_tensor.sum(dim=(-2, -1), keepdim=True) / pixel_count
+        centered = img_tensor - mean        
+        
+        var = (centered ** 2).sum(dim=(-2, -1), keepdim=True) / pixel_count
+        std = torch.sqrt(var + 1e-8)
+        
+        normalized = centered / std
+        return normalized
+        
+    def extract_angle(self, tMatrix, dim):
+        
+        initial_shift = torch.tensor([[1.0, 0.0, -dim/2],
+                                      [0.0, 1.0, -dim/2],
+                                      [0.0, 0.0, 1.0]], device = tMatrix.device)
+        initial_shift = initial_shift.unsqueeze(0).expand(tMatrix.size(0), -1, -1)
+
+        tMatrix = torch.cat((tMatrix, torch.zeros((tMatrix.size(0), 1, 3), device=tMatrix.device)), dim=1)
+        tMatrix[:, 2, 2] = 1.0
+        tMatrix = torch.matmul(initial_shift, tMatrix)
+        tMatrix = torch.matmul(tMatrix, torch.inverse(initial_shift))
+        
+        #extract final angular and shift transformations
+        rotation_matrix = tMatrix[:, :2, :2]
+        angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
+        angles_deg = torch.rad2deg(angles_rad)
+        
+        return angles_deg
     
     
 
