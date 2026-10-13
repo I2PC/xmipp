@@ -1,4 +1,3 @@
-name: xmipp3
 channels:
   - nvidia
   - conda-forge
