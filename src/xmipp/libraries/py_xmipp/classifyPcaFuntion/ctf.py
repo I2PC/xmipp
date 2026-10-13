@@ -133,7 +133,7 @@ class ctfClass:
         self,
         dim,
         pixel_size,
-        angle=0.0,
+        angle,
         particle_indices=None,
         phase_shift_deg=0.0,
         device=None,

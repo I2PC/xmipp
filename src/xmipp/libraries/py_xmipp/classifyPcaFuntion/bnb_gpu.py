@@ -319,8 +319,6 @@ class BnBgpu:
         
         #rotate and translations
         rotBatch = -matches[:,3].view(nExp,1)
-        print(rotBatch)
-        print("----------------------")
         translations = list(map(lambda i: vectorshift[i], matches[:, 4].int()))
         translations = torch.tensor(translations, device = self.cuda).view(nExp,2)
         
@@ -451,9 +449,7 @@ class BnBgpu:
         # # =============================================================
         # CTF-CORRECTED CLASS AVERAGES
         # =============================================================
-        angle = self.extract_angle(tMatrix, H)
-        print(angle)
-        exit()
+        angle_ctf = self.extract_angle(tMatrix, H)
         
         clk_list = []
         numerador_list = []
@@ -478,7 +474,7 @@ class BnBgpu:
                 particles=particles,
                 dim=H,
                 pixel_size=self.sampling,
-                angle=0.0,
+                angle=angle_ctf,
                 particle_indices=indices,
                 batch_size=500
             )
@@ -619,6 +615,9 @@ class BnBgpu:
             
             
             # CTF-CORRECTED CLASS AVERAGES
+            _, H, W = data.shape
+            angle_ctf = self.extract_angle(tMatrix, H)
+            
             clk_list = []
             for n in range(classes): 
                 particles = newCL[n] 
@@ -631,7 +630,7 @@ class BnBgpu:
             
                 # Average corregido por CTF
                 avg_img, numerador_Avg, denominador_Avg = ctf.apply_ctf_to_average( 
-                    particles=particles, dim=particles.shape[-1], pixel_size=self.sampling, angle=0.0, particle_indices=indices, batch_size=500 
+                    particles=particles, dim=particles.shape[-1], pixel_size=self.sampling, angle=angle_ctf, particle_indices=indices, batch_size=500 
                     )
                 clk_list.append( avg_img )
                 numerador_list[n].add_(numerador_Avg)
