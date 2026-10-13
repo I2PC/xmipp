@@ -1,5 +1,4 @@
 channels:
-  - nvidia
   - conda-forge
   - nodefaults
 dependencies:
