@@ -167,15 +167,16 @@ class ctfClass:
                 )
 
             defU = self.defocus_u_gpu[batch_index]
-
             defV = self.defocus_v_gpu[batch_index]
-
             angle_val = self.defocus_angle_gpu[batch_index]
             
             if angle_global:
-                angle_particle = angle.to(device=device)[batch_index]
+                # angle_particle = angle.to(device=device)[batch_index]
+                angle_particle = torch.as_tensor(angle, dtype=angle_val.dtype, device=device).reshape(-1)[batch_index]
+                print(angle_particle.shape)
             else:
-                angle_particle =  torch.as_tensor(angle, device=device)[batch_index]
+                # angle_particle =  torch.as_tensor(angle, device=device)[batch_index]
+                angle_particle = torch.as_tensor(angle, dtype=angle_val.dtype, device=device).reshape(-1)
 
         else:
 
@@ -189,9 +190,10 @@ class ctfClass:
         defU = defU[:, None, None]
         defV = defV[:, None, None]
 
-        az_rad = torch.deg2rad(
-            angle_val.new_tensor(astig_angle_deg)
-        )[:, None, None]
+        # az_rad = torch.deg2rad(
+        #     angle_val.new_tensor(astig_angle_deg)
+        # )[:, None, None]
+        az_rad = torch.deg2rad(astig_angle_deg.to(device=angle_val.device, dtype=angle_val.dtype))[:, None, None]
 
 
         X, Y, u2, u4 = self._get_frequency_grid(
@@ -271,6 +273,9 @@ class ctfClass:
         num_particles = particles.shape[0]
         numerator = torch.zeros((dim, dim), dtype=torch.complex64, device=particles.device)
         denominator = torch.zeros((dim, dim), dtype=torch.float32, device=particles.device)
+        
+        if not angle_global:
+            angle_tensor = torch.as_tensor(angle, dtype=torch.float32, device=particles.device).reshape(-1)
 
         for start in range(0, num_particles, batch_size):
 
@@ -282,6 +287,11 @@ class ctfClass:
                 idx_sub = particle_indices[start:end]
             else:
                 idx_sub = None
+                
+            if angle_global:
+                angle_sub = angle
+            else:
+                angle_sub = angle_tensor[start:end]
     
 
             # FFT
@@ -292,7 +302,7 @@ class ctfClass:
             ctf_batch = self.compute_ctfs_batch(
                 dim=dim,
                 pixel_size=pixel_size,
-                angle=angle,
+                angle=angle_sub,
                 angle_global=angle_global,
                 batch_index=idx_sub,
                 device=particles.device
