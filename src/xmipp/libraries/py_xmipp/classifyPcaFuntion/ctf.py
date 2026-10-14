@@ -173,7 +173,6 @@ class ctfClass:
             if angle_global:
                 # angle_particle = angle.to(device=device)[batch_index]
                 angle_particle = torch.as_tensor(angle, dtype=angle_val.dtype, device=device).reshape(-1)[batch_index]
-                print(angle_particle.shape)
             else:
                 # angle_particle =  torch.as_tensor(angle, device=device)[batch_index]
                 angle_particle = torch.as_tensor(angle, dtype=angle_val.dtype, device=device).reshape(-1)
