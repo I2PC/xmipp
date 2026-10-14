@@ -294,7 +294,7 @@ class ctfClass:
                 pixel_size=pixel_size,
                 angle=angle,
                 angle_global=angle_global,
-                particle_indices=idx_sub,
+                batch_index=idx_sub,
                 device=particles.device
             )
     
