@@ -135,7 +135,7 @@ class ctfClass:
         pixel_size,
         angle,
         angle_global=False,
-        particle_indices=None,
+        batch_index=None,
         phase_shift_deg=0.0,
         device=None,
     ):
@@ -149,33 +149,33 @@ class ctfClass:
         # Seleccionar parámetros de las partículas
         # ---------------------------------------------------------
 
-        if particle_indices is not None:
+        if batch_index is not None:
 
             # Los índices ya deberían estar en GPU.
             # Evitamos CPU -> NumPy -> GPU.
-            if not torch.is_tensor(particle_indices):
-                particle_indices = torch.as_tensor(
-                    particle_indices,
+            if not torch.is_tensor(batch_index):
+                batch_index = torch.as_tensor(
+                    batch_index,
                     dtype=torch.long,
                     device=device
                 )
             else:
-                particle_indices = particle_indices.to(
+                batch_index = batch_index.to(
                     device=device,
                     dtype=torch.long,
                     non_blocking=True
                 )
 
-            defU = self.defocus_u_gpu[particle_indices]
+            defU = self.defocus_u_gpu[batch_index]
 
-            defV = self.defocus_v_gpu[particle_indices]
+            defV = self.defocus_v_gpu[batch_index]
 
-            angle_val = self.defocus_angle_gpu[particle_indices]
+            angle_val = self.defocus_angle_gpu[batch_index]
             
             if angle_global:
-                angle_particle = angle.to(device=device)[particle_indices]
+                angle_particle = angle.to(device=device)[batch_index]
             else:
-                angle_particle = angle
+                angle_particle =  torch.as_tensor(angle, device=device)[batch_index]
 
         else:
 
