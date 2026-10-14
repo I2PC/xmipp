@@ -134,6 +134,7 @@ class ctfClass:
         dim,
         pixel_size,
         angle,
+        angle_global=False,
         particle_indices=None,
         phase_shift_deg=0.0,
         device=None,
@@ -170,6 +171,11 @@ class ctfClass:
             defV = self.defocus_v_gpu[particle_indices]
 
             angle_val = self.defocus_angle_gpu[particle_indices]
+            
+            if angle_global:
+                angle_particle = angle.to(device=device)[particle_indices]
+            else:
+                angle_particle = angle
 
         else:
 
@@ -177,9 +183,8 @@ class ctfClass:
             defV = self.defocus_v_gpu
             angle_val = self.defocus_angle_gpu
 
-        angle = angle.to(device=device)[particle_indices]
         
-        astig_angle_deg = angle_val - angle
+        astig_angle_deg = angle_val - angle_particle
 
         defU = defU[:, None, None]
         defV = defV[:, None, None]
@@ -257,8 +262,10 @@ class ctfClass:
         dim,
         pixel_size,
         angle=0.0,
+        angle_global = False,
         particle_indices=None,
-        batch_size=500
+        batch_size=500,
+        angle_local=False
     ):
         
         num_particles = particles.shape[0]
@@ -286,6 +293,7 @@ class ctfClass:
                 dim=dim,
                 pixel_size=pixel_size,
                 angle=angle,
+                angle_global,
                 particle_indices=idx_sub,
                 device=particles.device
             )
