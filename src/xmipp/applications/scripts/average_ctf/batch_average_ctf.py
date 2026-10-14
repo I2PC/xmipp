@@ -17,6 +17,22 @@ from io import StringIO
 import math
 
 
+def create_gaussian_mask(images):
+    dim = images.size(dim=1)
+    sigma = dim/3
+    center = dim // 2
+    y, x = torch.meshgrid(torch.arange(dim) - center, torch.arange(dim) - center, indexing='ij')
+    dist = torch.sqrt(x**2 + y**2).float().to(images.device)  
+    
+    sigma2 = sigma**2
+    K = 1. / (torch.sqrt(2 * torch.tensor(np.pi)) * sigma)**2
+
+    mask = K * torch.exp(-0.5 * (dist**2 / sigma2))
+    mask = mask / mask[center, center].clone()
+    
+    return mask  
+
+
 @torch.no_grad()
 def fourier_shift_batch(imgs, shifts_x, shifts_y):
 
@@ -128,6 +144,7 @@ def average_aligned_particles_ctf(star_path, pix_size, output_mrc=None, device="
         rotated = rotated.squeeze(1)
 
         shifted = fourier_shift_batch(rotated, batch_shx, batch_shy)
+        shifted = shifted * create_gaussian_mask(shifted)
         # shifted_cpu = shifted.cpu().numpy().astype(np.float32)
         
         Fpart = torch.fft.fft2(shifted)

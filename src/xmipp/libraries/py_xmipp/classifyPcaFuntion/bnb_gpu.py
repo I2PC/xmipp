@@ -182,8 +182,8 @@ class BnBgpu:
     
         for n in range(self.nBand):
             ################################
-            # batchRef[n] = batchRef[n] / (torch.linalg.norm(batchRef[n], dim=1, keepdim=True) + 1e-8)
-            # batchExp[n] = batchExp[n] / (torch.linalg.norm(batchExp[n], dim=1, keepdim=True) + 1e-8)
+            batchRef[n] = batchRef[n] / (torch.linalg.norm(batchRef[n], dim=1, keepdim=True) + 1e-8)
+            batchExp[n] = batchExp[n] / (torch.linalg.norm(batchExp[n], dim=1, keepdim=True) + 1e-8)
             ################################
             score = torch.cdist(batchRef[n], batchExp[n])
     
@@ -904,7 +904,7 @@ class BnBgpu:
     @torch.no_grad()
     def gaussian_lowpass_filter_2D_adaptive(self, imgs, res_angstrom,
                                             floor_res=100.0, clamp_exp=80.0,
-                                            hard_cut=False, nyquist_margin=0.95, normalize = True):
+                                            hard_cut=False, nyquist_margin=0.95, normalize = False):
         B, H, W = imgs.shape
         device, eps = imgs.device, 1e-8
     
@@ -975,7 +975,7 @@ class BnBgpu:
         sharpen_power: float = None,    # si None, se ajusta automáticamente según resolución
         factorR: float = None,
         eps: float = 1e-8,
-        normalize: bool = True,
+        normalize: bool = False,
         max_iter: int = 20
     ) -> torch.Tensor:
         B, H, W = averages.shape
