@@ -165,9 +165,9 @@ if __name__=="__main__":
             zeroVol = R.reconstruct_volume_sym(mmap, sym, 60, sampling, dim, random_angles, posit=positivity)
             # zeroVol = (zeroVol - zeroVol.mean()) / (zeroVol.std() + 1e-8)
             zeroVol = R.filter_3d(zeroVol, sampling, 60.0)
-            zeroVol = R.mask_otsu(zeroVol, sigma=4.0, noise_level=0.0)
-            # zeroVol = zeroVol * R.contrast_dominant_mask_3d(zeroVol, window=3, contrast_percentile=90,
-            #                          intensity_percentile=70, smooth_sigma=1.0)
+            # zeroVol = R.mask_otsu(zeroVol, sigma=4.0, noise_level=0.0)
+            zeroVol = zeroVol * R.contrast_dominant_mask_3d(zeroVol, window=3, contrast_percentile=90,
+                                     intensity_percentile=70, smooth_sigma=1.0)
             zeroVol = R.apply_spherical_mask(zeroVol, radius)
             # zeroVol = R.generate_random_ellipsoid(dim, radius=dim//2, device=cuda)
             # zeroVol = R.generate_scaffolding_seed(mmap, R, sym, sampling, dim, cuda)
@@ -251,12 +251,12 @@ if __name__=="__main__":
         vectorRot.sort()         
         nShift = len(vectorshift)
         
-        # if current_iter < 10:
-        #     texp_align = texp * bnb.contrast_dominant_mask(texp, window=3, contrast_percentile=80,
-        #                             intensity_percentile=50, smooth_sigma=1.0)
-        # else:
-        #     texp_align = texp
-        texp_align = texp
+        if current_iter < 10:
+            texp_align = texp * bnb.contrast_dominant_mask(texp, window=3, contrast_percentile=80,
+                                    intensity_percentile=50, smooth_sigma=1.0)
+        else:
+            texp_align = texp
+        # texp_align = texp
         
         # file = output+"_exp.mrcs" 
         # save_proj(texp_align, file, sampling) 
@@ -275,9 +275,9 @@ if __name__=="__main__":
             # tref = bnb.zscore_normalization_mask(tref, mask)
             # tref *= bnb.create_gaussian_mask(tref)
             
-            # if current_iter < 10:
-            #     tref = tref * bnb.contrast_dominant_mask(tref, window=3, contrast_percentile=80,
-            #                         intensity_percentile=50, smooth_sigma=1.0)
+            if current_iter < 10:
+                tref = tref * bnb.contrast_dominant_mask(tref, window=3, contrast_percentile=80,
+                                    intensity_percentile=50, smooth_sigma=1.0)
             
             if radius:
                 tref = tref * bnb.create_mask(tref, radius)
@@ -354,16 +354,16 @@ if __name__=="__main__":
             # vol = (vol - vol.mean()) / (vol.std() + 1e-8)    
                 
             vol = R.filter_3d(vol, sampling, filtRes)
-            # if current_iter < 10:
-            #     vol = vol * R.contrast_dominant_mask_3d(vol, window=3, contrast_percentile=90,
-            #                              intensity_percentile=70, smooth_sigma=1.0)
+            if current_iter < 10:
+                vol = vol * R.contrast_dominant_mask_3d(vol, window=3, contrast_percentile=90,
+                                         intensity_percentile=70, smooth_sigma=1.0)
             #posit
             if posit:
                 vol = torch.relu(vol)
                 
-            if current_iter < 18:
+            # if current_iter < 18:
             # if current_iter > 1 and current_iter < 8:
-                vol = R.mask_otsu(vol, sigma=4.0, noise_level=0.0)
+            #     vol = R.mask_otsu(vol, sigma=4.0, noise_level=0.0)
                 
             vol = R.apply_spherical_mask(vol, radius)
             
