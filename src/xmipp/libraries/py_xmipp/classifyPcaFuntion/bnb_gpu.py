@@ -546,7 +546,7 @@ class BnBgpu:
     
     
     @torch.no_grad()
-    def align_particles_to_classes(self, data, data_star, cl, tMatrix, iter, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, expStar, numerador_list, denominador_list, initBatch, endBatch):
+    def align_particles_to_classes(self, data, data_star, cl, cl_ctf, tMatrix, iter, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, expStar, initBatch, endBatch):
         
         ctf = ctfClass(expStar, device=self.cuda)
         
@@ -594,7 +594,7 @@ class BnBgpu:
             # particle_indices = torch.arange( data_star.shape[0], device=self.cuda, dtype=torch.long )
             # particle_indices = matches[:, 0].long()  
             particle_indices = torch.arange(initBatch, endBatch, device=self.cuda, dtype=torch.long)
-            print(particle_indices)        
+            # print(particle_indices)        
             
             for n in range(classes):
                 class_images = transforIm[matches[:, 1] == n]
@@ -660,27 +660,32 @@ class BnBgpu:
             # del clk_ctf, mean_clk, std_clk, mean_ctf, std_ctf 
             
             file_avg = "classInt.mrcs"
-            self.save_images(clk.cpu().detach().numpy(), self.sampling, file_avg)     
+            self.save_images(clk_ctf.cpu().detach().numpy(), self.sampling, file_avg)     
 
             
             res_classes = self.frc_resolution_tensor(newCL)
             
             clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes)
+            clk_ctf = self.gaussian_lowpass_filter_2D_adaptive(clk_ctf, res_classes)
             
-            clk = self.highpass_cosine_sharpen(clk, res_classes)                       
+            clk = self.highpass_cosine_sharpen(clk, res_classes)  
+            clk_ctf = self.highpass_cosine_sharpen(clk_ctf, res_classes)                     
         
             if not hasattr(self, 'grad_squared'):
                 self.grad_squared = torch.zeros_like(cl)
-            clk, self.grad_squared = self.update_classes_rmsprop(cl, clk, 0.001, 0.9, 1e-8, self.grad_squared)        
+            clk, self.grad_squared = self.update_classes_rmsprop(cl, clk, 0.001, 0.9, 1e-8, self.grad_squared)  
+            clk_ctf, self.grad_squared = self.update_classes_rmsprop(cl_ctf, clk_ctf, 0.001, 0.9, 1e-8, self.grad_squared)      
                       
             clk = clk * self.create_circular_mask(clk)
+            clk_ctf = clk_ctf * self.create_circular_mask(clk_ctf)
       
         else: 
             del(transforIm)
             # torch.cuda.empty_cache()
             clk = cl  
+            clk_ctf = cl_ctf
             
-        return (clk, tMatrix, batch_projExp_cpu, numerador_list, denominador_list) 
+        return (clk, tMatrix, batch_projExp_cpu, clk_ctf)#numerador_list, denominador_list) 
     
            
     @torch.no_grad()

@@ -376,9 +376,9 @@ if __name__=="__main__":
                     else:
                         torch.cuda.empty_cache()
                         # expImages_star = mmap_star.data[initBatch:endBatch].astype(np.float32)
-                        cl, tMatrix, batch_projExp_cpu, numerador_list, denominador_list = bnb.align_particles_to_classes(expImages, 
-                                        cl, tMatrix, iter, subset, matches, vectorshift, classes,
-                                         freqBn, coef, cvecs, mask, expStar, numerador_list, denominador_list, initBatch, endBatch)
+                        cl, tMatrix, batch_projExp_cpu, cl_ctf = bnb.align_particles_to_classes(expImages, 
+                                        cl, cl_ctf, tMatrix, iter, subset, matches, vectorshift, classes,
+                                         freqBn, coef, cvecs, mask, expStar, initBatch, endBatch)
     
                     
                     # save classes
