@@ -311,7 +311,7 @@ if __name__=="__main__":
                     subset = endBatch
                 else:
                     subset = endBatch - initBatch
-                print(f"Subset - {subset}\n", flush=True)
+                # print(f"Subset - {subset}\n", flush=True)
     
                      
                 tMatrix = torch.eye(2, 3, device = cuda).repeat(subset, 1, 1)
@@ -447,7 +447,7 @@ if __name__=="__main__":
     
         #save classes        
     file_final = output+".mrcs"
-    save_images(cl.cpu().detach().numpy(), sampling, file_final) 
+    save_images(cl_ctf.cpu().detach().numpy(), sampling, file_final) 
 
     # print(counts.int())
     
