@@ -369,13 +369,13 @@ if __name__=="__main__":
                     classes = len(cl)
                     
                     if mode == "create_classes":
-                        cl, tMatrix, batch_projExp_cpu, numerador_list, denominador_list = bnb.create_classes(
+                        cl, tMatrix, batch_projExp_cpu, cl_ctf = bnb.create_classes(
                             mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, 
                             classes, final_classes, freqBn, coef, cvecs, mask, expStar)
 
                     else:
                         torch.cuda.empty_cache()
-                        expImages_star = mmap_star.data[initBatch:endBatch].astype(np.float32)
+                        # expImages_star = mmap_star.data[initBatch:endBatch].astype(np.float32)
                         cl, tMatrix, batch_projExp_cpu, numerador_list, denominador_list = bnb.align_particles_to_classes(expImages, 
                                         cl, tMatrix, iter, subset, matches, vectorshift, classes,
                                          freqBn, coef, cvecs, mask, expStar, numerador_list, denominador_list, initBatch, endBatch)
@@ -384,6 +384,9 @@ if __name__=="__main__":
                     # save classes
                     file = output+"_%s_%s.mrcs"%(initBatch,iter+1)
                     save_images(cl.cpu().detach().numpy(), sampling, file)
+                    
+                    file = output+"_ctf_%s_%s.mrcs"%(initBatch,iter+1)
+                    save_images(cl_ctf.cpu().detach().numpy(), sampling, file)
     
     
                     if mode == "create_classes" and iter == niter-1:
