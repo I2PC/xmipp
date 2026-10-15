@@ -198,7 +198,7 @@ if __name__=="__main__":
     # texp = bnb.zscore_normalization(texp)
     # mask = bnb.create_gaussian_mask(texp)
     # texp = bnb.zscore_normalization_mask(texp, mask)
-    # texp *= bnb.create_gaussian_mask(texp)
+    texp *= bnb.create_gaussian_mask(texp, 42)
 
 
     if radius:
@@ -273,7 +273,7 @@ if __name__=="__main__":
             # tref = bnb.zscore_normalization(tref)
             # mask = bnb.create_gaussian_mask(tref)
             # tref = bnb.zscore_normalization_mask(tref, mask)
-            # tref *= bnb.create_gaussian_mask(tref)
+            tref *= bnb.create_gaussian_mask(tref, 42)
             
             if current_iter < 10:
                 tref = tref * bnb.contrast_dominant_mask(tref, window=3, contrast_percentile=80,
