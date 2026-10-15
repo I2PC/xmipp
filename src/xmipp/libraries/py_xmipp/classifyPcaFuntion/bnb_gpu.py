@@ -546,7 +546,7 @@ class BnBgpu:
     
     
     @torch.no_grad()
-    def align_particles_to_classes(self, data, data_star, cl, cl_ctf, tMatrix, iter, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, expStar, initBatch, endBatch):
+    def align_particles_to_classes(self, data, cl, cl_ctf, tMatrix, iter, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, mask, expStar, initBatch, endBatch):
         
         ctf = ctfClass(expStar, device=self.cuda)
         
@@ -627,7 +627,7 @@ class BnBgpu:
                 num_particles = particles.shape[0]
             
                 if num_particles == 0: 
-                    clk_list.append( torch.zeros( ( data_star.shape[1], data_star.shape[2] ), dtype=torch.float32, device=self.cuda ) ) 
+                    clk_list.append( torch.zeros( ( data.shape[1], data.shape[2] ), dtype=torch.float32, device=self.cuda ) ) 
                     continue
             
                 indices_locales = indices_globales - initBatch
