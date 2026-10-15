@@ -449,37 +449,37 @@ class BnBgpu:
         # # =============================================================
         # CTF-CORRECTED CLASS AVERAGES
         # =============================================================
-        # angle_ctf = self.extract_angle(tMatrix, H)
-        #
-        # clk_list = []
-        # numerador_list = []
-        # denominador_list = []
-        #
-        # for n in range(total_slots):
-        #
-        #     particles = newCL[n]
-        #     indices = newIdx[n]
-        #
-        #     if particles.shape[0] == 0:
-        #         clk_list.append(
-        #             torch.zeros(
-        #                 (H, W),
-        #                 dtype=torch.float32,
-        #                 device=self.cuda
-        #             )
-        #         )
-        #         continue
-        #
-        #     avg_img, numeradorAvg, denominadorAvg = ctf.apply_ctf_to_average(
-        #         particles=particles, dim=H, pixel_size=self.sampling, angle=angle_ctf,
-        #         particle_indices=indices, batch_size=500, angle_global=True
-        #     )
-        #
-        #     clk_list.append(avg_img)
-        #     numerador_list.append(numeradorAvg)
-        #     denominador_list.append(denominadorAvg)
-        #
-        # clk_ctf = torch.stack(clk_list, dim=0)
+        angle_ctf = self.extract_angle(tMatrix, H)
+        
+        clk_list = []
+        numerador_list = []
+        denominador_list = []
+        
+        for n in range(total_slots):
+        
+            particles = newCL[n]
+            indices = newIdx[n]
+        
+            if particles.shape[0] == 0:
+                clk_list.append(
+                    torch.zeros(
+                        (H, W),
+                        dtype=torch.float32,
+                        device=self.cuda
+                    )
+                )
+                continue
+        
+            avg_img, numeradorAvg, denominadorAvg = ctf.apply_ctf_to_average(
+                particles=particles, dim=H, pixel_size=self.sampling, angle=angle_ctf,
+                particle_indices=indices, batch_size=500, angle_global=True
+            )
+        
+            clk_list.append(avg_img)
+            numerador_list.append(numeradorAvg)
+            denominador_list.append(denominadorAvg)
+        
+        clk_ctf = torch.stack(clk_list, dim=0)
         # clk = self.normalize_images(clk)
         
         clk = self.averages_createClasses(mmap, iter, newCL)
@@ -611,32 +611,32 @@ class BnBgpu:
             
             
             # CTF-CORRECTED CLASS AVERAGES
-            # _, H, W = data.shape
-            # angle_ctf = self.extract_angle(tMatrix, H)
-            #
-            # clk_list = []
-            # for n in range(classes): 
-            #     particles = newCL[n] 
-            #     indices_globales = newCL_indices[n] 
-            #     num_particles = particles.shape[0]
-            #
-            #     if num_particles == 0: 
-            #         clk_list.append( torch.zeros( ( data_star.shape[1], data_star.shape[2] ), dtype=torch.float32, device=self.cuda ) ) 
-            #         continue
-            #
-            #     indices_locales = indices_globales - initBatch
-            #     angles_class = angle_ctf[indices_locales]
-            #     assert len(particles) == len(indices_globales) == len(angles_class)
-            #
-            #     # Average corregido por CTF
-            #     avg_img, numerador_Avg, denominador_Avg = ctf.apply_ctf_to_average( 
-            #         particles=particles, dim=H, pixel_size=self.sampling, angle=angles_class, particle_indices=indices_globales, batch_size=500, angle_global=False 
-            #         )
-            #     clk_list.append( avg_img )
-            #     numerador_list[n].add_(numerador_Avg)
-            #     denominador_list[n].add_(denominador_Avg)
-            #
-            # clk = torch.stack( clk_list, dim=0 )
+            _, H, W = data.shape
+            angle_ctf = self.extract_angle(tMatrix, H)
+            
+            clk_list = []
+            for n in range(classes): 
+                particles = newCL[n] 
+                indices_globales = newCL_indices[n] 
+                num_particles = particles.shape[0]
+            
+                if num_particles == 0: 
+                    clk_list.append( torch.zeros( ( data_star.shape[1], data_star.shape[2] ), dtype=torch.float32, device=self.cuda ) ) 
+                    continue
+            
+                indices_locales = indices_globales - initBatch
+                angles_class = angle_ctf[indices_locales]
+                assert len(particles) == len(indices_globales) == len(angles_class)
+            
+                # Average corregido por CTF
+                avg_img, numerador_Avg, denominador_Avg = ctf.apply_ctf_to_average( 
+                    particles=particles, dim=H, pixel_size=self.sampling, angle=angles_class, particle_indices=indices_globales, batch_size=500, angle_global=False 
+                    )
+                clk_list.append( avg_img )
+                numerador_list[n].add_(numerador_Avg)
+                denominador_list[n].add_(denominador_Avg)
+            
+            clk_ctf = torch.stack( clk_list, dim=0 )
             
             clk = self.averages(data, newCL, classes)
             # clk_ctf = self.averages(data, newCL, classes)  
