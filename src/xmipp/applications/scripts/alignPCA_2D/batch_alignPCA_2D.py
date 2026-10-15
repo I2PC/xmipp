@@ -166,10 +166,10 @@ if __name__=="__main__":
 
     #Read Images
     tempfile = output+"_temp.mrcs"
-    mmap_star, nExp, dim = create_mmap_from_star(expStar, tempfile)
+    mmap, nExp, dim = create_mmap_from_star(expStar, tempfile)
     os.remove(tempfile)
     
-    mmap = mrcfile.mmap(expFile, permissive=True)
+    # mmap = mrcfile.mmap(expFile, permissive=True)
     # nExp = mmap.data.shape[0]
     # dim = mmap.data.shape[1]
     
@@ -370,13 +370,13 @@ if __name__=="__main__":
                     
                     if mode == "create_classes":
                         cl, tMatrix, batch_projExp_cpu, numerador_list, denominador_list = bnb.create_classes(
-                            mmap, mmap_star, tMatrix, iter, subset, expBatchSize, matches, vectorshift, 
+                            mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, 
                             classes, final_classes, freqBn, coef, cvecs, mask, expStar)
 
                     else:
                         torch.cuda.empty_cache()
                         expImages_star = mmap_star.data[initBatch:endBatch].astype(np.float32)
-                        cl, tMatrix, batch_projExp_cpu, numerador_list, denominador_list = bnb.align_particles_to_classes(expImages, expImages_star, 
+                        cl, tMatrix, batch_projExp_cpu, numerador_list, denominador_list = bnb.align_particles_to_classes(expImages, 
                                         cl, tMatrix, iter, subset, matches, vectorshift, classes,
                                          freqBn, coef, cvecs, mask, expStar, numerador_list, denominador_list, initBatch, endBatch)
     
