@@ -639,8 +639,8 @@ class BnBgpu:
                     particles=particles, dim=H, pixel_size=self.sampling, angle=angles_class, particle_indices=indices_globales, batch_size=500, angle_global=False 
                     )
                 clk_list.append( avg_img )
-                numerador_list[n].add_(numerador_Avg)
-                denominador_list[n].add_(denominador_Avg)
+                # numerador_list[n].add_(numerador_Avg)
+                # denominador_list[n].add_(denominador_Avg)
             
             clk_ctf = torch.stack( clk_list, dim=0 )
             
