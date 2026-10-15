@@ -505,9 +505,11 @@ class BnBgpu:
             cut_res = 50           
             res_classes = self.frc_resolution_tensor(newCL, fallback_res=cut_res, rcut=cut)
             clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes)
+            clk_ctf = self.gaussian_lowpass_filter_2D_adaptive(clk_ctf, res_classes)
         
             boost = None
             clk = self.highpass_cosine_sharpen(clk, res_classes, factorR = boost)
+            clk_ctf = self.highpass_cosine_sharpen(clk_ctf, res_classes, factorR = boost)
         
         
         if iter < (iterSplit + 1): #order by size
@@ -517,8 +519,10 @@ class BnBgpu:
             # res_classes = res_classes[valid_mask]
             sizes = lengths[valid_mask]
             clk = clk[valid_mask]
+            clk_ctf = clk_ctf[valid_mask]
             # clk = clk[torch.argsort(res_classes)]
             clk = clk[torch.argsort(sizes, descending=True)]
+            clk_ctf = clk_ctf[torch.argsort(sizes, descending=True)]
         
         
         
@@ -533,10 +537,12 @@ class BnBgpu:
         if iter > 2 and iter < 12:
             for _ in range(2):
                 clk = self.center_by_com(clk)  
+                clk_ctf = self.center_by_com(clk_ctf) 
         
-        clk = clk * self.create_circular_mask(clk)                
+        clk = clk * self.create_circular_mask(clk) 
+        clk_ctf = clk_ctf * self.create_circular_mask(clk_ctf)                
         
-        return(clk, tMatrix, batch_projExp_cpu, numerador_list, denominador_list)
+        return(clk, tMatrix, batch_projExp_cpu, clk_ctf)# numerador_list, denominador_list)
     
     
     @torch.no_grad()
