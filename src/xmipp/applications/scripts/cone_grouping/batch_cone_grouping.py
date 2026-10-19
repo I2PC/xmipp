@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 import argparse
 from pathlib import Path
+from dataclasses import dataclass
 
 import numpy as np
 import starfile
@@ -16,6 +17,73 @@ SHIFT_X_COL = "shiftX"
 SHIFT_Y_COL = "shiftY"
 
 
+@dataclass
+class EulerAngles:
+    """
+    Euler angles in radians, stored in equally shaped arrays.
+
+    Attributes
+    ----------
+    rot : np.ndarray
+        Rotation about the initial Z axis.
+    tilt : np.ndarray
+        Rotation about the intermediate Y axis.
+    psi : np.ndarray
+        In-plane rotation about the final Z axis.
+    """
+
+    rot: np.ndarray
+    tilt: np.ndarray
+    psi: np.ndarray
+
+    def __getitem__(self, index) -> EulerAngles:
+        """Apply the same selection to all three angle arrays."""
+        return EulerAngles(
+            rot=self.rot[index],
+            tilt=self.tilt[index],
+            psi=self.psi[index],
+        )
+
+
+@dataclass
+class Assignments:
+    """
+    Particle-to-reference assignments and their matching information.
+
+    All attributes have shape ``(m,)``, where ``m`` is the number of
+    assignments. Entry ``a`` describes one particle-reference pair.
+    Each pair appears at most once, using its best symmetry match.
+
+    Nearest-reference grouping produces one assignment per particle.
+    Threshold grouping can produce several; with complete coverage,
+    ``m >= n_particles``.
+
+    Attributes
+    ----------
+    particle_indices : np.ndarray
+        Zero-based positional indices into the input particle arrays.
+        These are not metadata identifiers such as ``itemId``.
+    group_indices : np.ndarray
+        Zero-based indices into the reference arrays.
+    symmetry_indices : np.ndarray
+        Zero-based indices into the symmetry array. For each assignment,
+        the selected operation acts on the particle as ``E @ S``.
+    angular_distances : np.ndarray
+        Minimum angular distances in radians, accounting for symmetry
+        and, when enabled, antipodal equivalence.
+    fallback : np.ndarray
+        Boolean flags identifying assignments made to the nearest
+        reference because none satisfied the threshold. Always false
+        in nearest-reference mode.
+    """
+
+    particle_indices: np.ndarray
+    group_indices: np.ndarray
+    symmetry_indices: np.ndarray
+    angular_distances: np.ndarray
+    fallback: np.ndarray
+
+
 # The functions ``euler_zyz_to_matrix``, ``sample_projection_directions``,
 # and ``group_projection_directions`` were originally written
 # by Oier Lauzirika Zarrabeitia in https://github.com/oierlauzi/factorem
@@ -25,7 +93,7 @@ SHIFT_Y_COL = "shiftY"
 
 
 def euler_zyz_to_matrix(
-    rot: np.ndarray, tilt: np.ndarray, psi: np.ndarray, out: np.ndarray | None = None
+    angles: EulerAngles, out: np.ndarray | None = None
 ) -> np.ndarray:
     """
     Convert ZYZ Euler angles to rotation matrices. Input angles are given in
@@ -44,12 +112,8 @@ def euler_zyz_to_matrix(
 
     Parameters
     ----------
-    rot : np.ndarray
-        First rotation angle about the z axis, in radians.
-    tilt : np.ndarray
-        Rotation angle about the y axis, in radians.
-    psi : np.ndarray
-        Final rotation angle about the z axis, in radians.
+    angles : EulerAngles
+        Euler angles in radians.
     out : np.ndarray, optional
         Array in which to store the resulting matrices. It must have
         shape ``broadcast_shape + (3, 3)`` and the same dtype as ``rot``.
@@ -65,10 +129,14 @@ def euler_zyz_to_matrix(
     given by the third row of the rotation matrix. This can be extracted by
     doing ``euler_zyz_to_matrix(...)[..., 2, :]``.
     """
+    rot = angles.rot
+    tilt = angles.tilt
+    psi = angles.psi
+
     # Create the output
     batch_shape = np.broadcast_shapes(rot.shape, tilt.shape, psi.shape)
     result_shape = batch_shape + (3, 3)
-    dtype = rot.dtype
+    dtype = angles.rot.dtype
 
     if out is None:
         out = np.empty(result_shape, dtype=dtype)
@@ -140,44 +208,36 @@ def sample_projection_directions(n: int) -> np.ndarray:
 
 def generate_reference_orientations(
     n: int,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Generate approximately uniform reference orientations over a hemisphere.
+) -> tuple[EulerAngles, np.ndarray]:
+    """Generate reference orientations over the hemisphere with z >= 0.
 
-    Reference viewing directions are sampled with
-    :func:`sample_projection_directions`. The sampled azimuthal and polar
-    angles are interpreted respectively as Xmipp ``rot`` and ``tilt`` angles,
-    while ``psi`` is set to zero. Thus, each reference has a fixed in-plane
-    orientation that acts as the target orientation when particles assigned
-    to that reference are subsequently aligned.
-
-    All angles used internally are in radians.
+    Viewing directions follow the Fibonacci sampling used by
+    ``sample_projection_directions``. Each reference has zero psi,
+    fixing the target in-plane orientation for subsequent alignment.
 
     Parameters
     ----------
     n : int
-        Number of reference orientations to generate.
+        Positive number of reference orientations.
 
     Returns
     -------
+    angles : EulerAngles
+        Reference Euler angles in radians, each with shape ``(n,)``.
     matrices : np.ndarray
-        Reference orientation matrices with shape ``(n, 3, 3)``, following
-        the Xmipp orientation convention used by
-        :func:`euler_zyz_to_matrix`.
-    directions : np.ndarray
-        Corresponding unit viewing directions with shape ``(n, 3)``. Each
-        direction is the third row of its orientation matrix.
+        Xmipp orientation matrices with shape ``(n, 3, 3)``.
+        Viewing directions are available as ``matrices[:, 2, :]``.
     """
+    if n <= 0:
+        raise ValueError("The number of references must be positive")
+
     spherical = sample_projection_directions(n)
-
-    rot = spherical[:, 0]
-    tilt = spherical[:, 1]
-    psi = np.asarray(0.0)
-
-    matrices = euler_zyz_to_matrix(rot, tilt, psi)
-    directions = matrices[..., 2, :]
-
-    return rot, tilt, psi, matrices, directions
+    angles = EulerAngles(
+        rot=spherical[:, 0],
+        tilt=spherical[:, 1],
+        psi=np.zeros(n),
+    )
+    return angles, euler_zyz_to_matrix(angles)
 
 
 def _nearest_orthogonal(matrix: np.ndarray) -> np.ndarray:
@@ -335,13 +395,63 @@ def matrix_to_xmipp_psi_radians_flip(
     return psi, flip
 
 
+def _symmetry_adjusted_references(
+    references: np.ndarray,
+    symmetries: np.ndarray,
+) -> np.ndarray:
+    """Return ``r @ S.T`` with shape ``(n_references, n_symmetries, 3)``.
+
+    Comparing a direction ``d`` with ``r @ S.T`` is equivalent to
+    comparing the symmetry-equivalent direction ``d @ S`` with ``r``.
+    """
+    return np.tensordot(references, symmetries, axes=([1], [2]))
+
+
+def _best_reference_matches(
+    directions: np.ndarray,
+    references_sym: np.ndarray,
+    consider_mirrors: bool,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Find the best symmetry match for each direction-reference pair.
+
+    Parameters
+    ----------
+    directions : np.ndarray
+        Unit directions for one batch, shape ``(batch, 3)``.
+    references_sym : np.ndarray
+        Symmetry-adjusted references, shape ``(n_references, n_symmetries, 3)``.
+    consider_mirrors : bool
+        Whether antipodal directions are treated as equivalent.
+
+    Returns
+    -------
+    best_cosines : np.ndarray
+        Maximum matching cosines, shape ``(batch, n_references)``.
+    symmetry_indices : np.ndarray
+        Selected symmetry indices with the same shape. Exact ties
+        select the first symmetry in the supplied order.
+    """
+    # cosines is shape (batch, n_references, n_symmetries)
+    cosines = np.tensordot(directions, references_sym, axes=([1], [2]))
+    if consider_mirrors:
+        np.abs(cosines, out=cosines)
+
+    symmetry_indices = np.argmax(cosines, axis=2)
+    best_cosines = np.take_along_axis(cosines, symmetry_indices[..., None], axis=2)[
+        ..., 0
+    ]
+
+    return best_cosines, symmetry_indices
+
+
 def group_projection_directions(
     directions: np.ndarray,
     references: np.ndarray,
     symmetries: np.ndarray,
     consider_mirrors: bool = True,
     batch_size: int = 1024,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> Assignments:
     """
     Assign each direction to its closest reference direction, taking underlying
     group symmetries into account.
@@ -378,20 +488,18 @@ def group_projection_directions(
 
     Returns
     -------
-    np.ndarray
-        Integer array of shape (n_directions,) containing the index of
-        the closest reference for each direction.
-    np.ndarray
-        Integer array of shape (n_directions,) containing the index of the
-        chosen symmetry operation for each direction.
+    Assignments
+        One assignment per particle, in input order. Exact ties select
+        the first reference and then the first symmetry. Angular
+        distances are in radians, and all fallback flags are false.
     """
-    # Compute r[i] @ s[j].T for each reference and symmetry, because comparing r @ s.T
-    # with a direction d is equivalent to comparing d @ s with r
-    #
-    # references:     (n_references, 3)
-    # symmetries:     (n_symmetries, 3, 3)
-    # references_sym: (n_references, n_symmetries, 3)
-    references_sym = np.tensordot(references, symmetries, axes=([1], [2]))
+    if batch_size <= 0:
+        raise ValueError("batch_size must be positive")
+    if len(references) == 0 or len(symmetries) == 0:
+        raise ValueError("At least one reference and one symmetry are required")
+
+    # shape (n_references, n_symmetries, 3)
+    references_sym = _symmetry_adjusted_references(references, symmetries)
 
     n_directions = len(directions)
     n_references = len(references)
@@ -401,33 +509,35 @@ def group_projection_directions(
     symmetry_indices = np.empty(
         n_directions, dtype=np.min_scalar_type(n_symmetries - 1)
     )
+    angular_distances = np.empty(n_directions, dtype=float)
 
     start = 0
     while start < n_directions:
         end = min(n_directions, start + batch_size)
-        direction_batch = directions[start:end]
+        best_cosines, best_symmetries = _best_reference_matches(
+            directions=directions[start:end],
+            references_sym=references_sym,
+            consider_mirrors=consider_mirrors,
+        )
 
-        # direction_batch: (batch, 3)
-        # references_sym:  (n_references, n_symmetries, 3)
-        # cos:             (batch, n_references, n_symmetries)
-        cos = np.tensordot(direction_batch, references_sym, axes=([1], [2]))
+        rows = np.arange(end - start)
+        selected_groups = np.argmax(best_cosines, axis=1)
 
-        if consider_mirrors:
-            np.abs(cos, out=cos)
-
-        # Flatten the reference and symmetry dimensions for argmax
-        cos_flat = cos.reshape(end - start, -1)  # (batch, n_references * n_symmetries)
-        flat_indices = np.argmax(cos_flat, axis=1)  # (batch, )
-        j, k = np.unravel_index(flat_indices, shape=(n_references, n_symmetries))
-        # j: (batch, ), indexing n_references
-        # k: (batch, ), indexing n_symmetries
-
-        group_indices[start:end] = j
-        symmetry_indices[start:end] = k
+        group_indices[start:end] = selected_groups
+        symmetry_indices[start:end] = best_symmetries[rows, selected_groups]
+        angular_distances[start:end] = np.arccos(
+            np.clip(best_cosines[rows, selected_groups], -1.0, 1.0)
+        )
 
         start = end
 
-    return group_indices, symmetry_indices
+    return Assignments(
+        particle_indices=np.arange(n_directions),
+        group_indices=group_indices,
+        symmetry_indices=symmetry_indices,
+        angular_distances=angular_distances,
+        fallback=np.zeros(n_directions, dtype=bool),
+    )
 
 
 def deduplicate_with_symmetry(
@@ -472,11 +582,9 @@ def deduplicate_with_symmetry(
 
     available = np.ones(n_references, dtype=bool)
 
-    # Apply all symmetry operations once
-    # references:           (n, 3)
-    # symmetries:           (m, 3, 3)
-    # symmetric_references: (n, m, 3)
-    symmetric_references = np.einsum("nk,mjk->nmj", directions, symmetries)
+    symmetric_references = _symmetry_adjusted_references(
+        directions, symmetries
+    )
 
     for i in range(n_references):
         # An eliminated reference must not eliminate other references
@@ -635,6 +743,60 @@ def generate_symmetries(sym: str | None) -> np.ndarray:
     raise ValueError(f"Unsupported symmetry group symbol: {sym}")
 
 
+def build_assignment_metadata(
+    data: pd.DataFrame,
+    assignments: Assignments,
+    alignment_psi: np.ndarray,
+    flip: np.ndarray,
+    aligned_shifts: np.ndarray,
+    group_column: str,
+) -> pd.DataFrame:
+    """
+    Build one metadata row per assignment.
+
+    Alignment arrays must follow the same order as ``assignments``.
+    ``assignments.particle_indices`` selects positional rows from
+    ``data``, whose order remains the original input particle order.
+    Input rows are copied before modification.
+    Output group identifiers are one-based.
+    """
+
+    result = data.iloc[assignments.particle_indices].copy().reset_index(drop=True)
+
+    result[group_column] = assignments.group_indices.astype(np.int64) + 1
+    result[MDL_ANGLE_PSI] = np.rad2deg(alignment_psi)
+    result[MDL_FLIP] = flip.astype(np.int8)
+    result[SHIFT_X_COL] = aligned_shifts[:, 0]
+    result[SHIFT_Y_COL] = aligned_shifts[:, 1]
+
+    return result
+
+
+def build_reference_metadata(
+    angles: EulerAngles,
+    assignments: Assignments,
+) -> pd.DataFrame:
+    """Build reference metadata, including zero counts for empty groups.
+
+    Output angles are in degrees and group identifiers are one-based.
+    Counts describe memberships, so their sum equals the number of
+    assignments rather than necessarily the number of input particles.
+    """
+    n_references = len(angles.rot)
+
+    return pd.DataFrame(
+        {
+            "cone_group": np.arange(1, n_references + 1),
+            "angleRot": np.rad2deg(angles.rot),
+            "angleTilt": np.rad2deg(angles.tilt),
+            "anglePsi": np.rad2deg(angles.psi),
+            "n_particles": np.bincount(
+                assignments.group_indices, minlength=n_references
+            ),
+        }
+    )
+
+
 def build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -710,9 +872,10 @@ def main():
 
     symmetries = generate_symmetries(sym=args.symmetry_group)
 
-    rot_ref, tilt_ref, psi_ref, reference_matrices, reference_directions = (
-        generate_reference_orientations(n=args.n_groups)
+    reference_angles, reference_matrices = generate_reference_orientations(
+        n=args.n_groups
     )
+    reference_directions = reference_matrices[:, 2, :]
 
     if args.deduplicate_references:
         threshold = 0.5 * min_distance_between_directions(
@@ -725,25 +888,22 @@ def main():
             batch_size=args.grouping_batch_size,
             consider_mirrors=True,
         )
-
+        reference_angles = reference_angles[keep_mask]
         reference_matrices = reference_matrices[keep_mask]
-        reference_directions = reference_directions[keep_mask]
-        rot_ref = rot_ref[keep_mask]
-        tilt_ref = tilt_ref[keep_mask]
-        # psi_ref is a scalar (0.0) shared for all references, so masking is not required
+        reference_directions = reference_matrices[:, 2, :]
 
     # Read particle alignment angles - Xmipp stores Euler angles in degrees
     data = pd.DataFrame(starfile.read(args.input_xmd))
-    rot = np.deg2rad(data.angleRot.to_numpy())
-    tilt = np.deg2rad(data.angleTilt.to_numpy())
-    psi = np.deg2rad(data.anglePsi.to_numpy())
+    particle_angles = EulerAngles(
+        rot=np.deg2rad(data["angleRot"].to_numpy()),
+        tilt=np.deg2rad(data["angleTilt"].to_numpy()),
+        psi=np.deg2rad(data["anglePsi"].to_numpy()),
+    )
     shifts = data[[SHIFT_X_COL, SHIFT_Y_COL]].to_numpy(dtype=float)
-
-    particle_matrices = euler_zyz_to_matrix(rot, tilt, psi)
+    particle_matrices = euler_zyz_to_matrix(particle_angles)
     particle_directions = particle_matrices[..., 2, :]
-    del rot, tilt, psi
 
-    group_indices, symmetry_indices = group_projection_directions(
+    assignments = group_projection_directions(
         directions=particle_directions,
         references=reference_directions,
         symmetries=symmetries,
@@ -753,39 +913,31 @@ def main():
     del particle_directions, reference_directions
 
     alignment_psi, flip, aligned_shifts = align_to_references(
-        particle_matrices_3d=particle_matrices,
-        particle_shifts_2d=shifts,
+        particle_matrices_3d=particle_matrices[assignments.particle_indices],
+        particle_shifts_2d=shifts[assignments.particle_indices],
         reference_matrices_3d=reference_matrices,
-        group_indices=group_indices,
+        group_indices=assignments.group_indices,
         symmetries=symmetries,
-        symmetry_indices=symmetry_indices,
+        symmetry_indices=assignments.symmetry_indices,
     )
     del symmetries
     del particle_matrices, reference_matrices
 
-    # 1-based indices are preferred for class ids
-    data[args.out_group_column] = group_indices.astype(np.int64) + 1
-    data[MDL_ANGLE_PSI] = np.rad2deg(alignment_psi)
-    data[MDL_FLIP] = flip.astype(np.int8)
-    data[SHIFT_X_COL] = aligned_shifts[:, 0]
-    data[SHIFT_Y_COL] = aligned_shifts[:, 1]
-
-    starfile.write(data=data, filename=args.out_star)
+    output_data = build_assignment_metadata(
+        data=data,
+        assignments=assignments,
+        alignment_psi=alignment_psi,
+        flip=flip,
+        aligned_shifts=aligned_shifts,
+        group_column=args.out_group_column,
+    )
+    starfile.write(data=output_data, filename=args.out_star)
 
     if args.out_reference_md:
-        group_counts = data[args.out_group_column].value_counts()
-        reference_md = pd.DataFrame(
-            {
-                "cone_group": np.arange(1, len(rot_ref) + 1),  # match 1-based class ids
-                "angleRot": np.rad2deg(rot_ref),
-                "angleTilt": np.rad2deg(tilt_ref),
-                "anglePsi": np.rad2deg(psi_ref),
-            }
+        reference_md = build_reference_metadata(
+            angles=reference_angles,
+            assignments=assignments,
         )
-        reference_md["n_particles"] = (
-            reference_md["cone_group"].map(group_counts).fillna(0).astype(int)
-        )
-
         starfile.write(data=reference_md, filename=args.out_reference_md)
 
 
