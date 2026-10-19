@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import argparse
+import sys
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -366,6 +367,44 @@ def align_to_references(
     return psi, flip, aligned_shifts
 
 
+def align_assignments(
+    particle_matrices_3d: np.ndarray,
+    particle_shifts_2d: np.ndarray,
+    reference_matrices_3d: np.ndarray,
+    assignments: Assignments,
+    symmetries: np.ndarray,
+    batch_size: int = 1024,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Align each assignment from its original particle, in bounded batches.
+
+    Returns psi in radians, boolean flips, and transformed shifts, all in
+    assignment order. Repeated particles are aligned independently to each
+    selected reference; an existing assignment's alignment is never reused.
+    """
+    if batch_size <= 0:
+        raise ValueError("batch_size must be positive")
+
+    n_assignments = len(assignments.particle_indices)
+    psi = np.empty(n_assignments, dtype=float)
+    flip = np.empty(n_assignments, dtype=bool)
+    shifts = np.empty((n_assignments, 2), dtype=float)
+
+    for start in range(0, n_assignments, batch_size):
+        end = min(start + batch_size, n_assignments)
+        particles = assignments.particle_indices[start:end]
+        psi[start:end], flip[start:end], shifts[start:end] = align_to_references(
+            particle_matrices_3d=particle_matrices_3d[particles],
+            particle_shifts_2d=particle_shifts_2d[particles],
+            reference_matrices_3d=reference_matrices_3d,
+            group_indices=assignments.group_indices[start:end],
+            symmetries=symmetries,
+            symmetry_indices=assignments.symmetry_indices[start:end],
+        )
+
+    return psi, flip, shifts
+
+
 def matrix_to_xmipp_psi_radians_flip(
     matrix_batch: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -434,6 +473,10 @@ def _best_reference_matches(
     """
     # cosines is shape (batch, n_references, n_symmetries)
     cosines = np.tensordot(directions, references_sym, axes=([1], [2]))
+
+    if not np.isfinite(cosines).all():
+        raise ValueError("Matching cosines must be finite")
+
     if consider_mirrors:
         np.abs(cosines, out=cosines)
 
@@ -451,47 +494,103 @@ def group_projection_directions(
     symmetries: np.ndarray,
     consider_mirrors: bool = True,
     batch_size: int = 1024,
+    *,
+    mode: str = "nearest",
+    angular_radius: float | None = None,
+    unassigned_policy: str = "error",
 ) -> Assignments:
     """
-    Assign each direction to its closest reference direction, taking underlying
-    group symmetries into account.
-
-    Because the viewing directions ``d`` and ``d @ s`` are equivalent whenever
-    ``s`` is a symmetry of the volume, the distances between each direction ``d``
-    and reference ``r`` are calculated as the minimum of distances between
-    ``d @ s1`` and ``r @ s2``, where ``s1, s2`` are symmetries.
-
-    Closeness is measured by angular distance, equivalently by maximizing
-    the dot product between unit vectors. If ``consider_mirrors`` is True,
-    antipodal directions are treated as equivalent.
-
-    The returned symmetry index for a direction ``d`` and selected reference
-    ``r`` identifies the operation ``S`` for which ``d @ S`` is closest to
-    ``r``. The same operation can therefore be applied to the full particle
-    orientation matrix as ``E @ S`` before computing its in-plane alignment.
+    Assign directions to references under volume symmetry.
 
     Parameters
     ----------
     directions : np.ndarray
-        Unit direction vectors with shape (n_directions, 3).
+        Unit particle directions, shape ``(n_particles, 3)``.
     references : np.ndarray
-        Unit reference vectors with shape (n_references, 3).
+        Unit reference directions, shape ``(n_references, 3)``.
     symmetries : np.ndarray
-        Symmetry matrices for the underlying volume, shape (n_symmetries, 3, 3).
-        This must include the identity matrix as one of its elements.
-        For asymmetric volumes, this can be the trivial symmetry group 'C1',
-        which can be generated with ``trivial_symmetry_group()``.
+        Volume symmetry matrices, shape ``(n_symmetries, 3, 3)``.
+        The identity must be included.
     consider_mirrors : bool, optional
-        If True, directions v and -v are considered equivalent. Default is True.
+        Treat antipodal directions as equivalent.
     batch_size : int, optional
-        Number of directions processed at once. Default is 1024.
+        Positive number of particles processed per batch.
+    mode : {"nearest", "threshold"}, optional
+        Select the nearest reference or all references within the radius.
+    angular_radius : float or None, optional
+        Inclusive angular radius in radians, required only in threshold
+        mode. Range: [0, pi/2] with antipodal equivalence, otherwise [0, pi].
+    unassigned_policy : {"error", "nearest"}, optional
+        In threshold mode, fail if any particle is uncovered or assign
+        uncovered particles to their nearest reference. Nondefault values
+        are rejected in nearest mode.
 
     Returns
     -------
     Assignments
-        One assignment per particle, in input order. Exact ties select
-        the first reference and then the first symmetry. Angular
-        distances are in radians, and all fallback flags are false.
+        Flat assignments ordered by particle and then reference index.
+        Each pair uses its best symmetry; exact ties select the first
+        symmetry. Nearest-reference ties select the first reference.
+        Indices are zero-based and angular distances are in radians.
+
+    Raises
+    ------
+    ValueError
+        For invalid options, nonfinite matching cosines, or uncovered
+        particles when ``unassigned_policy="error"``. Coverage failures
+        report one-based input row numbers and nearest-reference distances.
+    """
+    if batch_size <= 0:
+        raise ValueError("batch_size must be positive")
+    if len(references) == 0 or len(symmetries) == 0:
+        raise ValueError("At least one reference and one symmetry are required")
+    if len(directions) == 0:
+        raise ValueError("At least one particle is required")
+    if unassigned_policy not in ("error", "nearest"):
+        raise ValueError("unassigned_policy must be 'error' or 'nearest'")
+    if mode == "nearest":
+        if angular_radius is not None or unassigned_policy != "error":
+            raise ValueError("Radius and fallback options require threshold mode")
+    else:
+        max_radius = np.pi / 2 if consider_mirrors else np.pi
+        if (
+            angular_radius is None
+            or not np.isfinite(angular_radius)
+            or not 0 <= angular_radius <= max_radius
+        ):
+            raise ValueError(
+                f"angular_radius must be finite and between 0 and {max_radius} radians"
+            )
+
+    if mode == "nearest":
+        return _group_to_nearest(
+            directions, references, symmetries, consider_mirrors, batch_size
+        )
+
+    if mode == "threshold":
+        return _group_with_threshold(
+            directions,
+            references,
+            symmetries,
+            consider_mirrors,
+            batch_size,
+            angular_radius=angular_radius,
+            unassigned_policy=unassigned_policy,
+        )
+
+    raise ValueError("mode must be 'nearest' or 'threshold'")
+
+
+def _group_to_nearest(
+    directions: np.ndarray,
+    references: np.ndarray,
+    symmetries: np.ndarray,
+    consider_mirrors: bool = True,
+    batch_size: int = 1024,
+) -> Assignments:
+    """
+    Assign each direction to its closest reference direction, taking underlying
+    group symmetries into account.
     """
     if batch_size <= 0:
         raise ValueError("batch_size must be positive")
@@ -501,42 +600,112 @@ def group_projection_directions(
     # shape (n_references, n_symmetries, 3)
     references_sym = _symmetry_adjusted_references(references, symmetries)
 
-    n_directions = len(directions)
-    n_references = len(references)
-    n_symmetries = len(symmetries)
+    n_particles = len(directions)
 
-    group_indices = np.empty(n_directions, dtype=np.min_scalar_type(n_references - 1))
-    symmetry_indices = np.empty(
-        n_directions, dtype=np.min_scalar_type(n_symmetries - 1)
-    )
-    angular_distances = np.empty(n_directions, dtype=float)
+    group_indices = np.empty(n_particles, dtype=np.intp)
+    symmetry_indices = np.empty(n_particles, dtype=np.intp)
+    nearest_distances = np.empty(n_particles, dtype=float)
 
-    start = 0
-    while start < n_directions:
-        end = min(n_directions, start + batch_size)
+    for start in range(0, n_particles, batch_size):
+        end = min(n_particles, start + batch_size)
         best_cosines, best_symmetries = _best_reference_matches(
             directions=directions[start:end],
             references_sym=references_sym,
             consider_mirrors=consider_mirrors,
         )
-
         rows = np.arange(end - start)
         selected_groups = np.argmax(best_cosines, axis=1)
 
         group_indices[start:end] = selected_groups
         symmetry_indices[start:end] = best_symmetries[rows, selected_groups]
-        angular_distances[start:end] = np.arccos(
+        nearest_distances[start:end] = np.arccos(
             np.clip(best_cosines[rows, selected_groups], -1.0, 1.0)
         )
 
-        start = end
-
     return Assignments(
-        particle_indices=np.arange(n_directions),
+        particle_indices=np.arange(n_particles),
         group_indices=group_indices,
         symmetry_indices=symmetry_indices,
-        angular_distances=angular_distances,
-        fallback=np.zeros(n_directions, dtype=bool),
+        angular_distances=nearest_distances,
+        fallback=np.zeros(n_particles, dtype=bool),
+    )
+
+
+def _group_with_threshold(
+    directions: np.ndarray,
+    references: np.ndarray,
+    symmetries: np.ndarray,
+    consider_mirrors: bool = True,
+    batch_size: int = 1024,
+    *,
+    angular_radius: float,
+    unassigned_policy: str = "error",
+) -> Assignments:
+    """
+    Group each direction with every reference that is closer than an angular
+    radius (in radians), accounting for symmetry.
+    """
+    # shape (n_references, n_symmetries, 3)
+    references_sym = _symmetry_adjusted_references(references, symmetries)
+
+    n_particles = len(directions)
+    chunks: list[Assignments] = []
+    nearest_distances = np.empty(n_particles, dtype=float)
+    uncovered = np.empty(n_particles, dtype=bool)
+
+    for start in range(0, n_particles, batch_size):
+        end = min(n_particles, start + batch_size)
+        best_cosines, best_symmetries = _best_reference_matches(
+            directions=directions[start:end],
+            references_sym=references_sym,
+            consider_mirrors=consider_mirrors,
+        )
+        rows = np.arange(end - start)
+        angles = np.arccos(np.clip(best_cosines, -1.0, 1.0))
+
+        # Save nearest distances for reporting later in case of uncovered particles
+        nearest_groups = np.argmax(best_cosines, axis=1)
+        nearest_distances[start:end] = angles[rows, nearest_groups]
+
+        membership = angles <= angular_radius
+        missing = ~membership.any(axis=1)
+        uncovered[start:end] = missing
+        if unassigned_policy == "nearest":
+            membership[rows[missing], nearest_groups[missing]] = True
+
+        particle_rows, groups = np.nonzero(membership)
+        distances = angles[particle_rows, groups]
+        fallback = missing[particle_rows]
+
+        chunks.append(
+            Assignments(
+                particle_indices=particle_rows + start,
+                group_indices=groups,
+                symmetry_indices=best_symmetries[particle_rows, groups],
+                angular_distances=distances,
+                fallback=fallback,
+            )
+        )
+
+    if uncovered.any() and unassigned_policy == "error":
+        missing_indices = np.flatnonzero(uncovered)
+        # Round upwards so copying the reported radius does not under-cover.
+        covering_radius = np.ceil(np.rad2deg(nearest_distances.max()))
+
+        raise ValueError(
+            f"{len(missing_indices)}/{n_particles} particles "
+            f"({100 * len(missing_indices) / n_particles:.2f}%) have no reference "
+            f"within the specified radius of {np.rad2deg(angular_radius):.4f} deg. "
+            f"A radius of at least {covering_radius} covers this dataset "
+            "with these references."
+        )
+
+    return Assignments(
+        particle_indices=np.concatenate([c.particle_indices for c in chunks]),
+        group_indices=np.concatenate([c.group_indices for c in chunks]),
+        symmetry_indices=np.concatenate([c.symmetry_indices for c in chunks]),
+        angular_distances=np.concatenate([c.angular_distances for c in chunks]),
+        fallback=np.concatenate([c.fallback for c in chunks]),
     )
 
 
@@ -582,9 +751,7 @@ def deduplicate_with_symmetry(
 
     available = np.ones(n_references, dtype=bool)
 
-    symmetric_references = _symmetry_adjusted_references(
-        directions, symmetries
-    )
+    symmetric_references = _symmetry_adjusted_references(directions, symmetries)
 
     for i in range(n_references):
         # An eliminated reference must not eliminate other references
@@ -760,8 +927,17 @@ def build_assignment_metadata(
     Input rows are copied before modification.
     Output group identifiers are one-based.
     """
+    diagnostic_columns = {"angular_distance_deg", "assignment_fallback"}
+    collisions = diagnostic_columns.intersection(data.columns)
+    if collisions or group_column in diagnostic_columns:
+        raise ValueError(
+            "Assignment output column names conflict with input metadata or "
+            f"the group column: {sorted(collisions | ({group_column} & diagnostic_columns))}"
+        )
 
     result = data.iloc[assignments.particle_indices].copy().reset_index(drop=True)
+    result["angular_distance_deg"] = np.rad2deg(assignments.angular_distances)
+    result["assignment_fallback"] = assignments.fallback.astype(np.int8)
 
     result[group_column] = assignments.group_indices.astype(np.int64) + 1
     result[MDL_ANGLE_PSI] = np.rad2deg(alignment_psi)
@@ -864,11 +1040,36 @@ def build_argument_parser() -> argparse.ArgumentParser:
         ),
     )
 
+    parser.add_argument(
+        "--grouping-mode",
+        choices=("nearest", "threshold"),
+        default="nearest",
+        help="Assign to the nearest reference or to all references within a radius",
+    )
+    parser.add_argument(
+        "--angular-radius-deg",
+        type=float,
+        help="Inclusive angular radius in degrees, required in threshold mode (0 to 90)",
+    )
+    parser.add_argument(
+        "--unassigned-policy",
+        choices=("error", "nearest"),
+        default="error",
+        help="Threshold mode: fail on uncovered particles or use a marked nearest fallback",
+    )
+
     return parser
 
 
 def main():
-    args = build_argument_parser().parse_args()
+    parser = build_argument_parser()
+    args = parser.parse_args()
+    if args.grouping_mode == "nearest" and (
+        args.angular_radius_deg is not None or args.unassigned_policy != "error"
+    ):
+        parser.error("--angular-radius-deg and nearest fallback require threshold mode")
+    if args.grouping_batch_size <= 0:
+        parser.error("--grouping-batch-size must be positive")
 
     symmetries = generate_symmetries(sym=args.symmetry_group)
 
@@ -909,16 +1110,23 @@ def main():
         symmetries=symmetries,
         consider_mirrors=True,
         batch_size=args.grouping_batch_size,
+        mode=args.grouping_mode,
+        angular_radius=(
+            None
+            if args.angular_radius_deg is None
+            else np.deg2rad(args.angular_radius_deg)
+        ),
+        unassigned_policy=args.unassigned_policy,
     )
     del particle_directions, reference_directions
 
-    alignment_psi, flip, aligned_shifts = align_to_references(
-        particle_matrices_3d=particle_matrices[assignments.particle_indices],
-        particle_shifts_2d=shifts[assignments.particle_indices],
+    alignment_psi, flip, aligned_shifts = align_assignments(
+        particle_matrices_3d=particle_matrices,
+        particle_shifts_2d=shifts,
         reference_matrices_3d=reference_matrices,
-        group_indices=assignments.group_indices,
+        assignments=assignments,
         symmetries=symmetries,
-        symmetry_indices=assignments.symmetry_indices,
+        batch_size=args.grouping_batch_size,
     )
     del symmetries
     del particle_matrices, reference_matrices
@@ -932,6 +1140,14 @@ def main():
         group_column=args.out_group_column,
     )
     starfile.write(data=output_data, filename=args.out_star)
+
+    fallback_count = int(assignments.fallback.sum())
+    if fallback_count:
+        print(
+            f"WARNING: nearest-reference fallback used for {fallback_count}/{len(data)} "
+            "particles; see assignment_fallback in the output.",
+            file=sys.stderr,
+        )
 
     if args.out_reference_md:
         reference_md = build_reference_metadata(
