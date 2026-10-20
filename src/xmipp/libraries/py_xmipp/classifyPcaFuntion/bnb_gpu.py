@@ -369,7 +369,7 @@ class BnBgpu:
             projs_sorted = projs_gpu[order] 
             lbls_sorted = batch_class_indices[order]
             
-            counts = torch.bincount(lbls_sorted, minlength=classes)
+            counts = torch.bincount(lbls_sorted, minlength=classes).tolist()
             
             start = 0
             for n, c in enumerate(counts):
@@ -978,7 +978,7 @@ class BnBgpu:
   
 
     @torch.no_grad()
-    def kmeans_pytorch_for_averages(self, Im_tensor, X, eigvect, num_clusters, num_iters=25, verbose=False):
+    def kmeans_pytorch_for_averages_old(self, Im_tensor, X, eigvect, num_clusters, num_iters=25, verbose=False):
 
         # X = torch.stack(X)
         X = X.view(Im_tensor.shape[0], eigvect[0].shape[1]).float()
@@ -1054,6 +1054,214 @@ class BnBgpu:
         del X, centroids, distances
     
         return torch.stack(averages),labels
+    
+    
+    @torch.no_grad()
+    def kmeans_pytorch_for_averages(
+        self,
+        Im_tensor,
+        X,
+        eigvect,
+        num_clusters,
+        num_iters=25,
+        verbose=False
+    ):
+        # --------------------------------------------------
+        # Preparación de los datos
+        # --------------------------------------------------
+        X = X.reshape(
+            Im_tensor.shape[0], eigvect[0].shape[1]
+        ).float()
+    
+        N, D = X.shape
+        device = X.device
+    
+        if N == 0:
+            raise ValueError("X no contiene imágenes.")
+        if num_clusters < 1 or num_clusters > N:
+            raise ValueError(
+                "num_clusters debe estar entre 1 y N."
+            )
+    
+        # Normalización robusta
+        mean = X.mean(dim=0)
+        std = X.std(dim=0, unbiased=False).clamp_min(1e-6)
+        X = (X - mean) / std
+    
+        # --------------------------------------------------
+        # Inicialización K-means++
+        # --------------------------------------------------
+        centroids = torch.empty(
+            (num_clusters, D), device=device, dtype=X.dtype
+        )
+    
+        idx = torch.randint(N, (1,), device=device)
+        centroids[0] = X[idx[0]]
+    
+        for k in range(1, num_clusters):
+            dist_sq = (
+                X.square().sum(dim=1, keepdim=True)
+                - 2 * (X @ centroids[:k].T)
+                + centroids[:k].square().sum(dim=1).unsqueeze(0)
+            ).clamp_min_(0)
+    
+            min_dist_sq = dist_sq.min(dim=1).values
+            total = min_dist_sq.sum()
+    
+            if total <= 1e-12:
+                # Todos los puntos restantes son prácticamente iguales
+                next_idx = torch.randint(N, (1,), device=device)
+            else:
+                next_idx = torch.multinomial(
+                    min_dist_sq / total, 1
+                )
+    
+            centroids[k] = X[next_idx[0]]
+    
+        # Número mínimo orientativo de imágenes por cluster
+        min_size = min(num_clusters and N, max(4, int(0.01 * N)))
+    
+        # --------------------------------------------------
+        # Iteraciones K-means con rescate de clusters pequeños
+        # --------------------------------------------------
+        for it in range(num_iters):
+    
+            # Distancias euclídeas
+            distances = torch.cdist(X, centroids, p=2)
+            labels = distances.argmin(dim=1)
+    
+            counts = torch.bincount(
+                labels, minlength=num_clusters
+            )
+    
+            small_clusters = torch.where(counts < min_size)[0]
+    
+            if small_clusters.numel() > 0:
+                # Distancia de cada imagen a SU centroide asignado
+                assigned_dist = distances[
+                    torch.arange(N, device=device), labels
+                ]
+    
+                # Priorizar imágenes peor representadas.
+                # Evitar reutilizar una imagen durante el rescate.
+                candidates = assigned_dist.argsort(descending=True)
+                used = torch.zeros(N, dtype=torch.bool, device=device)
+    
+                for k_tensor in small_clusters:
+                    k = int(k_tensor.item())
+    
+                    # Buscar una imagen que no se haya usado
+                    # y que no sea la única imagen de su cluster.
+                    available = candidates[~used[candidates]]
+                    selected_idx = None
+    
+                    for candidate in available:
+                        candidate_label = labels[candidate]
+    
+                        if counts[candidate_label] > 1:
+                            selected_idx = candidate
+                            break
+    
+                    if selected_idx is None:
+                        break
+    
+                    old_label = labels[selected_idx]
+    
+                    # Reasignar la imagen al cluster pequeño
+                    labels[selected_idx] = k
+                    used[selected_idx] = True
+    
+                    counts[old_label] -= 1
+                    counts[k] += 1
+    
+            # Recalcular centroides usando las etiquetas actualizadas
+            counts = torch.bincount(
+                labels, minlength=num_clusters
+            ).to(dtype=X.dtype)
+    
+            centroids_new = torch.zeros_like(centroids)
+    
+            centroids_new.scatter_add_(
+                0,
+                labels.unsqueeze(1).expand(-1, D),
+                X
+            )
+    
+            nonempty = counts > 0
+            centroids_new[nonempty] /= counts[nonempty].unsqueeze(1)
+    
+            # Los clusters que siguen vacíos conservan su centroide previo
+            centroids[nonempty] = centroids_new[nonempty]
+    
+            # --------------------------------------------------
+            # Repulsión suave entre centroides casi coincidentes
+            # --------------------------------------------------
+            if num_clusters > 1:
+                Cdist = torch.cdist(centroids, centroids)
+                close = (Cdist < 0.15) & (Cdist > 0)
+    
+                if close.any():
+                    # Aplicar una perturbación pequeña solo a los
+                    # centroides implicados, no a todos.
+                    affected = close.any(dim=1)
+                    centroids[affected] += (
+                        torch.randn_like(centroids[affected]) * 0.01
+                    )
+    
+            if verbose:
+                # Recalcular la inercia respecto a los centroides actuales
+                distances_now = torch.cdist(X, centroids)
+                inertia = (
+                    distances_now[
+                        torch.arange(N, device=device), labels
+                    ].square().sum().item()
+                )
+    
+                print(
+                    f"Iter {it + 1:02d} "
+                    f"inertia = {inertia:.2e}"
+                )
+    
+        # --------------------------------------------------
+        # Etiquetas y distancias finales
+        # --------------------------------------------------
+        distances = torch.cdist(X, centroids, p=2)
+        labels = distances.argmin(dim=1)
+    
+        # --------------------------------------------------
+        # Promedios robustos por cluster
+        # --------------------------------------------------
+        averages = []
+    
+        for i in range(num_clusters):
+            mask_i = labels == i
+            class_imgs = Im_tensor[mask_i]
+    
+            if class_imgs.shape[0] == 0:
+                avg = torch.zeros_like(Im_tensor[0])
+            else:
+                d = distances[mask_i, i]
+    
+                med = d.median()
+                mad = torch.median(torch.abs(d - med))
+    
+                # Si las distancias son casi idénticas, no filtrar
+                # por una tolerancia prácticamente nula.
+                threshold = med + 2.5 * mad
+    
+                if mad <= 1e-6:
+                    good = d <= med + 1e-6
+                else:
+                    good = d <= threshold
+    
+                if good.any():
+                    avg = class_imgs[good].mean(dim=0)
+                else:
+                    avg = class_imgs.mean(dim=0)
+    
+            averages.append(avg)
+    
+        return torch.stack(averages), labels
     
 
     def determine_batches(self, free_memory, dim):
