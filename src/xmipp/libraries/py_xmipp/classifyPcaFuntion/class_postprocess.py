@@ -278,9 +278,9 @@ class ClassPostprocess:
 
         if self.normalize:
             mean0 = image.mean()
-            std0 = image.std(correction=0)
+            std0 = image.std(unbiased=True)
             mean_f = img_filt.mean()
-            std_f = img_filt.std(correction=0)
+            std_f = img_filt.std(unbiased=True)
             normalized = (
                 (img_filt - mean_f) / std_f.clamp_min(self.eps) * std0 + mean0
             )
@@ -363,9 +363,9 @@ class ClassPostprocess:
 
         if self.normalize:
             mean0 = average.mean()
-            std0 = average.std(correction=0)
+            std0 = average.std(unbiased=True)
             mean_f = filtered.mean()
-            std_f = filtered.std(correction=0)
+            std_f = filtered.std(unbiased=True)
             normalized = (
                 (filtered - mean_f) / std_f.clamp_min(self.eps) * std0 + mean0
             )
@@ -373,5 +373,3 @@ class ClassPostprocess:
             del mean0, std0, mean_f, std_f, normalized
 
         return filtered
-    
-    
