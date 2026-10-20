@@ -179,7 +179,8 @@ if __name__=="__main__":
         
             Im_zero = mmap.data[indices].astype(np.float32)
             Texp_zero = torch.as_tensor(Im_zero, device=cuda)
-            Texp_zero *= bnb.create_circular_mask(Texp_zero)
+            # Texp_zero *= bnb.create_circular_mask(Texp_zero)
+            Texp_zero *= bnb.create_gaussian_mask(transforIm, sigma)
         
             pca_zero = bnb.create_batchExp(Texp_zero, freqBn, coef, cvecs)
         
