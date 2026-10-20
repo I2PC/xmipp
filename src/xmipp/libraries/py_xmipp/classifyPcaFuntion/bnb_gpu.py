@@ -11,6 +11,7 @@ import torch.nn.functional as F
 import kornia
 import random
 import math
+from xmippPyModules.classifyPcaFuntion.class_postprocess import ClassPostprocess
 
 
 
@@ -459,24 +460,41 @@ class BnBgpu:
         batch_projExp_cpu = self.create_batchExp(transforIm, freqBn, coef, cvecs)
         
         if iter == 2:
-            newCL = [[] for i in range(classes)]              
+            # newCL = [[] for i in range(classes)]              
+            #
+            # for n in range(classes):
+            #     class_images = transforIm[matches[:, 1] == n]
+            #     newCL[n].append(class_images)
+            #
+            # del(transforIm)
+            # torch.cuda.empty_cache()
+            
+            # newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
+            # clk = self.averages(data, newCL, classes)          
+            #
+            #
+            # res_classes = self.frc_resolution_tensor(newCL, sampling)
+            #
+            # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
+            #
+            # clk = self.highpass_cosine_sharpen(clk, res_classes, sampling)   
+            
+            
+            processor = ClassPostprocess(sampling=sampling, device=self.cuda, cut=100, cut_res=100,)
+            
+            clk = torch.empty_like(cl)
             
             for n in range(classes):
                 class_images = transforIm[matches[:, 1] == n]
-                newCL[n].append(class_images)
-                 
-            del(transforIm)
-            # torch.cuda.empty_cache()
             
-            newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
-            clk = self.averages(data, newCL, classes)          
-
+                if class_images.shape[0] == 0:
+                    clk[n] = cl[n]
+                    continue
             
-            res_classes = self.frc_resolution_tensor(newCL, sampling)
-            
-            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
-            
-            clk = self.highpass_cosine_sharpen(clk, res_classes, sampling)                       
+                average, resolution = processor.process(class_images)
+                clk[n] = average
+                                
+            del transforIm
         
             if not hasattr(self, 'grad_squared'):
                 self.grad_squared = torch.zeros_like(cl)
