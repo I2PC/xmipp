@@ -657,6 +657,56 @@ class BnBgpu:
         return mask.squeeze(1)  # [N, H, W]
     
     
+    def correct_background_and_normalize(self, 
+        imgs,
+        signal_radius_px,
+        target_rms=1.0,
+        eps=1e-8,
+    ):
+        """
+        imgs: tensor (N, H, W) o (H, W).
+        signal_radius_px: radio de la región central de señal.
+        target_rms: RMS deseado para cada imagen dentro de la máscara.
+        """
+        single_image = imgs.ndim == 2
+        if single_image:
+            imgs = imgs.unsqueeze(0)
+    
+        if imgs.ndim != 3:
+            raise ValueError("imgs debe tener forma (N,H,W) o (H,W)")
+    
+        n, h, w = imgs.shape
+        device = imgs.device
+    
+        y = torch.arange(h, device=device, dtype=imgs.dtype) - (h - 1) / 2
+        x = torch.arange(w, device=device, dtype=imgs.dtype) - (w - 1) / 2
+        yy, xx = torch.meshgrid(y, x, indexing="ij")
+        rr = torch.sqrt(xx.square() + yy.square())
+    
+        signal_mask = rr <= signal_radius_px
+        background_mask = rr >= signal_radius_px
+    
+        if signal_mask.sum() < 10 or background_mask.sum() < 10:
+            raise ValueError("Las máscaras contienen muy pocos píxeles.")
+    
+        # Estimar y restar el fondo individual de cada average
+        background = imgs[:, background_mask].median(dim=1).values
+        corrected = imgs - background[:, None, None]
+    
+        # Normalizar la amplitud dentro de la región central
+        signal = corrected[:, signal_mask]
+        rms = torch.sqrt(signal.square().mean(dim=1))
+    
+        normalized = corrected * (
+            target_rms / rms.clamp_min(eps)
+        )[:, None, None]
+    
+        if single_image:
+            return normalized[0]
+    
+        return normalized
+    
+    
     def contrast_cv(self, images):
         """
         Calcula el coeficiente de variación (CV) de la desviación estándar

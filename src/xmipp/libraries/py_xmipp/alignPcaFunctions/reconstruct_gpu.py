@@ -231,6 +231,7 @@ class reconstruct:
                             oversamp=2.0, batch_size=32, posit=False):
         
         device = torch.device(self.cuda)
+        bnb = BnBgpu(1)
             
         N, H, W = mmap.data.shape
         D = volume_size
@@ -305,9 +306,10 @@ class reconstruct:
             imgs = torch.as_tensor(np.array(mmap.data[start:end]), device=device, dtype=torch.float32)
             # imgs = mmap.data[start:end]
     
-            # imgs = (imgs - imgs.mean(dim=(-2, -1), keepdim=True)) / (
-            #     imgs.std(dim=(-2, -1), keepdim=True) + 1e-8
-            # )
+            imgs = (imgs - imgs.mean(dim=(-2, -1), keepdim=True)) / (
+                imgs.std(dim=(-2, -1), keepdim=True) + 1e-8
+            )
+            # imgs = bnb.correct_background_and_normalize(imgs, 52)
             
             if posit:
                 imgs = torch.relu(imgs)
@@ -490,17 +492,37 @@ class reconstruct:
         # if torch.abs(vol_real).sum() > 1e-6:
         #     coords = torch.arange(D, device=device, dtype=torch.float32)
         #     X, Y, Z = torch.meshgrid(coords, coords, coords, indexing='ij')
-        #     total = torch.abs(vol_real).sum()
-        #     shift = torch.tensor([(X * torch.abs(vol_real)).sum() / total - D/2,
-        #                           (Y * torch.abs(vol_real)).sum() / total - D/2,
-        #                           (Z * torch.abs(vol_real)).sum() / total - D/2], device=device) / D
+        #
+        #     weights = torch.abs(vol_real)
+        #     total = weights.sum()
+        #
+        #     # Centro de masa actual, expresado en vóxeles
+        #     cx = (X * weights).sum() / total
+        #     cy = (Y * weights).sum() / total
+        #     cz = (Z * weights).sum() / total
+        #
+        #     # Desplazamiento necesario para llevarlo al centro
+        #     delta = torch.stack([
+        #         D / 2 - cx,
+        #         D / 2 - cy,
+        #         D / 2 - cz
+        #     ])
+        #
+        #     freq = torch.fft.fftfreq(D, device=device)
+        #
         #     phase = torch.exp(-2j * torch.pi * (
-        #         torch.fft.fftfreq(D, device=device)[:,None,None] * shift[0] +
-        #         torch.fft.fftfreq(D, device=device)[None,:,None] * shift[1] +
-        #         torch.fft.fftfreq(D, device=device)[None,None,:] * shift[2]
+        #         freq[:, None, None] * delta[0] +
+        #         freq[None, :, None] * delta[1] +
+        #         freq[None, None, :] * delta[2]
         #     ))
-        #     vol_f_shift = torch.fft.fftn(torch.fft.ifftshift(vol_real)) * phase
-        #     vol_real = torch.fft.fftshift(torch.fft.ifftn(vol_f_shift).real)
+        #
+        #     vol_f_shift = torch.fft.fftn(
+        #         torch.fft.ifftshift(vol_real)
+        #     ) * phase
+        #
+        #     vol_real = torch.fft.fftshift(
+        #         torch.fft.ifftn(vol_f_shift).real
+        #     )
     
         return vol_real
     

@@ -195,10 +195,11 @@ if __name__=="__main__":
     texp = torch.from_numpy(expImages).to(cuda)#.pin_memory().to(cuda)
     del expImages
 
-    # texp = bnb.zscore_normalization(texp)
+    texp = bnb.zscore_normalization(texp)
     # mask = bnb.create_gaussian_mask(texp)
     # texp = bnb.zscore_normalization_mask(texp, mask)
-    texp *= bnb.create_gaussian_mask(texp, 42)
+    # texp = bnb.correct_background_and_normalize(texp, 52)
+    # texp *= bnb.create_gaussian_mask(texp, 42)
 
 
     if radius:
@@ -251,12 +252,12 @@ if __name__=="__main__":
         vectorRot.sort()         
         nShift = len(vectorshift)
         
-        if current_iter < 10:
-            texp_align = texp * bnb.contrast_dominant_mask(texp, window=3, contrast_percentile=80,
-                                    intensity_percentile=50, smooth_sigma=1.0)
-        else:
-            texp_align = texp
-        # texp_align = texp
+        # if current_iter < 7:
+        #     texp_align = texp * bnb.contrast_dominant_mask(texp, window=3, contrast_percentile=80,
+        #                             intensity_percentile=50, smooth_sigma=1.0)
+        # else:
+        #     texp_align = texp
+        texp_align = texp
         
         # file = output+"_exp.mrcs" 
         # save_proj(texp_align, file, sampling) 
@@ -270,12 +271,13 @@ if __name__=="__main__":
                    
             tref = all_refs_cpu[i].to(cuda)#, non_blocking=True)
             
-            # tref = bnb.zscore_normalization(tref)
+            tref = bnb.zscore_normalization(tref)
             # mask = bnb.create_gaussian_mask(tref)
             # tref = bnb.zscore_normalization_mask(tref, mask)
+            # tref = bnb.correct_background_and_normalize(tref, 52)
             tref *= bnb.create_gaussian_mask(tref, 42)
             
-            if current_iter < 10:
+            if current_iter < 7:
                 tref = tref * bnb.contrast_dominant_mask(tref, window=3, contrast_percentile=80,
                                     intensity_percentile=50, smooth_sigma=1.0)
             
@@ -354,16 +356,17 @@ if __name__=="__main__":
             # vol = (vol - vol.mean()) / (vol.std() + 1e-8)    
                 
             vol = R.filter_3d(vol, sampling, filtRes)
-            if current_iter < 10:
+            
+            if current_iter < 7:
                 vol = vol * R.contrast_dominant_mask_3d(vol, window=3, contrast_percentile=90,
                                          intensity_percentile=70, smooth_sigma=1.0)
+                
+                # vol = R.mask_otsu(vol, sigma=4.0, noise_level=0.0)
+            
             #posit
             if posit:
                 vol = torch.relu(vol)
                 
-            # if current_iter < 18:
-            # if current_iter > 1 and current_iter < 8:
-            #     vol = R.mask_otsu(vol, sigma=4.0, noise_level=0.0)
                 
             vol = R.apply_spherical_mask(vol, radius)
             

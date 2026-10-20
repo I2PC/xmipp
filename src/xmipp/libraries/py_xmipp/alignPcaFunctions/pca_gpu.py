@@ -339,11 +339,11 @@ class PCAgpu:
             # Texp = torch.from_numpy(expImages).float().to(self.cuda)
             Texp = Img[initBatch:endBatch]
             
-            radius = 64
+            # radius = 64
             # Texp = bnb.zscore_normalization(Texp)
             # mask = bnb.create_gaussian_mask(Texp)
             # Texp = bnb.zscore_normalization_mask(Texp, mask)
-            Texp = Texp * bnb.create_mask(Texp, radius)
+            # Texp = Texp * bnb.create_mask(Texp, radius)
             
             # whitening = bnb.compute_radial_whitening_filter(Texp, sampling, 8.0)
             whitening = 1
