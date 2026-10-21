@@ -1084,9 +1084,9 @@ class BnBgpu:
             )
     
         # Normalización robusta
-        mean = X.mean(dim=0)
-        std = X.std(dim=0, unbiased=False).clamp_min(1e-6)
-        X = (X - mean) / std
+        # mean = X.mean(dim=0)
+        # std = X.std(dim=0, unbiased=False).clamp_min(1e-6)
+        # X = (X - mean) / std
     
         # --------------------------------------------------
         # Inicialización K-means++
