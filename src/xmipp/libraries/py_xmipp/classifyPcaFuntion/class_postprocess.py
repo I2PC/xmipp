@@ -40,7 +40,7 @@ class ClassPostprocess:
         clamp_exp=80.0,
         hard_cut=False,
         nyquist_margin=0.95,
-        normalize=True,
+        normalize=False,
         f_energy=2.0,
         boost_max=None,
         sharpen_power=None,
