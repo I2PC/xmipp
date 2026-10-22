@@ -192,8 +192,8 @@ class BnBgpu:
     
         for n in range(self.nBand):
             ################################
-            batchRef[n] = batchRef[n] / (torch.linalg.norm(batchRef[n], dim=1, keepdim=True) + 1e-8)
-            batchExp[n] = batchExp[n] / (torch.linalg.norm(batchExp[n], dim=1, keepdim=True) + 1e-8)
+            # batchRef[n] = batchRef[n] / (torch.linalg.norm(batchRef[n], dim=1, keepdim=True) + 1e-8)
+            # batchExp[n] = batchExp[n] / (torch.linalg.norm(batchExp[n], dim=1, keepdim=True) + 1e-8)
             ################################
             score = torch.cdist(batchRef[n], batchExp[n])
     
@@ -473,41 +473,41 @@ class BnBgpu:
         batch_projExp_cpu = self.create_batchExp(transforIm, freqBn, coef, cvecs)
         
         if iter == 2:
-            # newCL = [[] for i in range(classes)]              
-            #
-            # for n in range(classes):
-            #     class_images = transforIm[matches[:, 1] == n]
-            #     newCL[n].append(class_images)
-            #
-            # del(transforIm)
-            # torch.cuda.empty_cache()
-            
-            # newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
-            # clk = self.averages(data, newCL, classes)          
-            #
-            #
-            # res_classes = self.frc_resolution_tensor(newCL, sampling)
-            #
-            # clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
-            #
-            # clk = self.highpass_cosine_sharpen(clk, res_classes, sampling)   
-            
-            
-            processor = ClassPostprocess(sampling=sampling, device=self.cuda, cut=100, cut_res=100,)
-            
-            clk = torch.empty_like(cl)
+            newCL = [[] for i in range(classes)]              
             
             for n in range(classes):
                 class_images = transforIm[matches[:, 1] == n]
+                newCL[n].append(class_images)
             
-                if class_images.shape[0] == 0:
-                    clk[n] = cl[n]
-                    continue
+            del(transforIm)
+            torch.cuda.empty_cache()
             
-                average, resolution = processor.process(class_images)
-                clk[n] = average
-                                
-            del transforIm
+            newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
+            clk = self.averages(data, newCL, classes)          
+            
+            
+            res_classes = self.frc_resolution_tensor(newCL, sampling)
+            
+            clk = self.gaussian_lowpass_filter_2D_adaptive(clk, res_classes, sampling)
+            
+            clk = self.highpass_cosine_sharpen(clk, res_classes, sampling)   
+            
+            
+            # processor = ClassPostprocess(sampling=sampling, device=self.cuda, cut=100, cut_res=100,)
+            #
+            # clk = torch.empty_like(cl)
+            #
+            # for n in range(classes):
+            #     class_images = transforIm[matches[:, 1] == n]
+            #
+            #     if class_images.shape[0] == 0:
+            #         clk[n] = cl[n]
+            #         continue
+            #
+            #     average, resolution = processor.process(class_images)
+            #     clk[n] = average
+            #
+            # del transforIm
             
             file_avg = "classInt.mrcs"
             self.save_images(clk.cpu().detach().numpy(), sampling, file_avg)
@@ -655,7 +655,7 @@ class BnBgpu:
     @torch.no_grad()
     def gaussian_lowpass_filter_2D_adaptive(self, imgs, res_angstrom, pixel_size,
                                             floor_res=100.0, clamp_exp=80.0,
-                                            hard_cut=False, nyquist_margin=0.95, normalize = False):
+                                            hard_cut=False, nyquist_margin=0.95, normalize = True):
         B, H, W = imgs.shape
         device, eps = imgs.device, 1e-8
     
@@ -872,7 +872,7 @@ class BnBgpu:
         sharpen_power: float = None,    # si None, se ajusta automáticamente según resolución
         factorR: float = None,
         eps: float = 1e-8,
-        normalize: bool = False,
+        normalize: bool = True,
         max_iter: int = 20
     ) -> torch.Tensor:
         B, H, W = averages.shape
